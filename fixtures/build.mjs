@@ -18,6 +18,8 @@ const notebooks = [
   { _id: "fx-nb-travel", name: "Travel" },
 ];
 
+const taskItems = {"Harbor redesign: kickoff": [["Agree goals with the client", true], ["Draft the sitemap", true], ["Book the design review", false], ["Share the timeline", false]], "Harbor redesign: content plan": [["Assign an owner per page", true], ["Write the services copy", false], ["Collect team photos", false]], "Quarry rebrand: naming": [["Check three domains", false], ["Run the shout test with sales", true], ["Send the shortlist to the client", false]], "Weekly sync, week 42": [["Send Quarry names to legal", false], ["Start Lighthouse sprint one", true]], "1:1 with Kari Eksempel": [["Hand Kari the Lighthouse backlog", false], ["Ask finance about the conference budget", false]], "Onboarding checklist": [["Order the laptop", true], ["Create accounts", true], ["Pair on a first small change", false], ["Lunch with the team", false]], "Book the dentist": [["Call the clinic", false]], "Plan for the day": [["Deep work: Harbor wireframes", true], ["Client call at two", false], ["Evening walk", false]], "Groceries": [["Milk", true], ["Bread", false], ["Leeks and carrots", false], ["Fresh fish", false], ["Coffee", true]], "Garden: autumn": [["Plant tulip bulbs", false], ["Cover the roses", false], ["Rake the leaves", true]], "Kitchen cupboards": [["Top shelf", true], ["Spice drawer", false], ["Under the sink", false]], "Car service": [["Book winter tyres", false], ["Check brake fluid", false]], "Trip: Bergen weekend": [["Book the train", true], ["Find a hotel by the harbour", false], ["Reserve a table Saturday", false]], "Packing list": [["Charger", false], ["Passport", true], ["Wool sweater", false], ["Rain jacket", false]]};
+
 const seeds = [
   ["projects", "Harbor redesign: kickoff", ["harbor", "kickoff"], ["Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.", "Owner: Ola Testesen. Deadline end of quarter."], "tasks"],
   ["projects", "Harbor redesign: sitemap", ["harbor", "ia"], ["Top level: Home, Services, Work, About, Contact. Services splits into three.", "Open question: does Work need filters?"], "link:0"],
@@ -76,7 +78,7 @@ seeds.forEach(([nb, title, tags, paras, extra], i) => {
   const id = `fx-note-${String(i).padStart(2, "0")}`;
   const blocks = paras.map((p, j) => para(`${id}-p${j}`, text(p)));
   const links = [];
-  if (extra === "tasks") blocks.push(checklist(`${id}-t`, [["First step", true], ["Second step", false], ["Follow up", false]]));
+  if (extra === "tasks") blocks.push(checklist(`${id}-t`, taskItems[title]));
   if (extra === "bullets") blocks.push(bullets(`${id}-b`, ["One", "Two", "Three"]));
   if (extra?.startsWith("link:")) {
     const target = `fx-note-${extra.slice(5).padStart(2, "0")}`;
