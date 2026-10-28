@@ -20,9 +20,12 @@ Notes and projects for visual thinkers. Evernote's calm three panes, built on Ba
 | [JOURNEYS.md](JOURNEYS.md) | What "works" means, J01–J10 |
 | [QUALITY.md](QUALITY.md) | Visual rules, evidence, speed budgets |
 | [docs/decisions/](docs/decisions/) | Why it's built this way |
+| [spikes/](spikes/) | Rival tests behind the unsure decisions |
+| [contracts/barkpark/](contracts/barkpark/) | Schemas, prefs keys, datasets |
 
 Plan: `/papers/barkever-plan` on guerrilla.barkpark.cloud. Work: `bp task get task-42e5633d742184c5`.
 
 ```sh
 npm run check   # repo guard: doc sizes, pictures, images, deps, secrets
+npm run seed    # 50 synthetic notes → barkever/fixtures (never production)
 ```

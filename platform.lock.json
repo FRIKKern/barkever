@@ -1,0 +1,26 @@
+{
+  "barkpark": {
+    "server": "https://guerrilla.barkpark.cloud",
+    "workspace": "barkever",
+    "observedVersion": "0.2.30.11",
+    "observedCommit": "2d0260c474b613b753cd1a98699c0c1614d309db",
+    "observedAt": "2026-10-29",
+    "sdk": null
+  },
+  "status": "deployment-verified",
+  "verified": true,
+  "capabilities": [
+    { "name": "note and notebook schemas apply", "verified": true, "evidence": "spikes/note-type/REPORT.md; bp schema apply on barkever/production 2026-10-29" },
+    { "name": "mutate with ifRevisionID, stale rev → 412", "verified": true, "evidence": "spikes/note-type/out/01-create-and-conflict.txt:230,244" },
+    { "name": "bp-paper-canvas edits a note body (editor: blocks)", "verified": true, "evidence": "spikes/note-type/05-canvas.mjs, out/05-canvas.txt" },
+    { "name": "backlinks from links[] reference field on drafts", "verified": true, "evidence": "spikes/note-type/out/02-links-search.txt:62; fixtures: fx-note-00 has 4" },
+    { "name": "backlinks from body wikilinks on drafts", "verified": false, "evidence": "spikes/note-type/out/02-links-search.txt:51 — only after publish; mirrored into links[] (decision 0013)" },
+    { "name": "search by body word", "verified": true, "evidence": "fixtures search 'tulips' → 1 hit; drafts need perspective=drafts" },
+    { "name": "history and restore", "verified": true, "evidence": "spikes/note-type/out/03-history-restore.txt:2,91,127" },
+    { "name": "checklist blocks (list task:true) stored", "verified": true, "evidence": "fixtures fx-note-00 body read back with list task=true" },
+    { "name": "per-user prefs for shortcuts and recents", "verified": true, "evidence": "PUT/GET /w/barkever/p/default/v1/prefs/production/barkever.shortcuts → 200" },
+    { "name": "listen SSE replay with Last-Event-ID", "verified": true, "evidence": "spikes/sync-sse/REPORT.md, results.jsonl" },
+    { "name": "listen replay safe across in-flight commits", "verified": false, "evidence": "spikes/sync-sse/REPORT.md: 30–36 of 300 lost; client rewind + seen-set (decision 0014)" },
+    { "name": "changes-since-cursor document feed with deletes", "verified": false, "evidence": "spikes/sync-pull/REPORT.md: none exists; count + manifest diff instead (decision 0014)" }
+  ]
+}

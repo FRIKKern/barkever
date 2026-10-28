@@ -6,6 +6,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "check": "node scripts/check-repo.mjs"
+    "check": "node scripts/check-repo.mjs",
+    "fixtures": "node fixtures/build.mjs",
+    "seed": "node fixtures/build.mjs && node scripts/seed-fixtures.mjs"
   }
 }

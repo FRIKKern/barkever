@@ -1,0 +1,10 @@
+{
+  "name": "notebook",
+  "title": "Notebook",
+  "visibility": "private",
+  "fields": [
+    {"name": "name", "title": "Name", "type": "string", "validation": {"required": true}},
+    {"name": "parent", "title": "Stack", "type": "reference", "refType": "notebook"}
+  ],
+  "listPreview": {"title": "name"}
+}
