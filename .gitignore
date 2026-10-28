@@ -10,3 +10,5 @@ dist/
 evidence/runs/
 .barkpark/
 .claude/worktrees/
+test-results/
+playwright-report/

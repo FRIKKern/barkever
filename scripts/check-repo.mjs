@@ -72,6 +72,17 @@ if (files.includes("JOURNEYS.md")) {
   if (dup.length) fail("JOURNEYS.md", `duplicate ids ${dup.join(", ")}`);
 }
 
+// 8. Barkpark boundary (decision 0003): only app/src/server/** names Barkpark's address or API paths.
+//    Vite's import protection guards imports; this guards copies (a URL or a fetch path pasted elsewhere).
+const bpAddress = [/https?:\/\/[^\s'"`]*barkpark[^\s'"`]*/i, /\/v1\/data\b/];
+for (const f of files.filter((f) => f.startsWith("app/src/") && !f.startsWith("app/src/server/"))) {
+  const lines = read(f).split("\n");
+  lines.forEach((line, i) => {
+    const hit = bpAddress.map((re) => line.match(re)).find(Boolean);
+    if (hit) fail(`${f}:${i + 1}`, `Barkpark address "${hit[0]}" outside app/src/server/ (see docs/decisions/0003)`);
+  });
+}
+
 if (errors.length) {
   console.error(`check-repo: ${errors.length} problem(s)\n` + errors.map((e) => `  ✗ ${e}`).join("\n"));
   process.exit(1);

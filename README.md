@@ -25,7 +25,18 @@ Notes and projects for visual thinkers. Evernote's calm three panes, built on Ba
 
 Plan: `/papers/barkever-plan` on guerrilla.barkpark.cloud. Work: `bp task get task-42e5633d742184c5`.
 
+Run the app (Node 22, pnpm). It reads `barkever/fixtures` with your `bp` login, or with `app/.env.local` (see [app/.env.example](app/.env.example)):
+
 ```sh
-npm run check   # repo guard: doc sizes, pictures, images, deps, secrets
-npm run seed    # 50 synthetic notes → barkever/fixtures (never production)
+pnpm install
+pnpm dev        # http://localhost:3000 — lists the 50 fixture notes
+```
+
+```sh
+npm run check     # repo guard: doc sizes, pictures, images, deps, secrets, Barkpark boundary
+npm run seed      # 50 synthetic notes → barkever/fixtures (never production)
+pnpm -r build     # typecheck + production build
+pnpm -r test      # unit tests
+pnpm e2e          # production build in Chrome: ≥ 50 notes
+npm run prepush   # all of the above + secret scan of Entire checkpoints
 ```
