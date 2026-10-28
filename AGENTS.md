@@ -19,7 +19,7 @@ code history  ─► Entire checkpoints (every commit carries its prompt + trans
 2. Worktree for anything but `main`: `git worktree add ../barkever-wt/<name> -b <name>`. The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. Push, open a Trail with the task id in its body, put the Trail URL on the task.
+5. `npm run prepush` (guard + secret scan of Entire checkpoints), then push, open a Trail with the task id in its body, put the Trail URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Rules

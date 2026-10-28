@@ -8,6 +8,8 @@
   "scripts": {
     "check": "node scripts/check-repo.mjs",
     "fixtures": "node fixtures/build.mjs",
-    "seed": "node fixtures/build.mjs && node scripts/seed-fixtures.mjs"
+    "seed": "node fixtures/build.mjs && node scripts/seed-fixtures.mjs",
+    "scan": "node scripts/scan-outgoing.mjs",
+    "prepush": "node scripts/check-repo.mjs && node scripts/scan-outgoing.mjs"
   }
 }
