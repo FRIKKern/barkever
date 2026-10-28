@@ -13,8 +13,8 @@
     "scan": "node scripts/scan-outgoing.mjs",
     "dev": "pnpm --filter @barkever/app dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "node --test scripts/check-repo.test.mjs && pnpm -r test",
     "e2e": "pnpm --filter @barkever/app e2e",
-    "prepush": "node scripts/check-repo.mjs && pnpm -r build && pnpm -r test && pnpm --filter @barkever/app e2e && node scripts/scan-outgoing.mjs"
+    "prepush": "node scripts/check-repo.mjs && pnpm -r build && node --test scripts/check-repo.test.mjs && pnpm -r test && pnpm --filter @barkever/app e2e && node scripts/scan-outgoing.mjs"
   }
 }
