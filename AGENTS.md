@@ -22,6 +22,16 @@ code history  ─► Entire checkpoints (every commit carries its prompt + trans
 5. `npm run prepush` (guard + secret scan of Entire checkpoints), then push, open a Trail with the task id in its body, put the Trail URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
+## Long unattended runs
+
+```
+bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► unsure? rival spikes ─► judge
+   ▲                                                                              │
+   └── close with evidence ◄── push (npm run prepush) ◄── squash onto main ◄──────┘
+```
+
+Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged on the task for the owner to override. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
+
 ## Rules
 
 - **Picture first.** Docs, Papers, Trails and task closes open with a diagram, a table or a screenshot.
