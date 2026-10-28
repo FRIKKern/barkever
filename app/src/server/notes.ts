@@ -4,7 +4,6 @@ import {toNoteRows, type BpNote, type BpNotebook, type NoteRow} from './note-row
 
 type Page<T> = {result: {documents: T[]; hasMore: boolean}}
 
-// Barkpark serves at most 1000 rows a request; this reads every page.
 async function readAll<T>(type: string, order: string): Promise<T[]> {
   const docs: T[] = []
   for (let more = true; more; ) {
@@ -15,7 +14,6 @@ async function readAll<T>(type: string, order: string): Promise<T[]> {
   return docs
 }
 
-/** Every note, title A–Z, with its notebook's name (reads use perspective=drafts, decision 0013). */
 export async function listNoteRows(): Promise<NoteRow[]> {
   const [notes, notebooks] = await Promise.all([readAll<BpNote>('note', 'title:asc'), readAll<BpNotebook>('notebook', 'name:asc')])
   return toNoteRows(notes, notebooks)

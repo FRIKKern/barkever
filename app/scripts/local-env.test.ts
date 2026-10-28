@@ -5,7 +5,6 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fillFromBarkparkCli} from './local-env.ts'
 
-// Fake values only: this test never touches the real ~/.config/barkpark.
 const cfg = join(mkdtempSync(join(tmpdir(), 'bk-env-')), 'config.json')
 writeFileSync(cfg, JSON.stringify({server: 'https://bp.example', token: 'fake-cli-token'}))
 

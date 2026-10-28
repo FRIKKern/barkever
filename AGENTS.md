@@ -38,6 +38,7 @@ Owner-only choices (a design pick) get a provisional pick from an independent ju
 - **Unrun means unrun.** Never report a check you didn't run.
 - **Nobody signs off their own journey.**
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
+- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. No CI. Be brave; other agents review after.
 - **Unsure? Test, don't guess.** Any decision you aren't sure of gets rival spikes: one agent per direction, same tests, same report table. Spike code lives in `spikes/<name>/`; the winner becomes a decision, the loser's report is linked from it.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.

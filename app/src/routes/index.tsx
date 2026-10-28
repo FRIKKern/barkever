@@ -7,7 +7,6 @@ export const Route = createFileRoute('/')({
   component: NoteList,
 })
 
-// Plumbing only: plain HTML until the UI work lands.
 function NoteList() {
   const {data: rows} = useSuspenseQuery(noteRowsQuery)
   return (

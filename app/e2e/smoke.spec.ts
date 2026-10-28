@@ -1,6 +1,5 @@
 import {expect, test} from '@playwright/test'
 
-// The production build lists the 50 fixture notes from barkever/fixtures, each with its notebook.
 test('home lists at least 50 notes with their notebooks', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))

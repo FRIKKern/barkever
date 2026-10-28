@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// Builds fixtures/notes.ndjson: synthetic notebooks + notes. Deterministic, no network.
-// Every id starts with "fx-"; every person, company and place is made up.
 import { writeFileSync } from "node:fs";
 
 const text = (value) => ({ type: "text", value });
@@ -20,7 +18,6 @@ const notebooks = [
   { _id: "fx-nb-travel", name: "Travel" },
 ];
 
-// [notebook, title, tags, paragraphs, extra]
 const seeds = [
   ["projects", "Harbor redesign: kickoff", ["harbor", "kickoff"], ["Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.", "Owner: Ola Testesen. Deadline end of quarter."], "tasks"],
   ["projects", "Harbor redesign: sitemap", ["harbor", "ia"], ["Top level: Home, Services, Work, About, Contact. Services splits into three.", "Open question: does Work need filters?"], "link:0"],

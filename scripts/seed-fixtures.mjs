@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Seeds fixtures/notes.ndjson into a Barkpark dataset. Refuses "production": fixtures never mix with real notes.
-// Usage: node scripts/seed-fixtures.mjs [dataset=fixtures]
-// The token is read from ~/.config/barkpark/config.json and never printed.
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 

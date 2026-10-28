@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Before a push: scan every Entire checkpoint queued for origin for secrets.
-// Looks for the literal tokens in ~/.config/barkpark/config.json plus common key patterns.
-// Prints only counts and checkpoint ids, never a secret.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -12,7 +9,6 @@ const secrets = [];
 const cfgPath = `${homedir()}/.config/barkpark/config.json`;
 if (existsSync(cfgPath)) {
   const cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
-  // "barkpark-dev-token" is Barkpark's published dev default (in its own source), not a secret.
   const publicDefaults = new Set(["barkpark-dev-token"]);
   for (const t of [cfg.token, cfg.cloud_token, ...(cfg.known_servers ?? []).map((s) => s.token)]) if (t && t.length > 12 && !publicDefaults.has(t)) secrets.push(t);
 }
