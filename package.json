@@ -1,0 +1,11 @@
+{
+  "name": "barkever",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node scripts/check-repo.mjs"
+  }
+}
