@@ -1,0 +1,71 @@
+n4 before: _id n4 _rev c5b17ea8c2b2e6880b9a89ed6cf0ab66
+
+## insert-after on published n4 → 422 (32.6 ms)
+{
+ "error": {
+  "code": "invalid_op",
+  "description": "not allowed in this field: inline wikilink is not in this field's vocabulary",
+  "message": "not allowed in this field: inline wikilink is not in this field's vocabulary",
+  "request_id": "GOLUDoCkQZy9wI0ABXOD"
+ },
+ "message": "not allowed in this field: inline wikilink is not in this field's vocabulary",
+ "statusCode": 422
+}
+n4 after op: _id n4 blocks 1
+n4 published copy blocks 1
+
+## patch-block with STALE ifRev → 422 (25.6 ms)
+{
+ "error": {
+  "code": "invalid_op",
+  "description": "the op could not be applied",
+  "message": "the op could not be applied",
+  "request_id": "GOLUDoW6vVS9wI0ABXPj"
+ },
+ "message": "the op could not be applied",
+ "statusCode": 422
+}
+
+## patch-block with fresh rev → 422 (22.6 ms)
+{
+ "error": {
+  "code": "malformed_op",
+  "description": "ifRev is required: read the document and send its current _rev",
+  "message": "ifRev is required: read the document and send its current _rev",
+  "request_id": "GOLUDodDsEy9wI0ABXQD"
+ },
+ "message": "ifRev is required: read the document and send its current _rev",
+ "statusCode": 422
+}
+
+## backlinks n3 (draft body link from n4) → 200 (32.2 ms)
+{
+ "result": {
+  "count": 0,
+  "backlinks": []
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n3"
+ ]
+}
+
+## publish n4 → 404 (24.5 ms)
+{
+ "error": {
+  "code": "not_found",
+  "message": "document not found",
+  "hint": "Check the document _id, type, and dataset in the URL — the resource does not exist in this scope.",
+  "request_id": "GOLUDoqSC0O9wI0ABXRD"
+ }
+}
+
+## backlinks n3 after publish → 200 (32.9 ms)
+{
+ "result": {
+  "count": 0,
+  "backlinks": []
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n3"
+ ]
+}

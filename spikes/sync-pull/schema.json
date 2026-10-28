@@ -1,0 +1,10 @@
+{
+  "name": "spikeNote",
+  "title": "Spike note",
+  "visibility": "private",
+  "fields": [
+    { "name": "title", "type": "string" },
+    { "name": "body", "type": "text" },
+    { "name": "seq", "type": "number" }
+  ]
+}

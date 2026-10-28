@@ -1,0 +1,337 @@
+
+## create notebooks → 200 (155.7 ms)
+{
+ "results": [
+  {
+   "id": "drafts.r1-nb-work",
+   "operation": "createOrReplace",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.351401Z",
+    "_draft": true,
+    "_id": "drafts.r1-nb-work",
+    "_publishedId": "r1-nb-work",
+    "_rev": "25ee55b0fb36acf168aecd588942dcce",
+    "_type": "notebook",
+    "_updatedAt": "2026-10-28T23:09:11.351401Z",
+    "name": "Work",
+    "title": "Work"
+   }
+  },
+  {
+   "id": "drafts.r1-nb-home",
+   "operation": "createOrReplace",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.360544Z",
+    "_draft": true,
+    "_id": "drafts.r1-nb-home",
+    "_publishedId": "r1-nb-home",
+    "_rev": "c554c1ba3ac0e27bb6f4c2a00861b1f3",
+    "_type": "notebook",
+    "_updatedAt": "2026-10-28T23:09:11.360544Z",
+    "name": "Home",
+    "title": "Home"
+   }
+  }
+ ],
+ "transactionId": "8ce2de204bcde6e97a1cce44218e9450"
+}
+
+## create 5 notes → 200 (61.4 ms)
+{
+ "results": [
+  {
+   "id": "drafts.r1-n1",
+   "operation": "createOrReplace",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.407512Z",
+    "_draft": true,
+    "_id": "drafts.r1-n1",
+    "_publishedId": "r1-n1",
+    "_rev": "10e01e53164229ab620705c48270af81",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:09:11.407512Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Kickoff with the aubergine team on Monday."
+        }
+       ],
+       "id": "n1-p1",
+       "type": "paragraph"
+      }
+     ]
+    },
+    "notebook": {
+     "_ref": "r1-nb-work",
+     "_type": "reference"
+    },
+    "tags": [
+     "spike"
+    ],
+    "title": "Kickoff"
+   }
+  },
+  {
+   "id": "drafts.r1-n2",
+   "operation": "createOrReplace",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.415161Z",
+    "_draft": true,
+    "_id": "drafts.r1-n2",
+    "_publishedId": "r1-n2",
+    "_rev": "1d23a69f0a9764e780e02a42cd1015f8",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:09:11.415161Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Budget draft for Q4."
+        }
+       ],
+       "id": "n2-p1",
+       "type": "paragraph"
+      },
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "See "
+        },
+        {
+         "children": [
+          {
+           "type": "text",
+           "value": "the kickoff note"
+          }
+         ],
+         "docId": "r1-n1",
+         "target": "r1-n1",
+         "type": "wikilink"
+        },
+        {
+         "type": "text",
+         "value": "."
+        }
+       ],
+       "id": "n2-p2",
+       "type": "paragraph"
+      }
+     ]
+    },
+    "notebook": {
+     "_ref": "r1-nb-work",
+     "_ty
+
+## n1 published → 404 (28.8 ms)
+{
+ "error": {
+  "code": "not_found",
+  "description": "document not found",
+  "hint": "Check the document _id, type, and dataset in the URL — the resource does not exist in this scope.",
+  "message": "document not found",
+  "request_id": "GOLUOvzvcnOkM20ABkDD"
+ },
+ "message": "document not found",
+ "statusCode": 404
+}
+
+## n1 drafts → 200 (28.4 ms)
+{
+ "result": {
+  "_createdAt": "2026-10-28T23:09:11.407512Z",
+  "_draft": true,
+  "_id": "drafts.r1-n1",
+  "_publishedId": "r1-n1",
+  "_rev": "10e01e53164229ab620705c48270af81",
+  "_type": "note",
+  "_updatedAt": "2026-10-28T23:09:11.407512Z",
+  "body": {
+   "blocks": [
+    {
+     "content": [
+      {
+       "type": "text",
+       "value": "Kickoff with the aubergine team on Monday."
+      }
+     ],
+     "id": "n1-p1",
+     "type": "paragraph"
+    }
+   ]
+  },
+  "notebook": {
+   "_ref": "r1-nb-work",
+   "_type": "reference"
+  },
+  "tags": [
+   "spike"
+  ],
+  "title": "Kickoff"
+ },
+ "etag": "10e01e53164229ab620705c48270af81",
+ "syncTags": [
+  "bp:ds:spike-note-a:doc:r1-n1",
+  "bp:ds:spike-note-a:type:note"
+ ],
+ "ms": 3,
+ "schemaHash": "30b219a7ec8aed1d"
+}
+
+n1 _id drafts.r1-n1 _rev 10e01e53164229ab620705c48270af81
+
+## patch with current rev → 200 (40 ms)
+{
+ "results": [
+  {
+   "id": "drafts.r1-n1",
+   "operation": "update",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.407512Z",
+    "_draft": true,
+    "_id": "drafts.r1-n1",
+    "_publishedId": "r1-n1",
+    "_rev": "3f918b581c69ffaeaed11fe141a1f987",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:09:11.530201Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Kickoff with the aubergine team on Monday."
+        }
+       ],
+       "id": "n1-p1",
+       "type": "paragraph"
+      }
+     ]
+    },
+    "notebook": {
+     "_ref": "r1-nb-work",
+     "_type": "reference"
+    },
+    "tags": [
+     "spike"
+    ],
+    "title": "Kickoff (edited)"
+   }
+  }
+ ],
+ "transactionId": "60581d4126c56bb57fcca66f5b8c3bc7"
+}
+
+## patch with STALE rev → 412 (27.2 ms)
+{
+ "error": {
+  "code": "precondition_failed",
+  "message": "document revision mismatch",
+  "hint": "Re-fetch the document and retry with the current revision — it changed under you.",
+  "details": {
+   "actual": "3f918b581c69ffaeaed11fe141a1f987",
+   "expected": "10e01e53164229ab620705c48270af81"
+  },
+  "request_id": "GOLUOwK_yIakM20ABkFj"
+ }
+}
+
+n1 title after both writes: "Kickoff (edited)"
+
+## create note without notebook (required) → 200 (38.1 ms)
+{
+ "warnings": [
+  {
+   "code": "schema_validation",
+   "message": "note/drafts.r1-n-noref: notebook — Required (schema advisory; this dataset does not enforce schema validation)",
+   "severity": "warning",
+   "findings": [
+    {
+     "code": "required",
+     "message": "Required",
+     "path": "/notebook",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "results": [
+  {
+   "id": "drafts.r1-n-noref",
+   "operation": "create",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.625479Z",
+    "_draft": true,
+    "_id": "drafts.r1-n-noref",
+    "_publishedId": "r1-n-noref",
+    "_rev": "17a1de40adf0f6346dbc1ec693bc48be",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:09:11.625479Z",
+    "title": "No notebook"
+   }
+  }
+ ],
+ "transactionId": "26f67e9bad5a1aeea87f82813747f1a7"
+}
+
+## publish note without notebook → 200 (48.5 ms)
+{
+ "results": [
+  {
+   "id": "r1-n-noref",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.663577Z",
+    "_draft": false,
+    "_id": "r1-n-noref",
+    "_publishedId": "r1-n-noref",
+    "_rev": "a64703f087a6095a8c0bac33ec8ebaaa",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:09:11.663577Z",
+    "title": "No notebook"
+   }
+  }
+ ],
+ "transactionId": "233abfe90c148b66f0bf9ae9c3ecffae"
+}
+
+## create notebook without name (required) → 200 (34.1 ms)
+{
+ "warnings": [
+  {
+   "code": "schema_validation",
+   "message": "notebook/drafts.r1-nb-noname: name — Required (schema advisory; this dataset does not enforce schema validation)",
+   "severity": "warning",
+   "findings": [
+    {
+     "code": "required",
+     "message": "Required",
+     "path": "/name",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "results": [
+  {
+   "id": "drafts.r1-nb-noname",
+   "operation": "create",
+   "document": {
+    "_createdAt": "2026-10-28T23:09:11.708352Z",
+    "_draft": true,
+    "_id": "drafts.r1-nb-noname",
+    "_publishedId": "r1-nb-noname",
+    "_rev": "5f0be5184ab0fab1b764247780482ce4",
+    "_type": "notebook",
+    "_updatedAt": "2026-10-28T23:09:11.708352Z",
+    "title": null
+   }
+  }
+ ],
+ "transactionId": "41a24c9a1da47d87a7b33b6151a26024"
+}

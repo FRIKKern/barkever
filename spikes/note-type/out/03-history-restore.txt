@@ -1,0 +1,282 @@
+
+## history n1 → 200 (158 ms)
+{
+ "count": 3,
+ "offset": 0,
+ "limit": 50,
+ "has_more": false,
+ "next_offset": null,
+ "revisions": [
+  {
+   "id": "b06592cd-66e1-4c56-8644-81e8e9255a54",
+   "status": "published",
+   "timestamp": "2026-10-28T23:04:34.276384Z",
+   "rev": "d5c4a453ca311a9f067ee4c37d1bfeae",
+   "title": "Kickoff (edited)",
+   "action": "publish",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  },
+  {
+   "id": "4d1dbf46-35ff-4010-975b-dd132e2e067f",
+   "status": "draft",
+   "timestamp": "2026-10-28T23:04:10.357526Z",
+   "rev": "dce6dff293049a9b76c69981dcb27986",
+   "title": "Kickoff (edited)",
+   "action": "update",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  },
+  {
+   "id": "06f895cc-94fb-4489-a661-b3bec7539c1a",
+   "status": "draft",
+   "timestamp": "2026-10-28T23:04:10.231479Z",
+   "rev": "a8bc2d19a96e97d7ceed017f23b65fda",
+   "title": "Kickoff",
+   "action": "create",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  }
+ ]
+}
+
+## oldest revision → 200 (40.7 ms)
+{
+ "revision": {
+  "id": "06f895cc-94fb-4489-a661-b3bec7539c1a",
+  "status": "draft",
+  "timestamp": "2026-10-28T23:04:10.231479Z",
+  "type": "note",
+  "rev": "a8bc2d19a96e97d7ceed017f23b65fda",
+  "title": "Kickoff",
+  "action": "create",
+  "dataset": "spike-note-a",
+  "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+  "content": {
+   "body": {
+    "blocks": [
+     {
+      "content": [
+       {
+        "type": "text",
+        "value": "Kickoff with the aubergine team on Monday."
+       }
+      ],
+      "id": "n1-p1",
+      "type": "paragraph"
+     }
+    ]
+   },
+   "notebook": {
+    "_ref": "nb-work",
+    "_type": "reference"
+   },
+   "tags": [
+    "spike"
+   ]
+  },
+  "doc_id": "n1",
+  "actor_label": "<redacted>",
+  "actor_kind": "api_token",
+  "actor_user_id": null
+ }
+}
+
+## restore oldest → 200 (38.7 ms)
+{
+ "document": {
+  "_createdAt": "2026-10-28T23:05:22.671595Z",
+  "_draft": true,
+  "_id": "drafts.n1",
+  "_publishedId": "n1",
+  "_rev": "0fd492b26ebfc1edf16ca31308095f3c",
+  "_type": "note",
+  "_updatedAt": "2026-10-28T23:05:22.671595Z",
+  "body": {
+   "blocks": [
+    {
+     "content": [
+      {
+       "type": "text",
+       "value": "Kickoff with the aubergine team on Monday."
+      }
+     ],
+     "id": "n1-p1",
+     "type": "paragraph"
+    }
+   ]
+  },
+  "notebook": {
+   "_ref": "nb-work",
+   "_type": "reference"
+  },
+  "tags": [
+   "spike"
+  ],
+  "title": "Kickoff"
+ },
+ "restored": true
+}
+
+n1 draft title after restore: "Kickoff" id drafts.n1
+
+## history n1 after restore → 200 (25.1 ms)
+{
+ "count": 3,
+ "offset": 0,
+ "limit": 3,
+ "has_more": true,
+ "next_offset": 3,
+ "revisions": [
+  {
+   "id": "f8747f8f-1249-4dc5-a401-ced9326d3ea7",
+   "status": "draft",
+   "timestamp": "2026-10-28T23:05:22.673585Z",
+   "rev": "0fd492b26ebfc1edf16ca31308095f3c",
+   "title": "Kickoff",
+   "action": "create",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  },
+  {
+   "id": "b06592cd-66e1-4c56-8644-81e8e9255a54",
+   "status": "published",
+   "timestamp": "2026-10-28T23:04:34.276384Z",
+   "rev": "d5c4a453ca311a9f067ee4c37d1bfeae",
+   "title": "Kickoff (edited)",
+   "action": "publish",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  },
+  {
+   "id": "4d1dbf46-35ff-4010-975b-dd132e2e067f",
+   "status": "draft",
+   "timestamp": "2026-10-28T23:04:10.357526Z",
+   "rev": "dce6dff293049a9b76c69981dcb27986",
+   "title": "Kickoff (edited)",
+   "action": "update",
+   "actor_id": "e5ce2b91-e38d-426e-ae68-5006dc414b97",
+   "actor_label": "<redacted>",
+   "actor_kind": "api_token",
+   "actor_user_id": null
+  }
+ ]
+}
+
+## field-ops insert-after on published n4 → 422 (40.6 ms)
+{
+ "error": {
+  "code": "invalid_op",
+  "description": "\"body\" is not a block-editor field (editor: blocks)",
+  "message": "\"body\" is not a block-editor field (editor: blocks)",
+  "request_id": "GOLUBb3vKc4qHtUABzkh"
+ },
+ "message": "\"body\" is not a block-editor field (editor: blocks)",
+ "statusCode": 422
+}
+
+## n4 drafts perspective → 200 (42.8 ms)
+{
+ "result": {
+  "_createdAt": "2026-10-28T23:04:34.296387Z",
+  "_draft": false,
+  "_id": "n4",
+  "_publishedId": "n4",
+  "_rev": "c5b17ea8c2b2e6880b9a89ed6cf0ab66",
+  "_type": "note",
+  "_updatedAt": "2026-10-28T23:04:34.296387Z",
+  "body": {
+   "blocks": [
+    {
+     "content": [
+      {
+       "type": "text",
+       "value": "Plant tulips in October."
+      }
+     ],
+     "id": "n4-p1",
+     "type": "paragraph"
+    }
+   ]
+  },
+  "notebook": {
+   "_ref": "nb-home",
+   "_type": "reference"
+  },
+  "tags": [
+   "spike"
+  ],
+  "title": "Garden"
+ },
+ "etag": "c5b17ea8c2b2e6880b9a89ed6cf0ab66",
+ "syncTags": [
+  "bp:ds:spike-note-a:doc:n4",
+  "bp:ds:spike-note-a:type:note"
+ ],
+ "ms": 2,
+ "schemaHash": "9a6dbc340d1bd239"
+}
+
+## n4 published perspective → 200 (27.7 ms)
+{
+ "result": {
+  "_createdAt": "2026-10-28T23:04:34.296387Z",
+  "_draft": false,
+  "_id": "n4",
+  "_publishedId": "n4",
+  "_rev": "c5b17ea8c2b2e6880b9a89ed6cf0ab66",
+  "_type": "note",
+  "_updatedAt": "2026-10-28T23:04:34.296387Z",
+  "body": {
+   "blocks": [
+    {
+     "content": [
+      {
+       "type": "text",
+       "value": "Plant tulips in October."
+      }
+     ],
+     "id": "n4-p1",
+     "type": "paragraph"
+    }
+   ]
+  },
+  "notebook": {
+   "_ref": "nb-home",
+   "_type": "reference"
+  },
+  "tags": [
+   "spike"
+  ],
+  "title": "Garden"
+ },
+ "etag": "c5b17ea8c2b2e6880b9a89ed6cf0ab66",
+ "syncTags": [
+  "bp:ds:spike-note-a:doc:n4",
+  "bp:ds:spike-note-a:type:note"
+ ],
+ "ms": 3,
+ "schemaHash": "9a6dbc340d1bd239"
+}
+
+## field-ops with STALE ifRev → 422 (24.6 ms)
+{
+ "error": {
+  "code": "invalid_op",
+  "description": "\"body\" is not a block-editor field (editor: blocks)",
+  "message": "\"body\" is not a block-editor field (editor: blocks)",
+  "request_id": "GOLUBcSbbTAqHtUABzmB"
+ },
+ "message": "\"body\" is not a block-editor field (editor: blocks)",
+ "statusCode": 422
+}

@@ -1,0 +1,16 @@
+{
+  "name": "note",
+  "title": "Note",
+  "visibility": "private",
+  "fields": [
+    {"name": "title", "title": "Title", "type": "string"},
+    {"name": "body", "title": "Body", "type": "richText", "editor": "blocks",
+     "blocks": {"styles": ["normal", "h1", "h2", "h3", "blockquote"], "lists": ["bullet", "number"],
+                "marks": ["strong", "em", "code", "underline", "strikethrough"],
+                "annotations": [{"name": "link"}, {"name": "wikilink"}], "of": ["image"]}},
+    {"name": "notebook", "title": "Notebook", "type": "reference", "refType": "notebook", "validation": {"required": true}},
+    {"name": "tags", "title": "Tags", "type": "arrayOf", "ordered": true, "of": {"type": "string"}, "options": {"layout": "tags"}},
+    {"name": "links", "title": "Linked notes", "type": "arrayOf", "ordered": true, "of": {"type": "reference", "refType": "note"}}
+  ],
+  "listPreview": {"title": "title", "subtitle": "notebook"}
+}

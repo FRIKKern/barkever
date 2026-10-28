@@ -1,0 +1,4 @@
+draft create status 200 headers: (no rate-limit headers)
+draft            median 41.2 ms · p95 251 ms · min 36.3 · max 251  raw [251,43.3,40.5,76,38.9,48.2,41.2,36.3,36.9,67.5]
+create+publish   median 58.7 ms · p95 72.1 ms · min 44.1 · max 72.1  raw [72.1,65.8,48.6,71.2,53.9,51.4,60.1,44.1,58.7,67.2]
+create→readable  median 63.2 ms · p95 107 ms · min 53.1 · max 107  raw [56.1,57.8,61.4,82.7,63.2,65.5,71.5,53.1,66.1,107]

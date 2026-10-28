@@ -1,0 +1,273 @@
+{
+ "at": "2026-10-28T23:12:42.904Z",
+ "seed": 2000,
+ "rounds": [
+  {
+   "n": 0,
+   "kinds": {},
+   "cursorAtOffline": "2026-10-28T23:11:59.379064Z",
+   "write": {
+    "ms": 0,
+    "requests": 0
+   },
+   "pullOnly": {
+    "ms": 38,
+    "requests": 1,
+    "kb": 1,
+    "changePages": 1,
+    "applied": 0,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": []
+   },
+   "pullPlusIdDiff": {
+    "ms": 732,
+    "requests": 4,
+    "kb": 848,
+    "changePages": 1,
+    "applied": 0,
+    "removed": 0,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "pullPlusCountGate": {
+    "ms": 86,
+    "requests": 2,
+    "kb": 1,
+    "changePages": 1,
+    "applied": 0,
+    "removed": 0,
+    "diffPages": 1,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 12000
+  },
+  {
+   "n": 10,
+   "kinds": {
+    "directPublish": 1,
+    "publish": 1,
+    "editPublished": 2,
+    "create": 2,
+    "delete": 3,
+    "editDraft": 1
+   },
+   "cursorAtOffline": "2026-10-28T23:11:59.379064Z",
+   "write": {
+    "ms": 202,
+    "requests": 1
+   },
+   "pullOnly": {
+    "ms": 37,
+    "requests": 1,
+    "kb": 3,
+    "changePages": 1,
+    "applied": 7,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 5,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "drafts.smvsq658z-1323",
+     "bigmvsqabua-5542",
+     "drafts.bigmvsqabua-5573",
+     "drafts.bigmvsqabua-7557",
+     "drafts.bigmvsqabua-8457"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 658,
+    "requests": 4,
+    "kb": 850,
+    "changePages": 1,
+    "applied": 7,
+    "removed": 5,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "pullPlusCountGate": {
+    "ms": 724,
+    "requests": 5,
+    "kb": 851,
+    "changePages": 1,
+    "applied": 7,
+    "removed": 5,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 12001
+  },
+  {
+   "n": 100,
+   "kinds": {
+    "editDraft": 19,
+    "directPublish": 4,
+    "unpublish": 3,
+    "create": 31,
+    "discardDraft": 5,
+    "editPublished": 10,
+    "delete": 12,
+    "publish": 16
+   },
+   "cursorAtOffline": "2026-10-28T23:12:48.834376Z",
+   "write": {
+    "ms": 927,
+    "requests": 1
+   },
+   "pullOnly": {
+    "ms": 42,
+    "requests": 1,
+    "kb": 29,
+    "changePages": 1,
+    "applied": 83,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 39,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "smvsq658z-148",
+     "smvsq658z-369",
+     "drafts.n1000xmvsq6ez3-2223",
+     "drafts.smvsq5uvb-10",
+     "drafts.smvsq658z-804"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 729,
+    "requests": 4,
+    "kb": 878,
+    "changePages": 1,
+    "applied": 83,
+    "removed": 39,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "pullPlusCountGate": {
+    "ms": 728,
+    "requests": 5,
+    "kb": 878,
+    "changePages": 1,
+    "applied": 83,
+    "removed": 39,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 12025
+  },
+  {
+   "n": 1000,
+   "kinds": {
+    "create": 264,
+    "editDraft": 220,
+    "publish": 101,
+    "directPublish": 50,
+    "unpublish": 77,
+    "discardDraft": 61,
+    "delete": 132,
+    "editPublished": 95
+   },
+   "cursorAtOffline": "2026-10-28T23:12:52.702413Z",
+   "write": {
+    "ms": 10979,
+    "requests": 10
+   },
+   "pullOnly": {
+    "ms": 91,
+    "requests": 1,
+    "kb": 265,
+    "changePages": 1,
+    "applied": 755,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 360,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "smvsq5uvb-20",
+     "smvsq5uvb-160",
+     "smvsq658z-30",
+     "smvsq658z-126",
+     "smvsq658z-170"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 747,
+    "requests": 4,
+    "kb": 1127,
+    "changePages": 1,
+    "applied": 755,
+    "removed": 360,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "pullPlusCountGate": {
+    "ms": 744,
+    "requests": 5,
+    "kb": 1127,
+    "changePages": 1,
+    "applied": 755,
+    "removed": 360,
+    "diffPages": 3,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 12187
+  }
+ ],
+ "initial": {
+  "ms": 2215,
+  "requests": 16,
+  "kb": 5226,
+  "changePages": 13,
+  "applied": 12000,
+  "removed": 0,
+  "diffPages": 3,
+  "staleAfterDiff": 0,
+  "ok": true,
+  "rows": 12000
+ }
+}

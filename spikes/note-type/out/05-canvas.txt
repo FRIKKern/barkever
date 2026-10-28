@@ -1,0 +1,8 @@
+files {"script":"/assets/v/BDMRsB7cP-_MO7My/bp-paper-editor.bundle.js","styles":["/assets/v/JRTIFVJGIy99RHAY/bp-paper-editor.css","/assets/v/NEpATWucQCG-BD43/bp-paper-editor-shell.css","/assets/v/K-r920ub3N_9ZD-b/bp-paper-surface.css"]}
+start: _id drafts.n5 blocks [{"content":[{"type":"text","value":"Quick capture should feel instant. Typed in the canvas."}],"id":"n5-p1","type":"paragraph"},{"content":[{"type":"text","value":"Second paragraph from Enter."}],"id":"c-1-7b1ekxwi","type":"paragraph"}]
+mounted {"contract":"1.14.0","pm":true,"text":"Quick capture should feel instant. Typed in the canvas.\n\nSecond paragraph from Enter."}
+pending after wait false
+saves [{"status":200,"ms":43.6,"ops":["insert-after","patch-block"]}]
+end: _id drafts.n5 blocks [{"content":[{"type":"text","value":"Quick capture should feel instant. Typed in the canvas. Typed in the canvas."}],"id":"n5-p1","type":"paragraph"},{"content":[{"type":"text","value":"Second paragraph from Enter."}],"id":"c-1-h0wb9rgj","type":"paragraph"},{"content":[{"type":"text","value":"Second paragraph from Enter."}],"id":"c-1-7b1ekxwi","type":"paragraph"}]
+RESULT round trip: PASS
+console: 

@@ -1,0 +1,28 @@
+{
+ "at": "2026-10-28T23:10:16.295Z",
+ "paging": {
+  "keyset": {
+   "pages": 16,
+   "ms": 2543,
+   "concurrentWrites": 72,
+   "lostForever": 0,
+   "behindButReachable": 6,
+   "afterOneMorePull": 0
+  },
+  "offset": {
+   "pages": 13,
+   "ms": 2110,
+   "concurrentWrites": 60,
+   "lostForever": 43,
+   "behindButReachable": 0,
+   "afterOneMorePull": 43
+  },
+  "requests": {
+   "requests": 248,
+   "reads": 220,
+   "writes": 28,
+   "retries429": 0,
+   "bytes": 4551175
+  }
+ }
+}

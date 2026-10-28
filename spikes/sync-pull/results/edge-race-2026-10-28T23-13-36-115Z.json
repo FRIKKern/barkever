@@ -1,0 +1,37 @@
+{
+ "at": "2026-10-28T23:13:36.115Z",
+ "race": {
+  "bigBatch": 300,
+  "bigTxMs": 1616,
+  "smallWritesDuringTx": 5,
+  "pullsDuringTx": 5,
+  "lag0": {
+   "ok": false,
+   "missing": 277,
+   "bigMissing": 277,
+   "wrongRev": 0
+  },
+  "lag10s": {
+   "ok": true,
+   "missing": 0,
+   "bigMissing": 0,
+   "wrongRev": 0
+  },
+  "lag0PlusCountGateAndIdDiff": {
+   "ok": true,
+   "missing": 0,
+   "healedByDiff": 277,
+   "requests": 6,
+   "ms": 885
+  },
+  "eventIdHoles": 0,
+  "eventPolls": 7,
+  "requests": {
+   "requests": 52,
+   "reads": 46,
+   "writes": 6,
+   "retries429": 0,
+   "bytes": 25171268
+  }
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "at": "2026-10-28T23:12:05.134Z",
+ "rows": 12000,
+ "initialFullPull": {
+  "ms": 1455,
+  "requests": 13,
+  "kb": 4379
+ },
+ "groqIdDiff": [
+  {
+   "ms": 723,
+   "requests": 3,
+   "kb": 848,
+   "removed": 0,
+   "stale": 0
+  },
+  {
+   "ms": 825,
+   "requests": 3,
+   "kb": 848,
+   "removed": 0,
+   "stale": 0
+  },
+  {
+   "ms": 721,
+   "requests": 3,
+   "kb": 848,
+   "removed": 0,
+   "stale": 0
+  }
+ ],
+ "restIdList": {
+  "ms": 1893,
+  "requests": 12,
+  "kb": 3268,
+  "rows": 12000
+ }
+}

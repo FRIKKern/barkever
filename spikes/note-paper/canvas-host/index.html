@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Barkever note canvas spike</title>
+<script src="https://guerrilla.barkpark.cloud/assets/bp-paper-editor.bundle.js"></script>
+<style>body { font: 15px system-ui; max-width: 720px; margin: 24px auto; } #status { color: #555; }</style>
+<p id="status">loading…</p>
+<bp-paper-canvas editable="true"></bp-paper-canvas>
+<script type="module">
+  // Host loop per EMBED-CONTRACT.md "Acknowledged saves":
+  // load -> canvas.blocks; bp-canvas-ops -> POST ops with ifRev -> acknowledgeOps / discardInflightOps.
+  const id = new URLSearchParams(location.search).get('id');
+  const status = document.getElementById('status');
+  const canvas = document.querySelector('bp-paper-canvas');
+  window.__log = [];
+  const log = (e) => { window.__log.push(e); status.textContent = JSON.stringify(e); };
+
+  let { rev, blocks, title } = await (await fetch(`/api/note?id=${id}`)).json();
+  canvas.acknowledgedSaves = true;
+  canvas.blocks = blocks;
+  canvas.addEventListener('bp-ready', (e) => log({ ready: e.detail, title, rev }));
+  canvas.addEventListener('bp-canvas-mount-failed', (e) => log({ mountFailed: e.detail }));
+  canvas.addEventListener('bp-canvas-ops', async (e) => {
+    const { ops, seq } = e.detail;
+    const r = await fetch('/api/ops', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id, ops, ifRev: rev }) });
+    const out = await r.json();
+    if (r.ok) { rev = out.rev; canvas.acknowledgeOps(seq, true); log({ saved: seq, rev, ops: ops.map(o => o.op) }); }
+    else { canvas.discardInflightOps(seq); log({ refused: seq, status: r.status, code: out.error?.code }); }
+  });
+</script>

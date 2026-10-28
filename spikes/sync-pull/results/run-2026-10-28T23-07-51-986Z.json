@@ -1,0 +1,177 @@
+{
+ "at": "2026-10-28T23:07:51.986Z",
+ "seed": 2000,
+ "rounds": [
+  {
+   "n": 10,
+   "kinds": {
+    "directPublish": 1,
+    "publish": 1,
+    "editPublished": 2,
+    "create": 2,
+    "delete": 3,
+    "editDraft": 1
+   },
+   "cursorAtOffline": "2026-10-28T23:08:02.303214Z",
+   "write": {
+    "ms": 136,
+    "requests": 1
+   },
+   "pullOnly": {
+    "ms": 25,
+    "requests": 1,
+    "kb": 3,
+    "changePages": 1,
+    "applied": 7,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 4,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "smvsq5uvb-232",
+     "smvsq658z-1042",
+     "drafts.smvsq658z-1079",
+     "smvsq658z-1380"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 188,
+    "requests": 2,
+    "kb": 139,
+    "changePages": 1,
+    "applied": 7,
+    "removed": 4,
+    "diffPages": 1,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 2003
+  },
+  {
+   "n": 100,
+   "kinds": {
+    "editDraft": 19,
+    "directPublish": 4,
+    "unpublish": 3,
+    "create": 32,
+    "discardDraft": 4,
+    "editPublished": 10,
+    "delete": 13,
+    "publish": 15
+   },
+   "cursorAtOffline": "2026-10-28T23:08:03.211241Z",
+   "write": {
+    "ms": 617,
+    "requests": 1
+   },
+   "pullOnly": {
+    "ms": 35,
+    "requests": 1,
+    "kb": 28,
+    "changePages": 1,
+    "applied": 83,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 37,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "drafts.smvsq5uvb-49",
+     "drafts.smvsq5uvb-63",
+     "smvsq5uvb-128",
+     "drafts.smvsq5uvb-193",
+     "drafts.smvsq5uvb-253"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 131,
+    "requests": 2,
+    "kb": 166,
+    "changePages": 1,
+    "applied": 83,
+    "removed": 37,
+    "diffPages": 1,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 2028
+  },
+  {
+   "n": 1000,
+   "kinds": {
+    "publish": 102,
+    "editDraft": 221,
+    "create": 262,
+    "directPublish": 50,
+    "unpublish": 77,
+    "discardDraft": 61,
+    "delete": 132,
+    "editPublished": 95
+   },
+   "cursorAtOffline": "2026-10-28T23:08:04.328088Z",
+   "write": {
+    "ms": 6283,
+    "requests": 10
+   },
+   "pullOnly": {
+    "ms": 71,
+    "requests": 1,
+    "kb": 212,
+    "changePages": 1,
+    "applied": 635,
+    "removed": 0,
+    "diffPages": 0,
+    "staleAfterDiff": null,
+    "ok": false,
+    "ghosts": 289,
+    "missing": 0,
+    "wrongRev": 0,
+    "sampleGhosts": [
+     "smvsq5uvb-0",
+     "smvsq5uvb-12",
+     "smvsq5uvb-24",
+     "smvsq5uvb-50",
+     "drafts.smvsq5uvb-53"
+    ]
+   },
+   "pullPlusIdDiff": {
+    "ms": 243,
+    "requests": 2,
+    "kb": 363,
+    "changePages": 1,
+    "applied": 635,
+    "removed": 289,
+    "diffPages": 1,
+    "staleAfterDiff": 0,
+    "ok": true,
+    "ghosts": 0,
+    "missing": 0,
+    "wrongRev": 0
+   },
+   "serverRows": 2183
+  }
+ ],
+ "initial": {
+  "ms": 433,
+  "requests": 4,
+  "kb": 751,
+  "changePages": 3,
+  "applied": 2002,
+  "removed": 0,
+  "diffPages": 1,
+  "staleAfterDiff": 0,
+  "ok": true,
+  "rows": 2002
+ }
+}

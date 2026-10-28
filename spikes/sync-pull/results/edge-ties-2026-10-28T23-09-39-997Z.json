@@ -1,0 +1,24 @@
+{
+ "at": "2026-10-28T23:09:39.997Z",
+ "ties": {
+  "parallelWrites": 20,
+  "parallelSameMsPairs": 3,
+  "parallelSameUsPairs": 0,
+  "parallelMinGapUs": 135,
+  "batch": 100,
+  "minGapUs": 2139,
+  "medianGapUs": 2699,
+  "sameMsPairs": 0,
+  "sameUsPairs": 0,
+  "cursor": "2026-10-28T23:09:40.422311Z",
+  "rowsAfterExactCursor": 49,
+  "rowsAfterMsTruncatedCursor": 50,
+  "requests": {
+   "requests": 24,
+   "reads": 3,
+   "writes": 21,
+   "retries429": 0,
+   "bytes": 691463
+  }
+ }
+}

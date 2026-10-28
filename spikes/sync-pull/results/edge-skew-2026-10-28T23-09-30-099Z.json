@@ -1,0 +1,16 @@
+{
+ "at": "2026-10-28T23:09:30.099Z",
+ "skew": {
+  "changes": 5,
+  "serverCursorRows": 5,
+  "clientClockPlus1hRows": 0,
+  "clientClockMinus1hRows": 1000,
+  "requests": {
+   "requests": 7,
+   "reads": 6,
+   "writes": 1,
+   "retries429": 0,
+   "bytes": 985784
+  }
+ }
+}

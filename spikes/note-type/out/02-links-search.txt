@@ -1,0 +1,665 @@
+
+## n3.links → n4 (field ref) → 200 (157.3 ms)
+{
+ "results": [
+  {
+   "id": "drafts.n3",
+   "operation": "update",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:10.237433Z",
+    "_draft": true,
+    "_id": "drafts.n3",
+    "_publishedId": "n3",
+    "_rev": "143a8fad5a005a9900c8a16061b1544a",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:04:33.958182Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Milk, eggs, saffron."
+        }
+       ],
+       "id": "n3-p1",
+       "type": "paragraph"
+      }
+     ]
+    },
+    "links": [
+     {
+      "_key": "l1",
+      "_ref": "n4",
+      "_type": "reference"
+     }
+    ],
+    "notebook": {
+     "_ref": "nb-home",
+     "_type": "reference"
+    },
+    "tags": [
+     "spike"
+    ],
+    "title": "Groceries"
+   }
+  }
+ ],
+ "transactionId": "a978da96ae344a72a2d9060c1a80aad5"
+}
+
+## drafts only: backlinks n1 → 200 (33.2 ms)
+{
+ "result": {
+  "count": 0,
+  "backlinks": []
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n1"
+ ]
+}
+
+## drafts only: backlinks n4 → 200 (30.7 ms)
+{
+ "result": {
+  "count": 1,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "143a8fad5a005a9900c8a16061b1544a",
+    "description": null,
+    "title": "Groceries",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:33.958182Z",
+    "via_field": "links",
+    "from_id": "0e10738a-1d3f-4538-a7c7-00752121bc96",
+    "plugin_source": null,
+    "from_doc_id": "n3"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n4"
+ ]
+}
+
+## drafts only: backlinks nb-work → 200 (29.9 ms)
+{
+ "result": {
+  "count": 3,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "dce6dff293049a9b76c69981dcb27986",
+    "description": null,
+    "title": "Kickoff (edited)",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:10.355497Z",
+    "via_field": "notebook",
+    "from_id": "8028fd41-07fa-4435-9c96-cbdbee7c8a35",
+    "plugin_source": null,
+    "from_doc_id": "n1"
+   },
+   {
+    "type": "note",
+    "rev": "38fd8c23becc8746f75bee2adc4bbee9",
+    "description": null,
+    "title": "Budget",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:10.234540Z",
+    "via_field": "notebook",
+    "from_id": "de0c20db-140c-4b42-8dbc-00146767c289",
+    "plugin_source": null,
+    "from_doc_id": "n2"
+   },
+   {
+    "type": "note",
+    "rev": "c0eaeded55989ae0a487f87c899875a6",
+    "description": null,
+    "title": "Ideas",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:10.244119Z",
+    "via_field": "notebook",
+    "from_id": "5c9fef02-f70d-4de4-b41d-595e61946cc0",
+    "plugin_source": null,
+    "from_doc_id": "n5"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:nb-work"
+ ]
+}
+
+## drafts only: backlink-counts → 200 (35.6 ms)
+{
+ "result": {
+  "source": "schema",
+  "byId": {
+   "n1": 0,
+   "n4": 1,
+   "nb-work": 3
+  },
+  "note": "schema-declared references only; plugin edges are not counted"
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n1",
+  "bp:ds:spike-note-a:backlinks:n4",
+  "bp:ds:spike-note-a:backlinks:nb-work"
+ ]
+}
+
+## drafts only: search "aubergine" → 200 (38.9 ms)
+{
+ "count": 0,
+ "match": "all",
+ "offset": 0,
+ "query": "aubergine",
+ "recovery": null,
+ "hasMore": false,
+ "nextOffset": null,
+ "facets": {},
+ "documents": [],
+ "ms": 15,
+ "parsedQuery": {
+  "prefixes": [],
+  "terms": [
+   "aubergine"
+  ],
+  "phrases": [],
+  "excludes": []
+ },
+ "highlights": {},
+ "searchEventId": "0379387a-d79d-426d-87d3-d1664a5c5494",
+ "truncation": null,
+ "correctedTo": null,
+ "engineUsed": "postgres"
+}
+
+## drafts only: search "saffron" → 200 (38.1 ms)
+{
+ "count": 1,
+ "match": "all",
+ "offset": 0,
+ "query": "saffron",
+ "recovery": null,
+ "hasMore": false,
+ "nextOffset": null,
+ "facets": {
+  "status": [
+   {
+    "count": 1,
+    "label": "draft"
+   }
+  ],
+  "type": [
+   {
+    "count": 1,
+    "label": "note"
+   }
+  ]
+ },
+ "documents": [
+  {
+   "_createdAt": "2026-10-28T23:04:10.237433Z",
+   "_draft": true,
+   "_id": "drafts.n3",
+   "_publishedId": "n3",
+   "_rev": "143a8fad5a005a9900c8a16061b1544a",
+   "_type": "note",
+   "_updatedAt": "2026-10-28T23:04:33.958182Z",
+   "body": {
+    "blocks": [
+     {
+      "content": [
+       {
+        "type": "text",
+        "value": "Milk, eggs, saffron."
+       }
+      ],
+      "id": "n3-p1",
+      "type": "paragraph"
+     }
+    ]
+   },
+   "links": [
+    {
+     "_key": "l1",
+     "_ref": "n4",
+     "_type": "reference"
+    }
+   ],
+   "notebook": {
+    "_ref": "nb-home",
+    "_type": "reference"
+   },
+   "tags": [
+    "spike"
+   ],
+   "title": "Groceries"
+  }
+ ],
+ "ms": 17,
+ "parsedQuery": {
+  "prefixes": [],
+  "terms": [
+   "saffron"
+  ],
+  "phrases": [],
+  "excludes": []
+ },
+ "highlights": {
+  "drafts.n3": {}
+ },
+ "searchEventId": "4b5c89c4-70d2-4962-a42e-28094d375e70",
+ "truncation": null,
+ "correctedTo": null,
+ "engineUsed": "postgres"
+}
+
+## drafts only: search "kickoff note" → 200 (49.5 ms)
+{
+ "count": 1,
+ "match": "any",
+ "offset": 0,
+ "query": "kickoff note",
+ "recovery": "match_any",
+ "hasMore": false,
+ "nextOffset": null,
+ "facets": {},
+ "documents": [
+  {
+   "_createdAt": "2026-10-28T23:04:10.473993Z",
+   "_draft": false,
+   "_id": "n-noref",
+   "_publishedId": "n-noref",
+   "_rev": "4d1d5fa9b0fc2e825c272fb0690e4b91",
+   "_type": "note",
+   "_updatedAt": "2026-10-28T23:04:10.473993Z",
+   "title": "No notebook"
+  }
+ ],
+ "ms": 28,
+ "parsedQuery": {
+  "prefixes": [],
+  "terms": [
+   "kickoff",
+   "note"
+  ],
+  "phrases": [],
+  "excludes": []
+ },
+ "highlights": {
+  "n-noref": {
+   "title": "No <mark>note</mark>book"
+  }
+ },
+ "searchEventId": "8194707a-a129-4247-8b9d-504e279cb352",
+ "truncation": null,
+ "correctedTo": null,
+ "engineUsed": "postgres"
+}
+
+## publish all → 200 (118.9 ms)
+{
+ "results": [
+  {
+   "id": "nb-work",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:34.251526Z",
+    "_draft": false,
+    "_id": "nb-work",
+    "_publishedId": "nb-work",
+    "_rev": "b2c3bb5dcab7e85199fe641b6b400311",
+    "_type": "notebook",
+    "_updatedAt": "2026-10-28T23:04:34.251526Z",
+    "name": "Work",
+    "title": "Work"
+   }
+  },
+  {
+   "id": "nb-home",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:34.263994Z",
+    "_draft": false,
+    "_id": "nb-home",
+    "_publishedId": "nb-home",
+    "_rev": "60bb3c3b1196dc76819e28a375b10a00",
+    "_type": "notebook",
+    "_updatedAt": "2026-10-28T23:04:34.263994Z",
+    "name": "Home",
+    "title": "Home"
+   }
+  },
+  {
+   "id": "n1",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:34.272864Z",
+    "_draft": false,
+    "_id": "n1",
+    "_publishedId": "n1",
+    "_rev": "d5c4a453ca311a9f067ee4c37d1bfeae",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:04:34.272864Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Kickoff with the aubergine team on Monday."
+        }
+       ],
+       "id": "n1-p1",
+       "type": "paragraph"
+      }
+     ]
+    },
+    "notebook": {
+     "_ref": "nb-work",
+     "_type": "reference"
+    },
+    "tags": [
+     "spike"
+    ],
+    "title": "Kickoff (edited)"
+   }
+  },
+  {
+   "id": "n2",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:34.281002Z",
+    "_draft": false,
+    "_id": "n2",
+    "_publishedId": "n2",
+    "_rev": "4e3312171f9f2c75a1b7cba202b54fe4",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:04:34.281002Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+  
+
+## published: backlinks n1 → 200 (31.9 ms)
+{
+ "result": {
+  "count": 1,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "4e3312171f9f2c75a1b7cba202b54fe4",
+    "description": null,
+    "title": "Budget",
+    "kind": "body",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:34.281002Z",
+    "via_field": "body",
+    "from_id": "20f743ff-32cb-4db8-b278-886617c96a48",
+    "plugin_source": null,
+    "from_doc_id": "n2"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n1"
+ ]
+}
+
+## published: backlinks n4 → 200 (28.1 ms)
+{
+ "result": {
+  "count": 1,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "7ba3ceab42de5a8f93ff9571bfd1c9c6",
+    "description": null,
+    "title": "Groceries",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:34.288749Z",
+    "via_field": "links",
+    "from_id": "953fd16e-a3e2-456f-9775-cf110830a7d1",
+    "plugin_source": null,
+    "from_doc_id": "n3"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n4"
+ ]
+}
+
+## published: backlinks nb-work → 200 (25 ms)
+{
+ "result": {
+  "count": 3,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "d5c4a453ca311a9f067ee4c37d1bfeae",
+    "description": null,
+    "title": "Kickoff (edited)",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:34.272864Z",
+    "via_field": "notebook",
+    "from_id": "74f470a5-d6d4-4744-962d-02cfe83a14bb",
+    "plugin_source": null,
+    "from_doc_id": "n1"
+   },
+   {
+    "type": "note",
+    "rev": "4e3312171f9f2c75a1b7cba202b54fe4",
+    "description": null,
+    "title": "Budget",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:34.281002Z",
+    "via_field": "notebook",
+    "from_id": "20f743ff-32cb-4db8-b278-886617c96a48",
+    "plugin_source": null,
+    "from_doc_id": "n2"
+   },
+   {
+    "type": "note",
+    "rev": "68174ae379ff0a44b26b3000ad7f6673",
+    "description": null,
+    "title": "Ideas",
+    "kind": "references",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:04:34.303972Z",
+    "via_field": "notebook",
+    "from_id": "676d5035-9ba5-4248-9bef-81a054383d89",
+    "plugin_source": null,
+    "from_doc_id": "n5"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:nb-work"
+ ]
+}
+
+## published: backlink-counts → 200 (26.1 ms)
+{
+ "result": {
+  "source": "schema",
+  "byId": {
+   "n1": 0,
+   "n4": 1,
+   "nb-work": 3
+  },
+  "note": "schema-declared references only; plugin edges are not counted"
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n1",
+  "bp:ds:spike-note-a:backlinks:n4",
+  "bp:ds:spike-note-a:backlinks:nb-work"
+ ]
+}
+
+## published: search "aubergine" → 200 (40 ms)
+{
+ "count": 1,
+ "match": "all",
+ "offset": 0,
+ "query": "aubergine",
+ "recovery": null,
+ "hasMore": false,
+ "nextOffset": null,
+ "facets": {
+  "status": [
+   {
+    "count": 1,
+    "label": "published"
+   }
+  ],
+  "type": [
+   {
+    "count": 1,
+    "label": "note"
+   }
+  ]
+ },
+ "documents": [
+  {
+   "_createdAt": "2026-10-28T23:04:34.272864Z",
+   "_draft": false,
+   "_id": "n1",
+   "_publishedId": "n1",
+   "_rev": "d5c4a453ca311a9f067ee4c37d1bfeae",
+   "_type": "note",
+   "_updatedAt": "2026-10-28T23:04:34.272864Z",
+   "body": {
+    "blocks": [
+     {
+      "content": [
+       {
+        "type": "text",
+        "value": "Kickoff with the aubergine team on Monday."
+       }
+      ],
+      "id": "n1-p1",
+      "type": "paragraph"
+     }
+    ]
+   },
+   "notebook": {
+    "_ref": "nb-work",
+    "_type": "reference"
+   },
+   "tags": [
+    "spike"
+   ],
+   "title": "Kickoff (edited)"
+  }
+ ],
+ "ms": 18,
+ "parsedQuery": {
+  "prefixes": [],
+  "terms": [
+   "aubergine"
+  ],
+  "phrases": [],
+  "excludes": []
+ },
+ "highlights": {
+  "n1": {}
+ },
+ "searchEventId": "23a5cd2c-df44-40ba-ad12-58c950439b11",
+ "truncation": null,
+ "correctedTo": null,
+ "engineUsed": "postgres"
+}
+
+## published: search "saffron" → 200 (69.3 ms)
+{
+ "count": 1,
+ "match": "all",
+ "offset": 0,
+ "query": "saffron",
+ "recovery": null,
+ "hasMore": false,
+ "nextOffset": null,
+ "facets": {
+  "status": [
+   {
+    "count": 1,
+    "label": "published"
+   }
+  ],
+  "type": [
+   {
+    "count": 1,
+    "label": "note"
+   }
+  ]
+ },
+ "documents": [
+  {
+   "_createdAt": "2026-10-28T23:04:34.288749Z",
+   "_draft": false,
+   "_id": "n3",
+   "_publishedId": "n3",
+   "_rev": "7ba3ceab42de5a8f93ff9571bfd1c9c6",
+   "_type": "note",
+   "_updatedAt": "2026-10-28T23:04:34.288749Z",
+   "body": {
+    "blocks": [
+     {
+      "content": [
+       {
+        "type": "text",
+        "value": "Milk, eggs, saffron."
+       }
+      ],
+      "id": "n3-p1",
+      "type": "paragraph"
+     }
+    ]
+   },
+   "links": [
+    {
+     "_key": "l1",
+     "_ref": "n4",
+     "_type": "reference"
+    }
+   ],
+   "notebook": {
+    "_ref": "nb-home",
+    "_type": "reference"
+   },
+   "tags": [
+    "spike"
+   ],
+   "title": "Groceries"
+  }
+ ],
+ "ms": 27,
+ "parsedQuery": {
+  "prefixes": [],
+  "terms": [
+   "saffron"
+  ],
+  "phrases": [],
+  "excludes": []
+ },
+ "highlights": {
+  "n3": {}
+ },
+ "searchEventId": "87c63550-26a5-4b41-8e88-e67150ee8370",
+ "truncation": null,
+ "correctedTo": null,
+ "engineUsed": "postgres"
+}

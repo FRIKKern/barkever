@@ -1,0 +1,30 @@
+{
+ "at": "2026-10-28T23:10:34.204Z",
+ "race": {
+  "bigBatch": 300,
+  "bigTxMs": 1361,
+  "smallWritesDuringTx": 5,
+  "pullsDuringTx": 5,
+  "lag0": {
+   "ok": false,
+   "missing": 272,
+   "bigMissing": 272,
+   "wrongRev": 0
+  },
+  "lag10s": {
+   "ok": true,
+   "missing": 0,
+   "bigMissing": 0,
+   "wrongRev": 0
+  },
+  "eventIdHoles": 21,
+  "eventPolls": 7,
+  "requests": {
+   "requests": 30,
+   "reads": 24,
+   "writes": 6,
+   "retries429": 0,
+   "bytes": 5601526
+  }
+ }
+}

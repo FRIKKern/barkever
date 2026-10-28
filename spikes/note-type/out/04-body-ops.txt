@@ -1,0 +1,216 @@
+n4 before: drafts-view _id=n4 blocks=1 | published blocks=1
+
+## insert-after on n4 → 200 (39.3 ms)
+{
+ "result": {
+  "rev": "0d7e641d48e67e2667e2390aded30ef1",
+  "blocks": [
+   {
+    "content": [
+     {
+      "type": "text",
+      "value": "Plant tulips in October."
+     }
+    ],
+    "id": "n4-p1",
+    "type": "paragraph"
+   },
+   {
+    "content": [
+     {
+      "type": "text",
+      "value": "Also daffodils, see "
+     },
+     {
+      "children": [
+       {
+        "type": "text",
+        "value": "groceries"
+       }
+      ],
+      "docId": "n3",
+      "target": "n3",
+      "type": "wikilink"
+     },
+     {
+      "type": "text",
+      "value": "."
+     }
+    ],
+    "id": "n4-p2",
+    "type": "paragraph"
+   }
+  ],
+  "field": "body",
+  "written_doc_id": "drafts.n4"
+ }
+}
+n4 after insert: drafts-view _id=drafts.n4 blocks=2 | published blocks=1
+
+## patch-block with STALE ifRev (rev0) → 412 (28.1 ms)
+{
+ "error": {
+  "code": "precondition_failed",
+  "description": "document revision mismatch",
+  "details": {
+   "actual": "0d7e641d48e67e2667e2390aded30ef1",
+   "expected": "c5b17ea8c2b2e6880b9a89ed6cf0ab66"
+  },
+  "hint": "Re-fetch the document and retry with the current revision — it changed under you.",
+  "message": "document revision mismatch",
+  "request_id": "GOLUE9HpYGnhIMIABaZE"
+ },
+ "message": "document revision mismatch",
+ "statusCode": 412
+}
+
+## patch-block with fresh rev, fence:blocks → 200 (33.2 ms)
+{
+ "result": {
+  "rev": "15fd1ef7a26c8a162c15ea32480ea5e4",
+  "blocks": [
+   {
+    "content": [
+     {
+      "type": "text",
+      "value": "Plant tulips in late October."
+     }
+    ],
+    "id": "n4-p1",
+    "type": "paragraph"
+   },
+   {
+    "content": [
+     {
+      "type": "text",
+      "value": "Also daffodils, see "
+     },
+     {
+      "children": [
+       {
+        "type": "text",
+        "value": "groceries"
+       }
+      ],
+      "docId": "n3",
+      "target": "n3",
+      "type": "wikilink"
+     },
+     {
+      "type": "text",
+      "value": "."
+     }
+    ],
+    "id": "n4-p2",
+    "type": "paragraph"
+   }
+  ],
+  "field": "body",
+  "written_doc_id": "drafts.n4"
+ }
+}
+n4 after patch: drafts-view _id=drafts.n4 blocks=2 | published blocks=1
+
+## backlinks n3 (body link from n4, draft) → 200 (33.2 ms)
+{
+ "result": {
+  "count": 0,
+  "backlinks": []
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n3"
+ ]
+}
+
+## publish n4 → 200 (52.2 ms)
+{
+ "results": [
+  {
+   "id": "n4",
+   "operation": "publish",
+   "document": {
+    "_createdAt": "2026-10-28T23:04:34.296387Z",
+    "_draft": false,
+    "_id": "n4",
+    "_publishedId": "n4",
+    "_rev": "f08d5c2004e88bf1f6b48dac5ac4efff",
+    "_type": "note",
+    "_updatedAt": "2026-10-28T23:06:23.393467Z",
+    "body": {
+     "blocks": [
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Plant tulips in late October."
+        }
+       ],
+       "id": "n4-p1",
+       "type": "paragraph"
+      },
+      {
+       "content": [
+        {
+         "type": "text",
+         "value": "Also daffodils, see "
+        },
+        {
+         "children": [
+          {
+           "type": "text",
+           "value": "groceries"
+          }
+         ],
+         "docId": "n3",
+         "target": "n3",
+         "type": "wikilink"
+        },
+        {
+         "type": "text",
+         "value": "."
+        }
+       ],
+       "id": "n4-p2",
+       "type": "paragraph"
+      }
+     ],
+     "html": "<p>Plant tulips in late October.</p><p>Also daffodils, see <a href=\"/papers/n3\" data-wikilink=\"n3\" class=\"bp-wikilink\">groceries</a>.</p>"
+    },
+    "notebook": {
+     "_ref": "nb-home",
+     "_type": "reference"
+    },
+    "tags": [
+     "spike"
+    ],
+    "title": "Garden"
+   }
+  }
+ ],
+ "transactionId": "86911013b306c3dd684829a406abbbb9"
+}
+
+## backlinks n3 after publish → 200 (32.5 ms)
+{
+ "result": {
+  "count": 1,
+  "backlinks": [
+   {
+    "type": "note",
+    "rev": "f08d5c2004e88bf1f6b48dac5ac4efff",
+    "description": null,
+    "title": "Garden",
+    "kind": "body",
+    "event_type": null,
+    "updated_at": "2026-10-28T23:06:23.393467Z",
+    "via_field": "body",
+    "from_id": "197168bf-0ba3-4a17-b3ff-3b3cc7bbede7",
+    "plugin_source": null,
+    "from_doc_id": "n4"
+   }
+  ]
+ },
+ "syncTags": [
+  "bp:ds:spike-note-a:backlinks:n3"
+ ]
+}

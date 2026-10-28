@@ -1,0 +1,11 @@
+{
+  "name": "spikenote",
+  "title": "Spike note",
+  "icon": "document",
+  "visibility": "private",
+  "fields": [
+    { "name": "title", "type": "string", "title": "Title" },
+    { "name": "body", "type": "text", "title": "Body" },
+    { "name": "n", "type": "number", "title": "N" }
+  ]
+}
