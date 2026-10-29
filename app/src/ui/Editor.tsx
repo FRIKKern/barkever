@@ -14,7 +14,7 @@ import {Icon} from './icons'
 import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
-const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device'}
+const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device'}
 
 type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
 

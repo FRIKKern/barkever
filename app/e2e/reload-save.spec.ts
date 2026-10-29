@@ -247,44 +247,163 @@ test(`stress: body and title typed in one breath right before a reload both surv
   expect(errors).toEqual([])
 })
 
-test('Saved never shows while the note still waits in the outbox, even with slow outbox reads and a slow wire', async ({page}) => {
-  const errors = errorsOf(page)
-  await page.addInitScript(() => {
-    const w = window as Window & {lies?: string[]}
+type Watched = Window & {lies?: string[]; mustStore?: string; stretch?: boolean; seen?: string[]}
+
+const watchSaved = (page: Page) =>
+  page.addInitScript(() => {
+    const w = window as Watched
     w.lies = []
-    for (const name of ['getAllKeys', 'getKey'] as const) {
-      const real = IDBObjectStore.prototype[name] as (...a: unknown[]) => IDBRequest
-      IDBObjectStore.prototype[name] = function (this: IDBObjectStore, ...a: unknown[]) {
-        const req = real.apply(this, a)
-        if (this.name !== 'outbox') return req
-        const add = req.addEventListener.bind(req)
-        req.addEventListener = ((type: string, fn: (e: Event) => void, o?: unknown) => add(type, type === 'success' ? (e: Event) => setTimeout(() => fn(e), 300) : fn, o as boolean)) as typeof req.addEventListener
-        return req
-      } as never
+    w.seen = []
+    const later = window.setTimeout
+    const real = IDBObjectStore.prototype.getAllKeys
+    IDBObjectStore.prototype.getAllKeys = function (this: IDBObjectStore, ...a: Parameters<typeof real>) {
+      const req = real.apply(this, a)
+      if (this.name !== 'outbox') return req
+      const add = req.addEventListener.bind(req)
+      req.addEventListener = ((type: string, fn: (e: Event) => void, o?: boolean) => add(type, type === 'success' ? (e: Event) => later(() => fn(e), 300) : fn, o)) as typeof req.addEventListener
+      return req
     }
-    const waiting = async (id: string) => {
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...a: unknown[]) => later(fn, w.stretch && (ms === 40 || ms === 300) ? 5000 : ms, ...a)) as typeof setTimeout
+    let db: IDBDatabase | undefined
+    let opening = false
+    const open = async () => {
+      opening = true
       const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))
-      if (!name) return false
-      const db = await new Promise<IDBDatabase>((ok) => (indexedDB.open(name).onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result)))
-      const entry = await new Promise((ok) => (db.transaction('outbox').objectStore('outbox').get(id).onsuccess = (e) => ok((e.target as IDBRequest).result)))
-      db.close()
-      return entry !== undefined
+      if (name) indexedDB.open(name).onsuccess = (e) => (db = (e.target as IDBOpenDBRequest).result)
+      else opening = false
     }
-    let was = ''
+    const opened = async () => {
+      const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+      return new Promise<IDBDatabase>((ok) => (indexedDB.open(name).onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result)))
+    }
+    const check = (id: string, at: number) => {
+      if (!db) return void opened().then((d) => ((db = d), check(id, at)))
+      const tx = db.transaction(['outbox', 'notes'])
+      const get = <T,>(store: string) => new Promise<T>((ok) => (tx.objectStore(store).get(id).onsuccess = (e) => ok((e.target as IDBRequest<T>).result)))
+      void Promise.all([get<unknown>('outbox'), get<{body?: unknown} | undefined>('notes')]).then(([entry, note]) => {
+        if (entry !== undefined) w.lies!.push(`Saved at ${at} ms while ${id} waits in the outbox`)
+        if (w.mustStore && !JSON.stringify(note?.body ?? '').includes(w.mustStore)) w.lies!.push(`Saved at ${at} ms before "${w.mustStore}" was stored`)
+      })
+    }
     new MutationObserver(() => {
       const now = document.querySelector('[data-testid=save-status]')?.textContent ?? ''
       const id = new URL(location.href).searchParams.get('n')
-      if (now === 'Saved' && was !== 'Saved' && id) void waiting(id).then((w8) => w8 && w.lies!.push(`Saved at ${Math.round(performance.now())} ms while ${id} waits in the outbox`))
-      was = now
+      if (!db && !opening) void open()
+      if (now === w.seen!.at(-1)) return
+      w.seen!.push(now)
+      if (now === 'Saved' && id) check(id, Math.round(performance.now()))
     }).observe(document, {subtree: true, childList: true, characterData: true})
   })
-  await page.route('**/*', async (r) => {
+
+const slowWire = (page: Page) =>
+  page.route('**/*', async (r) => {
     if (r.request().method() === 'POST') await new Promise((ok) => setTimeout(ok, 1500))
     await r.fallback()
   })
+
+const lies = (page: Page) => page.evaluate(() => (window as Watched).lies)
+
+test('Saved never shows while the note still waits in the outbox, even with slow outbox reads and a slow wire', async ({page}) => {
+  const errors = errorsOf(page)
+  await watchSaved(page)
+  await slowWire(page)
   await twoBlockNote(page, `Slow outbox ${Date.now()}`)
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
   await page.waitForTimeout(500)
-  expect(await page.evaluate(() => (window as Window & {lies?: string[]}).lies)).toEqual([])
+  expect(await lies(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('a reload while the note still waits in the outbox never shows Saved before the outbox is read', async ({page}) => {
+  const errors = errorsOf(page)
+  await watchSaved(page)
+  await twoBlockNote(page, `Reload with a queue ${Date.now()}`)
+  await slowWire(page)
+  const sent = page.waitForRequest((r) => r.method() === 'POST' && !!r.postData()?.includes('Queued.'))
+  await typeAtEnd(page, ' Queued.')
+  await sent
+  await page.reload()
+  await expect(canvas(page)).toContainText('Queued.')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.waitForTimeout(500)
+  expect(await lies(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('opening a saved note shows Saved at once, never a Saving flash, and a reload settles on Saved with no write', async ({page}) => {
+  const errors = errorsOf(page)
+  await watchSaved(page)
+  const a = `Open saved A ${Date.now()}`
+  await newNote(page, a)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await newNote(page, `Open saved B ${Date.now()}`)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.evaluate(() => ((window as Watched).seen = ['Saved']))
+  await page.getByTestId('note-row').filter({hasText: a}).first().click()
+  await expect(page.getByTestId('title')).toHaveValue(a)
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => (window as Watched).seen)).toEqual(['Saved'])
+  await page.reload()
+  await expect(status(page)).toHaveText('Saved', {timeout: 3000})
+  expect(errors).toEqual([])
+})
+
+const late = (page: Page, how: 'title' | 'body') =>
+  page.evaluate((how) => {
+    const w = window as Watched
+    w.stretch = true
+    w.mustStore = 'Late body.'
+    const el = document.querySelector('[data-testid=canvas]') as HTMLElement & {flushPendingChanges(): boolean}
+    const ed = (el.querySelector('[contenteditable="true"]') as HTMLElement & {editor: Pm & {view: {domObserver: {flush(): void}}}}).editor
+    const typeInBody = (text: string) => {
+      const end = ed.state.doc.child(0).nodeSize - 1
+      ed.view.focus()
+      ed.commands.setTextSelection({from: end, to: end})
+      document.execCommand('insertText', false, text)
+    }
+    if (how === 'title') {
+      const t = document.querySelector<HTMLTextAreaElement>('[data-testid=title]')!
+      t.focus()
+      t.setSelectionRange(t.value.length, t.value.length)
+      document.execCommand('insertText', false, '!')
+    } else {
+      typeInBody(' Early body.')
+      ed.view.domObserver.flush()
+      el.flushPendingChanges()
+    }
+    typeInBody(' Late body.')
+  }, how)
+
+for (const how of ['title', 'body'] as const) {
+  test(`a ${how} save that started before more body typing never claims that typing`, async ({page}) => {
+    const errors = errorsOf(page)
+    await watchSaved(page)
+    await twoBlockNote(page, `Late typing after a ${how} save ${Date.now()}`)
+    await late(page, how)
+    await page.waitForTimeout(2500)
+    await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+    await page.waitForTimeout(500)
+    expect(await lies(page)).toEqual([])
+    expect(errors).toEqual([])
+  })
+}
+
+test('an outbox read that lands after a newer one never leaves Saving stuck', async ({page}) => {
+  const errors = errorsOf(page)
+  await page.addInitScript(() => {
+    const later = window.setTimeout
+    const real = IDBObjectStore.prototype.getAllKeys
+    IDBObjectStore.prototype.getAllKeys = function (this: IDBObjectStore, ...a: Parameters<typeof real>) {
+      const req = real.apply(this, a)
+      if (this.name !== 'outbox') return req
+      const add = req.addEventListener.bind(req)
+      req.addEventListener = ((type: string, fn: (e: Event) => void, o?: boolean) => add(type, type === 'success' ? (e: Event) => later(() => fn(e), req.result.length ? 1200 : 0) : fn, o)) as typeof req.addEventListener
+      return req
+    }
+  })
+  await newNote(page, `Stale read lands last ${Date.now()}`)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.waitForTimeout(2500)
+  await expect(status(page)).toHaveText('Saved')
   expect(errors).toEqual([])
 })

@@ -1,15 +1,16 @@
-import {useEffect, useSyncExternalStore} from 'react'
+import {useSyncExternalStore} from 'react'
 import {db} from '../replica/db'
 import {onChange} from '../replica/bus'
 import type {Reach} from './online'
 
-export type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable'
+export type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked'
 
 const typed = new Map<string, number>()
 const covered = new Map<string, number>()
-const queued = new Set<string>()
-const known = new Set<string>()
-const reads = new Map<string, number>()
+let queued = new Set<string>()
+let known = false
+let failed = false
+let latest = 0
 let clock = 0
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((l) => l())
@@ -22,30 +23,38 @@ export function markDirty(id: string) {
 
 export const savePoint = (id: string) => typed.get(id)
 
-function look(id: string) {
-  const n = ++clock
-  reads.set(id, n)
-  void db()
-    .then((d) => d.getKey('outbox', id))
-    .then((key) => {
-      if (reads.get(id) !== n) return
-      if ((typed.get(id) ?? Infinity) <= (covered.get(id) ?? -1)) typed.delete(id)
-      covered.delete(id)
-      if (key === undefined) queued.delete(id)
-      else queued.add(id)
-      known.add(id)
-      emit()
-    })
+function look() {
+  const n = (latest = ++clock)
+  return db()
+    .then((d) => d.getAllKeys('outbox'))
+    .then(
+      (keys) => {
+        if (n !== latest) return
+        for (const [id, upTo] of covered) if ((typed.get(id) ?? Infinity) <= upTo) typed.delete(id)
+        covered.clear()
+        queued = new Set(keys)
+        known = true
+        failed = false
+        emit()
+      },
+      (e: unknown) => {
+        if (n !== latest) return
+        failed = true
+        console.warn('save status: the outbox could not be read', e)
+        emit()
+      },
+    )
 }
 
 export function markSaved(id: string, upTo: number | undefined) {
   if (upTo !== undefined) covered.set(id, Math.max(covered.get(id) ?? -1, upTo))
-  look(id)
+  void look()
 }
 
-export const unsaved = (id: string) => typed.has(id) || queued.has(id) || !known.has(id)
+export const stage = (id: string) => (failed ? 'unchecked' : typed.has(id) || !known || queued.has(id) ? 'unsaved' : 'saved')
 
-onChange(({ids}) => ids.filter((id) => reads.has(id)).forEach(look))
+onChange(() => void look())
+if (typeof window !== 'undefined') void look()
 
 const subscribe = (l: () => void) => {
   listeners.add(l)
@@ -53,8 +62,7 @@ const subscribe = (l: () => void) => {
 }
 
 export function useSaveStatus(id: string, reach: Reach): SaveStatus {
-  useEffect(() => look(id), [id])
-  const busy = useSyncExternalStore(subscribe, () => unsaved(id), () => false)
-  if (!busy) return 'saved'
+  const now = useSyncExternalStore(subscribe, () => stage(id), () => 'saved' as const)
+  if (now !== 'unsaved') return now
   return reach === 'online' ? 'saving' : reach
 }
