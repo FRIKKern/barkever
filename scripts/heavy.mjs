@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { HEAVY_DIR } from "./machine.mjs";
 
-const SLOTS = Number(process.env.HEAVY_SLOTS ?? 2);
+const SLOTS = Number(process.env.HEAVY_SLOTS ?? 3);
 const [cmd, ...args] = process.argv.slice(2);
 if (!cmd) { console.error("usage: node scripts/heavy.mjs <command> [args…]"); process.exit(2); }
 

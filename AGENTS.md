@@ -14,7 +14,7 @@ code history  ─► Entire checkpoints (every commit carries its prompt + trans
 milestones    ─► Entire project trails P0–P7, one per goal child (node scripts/milestones.mjs)
 how: Entire   ─► docs/entire.md
 pace          ─► pace/ + /better-faster-stronger (bottlenecks, compute, hygiene)
-heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 2-slot queue)
+heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 3-slot queue)
 ```
 
 ## Loop

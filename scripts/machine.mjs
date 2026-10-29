@@ -40,7 +40,7 @@ export function machine() {
     : [];
   const loadPerCore = +(load5 / cores).toFixed(2);
   const swapUsedPct = swap ? Math.round((100 * +swap[2]) / +swap[1]) : null;
-  const bound = loadPerCore > 1.5 || (swapUsedPct ?? 0) > 85 || freePct < 15;
+  const bound = loadPerCore > 1.5 || freePct < 15;
   return {
     cores, memGb: Math.round(totalmem() / 2 ** 30), load1, load5, load15, loadPerCore,
     swapUsedPct, memFreePct: freePct, diskFreeGb: disk ? Math.round(+disk[3] / 1048576) : null,

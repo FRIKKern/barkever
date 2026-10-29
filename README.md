@@ -44,5 +44,5 @@ pnpm e2e          # production build in Chrome: ≥ 50 notes
 pnpm e2e:mac      # the Mac app: sign-in, edit, offline relaunch, safeStorage
 npm run prepush   # all of the above + secret scan of Entire checkpoints
 node scripts/pace.mjs          # progress, machine load, hygiene since the last snapshot
-node scripts/heavy.mjs <cmd>   # run an e2e or suite in the shared 2-slot queue
+node scripts/heavy.mjs <cmd>   # run an e2e or suite in the shared 3-slot queue
 ```
