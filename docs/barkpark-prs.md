@@ -30,4 +30,5 @@ Put the table in the PR body, with one line per row: what you tried and what hap
 
 - The reviewer starts when the PR opens, not when CI turns green.
 - The reviewer sends its fix list straight to the builder by agent name, and copies the lead on the verdict only.
+- The reviewer gives each finding a class and the earliest check that should have caught it. The lead logs it in `pace/misses.jsonl`.
 - The lead merges on PASS plus green required CI: `gh pr merge <n> -R FRIKKern/barkpark --squash` as FRIKKern.

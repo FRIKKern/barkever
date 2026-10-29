@@ -6,6 +6,7 @@ import { machine } from "./machine.mjs";
 
 const GOAL = "task-42e5633d742184c5";
 const LOG = "pace/snapshots.jsonl";
+const MISSES = "pace/misses.jsonl";
 const HARD_PATH = /^(app\/src\/(replica|sync|worker)|mac\/src|contracts)\//;
 const STANDARD_PATH = /^(app\/(src|e2e)|mac\/e2e|scripts|fixtures|design)\//;
 const HARD_TASK = /sync|merge|offline|conflict|replica|catch-up|cold boot|J10|mac shell|desktop|sign-in|\bAI\b|barkpark/i;
@@ -56,6 +57,9 @@ const closed = tree.filter((t) => t.status === "done" && t.updated >= since);
 const h = hygiene();
 const m = machine();
 const top = (xs) => xs.slice(0, 20);
+const misses = existsSync(MISSES) ? readFileSync(MISSES, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+const missClasses = Object.entries(count(misses.map((x) => x.class))).sort((a, b) => b[1] - a[1]);
+const halfFixes = [...new Set(misses.filter((x) => / r[2-9]/.test(x.where) && misses.some((y) => y.class === x.class && y.where.split(" ")[0] === x.where.split(" ")[0] && y.where !== x.where)).map((x) => `${x.where.split(" ")[0]} ${x.class}`))];
 
 const snap = {
   at: now,
@@ -77,6 +81,7 @@ const snap = {
     closed: closed.map((t) => `${t.id} ${t.tier} ${t.title}`),
   },
   machine: m,
+  misses: { total: misses.length, new: misses.filter((x) => x.at >= since.slice(0, 10)).length, byClass: Object.fromEntries(missClasses), halfFixes },
   barkpark: barkparkMerges(),
   hygiene: {
     size: h.size,
@@ -109,5 +114,8 @@ row("compute bound", m.computeBound ? "YES" : "no", prev?.machine && (prev.machi
 row("stray processes", m.strays.length, prev?.machine?.strays.length);
 row("heavy runs waited s (last 50)", sum(m.heavyRuns.map((r) => r.waitedS)), prev?.machine && sum(prev.machine.heavyRuns.map((r) => r.waitedS)));
 row("barkpark PRs merged", snap.barkpark.length, prev?.barkpark.length);
+row("review misses (new / total)", `${snap.misses.new} / ${misses.length}`, prev?.misses && `${prev.misses.new} / ${prev.misses.total}`);
+row("repeated miss classes", missClasses.filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", ") || "–", prev?.misses && Object.entries(prev.misses.byClass).filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", "));
+row("half fixes (same class again next round)", halfFixes.join(", ") || "–", prev?.misses?.halfFixes.join(", "));
 for (const [k, v] of Object.entries(snap.hygiene.counts)) row(k, v, prev?.hygiene.counts[k]);
 if (!process.argv.includes("--write")) console.log("\n(dry run: add --write to append to pace/snapshots.jsonl)");
