@@ -1,8 +1,6 @@
 import {queryOptions, type QueryClient} from '@tanstack/react-query'
 import {createServerFn} from '@tanstack/react-start'
 import {pushRecent, readPrefs, toggleShortcut} from '../server/prefs'
-import {canvasFiles} from '../server/canvas'
-import {dataset} from '../server/barkpark'
 import {db, type LocalNote} from '../replica/db'
 import {onChange} from '../replica/bus'
 import {replayJournal} from '../replica/local'
@@ -10,8 +8,6 @@ import {toNote, toNotebook} from './note-docs'
 import type {Library, Note, Prefs} from './model'
 
 const fetchPrefs = createServerFn({method: 'GET'}).handler(() => readPrefs())
-const fetchDataset = createServerFn({method: 'GET'}).handler(() => dataset())
-export const fetchCanvasFiles = createServerFn({method: 'GET'}).handler(() => canvasFiles())
 
 const pushRecentFn = createServerFn({method: 'POST'})
   .validator((id: string) => id)
@@ -33,8 +29,19 @@ async function readLibrary(): Promise<Library> {
 
 export const libraryQuery = queryOptions({...local, queryKey: ['library'], queryFn: readLibrary})
 export const pendingQuery = queryOptions({...local, queryKey: ['pending'], queryFn: async () => new Set(await (await db()).getAllKeys('outbox'))})
-export const datasetQuery = queryOptions({queryKey: ['dataset'], staleTime: Infinity, queryFn: () => fetchDataset()})
-export const prefsQuery = queryOptions({queryKey: ['prefs'], staleTime: 30_000, queryFn: (): Promise<Prefs> => fetchPrefs()})
+
+async function loadPrefs(): Promise<Prefs> {
+  const d = await db()
+  try {
+    const prefs = await fetchPrefs()
+    await d.put('meta', prefs, 'prefs')
+    return prefs
+  } catch {
+    return ((await d.get('meta', 'prefs')) as Prefs | undefined) ?? {shortcuts: [], recents: []}
+  }
+}
+
+export const prefsQuery = queryOptions({queryKey: ['prefs'], staleTime: 30_000, networkMode: 'always', queryFn: loadPrefs})
 
 export async function refresh(qc: QueryClient, ids: string[]) {
   const d = await db()

@@ -1,7 +1,7 @@
 import noteSchema from '../../../contracts/barkpark/note.json' with {type: 'json'}
-import {fetchCanvasFiles} from './library'
 import type {Block} from './model'
 import type {BlockOp} from '../replica/ops'
+import type {CanvasFiles} from '../server/canvas'
 
 export const vocabulary = JSON.stringify(noteSchema.fields.find((f) => f.name === 'body')!.blocks)
 
@@ -19,9 +19,15 @@ const add = <T extends HTMLElement>(el: T) => (document.head.append(el), el)
 
 let loading: Promise<void> | null = null
 
+async function canvasFiles(): Promise<CanvasFiles> {
+  const res = await fetch('/editor-files').catch(() => undefined)
+  if (res?.ok) return res.json()
+  throw new Error(res ? `Barkpark ${res.status}` : 'offline, and it is not on this device yet')
+}
+
 export function loadCanvas(): Promise<void> {
   loading ??= (async () => {
-    const files = await fetchCanvasFiles()
+    const files = await canvasFiles()
     Object.assign(window, {BP_PAPER_EDITOR_NO_INJECT: true})
     for (const href of files.styles) add(Object.assign(document.createElement('link'), {rel: 'stylesheet', href}))
     await new Promise((ok, no) => add(Object.assign(document.createElement('script'), {src: files.script, onload: ok, onerror: () => no(new Error('the editor script did not load'))})))

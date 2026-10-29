@@ -2,6 +2,7 @@ import {useEffect, useRef, type FormEvent} from 'react'
 import {useQuery} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
 import {pendingQuery} from '../lib/library'
+import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Search} from '../lib/scope'
@@ -16,7 +17,7 @@ function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
   e.preventDefault()
   const form = e.currentTarget
   if (pending && !confirm(`${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`)) return
-  void forgetDevice().then(() => form.submit())
+  void Promise.all([forgetDevice(), forgetOwner()]).then(() => form.submit())
 }
 const RECENT_SHOWN = 5
 

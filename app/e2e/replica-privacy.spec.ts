@@ -5,11 +5,13 @@ const replicas = (page: Page) =>
   page.evaluate(async () => ({
     dbs: (await indexedDB.databases()).map((d) => d.name ?? '').filter((n) => n.startsWith('barkever')),
     journals: Object.keys(localStorage).filter((k) => k.endsWith('-journal')),
+    owner: localStorage.getItem('barkever-owner') !== null,
+    shell: !!(await caches.match('/')),
   }))
 
 test.use({storageState: {cookies: [], origins: []}})
 
-test('sign out drops this device’s copy of the notes; the next sign-in starts from Barkpark', async ({page}) => {
+test('sign out drops this device’s copy of the notes, its owner and its offline shell; the next sign-in starts from Barkpark', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('/')
@@ -18,7 +20,9 @@ test('sign out drops this device’s copy of the notes; the next sign-in starts 
   await page.getByRole('button', {name: 'Sign in'}).click()
   await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 20_000})
 
+  await expect.poll(async () => (await replicas(page)).shell, {timeout: 20_000}).toBe(true)
   const signedIn = await replicas(page)
+  expect(signedIn.owner).toBe(true)
   expect(signedIn.dbs).toHaveLength(1)
   expect(signedIn.dbs[0]).toMatch(/^barkever-[0-9a-f]{24}$/)
   const held = await page.evaluate(
@@ -36,6 +40,6 @@ test('sign out drops this device’s copy of the notes; the next sign-in starts 
 
   await page.getByTestId('sign-out').click()
   await expect(page).toHaveURL(/\/sign-in/)
-  await expect.poll(() => replicas(page)).toEqual({dbs: [], journals: []})
+  await expect.poll(() => replicas(page)).toEqual({dbs: [], journals: [], owner: false, shell: false})
   expect(errors).toEqual([])
 })

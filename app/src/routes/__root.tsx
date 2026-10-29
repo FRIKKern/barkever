@@ -1,8 +1,9 @@
 import {useEffect, type ReactNode} from 'react'
 import {useQuery, useQueryClient, type QueryClient} from '@tanstack/react-query'
-import {HeadContent, Outlet, Scripts, createRootRouteWithContext, redirect} from '@tanstack/react-router'
-import {datasetQuery, followReplica} from '../lib/library'
-import {nameReplica, replicaName} from '../replica/db'
+import {HeadContent, Outlet, Scripts, createRootRouteWithContext, redirect, useRouter} from '@tanstack/react-router'
+import {followReplica} from '../lib/library'
+import {recheckOnReconnect, registerWorker} from '../lib/offline'
+import {openReplica} from '../lib/owner'
 import {startSync} from '../sync/engine'
 import appCss from '../styles/app.css?url'
 import {themeBoot, tokenCss} from '../styles/tokens'
@@ -14,7 +15,7 @@ export const Route = createRootRouteWithContext<{queryClient: QueryClient}>()({
     if (!(await context.queryClient.ensureQueryData(meQuery))) throw redirect({to: '/sign-in', search: {redirect: location.href}})
   },
   head: () => ({
-    meta: [{charSet: 'utf-8'}, {name: 'viewport', content: 'width=device-width, initial-scale=1'}, {title: 'Barkever'}],
+    meta: [{charSet: 'utf-8'}, {name: 'viewport', content: 'width=device-width, initial-scale=1'}, {name: 'barkever-build', content: import.meta.env.BUILD}, {title: 'Barkever'}],
     links: [{rel: 'icon', href: 'data:,'}, {rel: 'stylesheet', href: appCss}],
     styles: [{children: tokenCss}],
     scripts: [{children: themeBoot}],
@@ -25,15 +26,17 @@ export const Route = createRootRouteWithContext<{queryClient: QueryClient}>()({
 
 function App() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const me = useQuery(meQuery).data
-  const ds = useQuery({...datasetQuery, enabled: !!me}).data
   useEffect(() => {
-    if (me && ds) void replicaName(me.email, ds).then(nameReplica)
-  }, [me, ds])
+    if (me) void openReplica(me.email)
+  }, [me])
   useEffect(() => {
     const stop = followReplica(queryClient)
+    const unwatch = recheckOnReconnect(queryClient, () => void router.invalidate())
+    registerWorker()
     startSync()
-    return stop
+    return () => (stop(), unwatch())
   }, [queryClient])
   return <Outlet />
 }

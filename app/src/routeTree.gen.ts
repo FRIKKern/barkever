@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EditorFilesRouteImport } from './routes/editor-files'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as ApiListenRouteImport } from './routes/api/listen'
@@ -18,6 +19,11 @@ import { Route as EditorAssetsSplatRouteImport } from './routes/editor-assets.$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorFilesRoute = EditorFilesRouteImport.update({
+  id: '/editor-files',
+  path: '/editor-files',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -43,6 +49,7 @@ const EditorAssetsSplatRoute = EditorAssetsSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/editor-files': typeof EditorFilesRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/editor-files': typeof EditorFilesRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/editor-files': typeof EditorFilesRoute
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
@@ -65,12 +74,25 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/sign-out' | '/api/listen' | '/editor-assets/$'
+  fullPaths:
+    | '/'
+    | '/editor-files'
+    | '/sign-in'
+    | '/sign-out'
+    | '/api/listen'
+    | '/editor-assets/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/sign-out' | '/api/listen' | '/editor-assets/$'
+  to:
+    | '/'
+    | '/editor-files'
+    | '/sign-in'
+    | '/sign-out'
+    | '/api/listen'
+    | '/editor-assets/$'
   id:
     | '__root__'
     | '/'
+    | '/editor-files'
     | '/sign-in'
     | '/sign-out'
     | '/api/listen'
@@ -79,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EditorFilesRoute: typeof EditorFilesRoute
   SignInRoute: typeof SignInRoute
   SignOutRoute: typeof SignOutRoute
   ApiListenRoute: typeof ApiListenRoute
@@ -92,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor-files': {
+      id: '/editor-files'
+      path: '/editor-files'
+      fullPath: '/editor-files'
+      preLoaderRoute: typeof EditorFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -127,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EditorFilesRoute: EditorFilesRoute,
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
   ApiListenRoute: ApiListenRoute,
