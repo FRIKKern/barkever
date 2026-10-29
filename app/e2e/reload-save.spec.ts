@@ -247,7 +247,7 @@ test(`stress: body and title typed in one breath right before a reload both surv
   expect(errors).toEqual([])
 })
 
-type Watched = Window & {lies?: string[]; mustStore?: string; stretch?: boolean; seen?: string[]}
+type Watched = Window & {lies?: string[]; mustStore?: string; stretch?: boolean; seen?: string[]; synced?: string}
 
 const watchSaved = (page: Page) =>
   page.addInitScript(() => {
@@ -285,7 +285,16 @@ const watchSaved = (page: Page) =>
         if (w.mustStore && !JSON.stringify(note?.body ?? '').includes(w.mustStore)) w.lies!.push(`Saved at ${at} ms before "${w.mustStore}" was stored`)
       })
     }
+    const empty = (at: number) => {
+      if (!db) return void opened().then((d) => ((db = d), empty(at)))
+      db.transaction('outbox').objectStore('outbox').count().onsuccess = (e) => {
+        const n = (e.target as IDBRequest<number>).result
+        if (n) w.lies!.push(`Synced at ${at} ms with ${n} in the outbox`)
+      }
+    }
     new MutationObserver(() => {
+      const synced = document.querySelector('[data-testid=sync-status]')?.textContent ?? ''
+      if (synced !== w.synced && (w.synced = synced) === 'Synced') empty(Math.round(performance.now()))
       const now = document.querySelector('[data-testid=save-status]')?.textContent ?? ''
       const id = new URL(location.href).searchParams.get('n')
       if (!db && !opening) void open()
@@ -314,7 +323,7 @@ test('Saved never shows while the note still waits in the outbox, even with slow
   expect(errors).toEqual([])
 })
 
-test('a reload while the note still waits in the outbox never shows Saved before the outbox is read', async ({page}) => {
+test('a reload while the note still waits in the outbox never shows Saved or Synced before the outbox is read', async ({page}) => {
   const errors = errorsOf(page)
   await watchSaved(page)
   await twoBlockNote(page, `Reload with a queue ${Date.now()}`)
