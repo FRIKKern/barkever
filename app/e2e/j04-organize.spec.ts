@@ -56,11 +56,16 @@ test('J04 organize: notebooks with stacks, tags, shortcuts and recents, each one
   await page.getByRole('button', {name: 'Remove tag design'}).click()
   await expect(page.getByTestId('note-tag')).toHaveText([/#harbor/, new RegExp(`#${TAG}`)])
   await expect.poll(async () => (await onServer()).tags, {timeout: 20_000}).toEqual(['harbor', TAG])
+  await page.getByTestId('tag-add').fill('HARBOR')
+  await page.getByTestId('tag-add').press('Enter')
+  await expect(page.getByTestId('note-tag')).toHaveText([/#harbor/, new RegExp(`#${TAG}`)])
 
   await page.getByTestId('star').click()
   await expect(side(page, 'side-shortcut', TITLE)).toHaveCount(1)
+  await expect(page.locator('.mini')).toBeInViewport()
   await page.screenshot({path: test.info().outputPath('j04-organize-dark.png')})
 
+  await page.getByTestId('side-tags-more').click()
   await side(page, 'side-tag', `#${TAG}`).click()
   expect(params(page)).toEqual({tag: TAG})
   await expect(page.getByTestId('note-row')).toHaveCount(1)
@@ -87,6 +92,7 @@ test('J04 organize: notebooks with stacks, tags, shortcuts and recents, each one
   await expect(page.getByTestId('note-tag')).toHaveText([/#harbor/, new RegExp(`#${TAG}`)])
   await expect(side(page, 'side-shortcut', TITLE)).toHaveCount(1)
   await expect(page.getByTestId('side-recent').first()).toHaveText(TITLE)
+  await page.getByTestId('side-tags-more').click()
   await expect(side(page, 'side-tag', `#${TAG}`)).toHaveCount(1)
 
   await page.getByTestId('star').click()

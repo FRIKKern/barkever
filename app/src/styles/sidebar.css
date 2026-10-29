@@ -28,3 +28,5 @@
 .side-foot .dot { background: var(--c-ok); width: var(--dot-s); height: var(--dot-s); }
 .side-foot .dot.off { background: none; border: 1.5px solid var(--c-warn-fg); }
 .side-foot .icon-btn { margin-left: auto; }
+.tags .more-tags { color: var(--c-muted); background: none; }
+.tags .more-tags:hover { color: var(--c-text); background: var(--c-hover); }

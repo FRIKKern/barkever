@@ -2,18 +2,18 @@ import {useState, type KeyboardEvent} from 'react'
 import {Link} from '@tanstack/react-router'
 import type {Note} from '../lib/model'
 import {moveNote, retag} from '../replica/local'
+import {withTag} from '../replica/organize'
 import type {World} from './world'
-
-export const cleanTag = (t: string) => t.trim().toLowerCase().replace(/^#+/, '').replace(/\s+/g, '-')
 
 export function NotebookPick({w, note}: {w: World; note: Note}) {
   const {shelf} = w
   const options = shelf.roots.flatMap((nb) => [nb, ...shelf.children(nb.id)])
+  const placed = !!note.notebook && shelf.byId.has(note.notebook)
   return (
     <label className="nbchip pick" title="Move to notebook">
       <span className="dot" style={{background: shelf.colour(note.notebook)}} />
       <select value={note.notebook ?? ''} onChange={(e) => void moveNote(note.id, note.notebook, e.target.value)} aria-label="Notebook" data-testid="notebook-pick">
-        {!note.notebook && <option value="">No notebook</option>}
+        {!placed && <option value={note.notebook ?? ''}>No notebook</option>}
         {options.map((nb) => (
           <option key={nb.id} value={nb.id}>
             {shelf.path(nb.id).join(' › ')}
@@ -26,12 +26,14 @@ export function NotebookPick({w, note}: {w: World; note: Note}) {
 
 export function TagEdit({w, note}: {w: World; note: Note}) {
   const [draft, setDraft] = useState('')
-  const known = w.tags.map(([t]) => t).filter((t) => !note.tags.includes(t))
+  const all = w.tags.map(([t]) => t)
+  const mine = new Set(note.tags.map((t) => t.toLowerCase()))
+  const known = all.filter((t) => !mine.has(t.toLowerCase()))
   const set = (tags: string[]) => void retag(note.id, note.tags, tags)
   const add = () => {
-    const t = cleanTag(draft)
+    const tags = withTag(note.tags, all, draft)
     setDraft('')
-    if (t && !note.tags.includes(t)) set([...note.tags, t])
+    if (tags !== note.tags) set(tags)
   }
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') (e.preventDefault(), add())

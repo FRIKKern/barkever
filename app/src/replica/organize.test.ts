@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {mergeLocal, mergeNote, same} from './merge.ts'
-import {move, tagsTo} from './organize.ts'
+import {move, tagsTo, withTag} from './organize.ts'
 import {NOTE_FIELDS, type NoteDoc} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
@@ -37,4 +37,12 @@ test('a move here and a retag on another device both survive the merge', () => {
 test('a note with no notebook can be moved into one', () => {
   const loose: NoteDoc = {...server, notebook: undefined}
   assert.equal(local(loose, move(loose, null, 'nb-inbox')).notebook?._ref, 'nb-inbox')
+})
+
+test('a typed tag matches an existing one in any case, keeps its stored spelling and never doubles', () => {
+  assert.deepEqual(withTag(['design'], ['Harbor', 'design'], 'harbor'), ['design', 'Harbor'])
+  assert.deepEqual(withTag(['Harbor'], ['Harbor'], 'HARBOR'), ['Harbor'])
+  assert.deepEqual(withTag([], [], '  #Field Notes '), ['field-notes'])
+  const tags = ['a']
+  assert.equal(withTag(tags, [], '  '), tags)
 })

@@ -9,6 +9,7 @@ import type {Reach} from '../lib/online'
 import type {Search} from '../lib/scope'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
+import {SideTags} from './SideTags'
 import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
@@ -81,14 +82,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         {shortcuts.length ? shortcuts : <div className="side-none">Star a note to keep it here.</div>}
         {recents.length > 0 && <div className="side-h">Recent</div>}
         {recents.map((id) => noteItem(id, 'clock', 'side-recent'))}
-        {tags.length > 0 && <div className="side-h">Tags</div>}
-        <div className="tags">
-          {tags.map(([t]) => (
-            <Link key={t} to="/" search={{tag: t}} onClick={() => onPick()} className={`tag${!s.q && s.tag === t ? ' on' : ''}`} data-testid="side-tag">
-              #{t}
-            </Link>
-          ))}
-        </div>
+        <SideTags tags={tags} s={s} onPick={() => onPick()} />
         <MiniMap w={w} sel={s.n} />
       </nav>
       <div className="side-foot">
