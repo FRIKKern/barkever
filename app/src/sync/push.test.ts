@@ -4,8 +4,10 @@ import assert from 'node:assert/strict'
 import {baseFor, reconcile} from '../replica/merge.ts'
 import {blockText, type Block} from '../lib/model.ts'
 import type {NoteDoc} from '../replica/note.ts'
+import {newDevice, use} from '../chaos/fake-db.ts'
+import {answer} from '../chaos/fake-remote.ts'
 
-const {mutationFor, remember} = await import('./push.ts')
+const {mutationFor, push, remember} = await import('./push.ts')
 
 const AT = '2026-10-29T12:00:00.000Z'
 const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
@@ -37,4 +39,18 @@ test('sent holds the last 8 distinct pushes: a 9th distinct one drops the oldest
   assert.deepEqual(remember(pushes, v(8)), pushes)
   assert.deepEqual(remember(pushes, v(1)), pushes)
   assert.deepEqual(remember(pushes, v(9)).map((x) => x.title), ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'])
+})
+
+test('a note Barkpark refuses as too large to index keeps its text and its outbox entry, and waits to retry', async () => {
+  const d = newDevice('dev-me')
+  use(d)
+  const big = note('r1', 'Storm', [p('a', 'every version kept')])
+  d.stores.notes.set('n1', big)
+  d.stores.outbox.set('n1', {id: 'n1', base: note('r1', 'Storm', [p('a', 'before')]), v: 1, at: 0})
+  answer({mutate: async () => ({status: 422, docs: [], error: 'searchable_text_too_large'}), docs: async () => [], manifest: async () => ({note: [], notebook: []})})
+  const wait = await push()
+  const entry = d.stores.outbox.get('n1') as {failed?: {n: number; why: string}}
+  assert.deepEqual([entry.failed?.n, entry.failed?.why], [1, '422 searchable_text_too_large'])
+  assert.ok(wait! > 0)
+  assert.deepEqual((d.stores.notes.get('n1') as NoteDoc).body?.blocks.map(blockText), ['every version kept'])
 })
