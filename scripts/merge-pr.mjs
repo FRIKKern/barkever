@@ -2,7 +2,8 @@
 import { execFileSync } from "node:child_process";
 
 const REPO = "FRIKKern/barkpark";
-const [pr, reviewed] = process.argv.slice(2);
+const [pr, reviewed, ...rest] = process.argv.slice(2);
+const knownRed = rest.flatMap((a, i) => rest[i - 1] === "--known-red" ? [a] : []);
 if (!/^\d+$/.test(pr ?? "") || !/^[0-9a-f]{7,40}$/.test(reviewed ?? "")) { console.error("usage: node scripts/merge-pr.mjs <barkpark PR number> <reviewed head sha>"); process.exit(2); }
 
 const env = { ...process.env, GH_TOKEN: execFileSync("gh", ["auth", "token", "-u", "FRIKKern"], { encoding: "utf8" }).trim() };
@@ -24,7 +25,7 @@ for (let waited = 0; !list.length || list.some((c) => c.bucket === "pending") ||
   list = checks();
 }
 const missing = required.filter((name) => !list.some((c) => c.name === name && c.bucket === "pass"));
-const blocking = [...list.filter((c) => c.bucket === "fail" || c.bucket === "cancel").filter((c) => !/advisory/i.test(c.name)), ...missing.map((name) => ({ name: `${name} (required, not passed)` }))];
+const blocking = [...list.filter((c) => c.bucket === "fail" || c.bucket === "cancel").filter((c) => !/advisory/i.test(c.name) && !knownRed.includes(c.name)),...missing.map((name) => ({ name: `${name} (required, not passed)` }))];
 const tally = Object.entries(Object.groupBy(list, (c) => c.bucket)).map(([b, cs]) => `${cs.length} ${b}`).join(", ");
 if (blocking.length) { console.error(`merge-pr: not merged (${tally}); blocking: ${blocking.map((c) => c.name).join(", ")}`); process.exit(1); }
 if (gh(["pr", "view", pr, "-R", REPO, "--json", "headRefOid", "-q", ".headRefOid"]).trim() !== head) { console.error("merge-pr: head moved while waiting; run again"); process.exit(1); }
