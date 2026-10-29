@@ -2,7 +2,7 @@ import {reached} from '../lib/online'
 import type {ServerDoc} from '../server/sync'
 
 export type Frame = {eventId: number; mutation: string; type: string; documentId: string; rev: string; previousRev: string | null; result: ServerDoc}
-export type Stream = {caughtUp: Promise<boolean>; closed: Promise<void>; close: () => void}
+export type Stream = {opened: Promise<boolean>; caughtUp: Promise<boolean>; closed: Promise<void>; close: () => void}
 
 const QUIET_MS = 1000
 
@@ -11,7 +11,10 @@ export function openStream(since: number | null, onFrame: (f: Frame) => void): S
   let welcomed = false
   let last = performance.now()
   let finish!: () => void
+  let welcome!: (ok: boolean) => void
   const closed = new Promise<void>((r) => (finish = r))
+  const opened = new Promise<boolean>((r) => (welcome = r))
+  void closed.then(() => welcome(false))
   const close = () => {
     es.close()
     finish()
@@ -20,6 +23,7 @@ export function openStream(since: number | null, onFrame: (f: Frame) => void): S
     welcomed = true
     last = performance.now()
     reached(true)
+    welcome(true)
   })
   es.addEventListener('mutation', (e) => {
     last = performance.now()
@@ -38,5 +42,5 @@ export function openStream(since: number | null, onFrame: (f: Frame) => void): S
     const tick = setInterval(() => welcomed && (since === null || performance.now() - last >= QUIET_MS) && done(true), 50)
     void closed.then(() => done(false))
   })
-  return {caughtUp, closed, close}
+  return {opened, caughtUp, closed, close}
 }

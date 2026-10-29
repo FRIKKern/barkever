@@ -8,6 +8,7 @@ import {refetch} from './check'
 
 const BATCH = 50
 const ROUNDS = 5
+const STALE = new Set([404, 409, 412])
 
 type Planned = {e: Entry; m: object | null}
 
@@ -57,7 +58,7 @@ async function send(ids: string[]): Promise<boolean> {
     }
     return true
   }
-  if ((res.status === 412 || res.status === 409) && (await healed(out.map((p) => p.e)))) return true
+  if (STALE.has(res.status) && (await healed(out.map((p) => p.e)))) return true
   if (out.length > 1) {
     const half = Math.ceil(out.length / 2)
     const first = await send(out.slice(0, half).map((p) => p.e.id))

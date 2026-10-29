@@ -63,6 +63,7 @@ function lane(alive: () => boolean) {
 
 async function session(lost: AbortSignal) {
   let alive = true
+  let answered = false
   let live = false
   let retry: ReturnType<typeof setTimeout> | undefined
   const suspects = new Map<string, DocType>()
@@ -85,9 +86,12 @@ async function session(lost: AbortSignal) {
   const stop = () => stream.close()
   window.addEventListener('offline', stop)
   lost.addEventListener('abort', stop)
-  const offLocal = onChange((c) => c.kind === 'local' && live && run('push', pushing))
+  const offLocal = onChange((c) => c.kind === 'local' && answered && run('push', pushing))
   const timer = setInterval(() => run('check', () => check({onlyIfCountsDiffer: true})), CHECK_EVERY_MS)
   try {
+    if (!(await stream.opened)) return
+    answered = true
+    run('push', pushing)
     if (!(await stream.caughtUp)) return
     await feed.drained()
     feed.caughtUp()
@@ -99,7 +103,7 @@ async function session(lost: AbortSignal) {
     })
     await stream.closed
   } finally {
-    feed.caughtUp()
+    feed.close()
     alive = false
     clearTimeout(retry)
     window.removeEventListener('offline', stop)

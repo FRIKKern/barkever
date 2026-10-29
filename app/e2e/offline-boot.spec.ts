@@ -106,7 +106,7 @@ test('back online with an ended session: sign-in, and the replica stays until si
   await cold.goto(ORIGIN)
   await expect(rows(cold).first()).toBeVisible()
 
-  await serve('a', randomBytes(32).toString('base64url'))
+  await serve('a', {secret: randomBytes(32).toString('base64url')})
   await context.setOffline(false)
   await expect(cold).toHaveURL(/\/sign-in/)
   expect((await cold.evaluate(() => indexedDB.databases())).filter((d) => d.name?.startsWith('barkever-'))).toHaveLength(1)

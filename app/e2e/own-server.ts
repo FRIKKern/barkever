@@ -9,7 +9,9 @@ const PORT = Number(process.env.E2E_OWN_PORT || 3197)
 
 export const ORIGIN = `http://localhost:${PORT}`
 
-const env = (stamp: string, secret = SECRET) => ({...process.env, BARKPARK_DATASET: DATASET, BARKEVER_SESSION_SECRET: secret, BARKEVER_BUILD: stamp})
+type Options = {secret?: string; dataset?: string}
+
+const env = (stamp: string, {secret = SECRET, dataset = DATASET}: Options = {}) => ({...process.env, BARKPARK_DATASET: dataset, BARKEVER_SESSION_SECRET: secret, BARKEVER_BUILD: stamp})
 const outDir = (stamp: string) => `dist/e2e-${stamp}`
 const up = (stamp: string) => fetch(`${ORIGIN}/sign-in`).then((r) => r.text()).then((html) => html.includes(`content="${stamp}"`), () => false)
 
@@ -25,9 +27,9 @@ export async function stop() {
   running = undefined
 }
 
-export async function serve(stamp: string, secret?: string) {
+export async function serve(stamp: string, options?: Options) {
   await stop()
-  const child = spawn(process.execPath, [VITE, 'preview', '--outDir', outDir(stamp), '--port', String(PORT), '--strictPort'], {cwd: APP, env: env(stamp, secret), stdio: 'ignore'})
+  const child = spawn(process.execPath, [VITE, 'preview', '--outDir', outDir(stamp), '--port', String(PORT), '--strictPort'], {cwd: APP, env: env(stamp, options), stdio: 'ignore'})
   running = {child, gone: new Promise<void>((done) => child.once('exit', () => done()))}
   for (let tries = 0; !(await up(stamp)); tries++) {
     if (tries > 100 || running?.child.exitCode != null) throw new Error(`build ${stamp} is not what answers on ${ORIGIN}; is the port taken? set E2E_OWN_PORT`)

@@ -35,6 +35,7 @@
 | Switch note | < 100 ms (local replica) |
 | Search first results | < 150 ms (local replica) |
 | Reconnect → synced | < 10 s |
+| Reload → first save on Barkpark | < 1 s, at any length of history |
 | Remote edit appears | p95 < 300 ms online |
 
 ## 4. AI

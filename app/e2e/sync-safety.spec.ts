@@ -173,6 +173,30 @@ test('bug 2: an entry Barkpark refuses never blocks the others, shows as stuck, 
   await page.context().close()
 })
 
+test('an offline edit to a note deleted elsewhere is pushed at reconnect, before catch-up, and lands at once without a refusal', async ({page}) => {
+  const warnings: string[] = []
+  page.on('console', (m) => m.type() === 'warning' && warnings.push(m.text()))
+  const errors = errorsOf(page)
+  const id = await newNote(page, `Edited while deleted ${Date.now()}`, 'Before.')
+  await synced(page)
+  await page.context().setOffline(true)
+  await typeAtEndOf(page, 0, ' Typed offline.')
+  await leave(page)
+  await deleteNotes([id])
+  await expect.poll(() => serverRows(id), {timeout: 10_000}).toEqual([])
+  const reconnect = page.waitForRequest((r) => r.url().includes('/api/listen'))
+  await page.context().setOffline(false)
+  await reconnect
+  const t0 = Date.now()
+  await expect.poll(async () => blockText((await serverNote(id))?.body?.blocks[0] ?? {id: '', type: 'paragraph'}), {timeout: 15_000, intervals: [50]}).toBe('Before. Typed offline.')
+  const ms = Date.now() - t0
+  expect(warnings.filter((w) => w.includes(id))).toEqual([])
+  expect(ms, 'lands without a retry backoff once the stream reconnects').toBeLessThan(2000)
+  await synced(page)
+  await expect(page.getByTestId('sync-stuck')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
 test('Enter in the title before the editor has loaded moves the cursor into the body once it loads', async ({page}) => {
   await page.route('**/editor-assets/**', async (r) => {
     await new Promise((ok) => setTimeout(ok, 1500))
