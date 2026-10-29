@@ -11,6 +11,8 @@ why           ─► docs/decisions/NNNN-*.md (supersede, never edit)
 what "works"  ─► JOURNEYS.md (J01–J10)
 how good      ─► QUALITY.md
 code history  ─► Entire checkpoints (every commit carries its prompt + transcript)
+milestones    ─► Entire project trails P0–P7, one per goal child (node scripts/milestones.mjs)
+how: Entire   ─► docs/entire.md
 pace          ─► pace/ + /better-faster-stronger (bottlenecks, compute, hygiene)
 heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 2-slot queue)
 ```
@@ -21,7 +23,7 @@ heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 2-slot queue
 2. Worktree for anything but `main`: `git worktree add ../barkever-wt/<name> -b <name>`. The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. Rebase onto `main`, `npm run prepush` (guard + secret scan of Entire checkpoints), `entire trail create` (picture, task id, what ran), then `git merge --ff-only` and push `main`. No squash (decision 0024). Put the Trail URL on the task.
+5. Rebase onto `main`, `npm run prepush` (guard + checkpoint secret scan), push the branch, `entire trail link <milestone> --branch <name>`, comment evidence (picture, task id, what ran), then `git merge --ff-only` and push `main`. No squash (0026). Change URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
@@ -29,7 +31,7 @@ heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 2-slot queue
 ```
 bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► unsure? rival spikes ─► judge
    ▲                                                                              │
-   └── close with evidence ◄── push (npm run prepush) ◄── Trail + ff onto main ◄──┘
+   └── close with evidence ◄── push (npm run prepush) ◄── Trail link + ff main ◄──┘
 ```
 
 Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged on the task for the owner to override. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
