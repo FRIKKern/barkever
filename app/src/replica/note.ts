@@ -14,6 +14,7 @@ export type NoteDoc = {
   body?: Body
   links?: Ref[]
   conflicts?: Conflict[]
+  by?: string
 }
 export type NotebookDoc = {_id: string; _type: 'notebook'; _rev?: string; name?: string; parent?: Ref}
 export type Doc = NoteDoc | NotebookDoc
@@ -21,16 +22,17 @@ export type DocType = Doc['_type']
 export type Row = {id: string; rev?: string}
 
 export const NOTE_FIELDS = ['title', 'notebook', 'tags', 'body', 'links', 'conflicts'] as const
+const STORED = [...NOTE_FIELDS, 'by'] as const
 
 export const bare = (id: string) => id.replace(/^drafts\./, '')
 
 export function fromServer(doc: Record<string, unknown>): Doc {
-  const keys = doc._type === 'note' ? NOTE_FIELDS : (['name', 'parent'] as const)
+  const keys = doc._type === 'note' ? STORED : (['name', 'parent'] as const)
   const out: Record<string, unknown> = {_id: bare(String(doc._id)), _type: doc._type, _rev: doc._rev, _updatedAt: doc._updatedAt}
   for (const k of keys) if (doc[k] !== undefined) out[k] = doc[k]
   return out as Doc
 }
 
-export const content = (note: NoteDoc) => Object.fromEntries(NOTE_FIELDS.filter((f) => note[f] !== undefined).map((f) => [f, note[f]]))
+export const content = (note: NoteDoc) => Object.fromEntries(STORED.filter((f) => note[f] !== undefined).map((f) => [f, note[f]]))
 
 export const toRow = (note: NoteDoc): Row => ({id: note._id, rev: note._rev})

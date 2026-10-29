@@ -3,7 +3,7 @@ import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {SESSION_FILE} from './account'
 import {blockText, type Block} from '../src/lib/model.ts'
 
-type ServerNote = {_id: string; _rev: string; title?: string; body?: {blocks: Block[]}; conflicts?: {title?: string; body?: {blocks: Block[]}}[]}
+type ServerNote = {_id: string; _rev: string; title?: string; by?: string; body?: {blocks: Block[]}; conflicts?: {by?: string; title?: string; body?: {blocks: Block[]}; clash: string[]}[]}
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
@@ -200,4 +200,100 @@ test('when no tab holds the sync lock, sync takes it back by itself and keeps sa
   await typeAtEndOf(page, 0, ' After.')
   await leave(page)
   await expect.poll(async () => blockText((await serverNote(id))?.body?.blocks[0] ?? {id: '', type: 'paragraph'}), {timeout: 15_000}).toBe('Before. After.')
+})
+
+const deviceOf = (page: Page) => page.evaluate(() => Object.entries(localStorage).find(([k]) => k.endsWith('-device'))?.[1])
+const writerOf = (n: ServerNote) => n.by?.slice(0, n.by.lastIndexOf('.'))
+
+test('two devices typing in one block online keep at most one copy, the other device’s latest, never their own', async ({browser, baseURL}) => {
+  test.setTimeout(90_000)
+  const a = await device(browser, baseURL!)
+  const b = await device(browser, baseURL!)
+  const errors = [...errorsOf(a), ...errorsOf(b)]
+  const id = await newNote(a, `Two typists ${Date.now()}`, 'Shared.')
+  await b.goto(`/?n=${id}`)
+  await expect(canvas(b)).toContainText('Shared.', {timeout: 15_000})
+  await typeAtEndOf(a, 0, '')
+  await typeAtEndOf(b, 0, '')
+  const typist = (page: Page, who: string) => page.keyboard.type(Array.from({length: 8}, (_, i) => ` ${who}${i}`).join(''), {delay: 60})
+  await Promise.all([typist(a, 'A'), typist(b, 'B')])
+  await Promise.all([leave(a), leave(b)])
+  await Promise.all([synced(a), synced(b)])
+  await a.waitForTimeout(1500)
+  await Promise.all([synced(a), synced(b)])
+  const note = (await serverNote(id))!
+  const devices = [await deviceOf(a), await deviceOf(b)]
+  const copies = note.conflicts ?? []
+  expect(copies.length, 'one kept copy at most for two writers').toBeLessThanOrEqual(1)
+  expect(copies.filter((c) => c.by === writerOf(note)), 'the writer of the note is never its own copy').toEqual([])
+  expect(copies.every((c) => devices.includes(c.by)), 'each copy names the other device').toBe(true)
+  for (const t of ['A7', 'B7']) expect(everything(note), `${t} survives`).toContain(t)
+  expect(errors).toEqual([])
+  await Promise.all([a.context().close(), b.context().close()])
+})
+
+test('a remote writer setting the title six times while I type it keeps one copy, its latest', async ({browser, baseURL}) => {
+  test.setTimeout(90_000)
+  const a = await device(browser, baseURL!)
+  const errors = errorsOf(a)
+  const id = await newNote(a, `Title race ${Date.now()}`, 'Body.')
+  const title = a.getByTestId('title')
+  await title.focus()
+  await title.press('End')
+  const typing = title.pressSequentially(' L' + 'abcdefghijklmnopqrstuvwxyz'.repeat(2), {delay: 60})
+  for (let i = 1; i <= 6; i++) {
+    await a.waitForTimeout(400)
+    const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', set: {title: `Remote title ${i}`}}}]})})
+    expect(res.ok).toBe(true)
+  }
+  await typing
+  await leave(a)
+  await synced(a)
+  await a.waitForTimeout(1500)
+  await synced(a)
+  const note = (await serverNote(id))!
+  expect(note.title).toMatch(/xyz$/)
+  expect(note.conflicts?.length ?? 0, `one copy at most for one remote writer: ${JSON.stringify(note.conflicts?.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
+  expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
+  expect(errors).toEqual([])
+  await a.context().close()
+})
+
+const holdReplica = (page: Page, ms: number) =>
+  page.evaluate(async (ms) => {
+    const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+    const db = await new Promise<IDBDatabase>((ok) => {
+      const r = indexedDB.open(name)
+      r.onsuccess = () => ok(r.result)
+    })
+    const tx = db.transaction(['notes', 'rows', 'outbox'], 'readwrite')
+    const end = Date.now() + ms
+    const spin = () => void (Date.now() < end && (tx.objectStore('notes').get('none').onsuccess = spin))
+    spin()
+    tx.oncomplete = () => db.close()
+  }, ms)
+
+test('a title changed in another tab while this tab is mid-save is kept, and the title box shows what the replica holds', async ({browser, baseURL}) => {
+  const one = await device(browser, baseURL!)
+  const errors = errorsOf(one)
+  const id = await newNote(one, 'Tab race', 'Body.')
+  const two = await one.context().newPage()
+  errors.push(...errorsOf(two))
+  await two.goto(`/?n=${id}`)
+  await expect(two.getByTestId('title')).toHaveValue('Tab race')
+  await one.getByTestId('title').focus()
+  await one.getByTestId('title').press('End')
+  await holdReplica(one, 1500)
+  await two.getByTestId('title').fill('Renamed in tab two')
+  await one.keyboard.type('!')
+  await expect(one.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await expect(two.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await synced(one)
+  const note = (await serverNote(id))!
+  expect(everything(note), 'the other tab’s title survives').toContain('Renamed in tab two')
+  expect(everything(note)).toContain('Tab race!')
+  await expect(one.getByTestId('title')).toHaveValue(note.title!)
+  await expect(two.getByTestId('title')).toHaveValue(note.title!)
+  expect(errors).toEqual([])
+  await one.context().close()
 })

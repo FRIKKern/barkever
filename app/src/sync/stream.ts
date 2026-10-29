@@ -1,3 +1,4 @@
+import {reached} from '../lib/online'
 import type {ServerDoc} from '../server/sync'
 
 export type Frame = {eventId: number; mutation: string; type: string; documentId: string; rev: string; previousRev: string | null; result: ServerDoc}
@@ -18,13 +19,17 @@ export function openStream(since: number | null, onFrame: (f: Frame) => void): S
   es.addEventListener('welcome', () => {
     welcomed = true
     last = performance.now()
+    reached(true)
   })
   es.addEventListener('mutation', (e) => {
     last = performance.now()
     onFrame(JSON.parse((e as MessageEvent<string>).data))
   })
   es.addEventListener('overloaded', close)
-  es.onerror = close
+  es.onerror = () => {
+    if (!welcomed) reached(false)
+    close()
+  }
   const caughtUp = new Promise<boolean>((resolve) => {
     const done = (ok: boolean) => {
       clearInterval(tick)

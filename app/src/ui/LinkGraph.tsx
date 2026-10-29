@@ -92,7 +92,7 @@ export function LinkGraph({w, note, hover, onHover}: Props) {
           )
         })}
         {g.empty && (
-          <text className="g-hint" x={GRAPH.W / 2} y={GRAPH.H - 14} textAnchor="middle">
+          <text className="g-hint" x={GRAPH.W / 2} y={22} textAnchor="middle">
             No links yet
           </text>
         )}

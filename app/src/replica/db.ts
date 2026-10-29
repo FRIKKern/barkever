@@ -36,6 +36,21 @@ export function replicaKey(): string {
   return name
 }
 
+let device: string | undefined
+
+export function deviceId(): string {
+  if (device) return device
+  const key = `${replicaKey()}-device`
+  try {
+    device = localStorage.getItem(key) ?? undefined
+  } catch {}
+  device ??= crypto.randomUUID()
+  try {
+    localStorage.setItem(key, device)
+  } catch {}
+  return device
+}
+
 export const db = () =>
   (opened ??= naming.then((n) =>
     openDB<Replica>(n, 1, {

@@ -96,6 +96,30 @@ test('J01: N lands where you are: under a tag it carries the tag, under an unkno
   await expect(page.locator('.nbchip')).toHaveText('Inbox')
 })
 
+test('J01: a blank new note never reaches Barkpark, and a reload or a closed tab drops it', async ({page, context}) => {
+  await page.goto('/')
+  await expect(page.getByTestId('new-note')).toBeEnabled()
+  const synced = page.getByTestId('sync-status')
+  const reloaded = await capture(page, 'n')
+  await expect(synced).toHaveText('Synced')
+  await page.waitForTimeout(1500)
+  expect(await serverNoteIds()).not.toContain(reloaded)
+  await page.reload()
+  await expect(page.getByTestId('title')).toHaveValue('')
+  await page.goBack()
+  await expect(rowOf(page, reloaded)).toHaveCount(0)
+
+  const closed = await capture(page, 'n')
+  await page.close()
+  const next = await context.newPage()
+  await next.goto('/')
+  await expect(next.getByTestId('note-row').first()).toBeVisible()
+  await expect(rowOf(next, closed)).toHaveCount(0)
+  await expect(next.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
+  expect(await serverNoteIds()).not.toContain(closed)
+  expect(await serverNoteIds()).not.toContain(reloaded)
+})
+
 test('J01: leaving a new note that is still empty removes it, online and offline; a titled one stays', async ({page, context}) => {
   await page.goto('/')
   const rows = page.getByTestId('note-row')

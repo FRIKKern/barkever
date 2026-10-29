@@ -1,6 +1,7 @@
 import {wikilinks, type Block, type Conflict} from '../lib/model.ts'
 import {linkRefs} from '../lib/note-docs.ts'
 import {NOTE_FIELDS, type NoteDoc, type Ref} from './note.ts'
+import {UNSIGNED, writerOf} from './sign.ts'
 
 const empty = (x: unknown) => x == null || x === ''
 
@@ -68,12 +69,11 @@ export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
   return ids.length === old.length && ids.every((id) => old.includes(id)) ? had : linkRefs(ids)
 }
 
-const stillNeeded = (base: NoteDoc, theirs: NoteDoc) => {
-  const settled = new Set([...(base.conflicts ?? []), ...(theirs.conflicts ?? [])].map((c) => c._key))
-  return (c: Conflict) => c._key !== base._rev || settled.has(c._key)
-}
+type Part = 'title' | 'notebook' | 'tags'
+const part = (n: NoteDoc, p: string) => (p.startsWith('body:') ? n.body?.blocks.find((b) => b.id === p.slice(5)) : n[p as Part])
+const moved = (from: NoteDoc, to: NoteDoc) => (p: string) => !same(part(from, p), part(to, p))
 
-export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, key = theirs._rev ?? at): NoteDoc {
+export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, me: string, key = theirs._rev ?? at, who = writerOf(theirs) ?? UNSIGNED): NoteDoc {
   const clash: string[] = []
   const out: NoteDoc = {...mine}
   out.title = pick(base.title, mine.title, theirs.title, () => clash.push('title'))
@@ -83,22 +83,27 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
   if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
   clash.push(...body.clash.map((id) => `body:${id}`))
-  let conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
-  if (clash.length) conflicts = conflicts.filter(stillNeeded(base, theirs))
-  if (clash.length && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, at, title: theirs.title, body: theirs.body, clash})
+  const mineKept = (p: string) => moved(base, mine)(p) && !moved(out, mine)(p)
+  const superseded = (c: Conflict) => (c.by === me && c.clash.every(mineKept)) || (c.by === who && c.clash.every((p) => clash.includes(p)))
+  const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? []).filter((c) => !superseded(c))
+  if (clash.length && who !== me && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, by: who, at, title: theirs.title, body: theirs.body, clash})
   out.conflicts = conflicts.length || mine.conflicts || theirs.conflicts ? conflicts : undefined
   return out
 }
 
-export function mergeCanvas(note: NoteDoc, base: Block[], after: Block[], at: string, key: string): NoteDoc {
-  const shown = (blocks: Block[]) => ({...note, body: {...note.body, blocks}})
-  return mergeNote(shown(base), shown(after), note, at, key)
+const partsOf = (n: Partial<NoteDoc>) => [...(['title', 'notebook', 'tags'] as const).filter((p) => p in n), ...(n.body?.blocks ?? []).map((b) => `body:${b.id}`)]
+
+export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partial<NoteDoc>, at: string, key: string, me: string, server: NoteDoc | null): NoteDoc {
+  const base = {...note, ...shown}
+  const under = [...partsOf(shown), ...partsOf(note)].filter(moved(base, note))
+  const other = server && under.every((p) => !moved(server, note)(p)) ? (writerOf(server) ?? UNSIGNED) : me
+  return mergeNote(base, {...note, ...after}, note, at, me, key, other === me ? `${me}~tab` : other)
 }
 
 export const baseFor = (base: NoteDoc | null, pushed: NoteDoc | undefined, theirs: NoteDoc | null) => (pushed && theirs && sameContent(pushed, theirs) ? theirs : base)
 
-export function reconcile(base: NoteDoc | null, mine: NoteDoc | null, theirs: NoteDoc | null, at: string): NoteDoc | null {
+export function reconcile(base: NoteDoc | null, mine: NoteDoc | null, theirs: NoteDoc | null, at: string, me: string): NoteDoc | null {
   if (!theirs) return mine && (!base || !sameContent(mine, base)) ? mine : null
   if (!mine) return base && sameContent(theirs, base) ? null : theirs
-  return mergeNote(base ?? {_id: theirs._id, _type: 'note'}, mine, theirs, at)
+  return mergeNote(base ?? {_id: theirs._id, _type: 'note'}, mine, theirs, at, me)
 }

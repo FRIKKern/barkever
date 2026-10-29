@@ -5,6 +5,7 @@ import {pendingQuery, stuckQuery} from '../lib/library'
 import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
+import type {Reach} from '../lib/online'
 import type {Search} from '../lib/scope'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
@@ -21,9 +22,12 @@ function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
 }
 const RECENT_SHOWN = 5
 
-type Props = {w: World; s: Search; online: boolean; modal: boolean; onNew: (() => void) | null; onPick: () => void}
+const AWAY = {offline: 'Offline', unreachable: 'Can’t reach Barkpark'}
+const footLine = (reach: Reach, pending: number) => (reach === 'online' ? (pending ? `Syncing ${pending}` : 'Synced') : pending ? `${AWAY[reach]} · ${pending} to sync` : AWAY[reach])
 
-export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
+type Props = {w: World; s: Search; reach: Reach; modal: boolean; onNew: (() => void) | null; onPick: (note?: string) => void}
+
+export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
   const self = useRef<HTMLElement>(null)
   useEffect(() => {
     if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
@@ -34,7 +38,7 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
   const count = (id: string) => lib.notes.filter((n) => n.notebook && shelf.scope(id).includes(n.notebook)).length
   const scoped = !s.q && (s.nb || s.tag)
   const nbItem = (nb: Notebook, child = false) => (
-    <Link key={nb.id} to="/" search={{nb: nb.id}} onClick={onPick} className={`si${child ? ' child' : ''}${!s.q && s.nb === nb.id ? ' on' : ''}`} data-testid="side-notebook">
+    <Link key={nb.id} to="/" search={{nb: nb.id}} onClick={() => onPick()} className={`si${child ? ' child' : ''}${!s.q && s.nb === nb.id ? ' on' : ''}`} data-testid="side-notebook">
       <span className="dot" style={{background: shelf.colour(nb.id)}} />
       <span className="t">{nb.name}</span>
       <span className="n">{count(nb.id)}</span>
@@ -45,7 +49,7 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
     const nb = shelf.byId.get(id)
     if (!n && !nb) return null
     return (
-      <Link key={id} to="/" search={n ? {...s, q: undefined, n: id} : {nb: id}} onClick={onPick} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
+      <Link key={id} to="/" search={n ? {...s, q: undefined, n: id} : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
         <Icon name={icon} />
         <span className="t">{n ? n.title || UNTITLED : nb!.name}</span>
       </Link>
@@ -71,7 +75,7 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
         <kbd>N</kbd>
       </button>
       <nav className="side-scroll">
-        <Link to="/" search={{}} onClick={onPick} className={`si${scoped || s.q ? '' : ' on'}`} data-testid="side-all">
+        <Link to="/" search={{}} onClick={() => onPick()} className={`si${scoped || s.q ? '' : ' on'}`} data-testid="side-all">
           <Icon name="notes" />
           All notes
           <span className="n">{lib.notes.length}</span>
@@ -85,7 +89,7 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
         {tags.length > 0 && <div className="side-h">Tags</div>}
         <div className="tags">
           {tags.map(([t]) => (
-            <Link key={t} to="/" search={{tag: t}} onClick={onPick} className={`tag${!s.q && s.tag === t ? ' on' : ''}`}>
+            <Link key={t} to="/" search={{tag: t}} onClick={() => onPick()} className={`tag${!s.q && s.tag === t ? ' on' : ''}`}>
               #{t}
             </Link>
           ))}
@@ -93,8 +97,8 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
         <MiniMap w={w} sel={s.n} />
       </nav>
       <div className="side-foot">
-        <span className={`dot${online ? '' : ' off'}`} />
-        <span data-testid="sync-status">{online ? (pending ? `Syncing ${pending}` : 'Synced') : pending ? `Offline · ${pending} to sync` : 'Offline'}</span>
+        <span className={`dot${reach === 'online' ? '' : ' off'}`} />
+        <span data-testid="sync-status">{footLine(reach, pending)}</span>
         {stuck.length > 0 && (
           <span className="stuck" data-testid="sync-stuck" title={stuck.map((x) => `${x.id}: ${x.why}`).join('\n')}>
             · {stuck.length} not accepted, retrying

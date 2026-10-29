@@ -1,6 +1,7 @@
 import {randomBytes} from 'node:crypto'
 import {expect, test, type Page} from '@playwright/test'
 import {ORIGIN, build, serve, stop} from './own-server'
+import {deleteNotes} from './fixtures-cleanup'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
 
@@ -51,6 +52,27 @@ test('offline cold start: a new tab shows the signed-in user’s notes from the 
   const bare = await context.newPage()
   await bare.goto(`${ORIGIN}/?n=fx-note-01`)
   await expect(bare.getByTestId('body')).toContainText('Read only: the editor could not load (offline, and it is not on this device yet).')
+})
+
+test('online but the server is gone: the app says it can’t reach Barkpark and keeps the change on the device', async ({context}) => {
+  await serve('a')
+  const page = await context.newPage()
+  await loadOnline(page)
+  const foot = page.getByTestId('sync-status')
+  await expect(foot).toHaveText('Synced', {timeout: 15_000})
+  await page.keyboard.press('n')
+  const title = page.getByTestId('title')
+  await expect(title).toBeFocused()
+  const id = new URL(page.url()).searchParams.get('n')!
+  await stop()
+  await title.pressSequentially('Typed while the server is gone')
+  await expect(page.getByTestId('offline')).toHaveText('Can’t reach Barkpark. Changes stay on this device until it answers.', {timeout: 15_000})
+  await expect(foot).toHaveText('Can’t reach Barkpark · 1 to sync')
+  await expect(page.getByTestId('save-status')).toHaveText('Saved on this device')
+  await serve('a')
+  await expect(foot).toHaveText('Synced', {timeout: 20_000})
+  await expect(page.getByTestId('offline')).toHaveCount(0)
+  await deleteNotes([id])
 })
 
 test('a new deploy replaces the cached shell on the next online load', async ({context}) => {

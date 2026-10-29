@@ -1,6 +1,7 @@
-import {db, stored, type Entry} from '../replica/db'
+import {db, deviceId, stored, type Entry} from '../replica/db'
 import {ack, fail} from '../replica/settle'
 import {same} from '../replica/merge'
+import {sign} from '../replica/sign'
 import {content, fromServer, NOTE_FIELDS, type NoteDoc} from '../replica/note'
 import {pushMutations} from './remote'
 import {refetch} from './check'
@@ -16,7 +17,7 @@ export function mutationFor(e: Entry, note: NoteDoc | undefined): object | null 
   if (!e.base) return {create: {...content(note), _id: e.id, _type: 'note'}}
   const base = e.base
   const set = Object.fromEntries(NOTE_FIELDS.filter((f) => !same(note[f], base[f])).map((f) => [f, note[f]]))
-  return Object.keys(set).length ? {patch: {id: e.id, type: 'note', set, ifRevisionID: base._rev}} : null
+  return Object.keys(set).length ? {patch: {id: e.id, type: 'note', set: {...set, by: note.by}, ifRevisionID: base._rev}} : null
 }
 
 async function prepare(ids: string[]): Promise<Planned[]> {
@@ -26,7 +27,7 @@ async function prepare(ids: string[]): Promise<Planned[]> {
   for (const id of ids) {
     const [e, local] = await Promise.all([outbox.get(id), notes.get(id)])
     if (!e) continue
-    const note = local && stored(local)
+    const note = local && sign(stored(local), deviceId())
     const m = mutationFor(e, note)
     const sent = m && note && !e.delete ? {...e, pushed: note} : e
     if (sent !== e) void outbox.put(sent)

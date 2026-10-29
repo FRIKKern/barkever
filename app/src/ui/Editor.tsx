@@ -3,8 +3,9 @@ import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {flipShortcut} from '../lib/library'
 import type {Note} from '../lib/model'
+import type {Reach} from '../lib/online'
 import {markClean, markDirty, useSaveStatus} from '../lib/saver'
-import {deleteNote, editTitle} from '../replica/local'
+import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
@@ -12,22 +13,25 @@ import {ConflictView} from './ConflictView'
 import {Icon} from './icons'
 import type {World} from './world'
 
-const LABEL = {saved: 'Saved', saving: 'Saving…', here: 'Offline · saved on this device'}
+const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device'}
 
-type Props = {w: World; s: Search; note: Note; online: boolean; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
+type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
 
-export function Editor({w, s, note, online, focusTitle, onBack, onEscape, onRail}: Props) {
+export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
-  const status = useSaveStatus(note.id, online)
+  const status = useSaveStatus(note.id, reach)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const body = useRef<BodyHandle>(null)
   const writing = useRef(0)
+  const keys = useRef(0)
 
-  useEffect(() => {
-    if (!writing.current) setTitle(note.title)
-  }, [note.gen])
+  const adopt = () => {
+    const at = keys.current
+    void savedTitle(note.id).then((t) => at === keys.current && setTitle(t))
+  }
+  useEffect(adopt, [note.gen])
 
   useEffect(() => {
     if (focusTitle || !note.title) titleRef.current?.focus()
@@ -35,10 +39,12 @@ export function Editor({w, s, note, online, focusTitle, onBack, onEscape, onRail
 
   const onTitle = (v: string) => {
     const value = v.replace(/\n/g, ' ')
+    const shown = title
     setTitle(value)
     markDirty(note.id)
+    keys.current++
     writing.current++
-    void editTitle(note.id, value).then(() => --writing.current || markClean(note.id))
+    void editTitle(note.id, shown, value).then(() => --writing.current || markClean(note.id))
   }
 
   const label = LABEL[status]

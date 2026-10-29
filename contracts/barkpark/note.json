@@ -11,8 +11,10 @@
     {"name": "notebook", "title": "Notebook", "type": "reference", "refType": "notebook", "validation": {"required": true}},
     {"name": "tags", "title": "Tags", "type": "arrayOf", "ordered": true, "of": {"type": "string"}, "options": {"layout": "tags"}},
     {"name": "links", "title": "Linked notes", "type": "arrayOf", "ordered": true, "of": {"type": "reference", "refType": "note"}},
+    {"name": "by", "title": "Written by (device and content sum)", "type": "string"},
     {"name": "conflicts", "title": "Other versions", "type": "arrayOf", "ordered": true,
      "of": {"type": "composite", "fields": [
+       {"name": "by", "title": "Whose version", "type": "string"},
        {"name": "at", "title": "Kept at", "type": "string"},
        {"name": "title", "title": "Title", "type": "string"},
        {"name": "body", "title": "Body", "type": "richText", "editor": "blocks"},

@@ -1,4 +1,4 @@
-import {db, NOTE_STORES, stored, type Entry, type Failure, type LocalNote} from './db'
+import {db, deviceId, NOTE_STORES, stored, type Entry, type Failure, type LocalNote} from './db'
 import {baseFor, reconcile, sameContent} from './merge'
 import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './note'
 import {notify} from './bus'
@@ -44,7 +44,7 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     void rows.put(toRow(next))
   }
   const base = entry ? baseFor(entry.base, entry.pushed, theirs) : null
-  const merged = entry ? reconcile(base, note ? stored(note) : null, theirs, new Date().toISOString()) : theirs
+  const merged = entry ? reconcile(base, note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
   const settled = !entry || (merged && theirs ? sameContent(merged, theirs) : merged === theirs)
   if (settled) {
     if (entry) void outbox.delete(id)

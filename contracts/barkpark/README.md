@@ -10,7 +10,8 @@ workspace barkever ─ project default ─┬─ production   real notes
 | File | Type | Notes |
 |---|---|---|
 | `note.json` | `note` | Body is `editor: "blocks"` with `wikilink`; `links[]` mirrors body wikilinks (decision 0013) |
-| | | `conflicts[]` holds other versions kept after a clash (decision 0017) |
+| | | `conflicts[]` holds other versions kept after a clash (decision 0017), each naming whose version it is (`by`, decision 0021) |
+| | | `by` is `<device>.<content sum>`: who wrote this version; a write that changes content without re-signing reads as unsigned |
 | `notebook.json` | `notebook` | `parent` makes a stack |
 
 Per-user prefs (`/w/barkever/p/default/v1/prefs/<dataset>/<key>`, value is an object):

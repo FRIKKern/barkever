@@ -1,8 +1,9 @@
 import {useSyncExternalStore} from 'react'
 import {useQuery} from '@tanstack/react-query'
 import {pendingQuery} from './library'
+import type {Reach} from './online'
 
-export type SaveStatus = 'saved' | 'saving' | 'here'
+export type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable'
 
 const dirty = new Set<string>()
 const listeners = new Set<() => void>()
@@ -20,9 +21,9 @@ export function markClean(id: string) {
 
 const subscribe = (l: () => void) => (listeners.add(l), () => void listeners.delete(l))
 
-export function useSaveStatus(id: string, online: boolean): SaveStatus {
+export function useSaveStatus(id: string, reach: Reach): SaveStatus {
   const typing = useSyncExternalStore(subscribe, () => dirty.has(id), () => false)
   const {data: pending} = useQuery(pendingQuery)
   if (!typing && !pending?.has(id)) return 'saved'
-  return online ? 'saving' : 'here'
+  return reach === 'online' ? 'saving' : reach
 }

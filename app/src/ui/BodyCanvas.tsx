@@ -1,6 +1,6 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
 import {useNavigate} from '@tanstack/react-router'
-import {loadCanvas, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import type {Note} from '../lib/model'
 import {markClean, markDirty} from '../lib/saver'
 import {editBody} from '../replica/local'
@@ -25,6 +25,12 @@ export function BodyCanvas({note, s, handle}: Props) {
   const focusCanvas = () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
   useImperativeHandle(handle, () => ({focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true))}), [])
 
+  const flush = () => {
+    if (!canvas.current) return
+    readTyping(canvas.current)
+    canvas.current.flushPendingChanges()
+  }
+
   useEffect(() => {
     let gone = false
     let flushing: ReturnType<typeof setTimeout> | undefined
@@ -44,7 +50,7 @@ export function BodyCanvas({note, s, handle}: Props) {
       markDirty(id)
       flushing ??= setTimeout(() => {
         flushing = undefined
-        canvas.current?.flushPendingChanges()
+        flush()
       }, FLUSH_MS)
     }
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
@@ -79,7 +85,6 @@ export function BodyCanvas({note, s, handle}: Props) {
       },
       (e: Error) => !gone && setState({live: false, blocked: e.message}),
     )
-    const flush = () => canvas.current?.flushPendingChanges()
     addEventListener('pagehide', flush)
     return () => {
       gone = true
@@ -92,7 +97,9 @@ export function BodyCanvas({note, s, handle}: Props) {
   }, [id])
 
   useEffect(() => {
-    if (note.gen) canvas.current?.applyServerBlocks(note.blocks)
+    if (!note.gen || !canvas.current) return
+    readTyping(canvas.current)
+    canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 
   return (

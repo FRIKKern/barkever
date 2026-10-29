@@ -1,8 +1,8 @@
-import {db, forgetReplica, NOTE_STORES, stored, type Entry} from './db'
+import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db'
 import {toRow, type NoteDoc} from './note'
 import {notify} from './bus'
 import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
-import {mergeCanvas} from './merge'
+import {mergeLocal} from './merge'
 import {emptyParagraph, type Block} from '../lib/model'
 
 const now = () => new Date().toISOString()
@@ -28,24 +28,32 @@ async function write(id: string, change: Change) {
 }
 
 const bump = (id: string, before: NoteDoc | null, entry: Entry | undefined, extra: Partial<Entry> = {}): Entry =>
-  entry ? {...entry, failed: undefined, ...extra, v: entry.v + 1} : {id, base: before, v: 1, at: Date.now(), ...extra}
+  entry ? {...entry, failed: undefined, ...extra, v: entry.v + 1} : {id, base: before?._rev ? before : null, v: 1, at: Date.now(), ...extra}
 
-const edit = (id: string, change: (note: NoteDoc) => NoteDoc) =>
-  write(id, (note, entry) => (note ? {note: {...change(note), _updatedAt: now()}, entry: bump(id, note, entry)} : null))
+type Edit = (note: NoteDoc, server: NoteDoc | null) => NoteDoc
+
+const edit = (id: string, change: Edit) =>
+  write(id, (note, entry) => (note ? {note: {...change(note, entry ? entry.base : note._rev ? note : null), _updatedAt: now()}, entry: bump(id, note, entry)} : null))
 
 const withTitle = (title: string) => (n: NoteDoc) => ({...n, title})
 
-const withBody = (base: Block[], after: Block[]) => (n: NoteDoc) => mergeCanvas(n, base, after, now(), `local-${crypto.randomUUID()}`)
+const typed = (n: NoteDoc, server: NoteDoc | null, shown: Partial<NoteDoc>, after: Partial<NoteDoc>) => mergeLocal(n, shown, after, now(), `local-${crypto.randomUUID()}`, deviceId(), server)
 
-async function journaled(id: string, patch: Jot, change: (n: NoteDoc) => NoteDoc) {
+const overTitle = (shown: string, title: string): Edit => (n, server) => typed(n, server, {title: shown}, {title})
+
+const withBody = (base: Block[], after: Block[]): Edit => (n, server) => typed(n, server, {body: {...n.body, blocks: base}}, {body: {...n.body, blocks: after}})
+
+async function journaled(id: string, patch: Jot, change: Edit) {
   const seq = jot(id, patch)
   let out: NoteDoc | undefined
-  await edit(id, (before) => (out = change(before)))
+  await edit(id, (before, server) => (out = change(before, server)))
   unjot(id, seq)
   return out
 }
 
-export const editTitle = (id: string, title: string) => journaled(id, {title}, withTitle(title))
+export const editTitle = (id: string, shown: string, title: string) => journaled(id, {title}, overTitle(shown, title))
+
+export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 
 export async function editBody(id: string, base: Block[], after: Block[]) {
   const out = await journaled(id, {base, after}, withBody(base, after))
@@ -58,7 +66,7 @@ export function replayJournal() {
   replaying ??= (async () => {
     await db()
     for (const [id, j] of jotted()) {
-      await edit(id, (n) => (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m), j.title === undefined ? n : withTitle(j.title)(n)))
+      await edit(id, (n, server) => (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), j.title === undefined ? n : withTitle(j.title)(n)))
       unjot(id, j.seq)
     }
   })()
@@ -68,13 +76,13 @@ export function replayJournal() {
 export const createNote = ({id, notebook, blockId, tags = []}: {id: string; notebook: string; blockId: string; tags?: string[]}) =>
   write(id, () => ({
     note: {_id: id, _type: 'note', title: '', notebook: {_type: 'reference', _ref: notebook}, tags, links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()},
-    entry: bump(id, null, undefined),
+    entry: null,
   }))
 
 export const deleteNote = (id: string) =>
   write(id, (note, entry) => {
     if (!note) return null
-    if (entry && !entry.base && !entry.pushed) return {note: null, entry: null}
+    if (!note._rev && !entry?.pushed) return {note: null, entry: null}
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
 

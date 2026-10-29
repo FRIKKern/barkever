@@ -123,3 +123,126 @@ test('two tabs on one note: each sees the other and both edits reach Barkpark', 
   await onServer(browser, baseURL!, id, title, [all])
   expect(errors).toEqual([])
 })
+
+type Pm = {state: {doc: {child: (i: number) => {nodeSize: number}}}; commands: {setTextSelection: (r: {from: number; to: number}) => void}; view: {focus: () => void}}
+
+const typeThenLeaveInOneTask = (page: Page, text: string, after: string) =>
+  page.evaluate(
+    ([text, after]) => {
+      const el = document.querySelector('[data-testid=canvas]') as HTMLElement & {blocks: unknown}
+      const ed = (el.querySelector('[contenteditable="true"]') as HTMLElement & {editor: Pm}).editor
+      const end = ed.state.doc.child(0).nodeSize - 1
+      ed.view.focus()
+      ed.commands.setTextSelection({from: end, to: end})
+      document.execCommand('insertText', false, text)
+      document.querySelector<HTMLTextAreaElement>('[data-testid=title]')!.focus()
+      if (after === 'pagehide') dispatchEvent(new Event('pagehide'))
+      else new BroadcastChannel('barkever').postMessage({kind: 'remote', ids: [after]})
+      return JSON.stringify(el.blocks).includes(text.trim())
+    },
+    [text, after],
+  )
+
+async function twoBlockNote(page: Page, title: string) {
+  const id = await newNote(page, title)
+  await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Mine.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Theirs.')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  return id
+}
+
+test('leaving the page in the same breath as typing commits what was typed', async ({page}) => {
+  const errors = errorsOf(page)
+  const title = `Pagehide in the gap ${Date.now()}`
+  await twoBlockNote(page, title)
+  expect(await typeThenLeaveInOneTask(page, ' Typed then gone.', 'pagehide'), 'committed on pagehide').toBe(true)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.reload()
+  await expect(canvas(page)).toContainText('Mine. Typed then gone.')
+  expect(errors).toEqual([])
+})
+
+test('a remote change landing right after I type, with the cursor already in the title, keeps the body I typed', async ({page}) => {
+  const errors = errorsOf(page)
+  const title = `Remote in the gap ${Date.now()}`
+  const id = await twoBlockNote(page, title)
+  await page.evaluate(async (id) => {
+    const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+    const db = await new Promise<IDBDatabase>((ok) => {
+      const r = indexedDB.open(name)
+      r.onsuccess = () => ok(r.result)
+    })
+    const tx = db.transaction('notes', 'readwrite')
+    const store = tx.objectStore('notes')
+    const get = store.get(id)
+    get.onsuccess = () => {
+      const note = get.result
+      note.body.blocks[0] = {...note.body.blocks[0], content: [{type: 'text', value: 'Mine, edited elsewhere.'}]}
+      store.put({...note, _gen: (note._gen ?? 0) + 1})
+    }
+    await new Promise((ok) => (tx.oncomplete = ok))
+    db.close()
+  }, id)
+  await typeThenLeaveInOneTask(page, ' Typed in the gap.', id)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.reload()
+  await expect(page.getByTestId('title')).toHaveValue(title)
+  const kept = await page.locator('main.editor').innerText()
+  expect(kept, 'what I typed survives').toContain('Mine. Typed in the gap.')
+  expect(kept, 'the other version survives').toContain('Mine, edited elsewhere.')
+  expect(errors).toEqual([])
+})
+
+const ROUNDS = Number(process.env.RELOAD_ROUNDS ?? 6)
+
+const typeBothAndReload = (page: Page, n: number) =>
+  page
+    .evaluate(async (n) => {
+      const editable = () => document.querySelector('[data-testid=canvas] [contenteditable="true"]') as (HTMLElement & {editor?: Pm}) | null
+      type Pm = {state: {doc: {forEach: (f: (node: {type: {name: string}; nodeSize: number}, at: number) => void) => void}}; commands: {setTextSelection: (r: {from: number; to: number}) => void}; view: {focus: () => void}}
+      for (let i = 0; i < 400 && !editable()?.editor; i++) await new Promise((r) => setTimeout(r, 5))
+      const ed = editable()!.editor!
+      let end = -1
+      ed.state.doc.forEach((node, at) => void (end < 0 && node.type.name === 'paragraph' && (end = at + node.nodeSize - 1)))
+      ed.view.focus()
+      ed.commands.setTextSelection({from: end, to: end})
+      document.execCommand('insertText', false, ` RL${n}`)
+      const t = document.querySelector<HTMLTextAreaElement>('[data-testid=title]')!
+      t.focus()
+      t.setSelectionRange(t.value.length, t.value.length)
+      document.execCommand('insertText', false, ` T${n}`)
+      location.reload()
+    }, n)
+    .catch(() => undefined)
+
+test(`stress: body and title typed in one breath right before a reload both survive, ${ROUNDS} rounds, cold and warm`, async ({page, browser, baseURL}) => {
+  test.setTimeout(60_000 + ROUNDS * 15_000)
+  const errors = errorsOf(page)
+  const title = `Reload stress ${Date.now()}`
+  const id = await newNote(page, title)
+  await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached()
+  await page.keyboard.press('Enter')
+  await expect(canvas(page).locator('[contenteditable="true"]')).toBeFocused()
+  await page.keyboard.type('Body.')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  const cdp = await page.context().newCDPSession(page)
+  let body = 'Body.'
+  let titled = title
+  for (let n = 1; n <= ROUNDS; n++) {
+    if (n % 3 === 0) await cdp.send('Network.emulateNetworkConditions', {offline: false, latency: 400, downloadThroughput: 200_000, uploadThroughput: 200_000})
+    if (n % 2) await page.goto(`/?n=${id}`)
+    await typeBothAndReload(page, n)
+    body += ` RL${n}`
+    titled += ` T${n}`
+    await expect(page.getByTestId('title')).toHaveValue(titled, {timeout: 15_000})
+    await expect(canvas(page), `round ${n}: the body typed before the reload`).toContainText(body, {timeout: 15_000})
+    await cdp.send('Network.emulateNetworkConditions', {offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1})
+  }
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
+  await onServer(browser, baseURL!, id, titled, [body])
+  expect(errors).toEqual([])
+})

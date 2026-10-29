@@ -14,6 +14,14 @@ export type CanvasElement = HTMLElement & {
   acknowledgeOps(seq: number, ok: boolean): void
 }
 
+type Typed = HTMLElement & {editor?: {view?: {domObserver?: {forceFlush(): void; flush(): void}}}}
+
+export function readTyping(el: CanvasElement) {
+  const seen = el.querySelector<Typed>('[contenteditable="true"]')?.editor?.view?.domObserver
+  seen?.forceFlush()
+  seen?.flush()
+}
+
 const add = <T extends HTMLElement>(el: T) => (document.head.append(el), el)
 
 let loading: Promise<void> | null = null

@@ -58,7 +58,11 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, n
     const row = (e.target as HTMLElement).closest<HTMLElement>('[data-note-id]')
     const step = STEP[e.key]
     if (row && step) (e.preventDefault(), (row[step] as HTMLElement | null)?.focus())
-    else if (row && e.key === 'Enter') onOpen(row.dataset.noteId!)
+    else if (row && e.key === 'Enter') {
+      e.preventDefault()
+      navigate({to: '/', search: {...s, n: row.dataset.noteId}})
+      onOpen(row.dataset.noteId!)
+    }
   }
   const [q, setQ] = useState(s.q ?? '')
   useEffect(() => setQ(s.q ?? ''), [s.q])
