@@ -29,3 +29,12 @@ test('retrying one unchanged note keeps the push that landed, so a block deleted
   const r3 = note('r3', 'T2', [p('a', 'one'), p('n', 'new')], 'B')
   assert.deepEqual(reconcile(baseFor(note('r1', 'T', [p('a', 'one')]), pushes, r3), s2, r3, AT, 'dev-me')?.body?.blocks.map(blockText), ['one'])
 })
+
+test('sent holds the last 8 distinct pushes: a 9th distinct one drops the oldest, a repeat at the cap drops nothing', () => {
+  const v = (i: number) => note('r1', `T${i}`, [p('a', String(i))], 'dev-me')
+  let pushes: NoteDoc[] = []
+  for (let i = 1; i <= 8; i++) pushes = remember(pushes, v(i))
+  assert.deepEqual(remember(pushes, v(8)), pushes)
+  assert.deepEqual(remember(pushes, v(1)), pushes)
+  assert.deepEqual(remember(pushes, v(9)).map((x) => x.title), ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'])
+})
