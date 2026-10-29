@@ -8,22 +8,28 @@ type Starred = keyof typeof STARRED
 const starredOnServer = async (id: Starred) => (await prefIds(userToken(), 'shortcuts')).includes(id)
 const starCall = (body: string, id: Starred) => body.includes(id) && body.includes('"on"')
 
-function pendingStars(page: Page, set?: Record<string, boolean>): Promise<Record<string, boolean>> {
-  return page.evaluate(async (set) => {
-    const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
-    const db = await new Promise<IDBDatabase>((ok) => {
-      const r = indexedDB.open(name)
-      r.onsuccess = () => ok(r.result)
-    })
-    const store = db.transaction('meta', 'readwrite').objectStore('meta')
-    const got = await new Promise<Record<string, boolean>>((ok) => {
-      const r = set ? store.put(set, 'stars') : store.get('stars')
-      r.onsuccess = () => ok(set ?? r.result ?? {})
-    })
-    db.close()
-    return got
-  }, set)
+function meta<T>(page: Page, key: string, set?: T): Promise<T | undefined> {
+  return page.evaluate(
+    async ({key, set}) => {
+      const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+      const db = await new Promise<IDBDatabase>((ok) => {
+        const r = indexedDB.open(name)
+        r.onsuccess = () => ok(r.result)
+      })
+      const store = db.transaction('meta', 'readwrite').objectStore('meta')
+      const got = await new Promise<T | undefined>((ok) => {
+        const r = set ? store.put(set, key) : store.get(key)
+        r.onsuccess = () => ok(set ?? r.result)
+      })
+      db.close()
+      return got
+    },
+    {key, set},
+  )
 }
+
+const pendingStars = async (page: Page, set?: Record<string, boolean>) => (await meta(page, 'stars', set)) ?? {}
+const keptShortcuts = async (page: Page) => (await meta<{shortcuts: string[]}>(page, 'prefs'))?.shortcuts ?? []
 
 async function openNote(page: Page, id: Starred) {
   await page.goto(`/?n=${id}`)
@@ -92,10 +98,12 @@ test('a star set offline survives reconnect and reload; a star whose answer was 
   await star.click()
   await expect(shortcut).toHaveCount(on ? 1 : 0)
   await failed
+  await page.waitForEvent('requestfailed', (r) => starCall(r.postData() ?? '', 'fx-note-07'))
   expect(await pendingStars(page)).toEqual({'fx-note-07': on})
   await context.setOffline(false)
-  await expect.poll(onServer).toBe(on)
+  await expect.poll(onServer, {timeout: 1_500}).toBe(on)
   await expect.poll(() => pendingStars(page)).toEqual({})
+  expect((await keptShortcuts(page)).includes('fx-note-07')).toBe(on)
   await page.reload()
   await expect(star).toHaveAttribute('aria-pressed', String(on))
   await expect(shortcut).toHaveCount(on ? 1 : 0)
@@ -170,13 +178,16 @@ for (const held of ['fx-note-07', 'fx-note-02'] as const)
     await openNote(two, 'fx-note-02')
     const star = two.getByTestId('star')
     await expect(star).toHaveAttribute('aria-pressed', 'true')
+    const after: string[] = []
+    for (const p of [one, two]) p.on('request', (r) => starCall(r.postData() ?? '', 'fx-note-02') && after.push(p === one ? 'one' : 'two'))
     await star.click()
     await expect(star).toHaveAttribute('aria-pressed', 'false')
-    await two.waitForTimeout(300)
+    await expect.poll(async () => (await pendingStars(two))['fx-note-02']).toBe(false)
     release()
     await expect.poll(() => pendingStars(one)).toEqual({})
     await expect.poll(() => starredOnServer('fx-note-02')).toBe(false)
     expect(await starredOnServer('fx-note-07')).toBe(true)
+    expect(after, 'after the unstar, 02 goes out once, already off').toHaveLength(1)
     await two.reload()
     await expect(star).toHaveAttribute('aria-pressed', 'false')
   })
@@ -341,6 +352,7 @@ test('a star acked while the prefs read is in flight still shows once the read l
     held++
     fetched()
     await starLanded
+    await expect.poll(() => pendingStars(page)).toEqual({})
     await route.fulfill({response: answer})
   })
   await page.reload()
