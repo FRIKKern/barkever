@@ -17,6 +17,8 @@ const checks = () => {
 const head = gh(["pr", "view", pr, "-R", REPO, "--json", "headRefOid", "-q", ".headRefOid"]).trim();
 if (!head.startsWith(reviewed)) { console.error(`merge-pr: head is ${head.slice(0, 10)}, review passed ${reviewed}; review the new head first`); process.exit(1); }
 const required = gh(["api", `repos/${REPO}/branches/main/protection/required_status_checks`, "-q", ".contexts[]"]).trim().split("\n").filter(Boolean);
+const redOnMain = JSON.parse(gh(["api", `repos/${REPO}/commits/main/check-runs?per_page=100`, "-q", "[.check_runs[] | select(.conclusion == \"failure\") | .name]"])).filter((name) => required.includes(name));
+if (redOnMain.length && !rest.includes("--fixes-main")) { console.error(`merge-pr: main is red on ${redOnMain.join(", ")}; fix main first, or pass --fixes-main for the PR that does`); process.exit(1); }
 const running = () => JSON.parse(gh(["run", "list", "-R", REPO, "--commit", head, "--json", "status", "--limit", "100"])).filter((r) => r.status !== "completed").length;
 let list = checks();
 for (let waited = 0; !list.length || list.some((c) => c.bucket === "pending") || running() > 0; waited++) {
