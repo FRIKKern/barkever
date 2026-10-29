@@ -12,7 +12,14 @@ if (existsSync(cfgPath)) {
   const publicDefaults = new Set(["barkpark-dev-token"]);
   for (const t of [cfg.token, cfg.cloud_token, ...(cfg.known_servers ?? []).map((s) => s.token)]) if (t && t.length > 12 && !publicDefaults.has(t)) secrets.push(t);
 }
-const patterns = [/sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bghp_[A-Za-z0-9]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/];
+const envPath = new URL("../app/.env.local", import.meta.url);
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^\s*[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|KEY)[A-Z0-9_]*\s*=\s*["']?(.*?)["']?\s*$/);
+    if (m && m[2].length >= 8) secrets.push(m[2]);
+  }
+}
+const patterns =[/sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bghp_[A-Za-z0-9]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/];
 
 const ids = [...run(["checkpoint", "list", "--outgoing"]).matchAll(/^([0-9A-HJKMNP-TV-Z]{26})\b/gm)].map((m) => m[1]);
 let bad = 0;
