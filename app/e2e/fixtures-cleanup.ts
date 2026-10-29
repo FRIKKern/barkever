@@ -17,7 +17,7 @@ export function barkpark(path: string, init: RequestInit = {}, token?: string): 
 
 export async function deleteNotes(ids: string[]): Promise<void> {
   for (const id of ids) {
-    const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{delete: {id, type: 'note'}}]})})
+    const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{delete: {id, type: 'note', force: true}}]})})
     if (!res.ok && res.status !== 404) throw new Error(`cleanup failed: Barkpark ${res.status}`)
   }
 }

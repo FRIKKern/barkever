@@ -1,5 +1,6 @@
 import noteSchema from '../../../contracts/barkpark/note.json' with {type: 'json'}
 import type {Block} from './model'
+import type {Candidate} from './link-pick'
 import type {CanvasFiles} from '../server/canvas'
 
 export const vocabulary = JSON.stringify(noteSchema.fields.find((f) => f.name === 'body')!.blocks)
@@ -8,6 +9,7 @@ export type CanvasOps = {seq: number}
 export type CanvasElement = HTMLElement & {
   blocks: Block[]
   acknowledgedSaves: boolean
+  wikilinkSource: (query: string) => Candidate[]
   identifyOpsRequest(seq: number, requestId: string): void
   applyServerBlocks(blocks: Block[], o?: {mode: 'own'; requestId: string}): void
   flushPendingChanges(): boolean

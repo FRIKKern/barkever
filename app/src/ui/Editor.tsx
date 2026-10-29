@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {flipShortcut} from '../lib/library'
+import {linkCandidates} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, useSaveStatus} from '../lib/saver'
@@ -110,7 +111,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
             </span>
           </div>
           <ConflictView note={note} />
-          <BodyCanvas note={note} s={s} handle={body} />
+          <BodyCanvas note={note} s={s} handle={body} pick={(q) => linkCandidates(w.lib.notes, note.id, q, (id) => w.shelf.path(id).at(-1) ?? '')} />
         </article>
       </div>
     </main>
