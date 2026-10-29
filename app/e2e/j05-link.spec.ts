@@ -6,6 +6,7 @@ test.describe.configure({mode: 'serial', timeout: 120_000})
 const TARGET = 'Lighthouse buoy: battery plan'
 const SOURCE = 'Harbor walk: notes'
 const OFFLINE = 'Ferry ride: offline thoughts'
+const FIRST_LINE = 'Swap the cells before winter.'
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
 
@@ -15,12 +16,15 @@ const from = (page: Page) => page.getByTestId('linked-from')
 const to = (page: Page) => page.getByTestId('links-to')
 const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 30_000})
 
-async function linksOnServer(id: string): Promise<string[]> {
+type Stored = {_id: string; links?: {_ref: string}[]; body?: unknown}
+
+async function onServer(id: string): Promise<Stored | undefined> {
   const res = await barkpark(`/v1/data/query/${DATASET}/note?perspective=drafts&limit=2&filter[_id][in]=${id},drafts.${id}`)
-  const docs = ((await res.json()) as {result: {documents: {_id: string; links?: {_ref: string}[]}[]}}).result.documents
-  const doc = docs.find((d) => d._id.startsWith('drafts.')) ?? docs[0]
-  return (doc?.links ?? []).map((l) => l._ref)
+  const docs = ((await res.json()) as {result: {documents: Stored[]}}).result.documents
+  return docs.find((d) => d._id.startsWith('drafts.')) ?? docs[0]
 }
+const linksOnServer = async (id: string) => ((await onServer(id))?.links ?? []).map((l) => l._ref)
+const link = (page: Page) => page.getByTestId('canvas').locator('[data-wikilink]')
 
 async function newNote(page: Page, title: string) {
   const before = opened(page)
@@ -76,12 +80,16 @@ test('J05 link: [[ picks a note by title, the link opens it, and the target show
   await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 30_000})
 
   const target = await newNote(page, TARGET)
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('canvas').locator('[contenteditable="true"]')).toBeFocused()
+  await page.keyboard.type(FIRST_LINE)
   await synced(page)
   const source = await newNote(page, SOURCE)
   await linkTo(page, 'buoy batt', TARGET)
   await page.getByTestId('canvas').locator('[data-wikilink]').hover()
   await expect(page.locator('.bp-link-preview__title')).toHaveText(TARGET)
   await expect(page.locator('.bp-link-preview__addr')).toHaveText('Inbox')
+  await expect(page.locator('.bp-link-preview__excerpt')).toHaveText(FIRST_LINE)
   await page.screenshot({path: test.info().outputPath('j05-preview-dark-1440.png'), animations: 'disabled'})
   await page.mouse.move(0, 0)
   await onlyBrackets(page)
@@ -120,7 +128,9 @@ test('J05 offline, on a phone: a link made offline shows its backlink at once, a
   await expect(page.getByTestId('offline')).toBeVisible({timeout: 15_000})
   const offline = await newNote(page, OFFLINE)
   await linkTo(page, 'lighthouse', TARGET)
-  await page.getByTestId('canvas').locator('[data-wikilink]').click()
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ControlOrMeta+Enter')
   await expect.poll(() => opened(page)).toBe(target)
   await expect(from(page)).toHaveCount(2)
   await expect(from(page).filter({hasText: OFFLINE})).toHaveCount(1)
@@ -136,5 +146,28 @@ test('J05 offline, on a phone: a link made offline shows its backlink at once, a
   await expect(page.getByTestId('title')).toHaveValue(TARGET)
   await expect(from(page)).toHaveCount(2)
   await expect(from(page).filter({hasText: OFFLINE})).toContainText(`Next stop: ${TARGET}`)
+  expect(errors).toEqual([])
+})
+
+test('J05 delete: a link to a deleted note reads as dead, its card says so, and it goes nowhere', async ({page}) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.emulateMedia({colorScheme: 'dark'})
+  const [target, source] = created
+  await page.goto(`/?n=${target}`)
+  await expect(page.getByTestId('title')).toHaveValue(TARGET, {timeout: 30_000})
+  await synced(page)
+  await page.getByTestId('delete-note').click()
+  await expect.poll(() => opened(page)).toBeNull()
+
+  await page.goto(`/?n=${source}`)
+  await expect(link(page)).toHaveCSS('text-decoration-line', 'line-through')
+  await expect(to(page)).toHaveCount(0)
+  await link(page).hover()
+  await expect(page.locator('.bp-link-preview__title')).toHaveText('Deleted note')
+  await page.screenshot({path: test.info().outputPath('j05-dead-link-dark-1440.png'), animations: 'disabled'})
+  await link(page).click()
+  await page.waitForTimeout(500)
+  expect(opened(page)).toBe(source)
   expect(errors).toEqual([])
 })

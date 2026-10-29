@@ -3,7 +3,7 @@ import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
 import {loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import type {Linker} from '../lib/link-pick'
-import type {Note} from '../lib/model'
+import {wikilinks, type Note} from '../lib/model'
 import {markDirty, markSaved} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {Search} from '../lib/scope'
@@ -13,6 +13,7 @@ export type BodyHandle = {focus: () => void}
 type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker}
 
 const FLUSH_MS = 40
+const GONE = 'color: var(--c-muted); background: none; text-decoration: line-through; cursor: default;'
 const WORDS = JSON.stringify({'Link to page': 'Link to note', 'No matching pages': 'No matching notes'})
 
 export function BodyCanvas({note, s, handle, linker}: Props) {
@@ -59,18 +60,25 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         flush()
       }, FLUSH_MS)
     }
+    const live = (to: string | null | undefined): to is string => !!to && !links.current.gone(to)
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
     const onOpen = (e: Event) => {
       const d = (e as CustomEvent<{kind?: string; docId?: string; target?: string}>).detail
-      const to = d.docId || d.target
-      if (d.kind === 'link' || !to) return
+      if (d.kind === 'link') return
       e.preventDefault()
-      go(to)
+      const to = d.docId || d.target
+      if (live(to)) go(to)
     }
     const onClick = (e: Event) => {
       const d = (e as CustomEvent<{docId: string | null; target: string | null}>).detail
       const to = d.docId || d.target
-      if (to) (e.preventDefault(), go(to))
+      if (live(to)) (e.preventDefault(), go(to))
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return
+      const at = getSelection()?.anchorNode
+      const to = (at instanceof Element ? at : at?.parentElement)?.closest('[data-wikilink]')?.getAttribute('docid')
+      if (live(to)) (e.preventDefault(), e.stopPropagation(), go(to))
     }
     loadCanvas().then(
       () => {
@@ -88,6 +96,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         el.addEventListener('bp-canvas-open-link', onOpen)
         el.addEventListener('bp-canvas-wikilink-click', onClick)
         el.addEventListener('input', onInput)
+        el.addEventListener('keydown', onKey, true)
         el.dataset.testid = 'canvas'
         host.current.append(el)
         canvas.current = el
@@ -113,8 +122,10 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
     canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 
+  const dead = wikilinks(note.blocks).filter(linker.gone)
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">
+      {dead.length > 0 && <style>{`${dead.map((t) => `bp-paper-canvas [data-wikilink][docid="${CSS.escape(t)}"]`).join(', ')} { ${GONE} }`}</style>}
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
       <Blocks blocks={note.blocks} s={s} />
     </div>
