@@ -41,10 +41,10 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
     const value = v.replace(/\n/g, ' ')
     const shown = title
     setTitle(value)
-    markDirty(note.id)
-    const upTo = savePoint(note.id)
+    markDirty(note.id, 'title')
+    const upTo = savePoint(note.id, 'title')
     keys.current++
-    void editTitle(note.id, shown, value).then(() => markSaved(note.id, upTo))
+    void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', upTo))
   }
 
   const label = LABEL[status]

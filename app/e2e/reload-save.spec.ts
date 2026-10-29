@@ -348,7 +348,7 @@ test('opening a saved note shows Saved at once, never a Saving flash, and a relo
   expect(errors).toEqual([])
 })
 
-const late = (page: Page, how: 'title' | 'body') =>
+const late = (page: Page, how: 'title' | 'body' | 'title after') =>
   page.evaluate((how) => {
     const w = window as Watched
     w.stretch = true
@@ -361,21 +361,24 @@ const late = (page: Page, how: 'title' | 'body') =>
       ed.commands.setTextSelection({from: end, to: end})
       document.execCommand('insertText', false, text)
     }
-    if (how === 'title') {
+    const typeInTitle = () => {
       const t = document.querySelector<HTMLTextAreaElement>('[data-testid=title]')!
       t.focus()
       t.setSelectionRange(t.value.length, t.value.length)
       document.execCommand('insertText', false, '!')
-    } else {
+    }
+    if (how === 'title') typeInTitle()
+    if (how === 'body') {
       typeInBody(' Early body.')
       ed.view.domObserver.flush()
       el.flushPendingChanges()
     }
     typeInBody(' Late body.')
+    if (how === 'title after') typeInTitle()
   }, how)
 
-for (const how of ['title', 'body'] as const) {
-  test(`a ${how} save that started before more body typing never claims that typing`, async ({page}) => {
+for (const how of ['title', 'body', 'title after'] as const) {
+  test(`a ${how === 'title after' ? 'title save after unflushed body typing' : `${how} save that started before more body typing`} never claims that typing`, async ({page}) => {
     const errors = errorsOf(page)
     await watchSaved(page)
     await twoBlockNote(page, `Late typing after a ${how} save ${Date.now()}`)
@@ -405,5 +408,63 @@ test('an outbox read that lands after a newer one never leaves Saving stuck', as
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
   await page.waitForTimeout(2500)
   await expect(status(page)).toHaveText('Saved')
+  expect(errors).toEqual([])
+})
+
+test('typing that changes nothing settles back on Saved', async ({page}) => {
+  const errors = errorsOf(page)
+  await twoBlockNote(page, `No net change ${Date.now()}`)
+  await typeAtEnd(page, 'x')
+  await page.keyboard.press('Backspace')
+  await expect(status(page)).toHaveText('Saved', {timeout: 3000})
+  await page.waitForTimeout(1000)
+  await expect(status(page)).toHaveText('Saved')
+  expect(errors).toEqual([])
+})
+
+const truthProbe = (page: Page, id: string, text: string) =>
+  page.evaluate(
+    async ([id, text]) => {
+      const w = window as Window & {lies?: string[]}
+      w.lies = []
+      const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+      const db = await new Promise<IDBDatabase>((ok) => (indexedDB.open(name).onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result)))
+      const read = <T,>(store: string) => new Promise<T>((ok) => (db.transaction(store).objectStore(store).get(id).onsuccess = (e) => ok((e.target as IDBRequest<T>).result)))
+      const check = (what: string, needsPush: boolean) => {
+        const at = Math.round(performance.now())
+        const [note, entry] = [read<{body?: unknown}>('notes'), read<unknown>('outbox')]
+        void Promise.all([note, entry]).then(([n, e]) => {
+          if (!JSON.stringify(n?.body ?? '').includes(text)) w.lies!.push(`${what} at ${at} ms before "${text}" was stored`)
+          else if (needsPush && e !== undefined) w.lies!.push(`${what} at ${at} ms while the note still waits in the outbox`)
+        })
+      }
+      const shown = new Map(['save-status', 'sync-status'].map((t) => [t, document.querySelector(`[data-testid=${t}]`)?.textContent ?? '']))
+      new MutationObserver(() => {
+        for (const [testid, claims] of [['save-status', ['Saved', 'Offline · saved on this device']], ['sync-status', ['Synced']]] as const) {
+          const now = document.querySelector(`[data-testid=${testid}]`)?.textContent ?? ''
+          if (now !== shown.get(testid) && (claims as readonly string[]).includes(now)) check(now, now !== 'Offline · saved on this device')
+          shown.set(testid, now)
+        }
+      }).observe(document, {subtree: true, childList: true, characterData: true})
+    },
+    [id, text],
+  )
+
+test('typed offline and back online within 50 ms: neither Saved nor Synced shows before the edit is stored and sent', async ({page, context}) => {
+  const errors = errorsOf(page)
+  const id = await newNote(page, `Status truth ${Date.now()}`)
+  await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Base.')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
+  await truthProbe(page, id, 'Typed offline.')
+  await context.setOffline(true)
+  await page.keyboard.type(' Typed offline.')
+  await context.setOffline(false)
+  await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.waitForTimeout(300)
+  expect(await page.evaluate(() => (window as Window & {lies?: string[]}).lies)).toEqual([])
   expect(errors).toEqual([])
 })

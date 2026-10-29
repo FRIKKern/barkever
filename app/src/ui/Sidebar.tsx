@@ -1,7 +1,8 @@
 import {useEffect, useRef, type FormEvent} from 'react'
 import {useQuery} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
-import {pendingQuery, stuckQuery} from '../lib/library'
+import {stuckQuery} from '../lib/library'
+import {useUnsynced} from '../lib/saver'
 import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
@@ -13,7 +14,7 @@ import {SideTags} from './SideTags'
 import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
-function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
+function signOut(e: FormEvent<HTMLFormElement>, pending: number | null) {
   e.preventDefault()
   const form = e.currentTarget
   if (pending && !confirm(`${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`)) return
@@ -22,7 +23,10 @@ function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
 const RECENT_SHOWN = 5
 
 const AWAY = {offline: 'Offline', unreachable: 'Can’t reach Barkpark'}
-const footLine = (reach: Reach, pending: number) => (reach === 'online' ? (pending ? `Syncing ${pending}` : 'Synced') : pending ? `${AWAY[reach]} · ${pending} to sync` : AWAY[reach])
+const footLine = (reach: Reach, pending: number | null) => {
+  if (reach !== 'online') return pending ? `${AWAY[reach]} · ${pending} to sync` : AWAY[reach]
+  return pending === null ? 'Syncing' : pending ? `Syncing ${pending}` : 'Synced'
+}
 
 type Props = {w: World; s: Search; reach: Reach; modal: boolean; onNew: (() => void) | null; onPick: (note?: string) => void}
 
@@ -31,7 +35,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
   useEffect(() => {
     if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
   }, [modal])
-  const pending = useQuery(pendingQuery).data?.size ?? 0
+  const pending = useUnsynced()
   const stuck = useQuery(stuckQuery).data ?? []
   const {lib, shelf, prefs, links, perNotebook, tags} = w
   const count = (id: string) => shelf.scope(id).reduce((sum, nb) => sum + (perNotebook.get(nb) ?? 0), 0)
