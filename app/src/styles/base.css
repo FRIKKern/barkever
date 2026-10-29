@@ -19,5 +19,7 @@ mark { background: var(--c-mark); color: inherit; border-radius: 2px; padding: 0
 .btn[aria-pressed="true"] { color: var(--c-accent); }
 .icon-btn { width: var(--h-item); height: var(--h-item); display: grid; place-items: center; border-radius: var(--r-m); color: var(--c-muted); }
 .icon-btn:hover { background: var(--c-hover); color: var(--c-text); }
+.icon-btn[aria-pressed="true"] { color: var(--c-accent); }
+.icon-btn[aria-pressed="true"] .ico { fill: currentColor; }
 .empty { padding: var(--sp-6) var(--sp-4); color: var(--c-muted); font-size: var(--fs-m); text-align: center; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

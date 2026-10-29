@@ -12,8 +12,6 @@ import {MiniMap} from './MiniMap'
 import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
-const TOP_TAGS = 8
-
 function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
   e.preventDefault()
   const form = e.currentTarget
@@ -34,8 +32,8 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
   }, [modal])
   const pending = useQuery(pendingQuery).data?.size ?? 0
   const stuck = useQuery(stuckQuery).data ?? []
-  const {lib, shelf, prefs, links} = w
-  const count = (id: string) => lib.notes.filter((n) => n.notebook && shelf.scope(id).includes(n.notebook)).length
+  const {lib, shelf, prefs, links, perNotebook, tags} = w
+  const count = (id: string) => shelf.scope(id).reduce((sum, nb) => sum + (perNotebook.get(nb) ?? 0), 0)
   const scoped = !s.q && (s.nb || s.tag)
   const nbItem = (nb: Notebook, child = false) => (
     <Link key={nb.id} to="/" search={{nb: nb.id}} onClick={() => onPick()} className={`si${child ? ' child' : ''}${!s.q && s.nb === nb.id ? ' on' : ''}`} data-testid="side-notebook">
@@ -55,9 +53,6 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
       </Link>
     )
   }
-  const tags = Object.entries(lib.notes.flatMap((n) => n.tags).reduce<Record<string, number>>((a, t) => ((a[t] = (a[t] ?? 0) + 1), a), {}))
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, TOP_TAGS)
   const shortcuts = prefs.shortcuts.map((id) => noteItem(id, 'star', 'side-shortcut')).filter(Boolean)
   const recents = prefs.recents.filter((id) => links.byId.has(id)).slice(0, RECENT_SHOWN)
 
@@ -89,7 +84,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         {tags.length > 0 && <div className="side-h">Tags</div>}
         <div className="tags">
           {tags.map(([t]) => (
-            <Link key={t} to="/" search={{tag: t}} onClick={() => onPick()} className={`tag${!s.q && s.tag === t ? ' on' : ''}`}>
+            <Link key={t} to="/" search={{tag: t}} onClick={() => onPick()} className={`tag${!s.q && s.tag === t ? ' on' : ''}`} data-testid="side-tag">
               #{t}
             </Link>
           ))}

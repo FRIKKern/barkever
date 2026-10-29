@@ -11,6 +11,7 @@ import {when} from '../lib/when'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
 import {ConflictView} from './ConflictView'
 import {Icon} from './icons'
+import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
 const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device'}
@@ -100,15 +101,8 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
             data-testid="title"
           />
           <div className="doc-meta">
-            <span className="nbchip">
-              <span className="dot" style={{background: w.shelf.colour(note.notebook)}} />
-              {path.at(-1) ?? 'No notebook'}
-            </span>
-            {note.tags.map((t) => (
-              <Link key={t} className="tag" to="/" search={{tag: t, n: note.id}}>
-                #{t}
-              </Link>
-            ))}
+            <NotebookPick w={w} note={note} />
+            <TagEdit w={w} note={note} />
             <span>Edited {when(note.updatedAt)}</span>
             <span className={`lk${ins + outs >= 3 ? ' hub' : ''}`}>
               <Icon name="link" />

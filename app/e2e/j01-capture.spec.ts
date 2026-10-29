@@ -93,7 +93,7 @@ test('J01: N lands where you are: under a tag it carries the tag, under an unkno
   const lost = await capture(page, 'n')
   expect(search(page)).toEqual({nb: 'fx-nb-inbox', n: lost})
   await expect(rowOf(page, lost)).toHaveAttribute('aria-selected', 'true')
-  await expect(page.locator('.nbchip')).toHaveText('Inbox')
+  await expect(page.getByTestId('notebook-pick')).toHaveValue('fx-nb-inbox')
 })
 
 test('J01: a blank new note never reaches Barkpark, and a reload or a closed tab drops it', async ({page, context}) => {

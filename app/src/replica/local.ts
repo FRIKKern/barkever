@@ -1,5 +1,6 @@
 import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db'
 import {toRow, type NoteDoc} from './note'
+import {move, tagsTo} from './organize'
 import {notify} from './bus'
 import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
@@ -53,6 +54,10 @@ async function journaled(id: string, patch: Jot, change: Edit) {
 }
 
 export const editTitle = (id: string, shown: string, title: string) => journaled(id, {title}, overTitle(shown, title))
+
+export const moveNote = (id: string, from: string | null, to: string) => edit(id, (n, server) => typed(n, server, ...move(n, from, to)))
+
+export const retag = (id: string, shown: string[], tags: string[]) => edit(id, (n, server) => typed(n, server, ...tagsTo(shown, tags)))
 
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 

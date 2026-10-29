@@ -39,3 +39,12 @@ bp-paper-canvas input[type="checkbox"] { accent-color: var(--c-accent); margin: 
 bp-paper-canvas [data-wikilink] { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); cursor: pointer; }
 bp-paper-canvas [data-wikilink]::before { content: "↗ "; font-size: .8em; opacity: .7; }
 .empty-ed { margin: auto; text-align: center; color: var(--c-muted); font-size: var(--fs-m); }
+.nbchip.pick { border-radius: var(--r-pill); padding: 1px var(--sp-2) 1px var(--sp-half); margin-left: calc(-1 * var(--sp-half)); }
+.nbchip.pick:hover, .nbchip.pick:focus-within { background: var(--c-hover); }
+.nbchip select { appearance: none; field-sizing: content; border: 0; outline: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; }
+.tag.chip { display: inline-flex; align-items: center; gap: var(--sp-hair); padding-right: var(--sp-1); }
+.tag.chip button { color: var(--c-muted); line-height: 1; padding: 0 var(--sp-hair); border-radius: var(--r-pill); }
+.tag.chip button:hover { color: var(--c-text); background: var(--c-border); }
+.tag-add { width: calc(var(--sp-7) + var(--sp-4)); border: 0; outline: 0; background: none; font: inherit; color: var(--c-text); padding: 1px var(--sp-1); border-radius: var(--r-pill); }
+.tag-add::placeholder { color: var(--c-faint); }
+.tag-add:focus { background: var(--c-hover); width: calc(2 * var(--sp-7)); }
