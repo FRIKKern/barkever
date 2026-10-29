@@ -24,7 +24,8 @@ Each row is a bug a reviewer found that the builder could have found first.
 | Every consumer of what you changed: **grep each stored field for its readers** (retry, sweeper, replay, analytics, Studio), not just the live fan-out | #24744: the stored event row fed retries and replays the old label |
 | **No fallbacks.** A default that covers a missing value hides the bug; remove it and run a mutant per producer | #24744: `details.id` fell back to the named id twice |
 | A mutant: remove your fix and confirm a test fails | all three reviews ran this check |
-| **Run locally every gate that passed on the previous head** (boundary, census, doc budgets, format, prod compile) | #24743: the Boundary gate turned red after the push |
+| **Time it at real size**: 150+ documents or rows, with a write to a sibling dataset timed while it runs; nothing holds a workspace lock for the whole walk | #24743: a 60-doc dataset delete hit the 15 s timeout and froze every write in the workspace |
+| **Run locally every step of every job your diff touches**, and every gate that passed on the previous head (boundary, census, doc budgets, repo-papers freshness, format, prod compile) | #24743: Boundary gate red after the push; #24761: ran doc budgets but not repo-papers freshness |
 | Docs and the PR body claim only what a test or your own probe proves | #24750: "replaying changes nothing"; #24743: cited a probe nobody ran |
 
 Put the table in the PR body, with one line per row: what you tried and what happened.
@@ -34,4 +35,4 @@ Put the table in the PR body, with one line per row: what you tried and what hap
 - The reviewer starts when the PR opens, not when CI turns green.
 - The reviewer sends its fix list straight to the builder by agent name, and copies the lead on the verdict only.
 - The reviewer gives each finding a class and the earliest check that should have caught it. The lead logs it in `pace/misses.jsonl`.
-- The lead merges on PASS with `node scripts/merge-pr.mjs <n> <reviewed sha>`: it refuses a head the review did not see, waits for every check, and refuses any non-advisory fail.
+- The lead merges on PASS with `node scripts/merge-pr.mjs <n> <reviewed sha>`: it refuses a head the review did not see, waits for every check, and refuses any non-advisory fail. It refuses while a required check is red on main; `--fixes-main` is for the PR that fixes main, `--known-red <name>` for a named non-required check already red there.

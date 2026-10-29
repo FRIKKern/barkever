@@ -47,6 +47,7 @@ Owner-only choices (a design pick) get a provisional pick from an independent ju
 - **Unsure? Test, don't guess.** Any decision you aren't sure of gets rival spikes: one agent per direction, same tests, same report table. Spike code lives in `spikes/<name>/`; the winner becomes a decision, the loser's report is linked from it.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
+- **guerrilla is shared.** Every run and agent writes to one Barkpark workspace. A live probe is one timed call; no loops, and no deletes or bulk writes without the lead.
 - **No secrets in prompts, files or output.** Entire pushes transcripts with the code.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
 - **Entire:** run `entire agent-help` for the commands you may use. Only the lead fast-forwards `main`; nobody runs `entire trail merge`. Reviews post as `entire trail finding`.
