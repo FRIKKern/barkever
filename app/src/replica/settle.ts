@@ -2,7 +2,7 @@ import {db, deviceId, NOTE_STORES, stored, type Entry, type Failure, type LocalN
 import {baseFor, reconcile, sameContent} from './merge'
 import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './note'
 import {notify} from './bus'
-import {touchedByOthers, unmark} from './made'
+import {madeKey, touchedByOthers} from './made'
 
 export type Verdict = 'apply' | 'skip' | 'suspect'
 export type Decide = (known: string | undefined) => Verdict
@@ -29,7 +29,7 @@ async function settleNotebook(id: string, theirs: NotebookDoc | null, decide: De
 }
 
 async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, announce: boolean): Promise<Verdict> {
-  const tx = (await db()).transaction(NOTE_STORES, 'readwrite')
+  const tx = (await db()).transaction([...NOTE_STORES, 'meta'] as const, 'readwrite')
   const [notes, rows, outbox] = [tx.objectStore('notes'), tx.objectStore('rows'), tx.objectStore('outbox')]
   const [note, entry] = await Promise.all([notes.get(id), outbox.get(id)])
   const verdict = decide(knownOf(entry, note?._rev))
@@ -54,8 +54,8 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     void outbox.put({...entry, base: theirs, pushed: theirs && base === theirs ? undefined : entry.pushed, delete: merged ? undefined : true})
     show(merged && {...merged, _id: id, _type: 'note', _rev: theirs?._rev})
   }
+  if (touchedByOthers(theirs, deviceId())) void tx.objectStore('meta').delete(madeKey(id))
   await tx.done
-  if (touchedByOthers(theirs, deviceId())) await unmark(id)
   if (announce) notify({kind: 'remote', ids: [id]})
   return verdict
 }

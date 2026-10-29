@@ -1,5 +1,5 @@
 import {useSyncExternalStore} from 'react'
-import {useQuery} from '@tanstack/react-query'
+import {notifyManager, useQuery, type QueryClient} from '@tanstack/react-query'
 import {pendingQuery} from './library'
 import type {Reach} from './online'
 
@@ -15,9 +15,11 @@ export function markDirty(id: string) {
   emit()
 }
 
-export function markClean(id: string) {
+function markClean(id: string) {
   if (dirty.delete(id)) emit()
 }
+
+export const markSaved = (qc: QueryClient, id: string) => void qc.refetchQueries({queryKey: pendingQuery.queryKey}).finally(() => notifyManager.schedule(() => markClean(id)))
 
 const subscribe = (l: () => void) => (listeners.add(l), () => void listeners.delete(l))
 

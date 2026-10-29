@@ -4,7 +4,7 @@ import {Link, useNavigate} from '@tanstack/react-router'
 import {flipShortcut} from '../lib/library'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
-import {markClean, markDirty, useSaveStatus} from '../lib/saver'
+import {markDirty, markSaved, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
@@ -44,7 +44,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
     markDirty(note.id)
     keys.current++
     writing.current++
-    void editTitle(note.id, shown, value).then(() => --writing.current || markClean(note.id))
+    void editTitle(note.id, shown, value).then(() => --writing.current || markSaved(qc, note.id))
   }
 
   const label = LABEL[status]

@@ -1,3 +1,4 @@
+import {notify} from '../replica/bus'
 import {db} from '../replica/db'
 import {settle, type Decide} from '../replica/settle'
 import {bare, fromServer, type DocType} from '../replica/note'
@@ -6,7 +7,7 @@ import type {Frame} from './stream'
 const MARGIN = 100_000
 const TYPES = new Set<string>(['note', 'notebook'])
 
-export type Feed = {since: number | null; onFrame: (f: Frame) => void; drained: () => Promise<void>}
+export type Feed = {since: number | null; onFrame: (f: Frame) => void; drained: () => Promise<void>; caughtUp: () => void}
 
 const decideFor = (f: Frame): Decide => {
   const prev = f.previousRev ?? undefined
@@ -32,22 +33,33 @@ export async function openFeed(onSuspect: (type: DocType, id: string) => void): 
     }, 300)
   }
 
+  let catchingUp = true
+  const caught = new Set<string>()
+
   const apply = async (f: Frame) => {
     if (seen.has(f.eventId)) return
     if (TYPES.has(f.type)) {
       const type = f.type as DocType
       const id = bare(f.documentId)
-      const verdict = await settle(type, id, f.mutation === 'delete' ? null : fromServer(f.result), decideFor(f))
+      const verdict = await settle(type, id, f.mutation === 'delete' ? null : fromServer(f.result), decideFor(f), !catchingUp)
       if (verdict === 'suspect') onSuspect(type, id)
+      if (verdict === 'apply' && catchingUp) caught.add(id)
     }
     seen.add(f.eventId)
     cursor = Math.max(cursor ?? 0, f.eventId)
     save()
   }
 
+  const caughtUp = () => {
+    catchingUp = false
+    if (caught.size) notify({kind: 'remote', ids: [...caught]})
+    caught.clear()
+  }
+
   return {
     since: cursor === null ? null : Math.max(0, cursor - MARGIN),
     onFrame: (f) => void (chain = chain.then(() => apply(f)).catch((e) => console.warn('sync frame', e))),
     drained: () => chain,
+    caughtUp,
   }
 }

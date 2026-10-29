@@ -90,6 +90,7 @@ async function session(lost: AbortSignal) {
   try {
     if (!(await stream.caughtUp)) return
     await feed.drained()
+    feed.caughtUp()
     suspects.clear()
     live = true
     run('catch-up', async () => {
@@ -98,6 +99,7 @@ async function session(lost: AbortSignal) {
     })
     await stream.closed
   } finally {
+    feed.caughtUp()
     alive = false
     clearTimeout(retry)
     window.removeEventListener('offline', stop)
