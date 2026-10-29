@@ -46,6 +46,22 @@ function survives(note: Doc | undefined, key: string, text: string): boolean {
 const lost = (writers: Writer[], docs: Map<string, Doc>) =>
   writers.flatMap((w) => [...w.typed].flatMap(([note, keys]) => [...keys].filter(([key, text]) => !survives(docs.get(note), key, text)).map(([key]) => `${w.name} ${note}/${key}`)))
 
+type Kept = [note: string, key: string, text: string]
+
+function losingVersions(docs: Map<string, Doc>): Kept[] {
+  const out: Kept[] = []
+  for (const n of notesOf(docs))
+    for (const c of n.conflicts ?? [])
+      for (const part of c.clash) {
+        const block = part.startsWith('body:') ? c.body?.blocks.find((b) => b.id === part.slice(5)) : undefined
+        if (part === 'title' && c.title) out.push([n._id, 'title', c.title])
+        if (block) out.push([n._id, block.id, blockText(block)])
+      }
+  return out
+}
+
+const dropped = (kept: Kept[], docs: Map<string, Doc>) => kept.filter(([note, key, text]) => !survives(docs.get(note), key, text)).map(([note, key, text]) => `${note}/${key}: ${text}`)
+
 async function converge(pages: Page[], timeoutMs: number): Promise<Map<string, Doc>> {
   const end = Date.now() + timeoutMs
   let asked = 0
@@ -213,10 +229,27 @@ test('J10: an hour offline on two clients, reconnect, both replicas equal the se
   const extraCopies = notes.filter((n) => n._id !== FOCUS && (n.conflicts?.length ?? 0) > writersOf(n._id) - 1).map((n) => `${n._id}: ${n.conflicts!.length} copies, ${writersOf(n._id)} writers`)
   expect(extraCopies, 'one kept version per other writer at most: no echo or replay copies').toEqual([])
 
+  const losing = losingVersions(server)
+  expect(losing.length, 'the clash left losing versions to keep').toBeGreaterThanOrEqual(2)
+  await Promise.all([pa, pb].map((p) => p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())))
+  for (const [note, block] of [
+    [CONFLICT, clashBlock],
+    [FOCUS, focusBlock],
+  ])
+    for (const [p, w] of [
+      [pa, A],
+      [pb, B],
+    ] as const) {
+      const main = (await readReplica(p)).docs.get(note) as Note
+      await act(p, w, {kind: 'type', note, block, text: `${blockText(main.body!.blocks.find((b) => b.id === block)!)} ${w.marker()}`})
+      await converge([pa, pb], 15_000)
+    }
+  const after = await converge([pa, pb], 15_000)
+  expect(dropped(losing, after), 'every losing version survives the next edits on the main, on the server and both devices').toEqual([])
   await open(pa, CONFLICT)
   const view = pa.getByTestId('conflict')
   await expect(view).toBeVisible()
-  await expect(view.getByTestId('conflict-other')).toHaveCount(clash.conflicts!.length)
+  await expect(view.getByTestId('conflict-other')).toHaveCount((after.get(CONFLICT) as Note).conflicts!.length)
   for (const say of ['Tuesday', 'Thursday', 'cancelled']) await expect(view).toContainText(say)
   await view.screenshot({path: process.env.J10_SHOT ?? info.outputPath('conflict.png')})
 

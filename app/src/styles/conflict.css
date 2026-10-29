@@ -3,7 +3,7 @@
 .kb-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(12em, 1fr)); gap: var(--sp-2); }
 .kb-col { min-width: 0; padding: var(--sp-3); border-radius: var(--r-m); background: var(--c-surface); border: 1px solid var(--c-border-soft); font-size: var(--fs-s); line-height: var(--lh-ui); }
 .kb-label { font-size: var(--fs-xs); color: var(--c-muted); margin-bottom: var(--sp-1); }
-.kb-title { font-weight: var(--fw-bold); color: var(--c-text); margin-bottom: var(--sp-2); }
+.kb-title { font-weight: var(--fw-bold); color: var(--c-text); margin-bottom: var(--sp-2); overflow-wrap: anywhere; }
 .kb-block { margin: 0 0 var(--sp-1); color: var(--c-text-2); overflow-wrap: anywhere; }
 .keep-both .clash { background: var(--c-mark); border-radius: var(--r-s); color: var(--c-text); }
 .row-clash { flex: none; font-size: var(--fs-xs); color: var(--c-warn-fg); background: var(--c-warn-bg); border-radius: var(--r-pill); padding: 0 var(--sp-1); }

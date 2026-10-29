@@ -72,6 +72,8 @@ export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
 type Part = 'title' | 'notebook' | 'tags'
 const part = (n: NoteDoc, p: string) => (p.startsWith('body:') ? n.body?.blocks.find((b) => b.id === p.slice(5)) : n[p as Part])
 const moved = (from: NoteDoc, to: NoteDoc) => (p: string) => !same(part(from, p), part(to, p))
+const carried = (p: string) => p === 'title' || p.startsWith('body:')
+const copyOf = (c: Conflict): NoteDoc => ({_id: '', _type: 'note', title: c.title, body: c.body})
 
 export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, me: string, key = theirs._rev ?? at, who = writerOf(theirs) ?? UNSIGNED): NoteDoc {
   const clash: string[] = []
@@ -83,10 +85,11 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
   if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
   clash.push(...body.clash.map((id) => `body:${id}`))
-  const mineKept = (p: string) => moved(base, mine)(p) && !moved(out, mine)(p)
-  const superseded = (c: Conflict) => (c.by === me && c.clash.every(mineKept)) || (c.by === who && c.clash.every((p) => clash.includes(p)))
+  const fresh = clash.length > 0 && who !== me
+  const typedOver = (c: Conflict) => (p: string) => moved(base, mine)(p) && !moved(out, mine)(p) && (!carried(p) || !moved(base, copyOf(c))(p))
+  const superseded = (c: Conflict) => (c.by === me && c.clash.every(typedOver(c))) || (fresh && c.by === who && c.clash.every((p) => clash.includes(p)))
   const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? []).filter((c) => !superseded(c))
-  if (clash.length && who !== me && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, by: who, at, title: theirs.title, body: theirs.body, clash})
+  if (fresh && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, by: who, at, title: theirs.title, body: theirs.body, clash})
   out.conflicts = conflicts.length || mine.conflicts || theirs.conflicts ? conflicts : undefined
   return out
 }

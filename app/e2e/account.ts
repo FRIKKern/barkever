@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs'
 import {homedir} from 'node:os'
 import {fileURLToPath} from 'node:url'
 import {loadEnv} from 'vite'
+import type {BrowserContextOptions} from '@playwright/test'
 import {unseal} from '../src/server/seal.ts'
 
 const local = loadEnv('', fileURLToPath(new URL('..', import.meta.url)), 'BARKEVER_E2E_')
@@ -14,6 +15,13 @@ export const ACCOUNT = {email, password}
 process.env.BARKEVER_SESSION_SECRET ??= randomBytes(32).toString('base64url')
 export const SECRET = process.env.BARKEVER_SESSION_SECRET
 export const SESSION_FILE = fileURLToPath(new URL('.auth/session.json', import.meta.url))
+
+type Kept = Exclude<BrowserContextOptions['storageState'], string | undefined>
+
+export function anotherDevice(): Kept {
+  const kept = JSON.parse(readFileSync(SESSION_FILE, 'utf8')) as Kept
+  return {...kept, origins: kept.origins.map((o) => ({...o, localStorage: o.localStorage.filter((x) => !x.name.endsWith('-device'))}))}
+}
 
 export const sessionToken = (cookie: string) => unseal<{token: string}>(cookie, SECRET)?.token
 

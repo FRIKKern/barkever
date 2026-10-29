@@ -3,6 +3,7 @@ import {toRow, type NoteDoc} from './note'
 import {notify} from './bus'
 import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
+import {markMade, unmark} from './made'
 import {emptyParagraph, type Block} from '../lib/model'
 
 const now = () => new Date().toISOString()
@@ -73,18 +74,22 @@ export function replayJournal() {
   return replaying
 }
 
-export const createNote = ({id, notebook, blockId, tags = []}: {id: string; notebook: string; blockId: string; tags?: string[]}) =>
-  write(id, () => ({
+export async function createNote({id, notebook, blockId, tags = []}: {id: string; notebook: string; blockId: string; tags?: string[]}) {
+  await markMade(id)
+  await write(id, () => ({
     note: {_id: id, _type: 'note', title: '', notebook: {_type: 'reference', _ref: notebook}, tags, links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()},
     entry: null,
   }))
+}
 
-export const deleteNote = (id: string) =>
-  write(id, (note, entry) => {
+export async function deleteNote(id: string) {
+  await write(id, (note, entry) => {
     if (!note) return null
     if (!note._rev && !entry?.pushed) return {note: null, entry: null}
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
+  await unmark(id)
+}
 
 export async function forgetDevice() {
   forgetJournal()

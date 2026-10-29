@@ -1,6 +1,6 @@
 import {expect, test, type Browser, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
-import {SESSION_FILE} from './account'
+import {anotherDevice} from './account'
 import {blockText, type Block} from '../src/lib/model.ts'
 
 type ServerNote = {_id: string; _rev: string; title?: string; by?: string; body?: {blocks: Block[]}; conflicts?: {by?: string; title?: string; body?: {blocks: Block[]}; clash: string[]}[]}
@@ -14,7 +14,7 @@ const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveTex
 const leave = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
 
 async function device(browser: Browser, baseURL: string) {
-  const context = await browser.newContext({baseURL, storageState: SESSION_FILE, viewport: {width: 1440, height: 900}})
+  const context = await browser.newContext({baseURL, storageState: anotherDevice(), viewport: {width: 1440, height: 900}})
   const page = await context.newPage()
   return page
 }
@@ -297,3 +297,68 @@ test('a title changed in another tab while this tab is mid-save is kept, and the
   expect(errors).toEqual([])
   await one.context().close()
 })
+
+for (const where of ['title', 'block'] as const) {
+  test(`a ${where} clash: the device that lost types on the main, and its losing ${where} stays on the server and both devices`, async ({browser, baseURL}) => {
+    test.setTimeout(90_000)
+    const a = await device(browser, baseURL!)
+    const b = await device(browser, baseURL!)
+    const errors = [...errorsOf(a), ...errorsOf(b)]
+    const stamp = Date.now()
+    const id = await newNote(a, `Loser keeps ${stamp}`, 'Base.')
+    await leave(a)
+    await synced(a)
+    await b.goto(`/?n=${id}`)
+    await expect(canvas(b)).toContainText('Base.', {timeout: 15_000})
+
+    const firstBlock = (page: Page) => canvas(page).locator('[contenteditable="true"] > [data-bp-id]').first()
+    const mainOf = (n: ServerNote | undefined) => (where === 'title' ? n?.title : n?.body && blockText(n.body.blocks[0]))
+    const saved = async (page: Page) => {
+      await leave(page)
+      await expect(status(page)).toHaveText(/^(Saved|Offline · saved on this device)$/, {timeout: 15_000})
+    }
+    const write = async (page: Page, text: string) => {
+      if (where === 'title') await page.getByTestId('title').fill(text)
+      else await typeAtEndOf(page, 0, ` ${text}`)
+      await saved(page)
+    }
+    const typeOnMain = async (page: Page, text: string) => {
+      if (where === 'title') {
+        await page.getByTestId('title').focus()
+        await page.getByTestId('title').press('End')
+        await page.keyboard.type(text)
+      } else await typeAtEndOf(page, 0, text)
+      await saved(page)
+    }
+
+    await b.context().setOffline(true)
+    await write(b, `B offline ${stamp}`)
+    await write(a, `A online ${stamp}`)
+    await synced(a)
+    await b.context().setOffline(false)
+    await synced(b)
+    await expect.poll(async () => everything(await serverNote(id)), {timeout: 15_000}).toContain(`A online ${stamp}`)
+    const won = mainOf(await serverNote(id))!
+    expect(won, 'the offline device keeps the main').toContain(`B offline ${stamp}`)
+    if (where === 'title') await expect(a.getByTestId('title')).toHaveValue(won, {timeout: 15_000})
+    else await expect(firstBlock(a)).toHaveText(won, {timeout: 15_000})
+
+    await typeOnMain(a, '!')
+    await expect.poll(async () => mainOf(await serverNote(id)), {timeout: 15_000}).toBe(`${won}!`)
+    await a.waitForTimeout(1500)
+    await Promise.all([synced(a), synced(b)])
+
+    expect(everything(await serverNote(id)), 'the losing text survives on the server').toContain(`A online ${stamp}`)
+    for (const [page, label] of [
+      [a, 'Your version'],
+      [b, 'Other version'],
+    ] as const) {
+      const kept = page.getByTestId('conflict').getByTestId('conflict-other').filter({hasText: `A online ${stamp}`})
+      await expect(kept, `the losing text survives on the device labelled “${label}”`).toHaveCount(1)
+      await expect(kept).toContainText(label)
+    }
+    await a.getByTestId('conflict').screenshot({path: test.info().outputPath(`loser-${where}.png`)})
+    expect(errors).toEqual([])
+    await Promise.all([a.context().close(), b.context().close()])
+  })
+}

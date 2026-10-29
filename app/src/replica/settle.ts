@@ -2,6 +2,7 @@ import {db, deviceId, NOTE_STORES, stored, type Entry, type Failure, type LocalN
 import {baseFor, reconcile, sameContent} from './merge'
 import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './note'
 import {notify} from './bus'
+import {touchedByOthers, unmark} from './made'
 
 export type Verdict = 'apply' | 'skip' | 'suspect'
 export type Decide = (known: string | undefined) => Verdict
@@ -54,6 +55,7 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     show(merged && {...merged, _id: id, _type: 'note', _rev: theirs?._rev})
   }
   await tx.done
+  if (touchedByOthers(theirs, deviceId())) await unmark(id)
   if (announce) notify({kind: 'remote', ids: [id]})
   return verdict
 }

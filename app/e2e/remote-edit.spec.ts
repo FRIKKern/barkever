@@ -1,6 +1,6 @@
 import {expect, test, type Browser, type Page} from '@playwright/test'
 import {deleteNotes} from './fixtures-cleanup'
-import {SESSION_FILE} from './account'
+import {anotherDevice} from './account'
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
@@ -11,7 +11,7 @@ const canvas = (page: Page) => page.getByTestId('canvas')
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1]
 
 async function device(browser: Browser, baseURL: string) {
-  const context = await browser.newContext({baseURL, storageState: SESSION_FILE})
+  const context = await browser.newContext({baseURL, storageState: anotherDevice()})
   const page = await context.newPage()
   await page.goto('/')
   await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 20_000})

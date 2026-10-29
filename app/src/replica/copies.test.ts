@@ -160,3 +160,82 @@ test('a title typed over one changed in another tab keeps both', () => {
   assert.equal(out.title, 'Plan, typed here')
   assert.deepEqual(copies(out), [['D~tab', 'From the other tab', 'one']])
 })
+
+const keptTitles = (n: Note) => (n.conflicts ?? []).map((c) => [c.by, c.title])
+const keptBlocks = (n: Note) => (n.conflicts ?? []).map((c) => [c.by, textA(c)])
+
+test('both typed the title: the loser types on the main, and its losing title stays on the server and both devices', () => {
+  const w = world()
+  const [A, B] = [w.device('A'), w.device('B')]
+  A.typeTitle('A title')
+  A.push()
+  B.typeTitle('B title')
+  B.pull()
+  B.push()
+  A.pull()
+  assert.equal(A.local.title, 'B title')
+  assert.deepEqual(keptTitles(A.local), [['A', 'A title']])
+  A.typeTitle('B title!')
+  A.push()
+  B.pull()
+  B.typeTitle('B title!?')
+  B.push()
+  A.pull()
+  A.typeTitle('B title!?.')
+  A.push()
+  B.pull()
+  for (const n of [A.local, B.local, w.server]) {
+    assert.equal(n.title, 'B title!?.')
+    assert.deepEqual(keptTitles(n), [['A', 'A title']])
+  }
+})
+
+test('both typed one block: the loser types on the main, and its losing block stays on the server and both devices', () => {
+  const w = world()
+  const [A, B] = [w.device('A'), w.device('B')]
+  A.typeBlock('A block')
+  A.push()
+  B.typeBlock('B block')
+  B.pull()
+  B.push()
+  A.pull()
+  assert.equal(textA(A.local), 'B block')
+  A.typeBlock('B block!')
+  A.push()
+  B.pull()
+  B.typeBlock('B block!?')
+  B.push()
+  A.pull()
+  for (const n of [A.local, B.local, w.server]) {
+    assert.equal(textA(n), 'B block!?')
+    assert.deepEqual(keptBlocks(n), [['A', 'A block']])
+  }
+})
+
+test('a title set offline wins the main on reconnect: the online writer types on it, and its losing title stays', () => {
+  const w = world()
+  const [A, B] = [w.device('A'), w.device('B')]
+  A.typeTitle('Plan A offline')
+  B.typeTitle('Plan B')
+  B.push()
+  A.pull()
+  A.push()
+  B.pull()
+  assert.equal(B.local.title, 'Plan A offline')
+  B.typeTitle('Plan A offline!')
+  B.push()
+  A.pull()
+  for (const n of [A.local, B.local, w.server]) {
+    assert.equal(n.title, 'Plan A offline!')
+    assert.deepEqual(keptTitles(n), [['B', 'Plan B']])
+  }
+})
+
+test('my own earlier push clashing with my newer text never drops a copy of mine', () => {
+  const lost = {_key: 'r1', by: 'D', at: AT, title: 'D lost this', body: r0.body, clash: ['title']}
+  const base: Note = {...r0, _rev: 'r1', title: 'Main', conflicts: [lost]}
+  const theirs: Note = {...sign({...base, title: 'Main from my earlier push'}, 'D'), _rev: 'r2'}
+  const out = mergeNote(base, {...base, title: 'Main typed here'}, theirs, AT, 'D')
+  assert.equal(out.title, 'Main typed here')
+  assert.deepEqual(keptTitles(out), [['D', 'D lost this']])
+})

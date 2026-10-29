@@ -1,5 +1,5 @@
 import {expect, test, type Page} from '@playwright/test'
-import {deleteNotes, serverNoteIds} from './fixtures-cleanup'
+import {barkpark, DATASET, deleteNotes, serverNoteIds} from './fixtures-cleanup'
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
@@ -150,4 +150,45 @@ test('J01: leaving a new note that is still empty removes it, online and offline
   await page.goBack()
   await expect(rowOf(page, kept)).toHaveCount(1)
   await expect(rows).toHaveCount(count + 1)
+})
+
+test('J01: a note I made, typed into, synced and emptied goes when I leave it, even after a reload', async ({page}) => {
+  await page.goto('/')
+  await expect(page.getByTestId('new-note')).toBeEnabled()
+  const synced = page.getByTestId('sync-status')
+  const id = await capture(page, 'n')
+  await page.keyboard.type('x')
+  await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await expect.poll(serverNoteIds, {timeout: 15_000}).toContain(id)
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  await page.keyboard.press('Backspace')
+  await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  await page.reload()
+  await expect(page.getByTestId('title')).toHaveValue('')
+  await page.goBack()
+  await expect(rowOf(page, id)).toHaveCount(0)
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  await expect.poll(serverNoteIds, {timeout: 15_000}).not.toContain(id)
+})
+
+test('J01: an emptied note someone else wrote to since stays when I leave it', async ({page}) => {
+  await page.goto('/')
+  await expect(page.getByTestId('new-note')).toBeEnabled()
+  const synced = page.getByTestId('sync-status')
+  const id = await capture(page, 'n')
+  await page.keyboard.type('x')
+  await expect.poll(serverNoteIds, {timeout: 15_000}).toContain(id)
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', set: {tags: ['raw']}}}]})})
+  expect(res.ok).toBe(true)
+  await expect(page.locator('.doc-meta').getByRole('link', {name: '#raw'})).toBeVisible({timeout: 15_000})
+  await page.getByTestId('title').press('End')
+  await page.getByTestId('title').press('Backspace')
+  await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  await page.goBack()
+  await expect(synced).toHaveText('Synced', {timeout: 15_000})
+  await expect(rowOf(page, id)).toHaveCount(1)
+  expect(await serverNoteIds()).toContain(id)
 })
