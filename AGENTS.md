@@ -23,7 +23,7 @@ heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 3-slot queue
 2. Worktree for anything but `main`: `git worktree add ../barkever-wt/<name> -b <name>`. The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. Rebase onto `main`, `npm run prepush` (guard + checkpoint secret scan), push the branch, `entire trail link <milestone> --branch <name>`, comment evidence (picture, task id, what ran), then `git merge --ff-only` and push `main`. No squash (0026). Change URL on the task.
+5. Rebase onto `main`, `npm run prepush` (guard + checkpoint secret scan), push the branch, `entire trail link <milestone> --branch <name>`, evidence on the task (agents can't comment), then `git merge --ff-only` and push `main`. No squash (0026). Change URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
