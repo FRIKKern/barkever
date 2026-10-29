@@ -30,6 +30,12 @@ async function openNote(page: Page, id: Starred) {
   await expect(page.getByTestId('title')).toHaveValue(STARRED[id])
 }
 
+function warnings(page: Page) {
+  const seen: string[] = []
+  page.on('console', (m) => m.type() === 'warning' && seen.push(m.text()))
+  return seen
+}
+
 async function unstarOnServer(...ids: Starred[]) {
   const now = await readPrefs(userToken())
   await writePrefs(userToken(), {...now, shortcuts: now.shortcuts.filter((x) => !ids.includes(x as Starred))})
@@ -143,31 +149,97 @@ test('unstarring while the star is still on its way ends unstarred, with nothing
   expect(calls).toBe(2)
 })
 
-test('two tabs: a star send held in one tab never undoes a later unstar in the other', async ({context}) => {
-  await unstarOnServer('fx-note-07', 'fx-note-02')
-  const one = await context.newPage()
-  await openNote(one, 'fx-note-07')
-  await pendingStars(one, {'fx-note-07': true, 'fx-note-02': true})
-  let release = () => {}
-  const held = new Promise<void>((ok) => (release = ok))
-  await one.route('**/_serverFn/**', async (route) => {
-    if (starCall(route.request().postData() ?? '', 'fx-note-07')) await held
-    await route.continue()
-  })
-  await one.reload()
+for (const held of ['fx-note-07', 'fx-note-02'] as const)
+  test(`two tabs: a star send for ${held} held in one tab never undoes a later unstar in the other`, async ({context}) => {
+    await unstarOnServer('fx-note-07', 'fx-note-02')
+    const one = await context.newPage()
+    await openNote(one, 'fx-note-07')
+    await pendingStars(one, {'fx-note-07': true, 'fx-note-02': true})
+    let release = () => {}
+    const holding = new Promise<void>((ok) => (release = ok))
+    let reached = () => {}
+    const sentFromOne = new Promise<void>((ok) => (reached = ok))
+    await one.route('**/_serverFn/**', async (route) => {
+      if (starCall(route.request().postData() ?? '', held)) reached(), await holding
+      await route.continue()
+    })
+    await one.reload()
+    await sentFromOne
 
+    const two = await context.newPage()
+    await openNote(two, 'fx-note-02')
+    const star = two.getByTestId('star')
+    await expect(star).toHaveAttribute('aria-pressed', 'true')
+    await star.click()
+    await expect(star).toHaveAttribute('aria-pressed', 'false')
+    await two.waitForTimeout(300)
+    release()
+    await expect.poll(() => pendingStars(one)).toEqual({})
+    await expect.poll(() => starredOnServer('fx-note-02')).toBe(false)
+    expect(await starredOnServer('fx-note-07')).toBe(true)
+    await two.reload()
+    await expect(star).toHaveAttribute('aria-pressed', 'false')
+  })
+
+test('a change made in another tab while this tab reads prefs shows when the read lands', async ({context}) => {
+  await unstarOnServer('fx-note-07')
   const two = await context.newPage()
-  await openNote(two, 'fx-note-02')
-  const star = two.getByTestId('star')
-  await expect(star).toHaveAttribute('aria-pressed', 'true')
-  await star.click()
-  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await openNote(two, 'fx-note-07')
+  const twoStar = two.getByTestId('star')
+  await twoStar.click()
+  await expect.poll(() => starredOnServer('fx-note-07')).toBe(true)
+  await expect.poll(() => pendingStars(two)).toEqual({})
+
+  const one = await context.newPage()
+  let fetched = () => {}
+  const readTaken = new Promise<void>((ok) => (fetched = ok))
+  let release = () => {}
+  const holding = new Promise<void>((ok) => (release = ok))
+  let held = 0
+  await one.route('**/_serverFn/**', async (route) => {
+    if (route.request().method() !== 'GET' || held) return route.continue()
+    const answer = await route.fetch()
+    if (!(await answer.text()).includes('recents')) return route.fulfill({response: answer})
+    held++
+    fetched()
+    await holding
+    await route.fulfill({response: answer})
+  })
+  await two.route('**/_serverFn/**', (route) => (starCall(route.request().postData() ?? '', 'fx-note-07') ? route.abort() : route.continue()))
+  const going = one.goto('/?n=fx-note-07')
+  await readTaken
+  await twoStar.click()
+  await expect.poll(() => pendingStars(two)).toEqual({'fx-note-07': false})
   release()
-  await expect.poll(() => pendingStars(one)).toEqual({})
-  expect(await starredOnServer('fx-note-02')).toBe(false)
-  expect(await starredOnServer('fx-note-07')).toBe(true)
-  await two.reload()
-  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await going
+  await expect(one.getByTestId('title')).toHaveValue(STARRED['fx-note-07'])
+  await expect(one.getByTestId('star')).toHaveAttribute('aria-pressed', 'false')
+  await two.unrouteAll({behavior: 'wait'})
+  await expect.poll(() => starredOnServer('fx-note-07'), {timeout: 15_000}).toBe(false)
+  await expect.poll(() => pendingStars(two)).toEqual({})
+})
+
+test('a malformed star call changes nothing on Barkpark', async ({page}) => {
+  await unstarOnServer('fx-note-07')
+  await openNote(page, 'fx-note-07')
+  const call = page.waitForRequest((r) => starCall(r.postData() ?? '', 'fx-note-07'))
+  await page.getByTestId('star').click()
+  const good = await call
+  await expect.poll(() => starredOnServer('fx-note-07')).toBe(true)
+  await page.getByTestId('star').click()
+  await expect.poll(() => starredOnServer('fx-note-07')).toBe(false)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+  const body = good.postData()!
+  const id = '{"t":1,"s":"fx-note-07"}'
+  const on = /\{"t":2,"s":\d+\}/
+  expect(body).toContain(id)
+  expect(body).toMatch(on)
+  for (const bad of [body.replace(on, '{"t":1,"s":"yes"}'), body.replace(id, '{"t":0,"s":7}').replace(on, '{"t":0,"s":1}')]) {
+    expect(bad).not.toBe(body)
+    const res = await page.request.post(good.url(), {data: bad, headers: good.headers()})
+    expect(res.ok() && !/error/i.test(await res.text()), `${res.status()} for ${bad}`).toBe(false)
+  }
+  expect(await starredOnServer('fx-note-07')).toBe(false)
 })
 
 test('a star Barkpark refuses for good is dropped and never blocks the next one', async ({page}) => {
@@ -179,6 +251,7 @@ test('a star Barkpark refuses for good is dropped and never blocks the next one'
   await writePrefs(userToken(), {shortcuts: ids, recents: kept.recents})
   const sent: string[] = []
   page.on('request', (r) => r.url().includes('/_serverFn/') && starCall(r.postData() ?? '', 'fx-note-07') && sent.push(r.url()))
+  const warned = warnings(page)
 
   await openNote(page, 'fx-note-07')
   const star = page.getByTestId('star')
@@ -195,7 +268,74 @@ test('a star Barkpark refuses for good is dropped and never blocks the next one'
   await expect(star).toHaveAttribute('aria-pressed', 'false')
   expect(await starredOnServer('fx-note-07')).toBe(false)
   expect(sent).toHaveLength(1)
+  expect(warned.filter((w) => w.startsWith('stars: Barkpark refused starring fx-note-07 (422)'))).toHaveLength(1)
   await writePrefs(userToken(), kept)
+})
+
+test('a star that fails for a while (signed out, then a 503 twice) stays queued and retries on its own, backing off', async ({page, context}) => {
+  await unstarOnServer('fx-note-07')
+  await openNote(page, 'fx-note-07')
+  const star = page.getByTestId('star')
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  const warned = warnings(page)
+  const session = await context.cookies()
+  await context.clearCookies()
+  await star.click()
+  await expect.poll(() => warned.filter((w) => w.startsWith('stars: fx-note-07 did not reach Barkpark')).length).toBe(1)
+  expect(await pendingStars(page)).toEqual({'fx-note-07': true})
+  expect(await starredOnServer('fx-note-07')).toBe(false)
+  await context.addCookies(session)
+  await expect.poll(() => starredOnServer('fx-note-07'), {timeout: 10_000}).toBe(true)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+
+  const at: number[] = []
+  await page.route('**/_serverFn/**', async (route) => {
+    if (!starCall(route.request().postData() ?? '', 'fx-note-07')) return route.continue()
+    at.push(Date.now())
+    if (at.length <= 2) return route.fulfill({status: 503, body: 'unavailable'})
+    await route.continue()
+  })
+  await star.click()
+  await expect.poll(() => starredOnServer('fx-note-07'), {timeout: 15_000}).toBe(false)
+  expect(at).toHaveLength(3)
+  expect(at[1] - at[0]).toBeGreaterThanOrEqual(1_800)
+  expect(at[2] - at[1]).toBeGreaterThanOrEqual(3_800)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('a star acked while the prefs read is in flight still shows once the read lands', async ({page}) => {
+  await unstarOnServer('fx-note-07')
+  await openNote(page, 'fx-note-07')
+  await pendingStars(page, {'fx-note-07': true})
+  let fetched = () => {}
+  const readTaken = new Promise<void>((ok) => (fetched = ok))
+  let acked = () => {}
+  const starLanded = new Promise<void>((ok) => (acked = ok))
+  let held = 0
+  await page.route('**/_serverFn/**', async (route) => {
+    const r = route.request()
+    if (starCall(r.postData() ?? '', 'fx-note-07')) {
+      await readTaken
+      const answer = await route.fetch()
+      acked()
+      return route.fulfill({response: answer})
+    }
+    if (r.method() !== 'GET' || held) return route.continue()
+    const answer = await route.fetch()
+    if (!(await answer.text()).includes('recents')) return route.fulfill({response: answer})
+    held++
+    fetched()
+    await starLanded
+    await route.fulfill({response: answer})
+  })
+  await page.reload()
+  await expect(page.getByTestId('title')).toHaveValue(STARRED['fx-note-07'])
+  expect(held).toBe(1)
+  await expect.poll(() => starredOnServer('fx-note-07')).toBe(true)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+  await expect(page.getByTestId('star')).toHaveAttribute('aria-pressed', 'true')
+  await page.unrouteAll({behavior: 'wait'})
 })
 
 test('the theme toggle flips light and dark and remembers the pick', async ({page}) => {

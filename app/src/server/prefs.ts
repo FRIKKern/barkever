@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import {BarkparkError, bpJson, dataset} from './barkpark'
+import {refusedForGood} from './refused'
 import type {Prefs} from '../lib/model'
 
 const KEYS = {shortcuts: 'barkever.shortcuts', recents: 'barkever.recents'} as const
@@ -21,7 +22,10 @@ export const RECENT_MAX = 20
 
 export const pushRecent = (id: string) => patch('recents', {op: 'push_front', item: id, max: RECENT_MAX})
 
-const refusedForGood = (e: unknown) => e instanceof BarkparkError && e.status >= 400 && e.status < 500 && ![401, 403, 408, 429].includes(e.status)
+export type Starred = {shortcuts: string[]; refused?: number}
 
-export const setShortcut = (id: string, on: boolean) =>
-  patch('shortcuts', {op: on ? 'add' : 'remove', item: id}).catch((e) => (refusedForGood(e) ? read('shortcuts') : Promise.reject(e)))
+export const setShortcut = (id: string, on: boolean): Promise<Starred> =>
+  patch('shortcuts', {op: on ? 'add' : 'remove', item: id}).then(
+    (shortcuts) => ({shortcuts}),
+    async (e) => (e instanceof BarkparkError && refusedForGood(e.status) ? {shortcuts: await read('shortcuts'), refused: e.status} : Promise.reject(e)),
+  )

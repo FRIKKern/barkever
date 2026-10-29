@@ -13,7 +13,10 @@ const pushRecentFn = createServerFn({method: 'POST'})
   .validator((id: string) => id)
   .handler(({data}) => pushRecent(data))
 const starFn = createServerFn({method: 'POST'})
-  .validator((d: {id: string; on: boolean}) => d)
+  .validator((d: {id: string; on: boolean}) => {
+    if (typeof d?.id !== 'string' || !d.id || typeof d.on !== 'boolean') throw new Error('a star is {id: string, on: boolean}')
+    return {id: d.id, on: d.on}
+  })
   .handler(({data}) => setShortcut(data.id, data.on))
 
 const local = {staleTime: Infinity, networkMode: 'always'} as const
@@ -45,8 +48,14 @@ async function editStars(edit: (s: Stars) => void) {
   await tx.done
 }
 
-async function sendAll(): Promise<string[] | undefined> {
+const STAR_RETRY_MS = 2000
+const STAR_RETRY_MAX_MS = 5 * 60_000
+let retries = 0
+let retry: ReturnType<typeof setTimeout> | undefined
+
+async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean}> {
   let shortcuts: string[] | undefined
+  let failed = false
   const tried = new Set<string>()
   for (;;) {
     const stars = await pendingStars()
@@ -55,20 +64,28 @@ async function sendAll(): Promise<string[] | undefined> {
     tried.add(id)
     const on = stars[id]
     try {
-      shortcuts = await starFn({data: {id, on}})
+      const answer = await starFn({data: {id, on}})
+      shortcuts = answer.shortcuts
+      if (answer.refused) console.warn(`stars: Barkpark refused ${on ? 'starring' : 'unstarring'} ${id} (${answer.refused}); dropped`)
       await editStars((s) => s[id] === on && delete s[id])
-    } catch {}
+    } catch (e) {
+      failed = true
+      console.warn(`stars: ${id} did not reach Barkpark; kept to retry`, e)
+    }
   }
   const d = await db()
   const cached = (await d.get('meta', 'prefs')) as Prefs | undefined
   if (shortcuts && cached) await d.put('meta', {...cached, shortcuts}, 'prefs')
-  return shortcuts
+  return {shortcuts, failed}
 }
 
 async function sendStars(qc: QueryClient) {
+  clearTimeout(retry)
   await db()
-  const sent = await navigator.locks.request(`${replicaKey()}-stars`, sendAll)
-  if (sent) setPrefs(qc, {shortcuts: withStars(sent, await pendingStars())})
+  const {shortcuts, failed} = await navigator.locks.request(`${replicaKey()}-stars`, sendAll)
+  if (shortcuts) setPrefs(qc, {shortcuts: withStars(shortcuts, await pendingStars())})
+  retries = failed ? retries + 1 : 0
+  if (failed) retry = setTimeout(() => void sendStars(qc).catch(keepLocal), Math.min(STAR_RETRY_MS * 2 ** (retries - 1), STAR_RETRY_MAX_MS))
 }
 
 async function loadPrefs(): Promise<Prefs> {
