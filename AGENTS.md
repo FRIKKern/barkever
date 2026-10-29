@@ -19,7 +19,7 @@ code history  ─► Entire checkpoints (every commit carries its prompt + trans
 2. Worktree for anything but `main`: `git worktree add ../barkever-wt/<name> -b <name>`. The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. `npm run prepush` (guard + secret scan of Entire checkpoints), then push, open a Trail with the task id in its body, put the Trail URL on the task.
+5. Rebase onto `main`, `npm run prepush` (guard + secret scan of Entire checkpoints), `entire trail create` (picture, task id, what ran), then `git merge --ff-only` and push `main`. No squash (decision 0024). Put the Trail URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
@@ -27,7 +27,7 @@ code history  ─► Entire checkpoints (every commit carries its prompt + trans
 ```
 bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► unsure? rival spikes ─► judge
    ▲                                                                              │
-   └── close with evidence ◄── push (npm run prepush) ◄── squash onto main ◄──────┘
+   └── close with evidence ◄── push (npm run prepush) ◄── Trail + ff onto main ◄──┘
 ```
 
 Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged on the task for the owner to override. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
@@ -44,7 +44,7 @@ Owner-only choices (a design pick) get a provisional pick from an independent ju
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
 - **No secrets in prompts, files or output.** Entire pushes transcripts with the code.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
-- **Entire:** run `entire agent-help` for the commands you may use. Never merge a Trail yourself.
+- **Entire:** run `entire agent-help` for the commands you may use. Only the lead fast-forwards `main`; nobody runs `entire trail merge`. Reviews post as `entire trail finding`.
 
 ## AI in the app
 
