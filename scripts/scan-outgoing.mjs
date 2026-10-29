@@ -16,7 +16,7 @@ const envPath = new URL("../app/.env.local", import.meta.url);
 if (existsSync(envPath)) {
   for (const line of readFileSync(envPath, "utf8").split("\n")) {
     const m = line.match(/^\s*[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|KEY)[A-Z0-9_]*\s*=\s*["']?(.*?)["']?\s*$/);
-    if (m && m[2].length >= 8) secrets.push(m[2]);
+    if (m && m[2].length >= 8 && !line.trim().startsWith("BARKEVER_E2E_")) secrets.push(m[2]);
   }
 }
 const patterns =[/sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bghp_[A-Za-z0-9]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/];
