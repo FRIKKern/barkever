@@ -1,11 +1,10 @@
 import noteSchema from '../../../contracts/barkpark/note.json' with {type: 'json'}
 import type {Block} from './model'
-import type {BlockOp} from '../replica/ops'
 import type {CanvasFiles} from '../server/canvas'
 
 export const vocabulary = JSON.stringify(noteSchema.fields.find((f) => f.name === 'body')!.blocks)
 
-export type CanvasOps = {ops: BlockOp[]; seq: number}
+export type CanvasOps = {seq: number}
 export type CanvasElement = HTMLElement & {
   blocks: Block[]
   acknowledgedSaves: boolean

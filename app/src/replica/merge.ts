@@ -1,13 +1,16 @@
-import type {Block, Conflict} from '../lib/model.ts'
-import {NOTE_FIELDS, type NoteDoc} from './note.ts'
+import {wikilinks, type Block, type Conflict} from '../lib/model.ts'
+import {linkRefs} from '../lib/note-docs.ts'
+import {NOTE_FIELDS, type NoteDoc, type Ref} from './note.ts'
+
+const empty = (x: unknown) => x == null || x === ''
 
 export function same(a: unknown, b: unknown): boolean {
-  if (a === b || (a == null && b == null)) return true
+  if (a === b || (empty(a) && empty(b))) return true
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
   if (Array.isArray(a) || Array.isArray(b)) return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => same(x, b[i]))
   const x = a as Record<string, unknown>
   const y = b as Record<string, unknown>
-  const keys = (o: Record<string, unknown>) => Object.keys(o).filter((k) => o[k] !== undefined)
+  const keys = (o: Record<string, unknown>) => Object.keys(o).filter((k) => !empty(o[k]))
   const kx = keys(x)
   return kx.length === keys(y).length && kx.every((k) => same(x[k], y[k]))
 }
@@ -59,22 +62,40 @@ function mergeConflicts(base: Conflict[], mine: Conflict[], theirs: Conflict[]):
   return [...mine.filter(keep), ...theirs.filter((c) => !M.has(c._key) && keep(c))]
 }
 
-export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string): NoteDoc {
+export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
+  const ids = wikilinks(blocks)
+  const old = had.map((l) => l._ref)
+  return ids.length === old.length && ids.every((id) => old.includes(id)) ? had : linkRefs(ids)
+}
+
+const stillNeeded = (base: NoteDoc, theirs: NoteDoc) => {
+  const settled = new Set([...(base.conflicts ?? []), ...(theirs.conflicts ?? [])].map((c) => c._key))
+  return (c: Conflict) => c._key !== base._rev || settled.has(c._key)
+}
+
+export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, key = theirs._rev ?? at): NoteDoc {
   const clash: string[] = []
   const out: NoteDoc = {...mine}
   out.title = pick(base.title, mine.title, theirs.title, () => clash.push('title'))
   out.notebook = pick(base.notebook, mine.notebook, theirs.notebook, () => clash.push('notebook'))
   out.tags = pick(base.tags, mine.tags, theirs.tags, () => clash.push('tags'))
-  out.links = pick(base.links, mine.links, theirs.links, () => clash.push('links'))
   const body = mergeBlocks(base.body?.blocks ?? [], mine.body?.blocks ?? [], theirs.body?.blocks ?? [])
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
+  if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
   clash.push(...body.clash.map((id) => `body:${id}`))
-  const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
-  const key = theirs._rev ?? at
+  let conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
+  if (clash.length) conflicts = conflicts.filter(stillNeeded(base, theirs))
   if (clash.length && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, at, title: theirs.title, body: theirs.body, clash})
   out.conflicts = conflicts.length || mine.conflicts || theirs.conflicts ? conflicts : undefined
   return out
 }
+
+export function mergeCanvas(note: NoteDoc, base: Block[], after: Block[], at: string, key: string): NoteDoc {
+  const shown = (blocks: Block[]) => ({...note, body: {...note.body, blocks}})
+  return mergeNote(shown(base), shown(after), note, at, key)
+}
+
+export const baseFor = (base: NoteDoc | null, pushed: NoteDoc | undefined, theirs: NoteDoc | null) => (pushed && theirs && sameContent(pushed, theirs) ? theirs : base)
 
 export function reconcile(base: NoteDoc | null, mine: NoteDoc | null, theirs: NoteDoc | null, at: string): NoteDoc | null {
   if (!theirs) return mine && (!base || !sameContent(mine, base)) ? mine : null

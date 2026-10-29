@@ -1,5 +1,5 @@
-import {db, NOTE_STORES, stored, type Entry, type LocalNote} from './db'
-import {reconcile, sameContent} from './merge'
+import {db, NOTE_STORES, stored, type Entry, type Failure, type LocalNote} from './db'
+import {baseFor, reconcile, sameContent} from './merge'
 import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './note'
 import {notify} from './bus'
 
@@ -43,13 +43,14 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     void notes.put({...next, _gen: (note?._gen ?? 0) + (moved ? 1 : 0)})
     void rows.put(toRow(next))
   }
-  const merged = entry ? reconcile(entry.base, note ? stored(note) : null, theirs, new Date().toISOString()) : theirs
+  const base = entry ? baseFor(entry.base, entry.pushed, theirs) : null
+  const merged = entry ? reconcile(base, note ? stored(note) : null, theirs, new Date().toISOString()) : theirs
   const settled = !entry || (merged && theirs ? sameContent(merged, theirs) : merged === theirs)
   if (settled) {
     if (entry) void outbox.delete(id)
     show(theirs)
   } else {
-    void outbox.put({...entry, base: theirs, delete: merged ? undefined : true})
+    void outbox.put({...entry, base: theirs, pushed: theirs && base === theirs ? undefined : entry.pushed, delete: merged ? undefined : true})
     show(merged && {...merged, _id: id, _type: 'note', _rev: theirs?._rev})
   }
   await tx.done
@@ -71,7 +72,7 @@ export async function ack(sent: Entry, doc: NoteDoc | null): Promise<void> {
   const [notes, rows, outbox] = [tx.objectStore('notes'), tx.objectStore('rows'), tx.objectStore('outbox')]
   const [note, entry] = await Promise.all([notes.get(sent.id), outbox.get(sent.id)])
   if (!entry || entry.base?._rev !== sent.base?._rev) return tx.done
-  if (entry.v !== sent.v) void outbox.put({...entry, base: doc})
+  if (entry.v !== sent.v) void outbox.put({...entry, base: doc, pushed: undefined, failed: undefined})
   else {
     void outbox.delete(sent.id)
     if (doc) {
@@ -80,5 +81,20 @@ export async function ack(sent: Entry, doc: NoteDoc | null): Promise<void> {
     }
   }
   await tx.done
+  notify({kind: 'remote', ids: [sent.id]})
+}
+
+const RETRY_MS = 2000
+const RETRY_MAX_MS = 5 * 60_000
+
+export async function fail(sent: Entry, why: string): Promise<void> {
+  const tx = (await db()).transaction('outbox', 'readwrite')
+  const entry = await tx.store.get(sent.id)
+  if (!entry || entry.v !== sent.v) return tx.done
+  const n = (entry.failed?.n ?? 0) + 1
+  const failed: Failure = {n, retryAt: Date.now() + Math.min(RETRY_MS * 2 ** (n - 1), RETRY_MAX_MS), why}
+  void tx.store.put({...entry, failed})
+  await tx.done
+  console.warn(`sync: ${sent.id} did not reach Barkpark (${why}); attempt ${n}, next in ${Math.round((failed.retryAt - Date.now()) / 1000)} s`)
   notify({kind: 'remote', ids: [sent.id]})
 }

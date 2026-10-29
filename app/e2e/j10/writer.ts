@@ -1,4 +1,4 @@
-import type {Block} from '../../src/lib/model.ts'
+import {blockText, type Block} from '../../src/lib/model.ts'
 
 const editable = (b: Block) => b.type === 'heading' || (b.type === 'paragraph' && (b.content ?? []).every((x) => x.type === 'text'))
 
@@ -9,8 +9,9 @@ export type Op =
   | {kind: 'drop'; note: string; block: string}
   | {kind: 'create'; title: string; text: string}
   | {kind: 'delete'; note: string}
+  | {kind: 'link'; note: string; block: string; target: string}
 export type Kind = Op['kind']
-export type Made = {note?: string; block?: string}
+export type Made = {note?: string; block?: string; linked?: Block}
 export type Draft = {title: string; blocks: Block[]}
 
 const WORDS = 'harbor quarry lighthouse sitemap draft review tulip sourdough train budget sketch meeting timeline notes garden kitchen ferry window copy pages'.split(' ')
@@ -28,8 +29,12 @@ export function seeded(seed: number) {
 export class Writer {
   readonly notes = new Map<string, Draft>()
   readonly typed = new Map<string, Map<string, string>>()
-  readonly counts: Record<Kind, number> = {type: 0, title: 0, add: 0, drop: 0, create: 0, delete: 0}
+  readonly counts: Record<Kind, number> = {type: 0, title: 0, add: 0, drop: 0, create: 0, delete: 0, link: 0}
   readonly protect = new Set<string>()
+  readonly reserved = new Set<string>()
+  readonly touched = new Map<string, Set<string>>()
+  readonly deleted: string[] = []
+  readonly dropped: [string, string][] = []
   private n = 0
   private readonly rand: () => number
 
@@ -71,7 +76,7 @@ export class Writer {
     for (;;) {
       let x = this.rand() * entries.reduce((s, [, w]) => s + w, 0)
       const kind = entries.find(([, w]) => (x -= w) < 0)![0]
-      const ids = [...this.notes.keys()]
+      const ids = [...this.notes.keys()].filter((id) => !this.reserved.has(id))
       const free = ids.filter((id) => !this.protect.has(id))
       if (kind === 'create') return {kind, title: `${this.words(2)} ${this.marker()}`, text: `${this.words(6)} ${this.marker()}`}
       if (kind === 'delete') {
@@ -93,6 +98,11 @@ export class Writer {
 
   done(op: Op, made: Made = {}) {
     this.counts[op.kind]++
+    const touched = 'note' in op ? op.note : made.note!
+    if (!this.touched.has(touched)) this.touched.set(touched, new Set())
+    this.touched.get(touched)!.add(op.kind === 'title' ? 'title' : 'block' in op ? op.block : (made.block ?? op.kind))
+    if (op.kind === 'delete') this.deleted.push(op.note)
+    if (op.kind === 'drop') this.dropped.push([op.note, op.block])
     const write = (note: string, key: string, text: string) => {
       if (!this.typed.has(note)) this.typed.set(note, new Map())
       this.typed.get(note)!.set(key, text)
@@ -111,6 +121,9 @@ export class Writer {
     } else if (op.kind === 'drop') {
       draft!.blocks = draft!.blocks.filter((b) => b.id !== op.block)
       this.typed.get(op.note)?.delete(op.block)
+    } else if (op.kind === 'link') {
+      draft!.blocks = draft!.blocks.map((b) => (b.id === op.block ? made.linked! : b))
+      write(op.note, op.block, blockText(made.linked!))
     } else if (op.kind === 'create') {
       this.notes.set(made.note!, {title: op.title, blocks: [{id: made.block!, type: 'paragraph', content: [{type: 'text', value: op.text}]}]})
       write(made.note!, 'title', op.title)

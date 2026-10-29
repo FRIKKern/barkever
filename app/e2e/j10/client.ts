@@ -1,9 +1,10 @@
 import {expect, type Page} from '@playwright/test'
+import type {Block} from '../../src/lib/model.ts'
 import type {Doc} from '../../src/replica/note.ts'
 import type {Made, Op, Writer} from './writer.ts'
 import {ACCOUNT} from '../account.ts'
 
-export type Replica = {docs: Map<string, Doc>; outbox: number}
+export type Replica = {docs: Map<string, Doc>; outbox: number; waiting: string[]}
 
 export async function readReplica(page: Page): Promise<Replica> {
   const raw = await page.evaluate(async () => {
@@ -19,7 +20,8 @@ export async function readReplica(page: Page): Promise<Replica> {
         const r = db.transaction(store).objectStore(store).getAll()
         r.onsuccess = () => resolve(r.result)
       })
-    const out = {notes: await all('notes'), notebooks: await all('notebooks'), outbox: (await all('outbox')).length}
+    const outbox = (await all('outbox')) as {id: string; failed?: {n: number; why: string}}[]
+    const out = {notes: await all('notes'), notebooks: await all('notebooks'), outbox: outbox.length, waiting: outbox.map((e) => (e.failed ? `${e.id} (${e.failed.why} ×${e.failed.n})` : e.id))}
     db.close()
     return out
   })
@@ -27,7 +29,7 @@ export async function readReplica(page: Page): Promise<Replica> {
     const {_gen, ...rest} = d as Doc & {_gen?: number}
     return rest as Doc
   })
-  return {docs: new Map(docs.map((d) => [d._id, d])), outbox: raw.outbox}
+  return {docs: new Map(docs.map((d) => [d._id, d])), outbox: raw.outbox, waiting: raw.waiting}
 }
 
 export async function signIn(page: Page) {
@@ -71,6 +73,17 @@ async function select(page: Page, id: string, how: Pick) {
   }, [id, how] as const)
 }
 
+async function link(page: Page, id: string, target: string): Promise<Block> {
+  await select(page, id, 'end')
+  await block(page, id).evaluate((el, target) => {
+    const ed = (el.closest('[contenteditable="true"]') as unknown as {editor?: {chain: () => {focus: () => {insertContent: (c: unknown) => {run: () => boolean}}}}}).editor!
+    ed.chain().focus().insertContent([{type: 'text', text: target, marks: [{type: 'wikilink', attrs: {target, docId: target}}]}, {type: 'text', text: ' '}]).run()
+  }, target)
+  const saved = () => page.getByTestId('canvas').evaluate((el, [id, target]) => (el as unknown as {blocks: Block[]}).blocks.find((b) => b.id === id && JSON.stringify(b).includes(`"docId":"${target}"`)), [id, target] as const)
+  await expect.poll(saved).toBeTruthy()
+  return (await saved())!
+}
+
 async function replace(page: Page, id: string, text: string) {
   await select(page, id, 'all')
   await page.keyboard.insertText(text)
@@ -108,6 +121,7 @@ export async function act(page: Page, writer: Writer, op: Op) {
     if (op.kind === 'type') await replace(page, op.block, op.text)
     if (op.kind === 'title') await page.getByTestId('title').fill(op.text)
     if (op.kind === 'add') made.block = await addAfterLast(page, op.text)
+    if (op.kind === 'link') made.linked = await link(page, op.block, op.target)
     if (op.kind === 'drop') {
       await select(page, op.block, 'joinBack')
       await page.keyboard.press('Backspace')

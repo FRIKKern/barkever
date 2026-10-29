@@ -5,13 +5,13 @@ import {DATASET} from './fixtures-cleanup'
 
 const APP = fileURLToPath(new URL('..', import.meta.url))
 const VITE = 'node_modules/vite/bin/vite.js'
-const PORT = 3197
+const PORT = Number(process.env.E2E_OWN_PORT || 3197)
 
 export const ORIGIN = `http://localhost:${PORT}`
 
 const env = (stamp: string, secret = SECRET) => ({...process.env, BARKPARK_DATASET: DATASET, BARKEVER_SESSION_SECRET: secret, BARKEVER_BUILD: stamp})
 const outDir = (stamp: string) => `dist/e2e-${stamp}`
-const up = () => fetch(`${ORIGIN}/sign-in`).then(() => true, () => false)
+const up = (stamp: string) => fetch(`${ORIGIN}/sign-in`).then((r) => r.text()).then((html) => html.includes(`content="${stamp}"`), () => false)
 
 export function build(stamp: string) {
   execFileSync(process.execPath, [VITE, 'build', '--outDir', outDir(stamp)], {cwd: APP, env: env(stamp), stdio: 'pipe'})
@@ -29,8 +29,8 @@ export async function serve(stamp: string, secret?: string) {
   await stop()
   const child = spawn(process.execPath, [VITE, 'preview', '--outDir', outDir(stamp), '--port', String(PORT), '--strictPort'], {cwd: APP, env: env(stamp, secret), stdio: 'ignore'})
   running = {child, gone: new Promise<void>((done) => child.once('exit', () => done()))}
-  for (let tries = 0; !(await up()); tries++) {
-    if (tries > 100) throw new Error(`build ${stamp} did not start on ${ORIGIN}`)
+  for (let tries = 0; !(await up(stamp)); tries++) {
+    if (tries > 100 || running?.child.exitCode != null) throw new Error(`build ${stamp} is not what answers on ${ORIGIN}; is the port taken? set E2E_OWN_PORT`)
     await new Promise((r) => setTimeout(r, 200))
   }
 }

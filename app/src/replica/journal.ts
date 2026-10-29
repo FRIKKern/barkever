@@ -1,8 +1,9 @@
 import type {Block} from '../lib/model'
-import type {BlockOp} from './ops'
 import {replicaKey} from './db'
 
-export type Jotted = {title?: string; ops?: BlockOp[]; after?: Block[]; seq: number}
+export type Step = {seq: number; base: Block[]; after: Block[]}
+export type Jotted = {seq: number; title?: string; titleSeq?: number; steps?: Step[]}
+export type Jot = {title?: string; base?: Block[]; after?: Block[]}
 type Journal = Record<string, Jotted>
 
 const key = () => `${replicaKey()}-journal`
@@ -22,18 +23,28 @@ function save(j: Journal) {
   } catch {}
 }
 
-export function jot(id: string, patch: Omit<Jotted, 'seq'>): number {
+export function jot(id: string, {title, base, after}: Jot): number {
   const j = load()
-  const seq = (j[id]?.seq ?? 0) + 1
-  j[id] = {...j[id], ...patch, ...(patch.ops && {ops: [...(j[id]?.ops ?? []), ...patch.ops]}), seq}
+  const was = j[id] ?? {seq: 0}
+  const seq = was.seq + 1
+  j[id] = {
+    ...was,
+    seq,
+    ...(title !== undefined && {title, titleSeq: seq}),
+    ...(base && after && {steps: [...(was.steps ?? []), {seq, base, after}]}),
+  }
   save(j)
   return seq
 }
 
 export function unjot(id: string, seq: number) {
   const j = load()
-  if (j[id]?.seq !== seq) return
-  delete j[id]
+  const was = j[id]
+  if (!was) return
+  const steps = (was.steps ?? []).filter((s) => s.seq > seq)
+  const titled = was.titleSeq !== undefined && was.titleSeq > seq
+  if (!steps.length && !titled) delete j[id]
+  else j[id] = {seq: was.seq, ...(titled && {title: was.title, titleSeq: was.titleSeq}), ...(steps.length && {steps})}
   save(j)
 }
 

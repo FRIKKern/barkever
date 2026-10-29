@@ -46,7 +46,7 @@ export async function createDataset() {
     const res = await bp(`/v1/schemas/${name}`, {method: 'POST', body: readFileSync(repo(`contracts/barkpark/${type}.json`))})
     if (!res.ok) throw new Error(`schema ${type} ${res.status}`)
   }
-  await write(fixtures().map((d) => ({createOrReplace: d})))
+  await write(fixtures().flatMap((d) => [{createOrReplace: d}, {publish: {id: d._id, type: d._type}}]))
 }
 
 export async function snapshot(): Promise<Map<string, Doc>> {
@@ -69,7 +69,7 @@ export async function serverBurst(writer: Writer, ops: Op[] | number) {
       made.block = `${made.note}-p0`
     }
     writer.done(op, made)
-    if (op.kind === 'delete') mutations.push({delete: {id: op.note, type: 'note', force: true}})
+    if (op.kind === 'delete') mutations.push({delete: {id: op.note, type: 'note'}})
     else if (op.kind === 'title') mutations.push({patch: {id: op.note, type: 'note', set: {title: op.text}}})
     else if (op.kind === 'create') {
       const d = writer.notes.get(made.note!)!

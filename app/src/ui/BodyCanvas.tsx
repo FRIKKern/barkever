@@ -4,39 +4,48 @@ import {loadCanvas, vocabulary, type CanvasElement, type CanvasOps} from '../lib
 import type {Note} from '../lib/model'
 import {markClean, markDirty} from '../lib/saver'
 import {editBody} from '../replica/local'
-import {same} from '../replica/merge'
 import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
 export type BodyHandle = {focus: () => void}
 type Props = {note: Note; s: Search; handle: Ref<BodyHandle>}
 
+const FLUSH_MS = 40
+
 export function BodyCanvas({note, s, handle}: Props) {
   const navigate = useNavigate()
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<CanvasElement | null>(null)
-  const agreed = useRef(note.blocks)
+  const latest = useRef(note)
+  latest.current = note
+  const wantFocus = useRef(false)
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
 
-  useImperativeHandle(handle, () => ({focus: () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()}), [])
+  const focusCanvas = () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
+  useImperativeHandle(handle, () => ({focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true))}), [])
 
   useEffect(() => {
     let gone = false
+    let flushing: ReturnType<typeof setTimeout> | undefined
     const onOps = (e: Event) => {
       const el = e.currentTarget as CanvasElement
-      const {seq, ops} = (e as CustomEvent<CanvasOps>).detail
+      const {seq} = (e as CustomEvent<CanvasOps>).detail
       const requestId = `local-${seq}`
+      const base = structuredClone(el.blocks)
       el.identifyOpsRequest(seq, requestId)
       el.acknowledgeOps(seq, true)
-      const after = structuredClone(el.blocks)
-      void editBody(id, ops, after).then((saved) => {
+      void editBody(id, base, structuredClone(el.blocks)).then((saved) => {
         markClean(id)
-        if (!saved) return
-        const others = !same(saved.before, agreed.current)
-        agreed.current = saved.blocks
-        el.applyServerBlocks(others ? saved.blocks : after, {mode: 'own', requestId})
+        if (saved) el.applyServerBlocks(saved, {mode: 'own', requestId})
       })
+    }
+    const onInput = () => {
+      markDirty(id)
+      flushing ??= setTimeout(() => {
+        flushing = undefined
+        canvas.current?.flushPendingChanges()
+      }, FLUSH_MS)
     }
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
     const onOpen = (e: Event) => {
@@ -55,17 +64,18 @@ export function BodyCanvas({note, s, handle}: Props) {
         if (gone || !host.current) return
         const el = document.createElement('bp-paper-canvas') as CanvasElement
         el.acknowledgedSaves = true
-        el.blocks = note.blocks
+        el.blocks = latest.current.blocks
         el.setAttribute('editable', 'true')
         el.setAttribute('data-vocabulary', vocabulary)
         el.addEventListener('bp-canvas-ops', onOps)
         el.addEventListener('bp-canvas-open-link', onOpen)
         el.addEventListener('click', onClick)
-        el.addEventListener('input', () => markDirty(id))
+        el.addEventListener('input', onInput)
         el.dataset.testid = 'canvas'
         host.current.append(el)
         canvas.current = el
         setState({live: true})
+        if (wantFocus.current) focusCanvas()
       },
       (e: Error) => !gone && setState({live: false, blocked: e.message}),
     )
@@ -73,6 +83,7 @@ export function BodyCanvas({note, s, handle}: Props) {
     addEventListener('pagehide', flush)
     return () => {
       gone = true
+      clearTimeout(flushing)
       removeEventListener('pagehide', flush)
       flush()
       canvas.current?.remove()

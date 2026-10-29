@@ -1,7 +1,7 @@
 import {useEffect, useRef, type FormEvent} from 'react'
 import {useQuery} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
-import {pendingQuery} from '../lib/library'
+import {pendingQuery, stuckQuery} from '../lib/library'
 import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
@@ -29,6 +29,7 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
     if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
   }, [modal])
   const pending = useQuery(pendingQuery).data?.size ?? 0
+  const stuck = useQuery(stuckQuery).data ?? []
   const {lib, shelf, prefs, links} = w
   const count = (id: string) => lib.notes.filter((n) => n.notebook && shelf.scope(id).includes(n.notebook)).length
   const scoped = !s.q && (s.nb || s.tag)
@@ -94,6 +95,11 @@ export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
       <div className="side-foot">
         <span className={`dot${online ? '' : ' off'}`} />
         <span data-testid="sync-status">{online ? (pending ? `Syncing ${pending}` : 'Synced') : pending ? `Offline · ${pending} to sync` : 'Offline'}</span>
+        {stuck.length > 0 && (
+          <span className="stuck" data-testid="sync-stuck" title={stuck.map((x) => `${x.id}: ${x.why}`).join('\n')}>
+            · {stuck.length} not accepted, retrying
+          </span>
+        )}
         <button className="icon-btn" onClick={toggleTheme} title="Light / dark" aria-label="Toggle theme">
           <Icon name="theme" />
         </button>

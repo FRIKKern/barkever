@@ -12,8 +12,10 @@ const withText = (b: Block, text: string): Block => (b.type === 'heading' ? {...
 const texts = (n: Note | null) => n?.body?.blocks.map((b) => `${b.id}:${blockText(b)}`)
 const base = note([p('a', 'one'), p('b', 'two'), p('c', 'three')], {_rev: 'r0'})
 
-test('same ignores key order and undefined keys', () => {
+test('same ignores key order and empty keys, and Barkpark storing an empty title as null', () => {
   assert.ok(same({a: 1, b: [{x: 1, y: 2}]}, {b: [{y: 2, x: 1}], a: 1, c: undefined}))
+  assert.ok(same({title: ''}, {title: null}))
+  assert.ok(!same({title: ''}, {title: 'x'}))
   assert.ok(!same({a: 1}, {a: 2}))
   assert.ok(!same([1, 2], [2, 1]))
 })

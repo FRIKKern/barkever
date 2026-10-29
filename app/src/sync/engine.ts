@@ -17,13 +17,25 @@ let started = false
 export function startSync() {
   if (started || typeof navigator === 'undefined' || !navigator.locks) return
   started = true
-  void db().then(() => navigator.locks.request(`${replicaKey()}-sync`, forever))
+  void db().then(() => hold(`${replicaKey()}-sync`))
 }
 
-async function forever(): Promise<never> {
+async function hold(name: string): Promise<never> {
+  for (;;) {
+    const lost = new AbortController()
+    await navigator.locks
+      .request(name, {ifAvailable: true}, (lock) => lock && forever(lost.signal))
+      .catch((e) => console.warn('sync lock lost', e))
+      .finally(() => lost.abort())
+    await sleep(RETRY_MS)
+  }
+}
+
+async function forever(lost: AbortSignal): Promise<void> {
   for (;;) {
     await online()
-    await session().catch((e) => console.warn('sync session', e))
+    if (lost.aborted) return
+    await session(lost).catch((e) => console.warn('sync session', e))
     await sleep(RETRY_MS)
   }
 }
@@ -49,15 +61,21 @@ function lane(alive: () => boolean) {
   return run
 }
 
-async function session() {
+async function session(lost: AbortSignal) {
   let alive = true
   let live = false
+  let retry: ReturnType<typeof setTimeout> | undefined
   const suspects = new Map<string, DocType>()
   const run = lane(() => alive)
   const refetchSuspects = async () => {
     const all = new Map(suspects)
     suspects.clear()
     await refetch(all)
+  }
+  const pushing = async () => {
+    const wait = await push()
+    clearTimeout(retry)
+    if (wait !== undefined && alive) retry = setTimeout(() => run('push', pushing), wait)
   }
   const feed = await openFeed((type, id) => {
     suspects.set(id, type)
@@ -66,7 +84,8 @@ async function session() {
   const stream = openStream(feed.since, feed.onFrame)
   const stop = () => stream.close()
   window.addEventListener('offline', stop)
-  const offLocal = onChange((c) => c.kind === 'local' && live && run('push', push, 200))
+  lost.addEventListener('abort', stop)
+  const offLocal = onChange((c) => c.kind === 'local' && live && run('push', pushing))
   const timer = setInterval(() => run('check', () => check({onlyIfCountsDiffer: true})), CHECK_EVERY_MS)
   try {
     if (!(await stream.caughtUp)) return
@@ -75,12 +94,14 @@ async function session() {
     live = true
     run('catch-up', async () => {
       await check()
-      await push()
+      await pushing()
     })
     await stream.closed
   } finally {
     alive = false
+    clearTimeout(retry)
     window.removeEventListener('offline', stop)
+    lost.removeEventListener('abort', stop)
     offLocal()
     clearInterval(timer)
     stream.close()
