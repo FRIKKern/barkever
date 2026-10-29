@@ -246,3 +246,45 @@ test(`stress: body and title typed in one breath right before a reload both surv
   await onServer(browser, baseURL!, id, titled, [body])
   expect(errors).toEqual([])
 })
+
+test('Saved never shows while the note still waits in the outbox, even with slow outbox reads and a slow wire', async ({page}) => {
+  const errors = errorsOf(page)
+  await page.addInitScript(() => {
+    const w = window as Window & {lies?: string[]}
+    w.lies = []
+    for (const name of ['getAllKeys', 'getKey'] as const) {
+      const real = IDBObjectStore.prototype[name] as (...a: unknown[]) => IDBRequest
+      IDBObjectStore.prototype[name] = function (this: IDBObjectStore, ...a: unknown[]) {
+        const req = real.apply(this, a)
+        if (this.name !== 'outbox') return req
+        const add = req.addEventListener.bind(req)
+        req.addEventListener = ((type: string, fn: (e: Event) => void, o?: unknown) => add(type, type === 'success' ? (e: Event) => setTimeout(() => fn(e), 300) : fn, o as boolean)) as typeof req.addEventListener
+        return req
+      } as never
+    }
+    const waiting = async (id: string) => {
+      const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))
+      if (!name) return false
+      const db = await new Promise<IDBDatabase>((ok) => (indexedDB.open(name).onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result)))
+      const entry = await new Promise((ok) => (db.transaction('outbox').objectStore('outbox').get(id).onsuccess = (e) => ok((e.target as IDBRequest).result)))
+      db.close()
+      return entry !== undefined
+    }
+    let was = ''
+    new MutationObserver(() => {
+      const now = document.querySelector('[data-testid=save-status]')?.textContent ?? ''
+      const id = new URL(location.href).searchParams.get('n')
+      if (now === 'Saved' && was !== 'Saved' && id) void waiting(id).then((w8) => w8 && w.lies!.push(`Saved at ${Math.round(performance.now())} ms while ${id} waits in the outbox`))
+      was = now
+    }).observe(document, {subtree: true, childList: true, characterData: true})
+  })
+  await page.route('**/*', async (r) => {
+    if (r.request().method() === 'POST') await new Promise((ok) => setTimeout(ok, 1500))
+    await r.fallback()
+  })
+  await twoBlockNote(page, `Slow outbox ${Date.now()}`)
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => (window as Window & {lies?: string[]}).lies)).toEqual([])
+  expect(errors).toEqual([])
+})

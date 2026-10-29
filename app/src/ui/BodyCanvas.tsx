@@ -1,9 +1,8 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
-import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
 import {loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import type {Note} from '../lib/model'
-import {markDirty, markSaved} from '../lib/saver'
+import {markDirty, markSaved, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
@@ -14,7 +13,6 @@ type Props = {note: Note; s: Search; handle: Ref<BodyHandle>}
 const FLUSH_MS = 40
 
 export function BodyCanvas({note, s, handle}: Props) {
-  const qc = useQueryClient()
   const navigate = useNavigate()
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<CanvasElement | null>(null)
@@ -41,10 +39,11 @@ export function BodyCanvas({note, s, handle}: Props) {
       const {seq} = (e as CustomEvent<CanvasOps>).detail
       const requestId = `local-${seq}`
       const base = structuredClone(el.blocks)
+      const upTo = savePoint(id)
       el.identifyOpsRequest(seq, requestId)
       el.acknowledgeOps(seq, true)
       void editBody(id, base, structuredClone(el.blocks)).then((saved) => {
-        markSaved(qc, id)
+        markSaved(id, upTo)
         if (saved) el.applyServerBlocks(saved, {mode: 'own', requestId})
       })
     }

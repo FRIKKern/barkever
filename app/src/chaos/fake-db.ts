@@ -43,6 +43,7 @@ function open(d: Device) {
   return {
     transaction: tx,
     get: (n: string, k: string) => storeOf(d, n).get(k),
+    getKey: async (n: string, k: string) => ((await storeOf(d, n).get(k)) === undefined ? undefined : k),
     getAll: (n: string) => storeOf(d, n).getAll(),
     put: (n: string, v: never, k?: string) => storeOf(d, n).put(v, k),
     delete: (n: string, k: string) => storeOf(d, n).delete(k),
