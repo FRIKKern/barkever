@@ -6,7 +6,7 @@ import {fillFromBarkparkCli} from './scripts/local-env.ts'
 
 export default defineConfig(({command, mode}) => {
   const dir = fileURLToPath(new URL('.', import.meta.url))
-  for (const [key, value] of Object.entries(loadEnv(mode, dir, ['BARKPARK_']))) process.env[key] ??= value
+  for (const [key, value] of Object.entries(loadEnv(mode, dir, ['BARKPARK_', 'BARKEVER_SESSION_SECRET', 'BARKEVER_SHARED_TOKEN']))) process.env[key] ??= value
   if (command === 'serve') fillFromBarkparkCli()
   return {
     server: {port: 3000},

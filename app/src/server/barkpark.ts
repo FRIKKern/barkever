@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import {sessionToken, sharedToken} from './session'
 
 function env(key: string): string {
   const v = process.env[key]
@@ -10,7 +11,6 @@ const config = () => ({
   origin: env('BARKPARK_URL'),
   base: `${env('BARKPARK_URL')}/w/${process.env.BARKPARK_WORKSPACE || 'barkever'}/p/${process.env.BARKPARK_PROJECT || 'default'}`,
   dataset: process.env.BARKPARK_DATASET || 'fixtures',
-  token: env('BARKPARK_TOKEN'),
 })
 
 export const dataset = () => config().dataset
@@ -22,12 +22,18 @@ export class BarkparkError extends Error {
   }
 }
 
+function token(): string {
+  const t = sessionToken() ?? (sharedToken() ? env('BARKPARK_TOKEN') : undefined)
+  if (!t) throw new BarkparkError(401, 'not signed in')
+  return t
+}
+
 export function bpFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const {base, token} = config()
   const headers = new Headers(init.headers)
-  headers.set('authorization', `Bearer ${token}`)
+  headers.set('authorization', `Bearer ${token()}`)
+  headers.set('x-requested-with', 'barkever')
   if (init.body) headers.set('content-type', 'application/json')
-  return fetch(`${base}${path}`, {...init, headers})
+  return fetch(`${config().base}${path}`, {...init, headers})
 }
 
 export async function bpJson<T>(path: string, method = 'GET', body?: unknown): Promise<T> {

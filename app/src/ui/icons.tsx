@@ -10,6 +10,7 @@ const PATHS = {
   rail: <><rect x="2.5" y="3" width="11" height="10" rx="1.5" /><path d="M10 3v10" /></>,
   back: <path d="M10 3 5 8l5 5" />,
   menu: <path d="M3 4.5h10M3 8h10M3 11.5h10" />,
+  out: <path d="M6.5 3H4a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 4 13h2.5M10 5l3 3-3 3M13 8H6.5" />,
 }
 
 export type IconName = keyof typeof PATHS

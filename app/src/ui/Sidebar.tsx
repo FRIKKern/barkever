@@ -80,6 +80,11 @@ export function Sidebar({w, s, online, onNew, onPick}: Props) {
         <button className="icon-btn" onClick={toggleTheme} title="Light / dark" aria-label="Toggle theme">
           <Icon name="theme" />
         </button>
+        <form method="post" action="/sign-out">
+          <button className="icon-btn" title="Sign out" aria-label="Sign out" data-testid="sign-out">
+            <Icon name="out" />
+          </button>
+        </form>
       </div>
     </aside>
   )
