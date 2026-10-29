@@ -38,10 +38,10 @@ test('two offline clashes fold under one writer, Keep this makes a version the m
     await saved(b)
     await a.context().setOffline(false)
     await synced(a)
-    await a.waitForTimeout(1000)
+    await expect.poll(() => mainText(id), {timeout: 15_000}).toContain(x.trim())
     await b.context().setOffline(false)
     await synced(b)
-    await expect.poll(async () => everything(await serverNote(id)), {timeout: 15_000}).toContain(x.trim())
+    await expect.poll(async () => everything(await serverNote(id)), {timeout: 15_000}).toContain(y.trim())
     await expect(firstBlock(a)).toHaveText(await mainText(id), {timeout: 15_000})
   }
   await hour(' A1.', ' B1.')

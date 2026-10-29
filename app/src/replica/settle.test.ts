@@ -3,13 +3,15 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {newDevice, use} from '../chaos/fake-db.ts'
 import {mergeLocal, reconcile} from './merge.ts'
+import {blockText, type Block} from '../lib/model.ts'
 import type {NoteDoc as Note} from './note.ts'
 
 const {ack, settle} = await import('./settle.ts')
 
 const AT = '2026-10-29T12:00:00.000Z'
 const ME = 'dev-me'
-const note = (rev: string, title: string, by?: string): Note => ({_id: 'n1', _type: 'note', _rev: rev, title, tags: [], links: [], body: {blocks: []}, by})
+const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
+const note = (rev: string, title: string, by?: string, blocks: Block[] = []): Note => ({_id: 'n1', _type: 'note', _rev: rev, title, tags: [], links: [], body: {blocks}, by})
 
 test('the typed-from list lasts until the next ack, so another writer reverting to an older title I typed from keeps a copy', async () => {
   const d = newDevice(ME)
@@ -33,4 +35,15 @@ test('a clean catch-up drops the typed-from list too', async () => {
   d.stores.notes.set('n1', {...note('r1', 'Plan'), _typed: ['3.abc.def']})
   await settle('note', 'n1', note('r2', 'Plan B', 'B'), () => 'apply')
   assert.deepEqual([(d.stores.notes.get('n1') as Note).title, (d.stores.notes.get('n1') as Note)._typed], ['Plan B', undefined])
+})
+
+test('catch-up weighs every push since the last ack: a block made in an earlier one and deleted since stays deleted', async () => {
+  const d = newDevice(ME)
+  use(d)
+  const [made, gone] = [note('r1', 'T', ME, [p('a', 'one'), p('n', 'new')]), note('r1', 'T', ME, [p('a', 'one')])]
+  d.stores.notes.set('n1', gone)
+  d.stores.outbox.set('n1', {id: 'n1', base: note('r1', 'T', undefined, [p('a', 'one')]), v: 2, at: 0, sent: [made, gone]})
+  await settle('note', 'n1', note('r3', 'T2', 'B', [p('a', 'one'), p('n', 'new')]), () => 'apply')
+  const n = d.stores.notes.get('n1') as Note
+  assert.deepEqual([n.title, n.body?.blocks.map(blockText)], ['T2', ['one']])
 })

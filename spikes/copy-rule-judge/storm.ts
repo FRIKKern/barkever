@@ -7,6 +7,7 @@ type Note = any
 
 const rule = ROOT + '/app/src/replica/merge.ts'
 const minutes = Number(process.argv[3] ?? 10)
+const forget = process.argv.includes('--forget')
 const {mergeLocal, mergeNote, sameContent} = await import(rule)
 
 const T0 = Date.parse('2026-10-29T12:00:00.000Z')
@@ -38,7 +39,7 @@ function type(d: Device) {
 
 function pull(d: Device) {
   if (server._rev === d.base._rev) return
-  d.local = sameContent(d.local, d.base) ? {...server, _typed: d.local._typed} : mergeNote(d.base, d.local, server, at(), d.id)
+  d.local = sameContent(d.local, d.base) ? {...server, _typed: forget ? undefined : d.local._typed} : mergeNote(d.base, d.local, server, at(), d.id)
   d.base = server
 }
 
@@ -47,7 +48,7 @@ function push(d: Device) {
   pull(d)
   const {_typed, ...sent} = d.local
   server = d.base = {...sign(sent, d.id), _rev: `r${++revs}`}
-  d.local = {...server, _typed}
+  d.local = {...server, _typed: forget ? undefined : _typed}
 }
 
 const samples: {minute: number; stored: number; shown: number; bytes: number; cpuMs: number}[] = []
