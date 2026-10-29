@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { promisify } from "node:util";
 
 const GOAL = "task-42e5633d742184c5";
@@ -8,7 +9,6 @@ const REPO = "https://entire.com/et/frikkern/barkever";
 const DRY = process.argv.includes("--dry");
 const JID = /\bJ\d\d\b/g;
 const hasJ = (s) => /\bJ\d\d\b/.test(s);
-const GLYPH = { done: "●", in_progress: "◐", open: "○" };
 
 const exec = promisify(execFile);
 const run = async (cmd, args) => {
@@ -19,10 +19,6 @@ const json = async (cmd, args) => JSON.parse((await run(cmd, args)) ?? "null");
 const task = (id) => json("bp", ["task", "get", id, "-o", "json"]);
 const entire = (...args) => json("entire", ["trail", ...args, "--json"]);
 const journeysIn = (value) => [...new Set(JSON.stringify(value ?? "").match(JID) ?? [])].sort();
-const bar = (done, total, width = 20) => {
-  const n = total ? Math.round((done / total) * width) : 0;
-  return "▓".repeat(n) + "░".repeat(width - n);
-};
 const when = (ts) => ts.slice(5, 16).replace("T", " ");
 
 function verdict(notes, j) {
@@ -60,48 +56,46 @@ async function changesOf(trails) {
   }));
 }
 
+const NAMES = Object.fromEntries([...readFileSync("JOURNEYS.md", "utf8").matchAll(/^\| (J\d\d) \| ([^|]+?) \|/gm)].map((m) => [m[1], m[2]]));
+const MARK = { passed: "✅", review: "🔍", reviewed: "☑️", building: "🔨", todo: "⏳" };
+const TASK = { done: "✅", in_progress: "🔨", open: "⏳" };
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function journey(m, j, kids, changes, live, mainLog, solo) {
+  const passed = m.content.acceptance_criteria.some((c) => c.met && journeysIn(c.criterion).includes(j));
+  const ks = kids.filter((k) => k.js.includes(j));
+  const cs = changes.filter((c) => c.js.includes(j));
+  const ls = live.filter((l) => l.js.includes(j));
+  const notes = [...attempts(m.content.acceptance_criteria, j, solo), ...ks.flatMap((k) => attempts(k.content.acceptance_criteria ?? [], j, k.js.length === 1))];
+  const review = verdict(notes, j);
+  const state = passed ? "passed" : cs.some((c) => c.status === "open") ? "review" : ks.some((k) => k.lifecycle_status === "in_progress") || ls.length ? "building" : review.startsWith("PASS") ? "reviewed" : "todo";
+  const onMain = mainLog.filter((s) => s.match(JID)?.includes(j)).length;
+  const facts = [
+    review && (review.startsWith("FAIL") ? `last review **FAIL**` : `last review PASS`),
+    ...cs.map((c) => [c.link, c.review].filter(Boolean).join(" ")),
+    ...ls.map((l) => `building on \`${l.branch}\``),
+    onMain && `${plural(onMain, "commit")} on main`,
+  ].filter(Boolean);
+  return { state, line: `- ${MARK[state]} **${j} ${NAMES[j] ?? ""}** · ${state}${facts.length ? ` · ${facts.join(" · ")}` : ""}` };
+}
+
 function body(m, kids, changes, live, mainLog, number) {
   const js = journeysIn(m.content.acceptance_criteria.map((c) => c.criterion));
-  const met = m.content.acceptance_criteria.filter((c) => c.met).length;
-  const total = m.content.acceptance_criteria.length;
-  const count = (s) => kids.filter((k) => k.lifecycle_status === s).length;
-  const name = m.title.split(":")[0];
-  const pad = Math.max(name.length, 8);
-  const lines = [
-    "```",
-    `${name.padEnd(pad)}  ${bar(met, total)}  ${met}/${total} criteria`,
-    ...(kids.length ? [`${"tasks".padEnd(pad)}  ${bar(count("done"), kids.length)}  ${count("done")}/${kids.length} done · ${count("in_progress")} building · ${count("open")} open`] : []),
-    "```",
-    "",
-  ];
-  if (js.length) {
-    lines.push("| Journey | State | Change | Review | Tasks | On main |", "|---|---|---|---|---|---|");
-    for (const j of js) {
-      const passed = m.content.acceptance_criteria.some((c) => c.met && journeysIn(c.criterion).includes(j));
-      const ks = kids.filter((k) => k.js.includes(j));
-      const cs = changes.filter((c) => c.js.includes(j));
-      const ls = live.filter((l) => l.js.includes(j));
-      const change = [...cs.map((c) => c.link), ...ls.map((l) => `\`${l.branch}\` building`)].join("<br>") || "—";
-      const notes = [...attempts(m.content.acceptance_criteria, j, js.length === 1), ...ks.flatMap((k) => attempts(k.content.acceptance_criteria ?? [], j, k.js.length === 1))];
-      const review = verdict(notes, j);
-      const state = passed ? "passed" : cs.some((c) => c.status === "open") ? "review" : ks.some((k) => k.lifecycle_status === "in_progress") || ls.length ? "building" : review.startsWith("PASS") ? "reviewed" : "todo";
-      const tasks = ks.filter((k) => k.lifecycle_status !== "done");
-      const shown = (tasks.length ? tasks : ks).slice(0, 3).map((k) => `${GLYPH[k.lifecycle_status] ?? "·"} \`${k.doc_id}\``).join("<br>") || "—";
-      const onMain = mainLog.filter((s) => s.match(JID)?.includes(j)).length;
-      lines.push(`| ${j} | ${state} | ${change} | ${[review, ...cs.map((c) => c.review)].filter(Boolean).join("<br>") || "—"} | ${shown} | ${onMain} |`);
-    }
-    lines.push("");
-  }
-  if (kids.length) {
-    lines.push("| | Task | Journeys |", "|---|---|---|");
-    for (const k of kids) lines.push(`| ${GLYPH[k.lifecycle_status] ?? "·"} | \`${k.doc_id}\` ${k.title.replace(/\|/g, "/").slice(0, 80)} | ${k.js.join(" ") || "—"} |`);
-    lines.push("");
-  }
+  const rows = js.map((j) => journey(m, j, kids, changes, live, mainLog, js.length === 1));
+  const tally = Object.keys(MARK).map((s) => [s, rows.filter((r) => r.state === s).length]).filter(([, n]) => n);
+  const done = kids.filter((k) => k.lifecycle_status === "done").length;
+  const summary = js.length
+    ? `**${rows.filter((r) => r.state === "passed").length} of ${plural(js.length, "journey")} passed**${tally.filter(([s]) => s !== "passed").map(([s, n]) => ` · ${n} ${s}`).join("")} · ${done}/${kids.length} tasks done`
+    : `**${done} of ${plural(kids.length, "task")} done**`;
+  const lines = [summary, ""];
+  if (rows.length) lines.push("## Journeys", "", ...rows.map((r) => r.line), "");
+  if (kids.length) lines.push("## Tasks", "", ...kids.map((k) => `- ${TASK[k.lifecycle_status] ?? "·"} ${k.title.split(":")[0].slice(0, 70)} · \`${k.doc_id}\``), "");
   lines.push(
-    `Milestone task \`${m.doc_id}\` (\`bp task show ${m.doc_id}\`) · goal \`${GOAL}\` · plan Paper \`/papers/barkever-plan\``,
-    `[barkever](${REPO}) \`JOURNEYS.md\` · \`docs/decisions/\` · link a journey branch: \`entire trail link ${number ?? "<this number>"} --branch <branch>\``,
+    "---",
     "",
-    "Written by `scripts/milestones.mjs` from Barkpark tasks and Entire changes. Edits here are overwritten.",
+    `Milestone task \`${m.doc_id}\` · [repo](${REPO}) · link a branch: \`entire trail link ${number ?? "<n>"} --branch <name>\``,
+    "",
+    "_Written hourly by `scripts/milestones.mjs`; edits here are overwritten._",
   );
   return lines.join("\n");
 }
