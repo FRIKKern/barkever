@@ -26,7 +26,7 @@ export async function readReplica(page: Page): Promise<Replica> {
     return out
   })
   const docs = [...raw.notes, ...raw.notebooks].map((d) => {
-    const {_gen, ...rest} = d as Doc & {_gen?: number}
+    const {_gen, _typed, ...rest} = d as Doc & {_gen?: number; _typed?: string[]}
     return rest as Doc
   })
   return {docs: new Map(docs.map((d) => [d._id, d])), outbox: raw.outbox, waiting: raw.waiting}
