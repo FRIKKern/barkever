@@ -56,12 +56,12 @@ test('the same change on both sides is no conflict', () => {
   assert.equal(out.conflicts, undefined)
 })
 
-test('a block I deleted that they edited comes back, flagged', () => {
+test('a block I deleted that they edited comes back, with no copy of text the note already shows', () => {
   const mine = {...base, body: {blocks: [p('a', 'one'), p('c', 'three')]}}
   const theirs = {...base, _rev: 'r1', body: {blocks: [p('a', 'one'), p('b', 'two!'), p('c', 'three')]}}
   const out = mergeNote(base, mine, theirs, AT, ME)
   assert.deepEqual(texts(out), ['a:one', 'b:two!', 'c:three'])
-  assert.deepEqual(out.conflicts?.[0].clash, ['body:b'])
+  assert.equal(out.conflicts, undefined)
 })
 
 test('a block deleted on one side and untouched on the other is gone', () => {

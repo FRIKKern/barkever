@@ -1,9 +1,19 @@
-.keep-both { margin-bottom: var(--sp-4); padding: var(--sp-3); border-radius: var(--r-l); background: var(--c-warn-bg); }
-.kb-head { font-size: var(--fs-s); font-weight: var(--fw-bold); color: var(--c-warn-fg); margin-bottom: var(--sp-2); }
-.kb-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(12em, 1fr)); gap: var(--sp-2); }
+.keep-both { margin-bottom: var(--sp-4); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-l); background: var(--c-warn-bg); }
+.kb-head { font-size: var(--fs-s); font-weight: var(--fw-medium); color: var(--c-warn-fg); cursor: pointer; list-style: none; }
+.kb-head::-webkit-details-marker { display: none; }
+.kb-head::after { content: " · Show"; color: var(--c-muted); font-weight: normal; }
+.keep-both[open] > .kb-head::after { content: " · Hide"; }
+.keep-both[open] > .kb-cols { margin-top: var(--sp-2); }
+.kb-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(12em, 1fr)); gap: var(--sp-2); align-items: start; }
+.kb-lane { min-width: 0; }
 .kb-col { min-width: 0; padding: var(--sp-3); border-radius: var(--r-m); background: var(--c-surface); border: 1px solid var(--c-border-soft); font-size: var(--fs-s); line-height: var(--lh-ui); }
 .kb-label { font-size: var(--fs-xs); color: var(--c-muted); margin-bottom: var(--sp-1); }
 .kb-title { font-weight: var(--fw-bold); color: var(--c-text); margin-bottom: var(--sp-2); overflow-wrap: anywhere; }
 .kb-block { margin: 0 0 var(--sp-1); color: var(--c-text-2); overflow-wrap: anywhere; }
 .keep-both .clash { background: var(--c-mark); border-radius: var(--r-s); color: var(--c-text); }
+.kb-acts { display: flex; gap: var(--sp-1); margin-top: var(--sp-2); }
+.kb-act { font-size: var(--fs-xs); color: var(--c-text-2); padding: var(--sp-hair) var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--c-border-soft); }
+.kb-act:hover { background: var(--c-hover); color: var(--c-text); }
+.kb-earlier > summary { font-size: var(--fs-xs); color: var(--c-muted); cursor: pointer; padding: var(--sp-1) var(--sp-1) 0; }
+.kb-earlier .kb-col { margin-top: var(--sp-1); opacity: .85; }
 .row-clash { flex: none; font-size: var(--fs-xs); color: var(--c-warn-fg); background: var(--c-warn-bg); border-radius: var(--r-pill); padding: 0 var(--sp-1); }

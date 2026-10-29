@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {mergeLocal, mergeNote} from './merge.ts'
 import {sign, UNSIGNED, writerOf} from './sign.ts'
 import {blockText, type Block} from '../lib/model.ts'
+import {groups} from '../lib/versions.ts'
 import type {NoteDoc as Note} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
@@ -11,6 +12,10 @@ const r0: Note = {_id: 'n1', _type: 'note', _rev: 'r0', title: 'Plan', tags: [],
 const textA = (n: {body?: {blocks: Block[]}}) => blockText(n.body!.blocks.find((b) => b.id === 'a')!)
 const copies = (n: Note) => (n.conflicts ?? []).map((c) => [c.by, c.title, textA(c)])
 const blocksWith = (n: Note, text: string) => ({body: {blocks: n.body!.blocks.map((b) => (b.id === 'a' ? p('a', text) : b))}})
+const shown = (n: Note) => groups(n.conflicts ?? []).map(({latest: c}) => [c.by, c.title, textA(c)])
+const kept = (n: Note) => JSON.stringify([n.title, n.body, n.conflicts])
+let clock = 0
+const tick = () => new Date(Date.parse(AT) + ++clock * 1000).toISOString()
 
 function world() {
   let server = r0
@@ -24,9 +29,9 @@ function world() {
       get local() {
         return local
       },
-      typeBlock: (text: string) => (local = mergeLocal(local, {body: local.body}, blocksWith(local, text), AT, `local-${id}-${++saves}`, id, base)),
-      typeTitle: (title: string, shown = local.title) => (local = mergeLocal(local, {title: shown}, {title}, AT, `local-${id}-${++saves}`, id, base)),
-      pull: () => ((local = mergeNote(base, local, server, AT, id)), (base = server)),
+      typeBlock: (text: string) => (local = mergeLocal(local, {body: local.body}, blocksWith(local, text), tick(), `local-${id}-${++saves}`, id, base)),
+      typeTitle: (title: string, shown = local.title) => (local = mergeLocal(local, {title: shown}, {title}, tick(), `local-${id}-${++saves}`, id, base)),
+      pull: () => ((local = mergeNote(base, local, server, tick(), id)), (base = server)),
       push: () => (server = base = local = {...sign(local, id), _rev: `r${++revs}`}),
     }
   }
@@ -48,22 +53,24 @@ test('signing names the writer, survives a Barkpark round trip, and any later ch
   assert.equal(writerOf(r0), undefined)
 })
 
-test('two writers typing in one block online: one copy, the other writer’s latest, never the writer’s own', () => {
+test('two writers typing in one block online keep every text pushed, and show one version per writer, its latest', () => {
   const w = world()
   const [A, B] = [w.device('A'), w.device('B')]
-  const pushed: Record<string, string> = {}
+  const pushed: string[] = []
   for (let k = 0; k < 12; k++) {
-    const [me, other] = k % 2 ? [B, A] : [A, B]
+    const me = k % 2 ? B : A
     me.typeBlock(`${me.id} typed ${k}`)
     me.pull()
     me.push()
-    pushed[me.id] = `${me.id} typed ${k}`
-    assert.equal(textA(w.server), pushed[me.id])
-    if (pushed[other.id]) assert.deepEqual(copies(w.server), [[other.id, 'Plan', pushed[other.id]]], `round ${k}`)
+    pushed.push(`${me.id} typed ${k}`)
+    assert.equal(textA(w.server), pushed.at(-1))
+    for (const t of pushed) assert.ok(kept(w.server).includes(t), `round ${k}: ${t}`)
   }
+  assert.equal(w.server.conflicts!.length, 11)
+  assert.deepEqual(shown(w.server), [['A', 'Plan', 'A typed 10'], ['B', 'Plan', 'B typed 9']])
 })
 
-test('one raw writer setting the title six times while I type it keeps one copy, its latest', () => {
+test('one raw writer setting the title six times while I type it keeps all six, and shows its latest', () => {
   const w = world()
   const D = w.device('D')
   for (let i = 1; i <= 6; i++) {
@@ -72,11 +79,12 @@ test('one raw writer setting the title six times while I type it keeps one copy,
     D.pull()
     D.push()
     assert.equal(w.server.title, `D title ${i}`)
-    assert.deepEqual(copies(w.server), [[UNSIGNED, `Server title ${i}`, 'one']], `round ${i}`)
+    assert.deepEqual(shown(w.server), [[UNSIGNED, `Server title ${i}`, 'one']], `round ${i}`)
   }
+  assert.deepEqual(copies(w.server).map(([, t]) => t), [1, 2, 3, 4, 5, 6].map((i) => `Server title ${i}`))
 })
 
-test('a title typed over a remote title the box never showed names the remote writer, and its next title replaces that copy', () => {
+test('a title typed over a remote title the box never showed names the remote writer, and its next title folds the first', () => {
   const w = world()
   const D = w.device('D')
   D.push()
@@ -86,7 +94,8 @@ test('a title typed over a remote title the box never showed names the remote wr
   assert.deepEqual(copies(D.local), [[UNSIGNED, 'Remote 1', 'one']])
   w.raw({title: 'Remote 2'})
   D.pull()
-  assert.deepEqual(copies(D.local), [[UNSIGNED, 'Remote 2', 'one']])
+  assert.deepEqual(copies(D.local), [[UNSIGNED, 'Remote 1', 'one'], [UNSIGNED, 'Remote 2', 'one']])
+  assert.deepEqual(shown(D.local), [[UNSIGNED, 'Remote 2', 'one']])
 })
 
 test('three writers on one block: the last keeps the main, one copy of each other writer', () => {
@@ -120,12 +129,12 @@ test('a writer’s copy for the title survives that writer’s later clash in a 
   assert.deepEqual(copies(A.local), [['B', 'B title', 'one'], ['B', 'A title', 'B block']])
 })
 
-test('two tabs typing in one block keep one copy, the other tab’s latest', () => {
+test('two tabs typing in one block keep each other tab text, and show one, the latest', () => {
   let replica: Note = sign(r0, 'D')
   let [one, two] = [r0.body!.blocks, r0.body!.blocks]
   const save = (shown: Block[], text: string, k: number) => {
     const after = blocksWith({...replica, body: {blocks: shown}}, text).body.blocks
-    replica = mergeLocal(replica, {body: {blocks: shown}}, {body: {blocks: after}}, AT, `local-${k}`, 'D', sign(r0, 'D'))
+    replica = mergeLocal(replica, {body: {blocks: shown}}, {body: {blocks: after}}, tick(), `local-${k}`, 'D', sign(r0, 'D'))
     return after
   }
   for (let k = 0; k < 6; k++) {
@@ -133,7 +142,8 @@ test('two tabs typing in one block keep one copy, the other tab’s latest', () 
     two = save(two, `tab two ${k}`, 2 * k + 1)
   }
   assert.equal(textA(replica), 'tab two 5')
-  assert.deepEqual(copies(replica), [['D~tab', 'Plan', 'tab one 5']])
+  for (let k = 0; k < 6; k++) assert.ok(kept(replica).includes(`tab one ${k}`), `tab one ${k}`)
+  assert.deepEqual(shown(replica), [['D~tab', 'Plan', 'tab one 5']])
 })
 
 test('catching up past a third writer’s title change keeps the first writer’s title copy', () => {
@@ -238,4 +248,42 @@ test('my own earlier push clashing with my newer text never drops a copy of mine
   const out = mergeNote(base, {...base, title: 'Main typed here'}, theirs, AT, 'D')
   assert.equal(out.title, 'Main typed here')
   assert.deepEqual(keptTitles(out), [['D', 'D lost this']])
+})
+
+const one = (t: string) => ({body: {blocks: [p('a', t)]}})
+const signed = (n: Note, by: string, rev: string): Note => ({...sign(n, by), _rev: rev})
+
+test('a second offline clash on the same block keeps the first losing text, folded under the writer’s latest', () => {
+  const s0: Note = {...r0, ...one('Base')}
+  const s1 = signed({...s0, ...one('Base A1')}, 'A', 'r1')
+  const s2 = signed(mergeNote(s0, {...s0, ...one('Base B1')}, s1, tick(), 'B'), 'B', 'r2')
+  const s3 = signed({...s2, ...one('Base B1 a')}, 'A', 'r3')
+  const s4 = mergeNote(s2, {...s2, ...one('Base B1 b')}, s3, tick(), 'B')
+  assert.equal(textA(s4), 'Base B1 b')
+  assert.deepEqual(copies(s4).map(([by, , t]) => [by, t]), [['A', 'Base A1'], ['A', 'Base B1 a']])
+  assert.deepEqual(groups(s4.conflicts!).map((g) => [textA(g.latest), g.earlier.map(textA)]), [['Base B1 a', ['Base A1']]])
+})
+
+test('an offline clash, then both typing online, keeps the offline loser’s text', () => {
+  const s0: Note = {...r0, ...one('Base')}
+  const s1 = signed({...s0, ...one('Base A1')}, 'A', 'r1')
+  const s2 = signed(mergeNote(s0, {...s0, ...one('Base B1')}, s1, tick(), 'B'), 'B', 'r2')
+  const s3 = signed({...s2, ...one('Base B1 b')}, 'B', 'r3')
+  const s4 = signed(mergeNote(s2, {...s2, ...one('Base B1 a')}, s3, tick(), 'A'), 'A', 'r4')
+  const s5 = mergeNote(s3, {...s3, ...one('Base B1 bb')}, s4, tick(), 'B')
+  for (const t of ['Base A1', 'Base B1 a', 'Base B1 b', 'Base B1 bb']) assert.ok(kept(s5).includes(t), t)
+})
+
+test('titles: two offline hours keep the first losing title, and two raw writers keep both', () => {
+  const t0: Note = {...r0, body: {blocks: []}}
+  const t1 = signed({...t0, title: 'Plan A'}, 'A', 'r1')
+  const t2 = signed(mergeNote(t0, {...t0, title: 'Plan B'}, t1, tick(), 'B'), 'B', 'r2')
+  const t3 = signed({...t2, title: 'Plan B, a'}, 'A', 'r3')
+  const t4 = mergeNote(t2, {...t2, title: 'Plan B, b'}, t3, tick(), 'B')
+  assert.deepEqual(keptTitles(t4), [['A', 'Plan A'], ['A', 'Plan B, a']])
+  const studio = {...t0, title: 'Studio edit', _rev: 'r1'}
+  const m1 = signed(mergeNote(t0, {...t0, title: 'Plan mine'}, studio, tick(), 'A'), 'A', 'r2')
+  const m2 = mergeNote(m1, {...m1, title: 'Plan mine 2'}, {...m1, title: 'CLI edit', _rev: 'r3'}, tick(), 'A')
+  assert.deepEqual(keptTitles(m2), [[UNSIGNED, 'Studio edit'], [UNSIGNED, 'CLI edit']])
+  assert.deepEqual(groups(m2.conflicts!).map((g) => g.latest.title), ['CLI edit'])
 })

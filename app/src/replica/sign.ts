@@ -4,7 +4,7 @@ export const UNSIGNED = 'unsigned'
 
 const empty = (x: unknown) => x == null || x === ''
 
-function canon(v: unknown): string {
+export function canon(v: unknown): string {
   if (empty(v)) return 'null'
   if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`
   if (typeof v !== 'object') return JSON.stringify(v)

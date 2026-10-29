@@ -2,6 +2,7 @@ import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type Keybo
 import {Link, useNavigate} from '@tanstack/react-router'
 import {blockText, snippet, UNTITLED, type Note} from '../lib/model'
 import {scopeName, terms, type Search} from '../lib/scope'
+import {groups} from '../lib/versions'
 import {when} from '../lib/when'
 import {useLeave} from './history'
 import {Icon} from './icons'
@@ -125,7 +126,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, n
               <div className="row-bot">
                 <span className="dot" style={{background: w.shelf.colour(n.notebook)}} title={nb?.name} data-testid="note-notebook" data-notebook={nb?.name ?? ''} />
                 <span className="row-snip">{highlight(hitLine(n, words) ?? snippet(n), words)}</span>
-                {n.conflicts.length > 0 && <span className="row-clash" title="Kept both versions" data-testid="note-conflict">{n.conflicts.length + 1} versions</span>}
+                {n.conflicts.length > 0 && <span className="row-clash" title="Kept both versions" data-testid="note-conflict">{groups(n.conflicts).length + 1} versions</span>}
                 {d > 0 && (
                   <span className={`lk${d >= HUB ? ' hub' : ''}`} title={`${d} linked notes`}>
                     <Icon name="link" />

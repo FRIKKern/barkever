@@ -190,6 +190,7 @@ test('a remote change landing right after I type, with the cursor already in the
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
   await page.reload()
   await expect(page.getByTestId('title')).toHaveValue(title)
+  await page.getByTestId('conflict').locator('summary').first().click()
   const kept = await page.locator('main.editor').innerText()
   expect(kept, 'what I typed survives').toContain('Mine. Typed in the gap.')
   expect(kept, 'the other version survives').toContain('Mine, edited elsewhere.')

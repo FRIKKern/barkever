@@ -1,7 +1,7 @@
 import {wikilinks, type Block, type Conflict} from '../lib/model.ts'
 import {linkRefs} from '../lib/note-docs.ts'
 import {NOTE_FIELDS, type NoteDoc, type Ref} from './note.ts'
-import {UNSIGNED, writerOf} from './sign.ts'
+import {canon, UNSIGNED, writerOf} from './sign.ts'
 
 const empty = (x: unknown) => x == null || x === ''
 
@@ -72,8 +72,17 @@ export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
 type Part = 'title' | 'notebook' | 'tags'
 const part = (n: NoteDoc, p: string) => (p.startsWith('body:') ? n.body?.blocks.find((b) => b.id === p.slice(5)) : n[p as Part])
 const moved = (from: NoteDoc, to: NoteDoc) => (p: string) => !same(part(from, p), part(to, p))
-const carried = (p: string) => p === 'title' || p.startsWith('body:')
 const copyOf = (c: Conflict): NoteDoc => ({_id: '', _type: 'note', title: c.title, body: c.body})
+const holds = (c: Conflict, n: NoteDoc) => c.clash.every((p) => !moved(copyOf(c), n)(p))
+const before = (a: Conflict, b: Conflict) => a.at < b.at || (a.at === b.at && a._key < b._key)
+const text = (c: Conflict) => canon([...c.clash].sort().map((p) => [p, part(copyOf(c), p)]))
+
+export function collapse(all: Conflict[], main: NoteDoc): Conflict[] {
+  const first = new Map<string, Conflict>()
+  const texts = new Map(all.map((c) => [c, text(c)]))
+  for (const [c, t] of texts) if (!first.has(t) || before(c, first.get(t)!)) first.set(t, c)
+  return all.filter((c) => first.get(texts.get(c)!) === c && !holds(c, main))
+}
 
 export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, me: string, key = theirs._rev ?? at, who = writerOf(theirs) ?? UNSIGNED): NoteDoc {
   const clash: string[] = []
@@ -85,12 +94,10 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
   if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
   clash.push(...body.clash.map((id) => `body:${id}`))
-  const fresh = clash.length > 0 && who !== me
-  const typedOver = (c: Conflict) => (p: string) => moved(base, mine)(p) && !moved(out, mine)(p) && (!carried(p) || !moved(base, copyOf(c))(p))
-  const superseded = (c: Conflict) => (c.by === me && c.clash.every(typedOver(c))) || (fresh && c.by === who && c.clash.every((p) => clash.includes(p)))
-  const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? []).filter((c) => !superseded(c))
-  if (fresh && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, by: who, at, title: theirs.title, body: theirs.body, clash})
-  out.conflicts = conflicts.length || mine.conflicts || theirs.conflicts ? conflicts : undefined
+  const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
+  if (clash.length && who !== me && !conflicts.some((c) => c._key === key)) conflicts.push({_key: key, by: who, at, title: theirs.title, body: theirs.body, clash})
+  const kept = collapse(conflicts, out)
+  out.conflicts = kept.length || mine.conflicts || theirs.conflicts ? kept : undefined
   return out
 }
 

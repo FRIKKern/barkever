@@ -3,6 +3,7 @@ import {toRow, type NoteDoc} from './note'
 import {notify} from './bus'
 import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
+import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
 import {emptyParagraph, type Block} from '../lib/model'
 
@@ -10,14 +11,14 @@ const now = () => new Date().toISOString()
 
 type Change = (note: NoteDoc | undefined, entry: Entry | undefined) => {note: NoteDoc | null; entry: Entry | null} | null
 
-async function write(id: string, change: Change) {
+async function write(id: string, change: Change, adopt = false) {
   const tx = (await db()).transaction(NOTE_STORES, 'readwrite')
   const [notes, rows, outbox] = [tx.objectStore('notes'), tx.objectStore('rows'), tx.objectStore('outbox')]
   const [local, entry] = await Promise.all([notes.get(id), outbox.get(id)])
   const next = change(local && stored(local), entry)
   if (!next) return tx.done
   if (next.note) {
-    void notes.put({...next.note, _gen: local?._gen})
+    void notes.put({...next.note, _gen: adopt ? (local?._gen ?? 0) + 1 : local?._gen})
     void rows.put(toRow(next.note))
   } else {
     void notes.delete(id)
@@ -33,8 +34,8 @@ const bump = (id: string, before: NoteDoc | null, entry: Entry | undefined, extr
 
 type Edit = (note: NoteDoc, server: NoteDoc | null) => NoteDoc
 
-const edit = (id: string, change: Edit) =>
-  write(id, (note, entry) => (note ? {note: {...change(note, entry ? entry.base : note._rev ? note : null), _updatedAt: now()}, entry: bump(id, note, entry)} : null))
+const edit = (id: string, change: Edit, adopt = false) =>
+  write(id, (note, entry) => (note ? {note: {...change(note, entry ? entry.base : note._rev ? note : null), _updatedAt: now()}, entry: bump(id, note, entry)} : null), adopt)
 
 const withTitle = (title: string) => (n: NoteDoc) => ({...n, title})
 
@@ -55,6 +56,10 @@ async function journaled(id: string, patch: Jot, change: Edit) {
 export const editTitle = (id: string, shown: string, title: string) => journaled(id, {title}, overTitle(shown, title))
 
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
+
+export const keepVersion = (id: string, key: string) => edit(id, (n) => keep(n, key), true)
+
+export const dismissVersion = (id: string, key: string) => edit(id, (n) => dismiss(n, key))
 
 export async function editBody(id: string, base: Block[], after: Block[]) {
   const out = await journaled(id, {base, after}, withBody(base, after))

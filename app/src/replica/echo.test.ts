@@ -99,14 +99,16 @@ test('bug 5: links stay as they were when the merged body links the same notes',
   assert.equal(out.links, links)
 })
 
-test('bug 6: catch-up through two server revisions keeps one copy, the newest', () => {
+test('bug 6: catch-up through two server revisions keeps both, and a third equal to one adds nothing', () => {
   const r0 = note('R0', 'T', [p('a', 'one')])
   const mine = note('R0', 'T', [p('a', 'one [A1]')])
   const r1 = note('R1', 'T', [p('a', 'one [S1]')])
   const r2 = note('R2', 'T', [p('a', 'one [S1][S2]')])
+  const r3 = note('R3', 'T', [p('a', 'one [S1]')])
   const first = mergeNote(r0, mine, r1, AT, ME)
   const second = mergeNote(r1, first, r2, AT, ME)
-  assert.deepEqual(second.conflicts?.map((c) => [c._key, blockText(c.body!.blocks[0])]), [['R2', 'one [S1][S2]']])
+  assert.deepEqual(second.conflicts?.map((c) => [c._key, blockText(c.body!.blocks[0])]), [['R1', 'one [S1]'], ['R2', 'one [S1][S2]']])
+  assert.deepEqual(mergeNote(r2, second, r3, AT, ME).conflicts?.map((c) => c._key), ['R1', 'R2'])
   assert.equal(blockText(second.body!.blocks[0]), 'one [A1]')
 })
 
