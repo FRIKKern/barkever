@@ -24,7 +24,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 2. Worktree for anything but `main`: `node scripts/worktree.mjs <name>` (installs, links the env). The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. `node scripts/land.mjs <name> [--trail <n>]`: rebase, check, queued prepush (secret scan only when just docs, pace or skills change), push, trail link, fast-forward and push `main`. No squash. Evidence and change URL on the task (agents can't comment).
+5. `node scripts/land.mjs <name> [--trail <n>]`: rebase, check, queued prepush (secret scan only for text-only changes), push, trail link, fast-forward `main`. No squash. Evidence and change URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
@@ -35,7 +35,7 @@ bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► un
    └── close with evidence ◄── push (npm run prepush) ◄── Trail link + ff main ◄──┘
 ```
 
-Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged on the task for the owner to override. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
+Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged for the owner. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
 
 ## Rules
 
@@ -44,10 +44,10 @@ Owner-only choices (a design pick) get a provisional pick from an independent ju
 - **Nobody signs off their own journey.**
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
 - **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. No CI. Be brave; other agents review after.
-- **Unsure? Test, don't guess.** Any decision you aren't sure of gets rival spikes: one agent per direction, same tests, same report table. Spike code lives in `spikes/<name>/`; the winner becomes a decision, the loser's report is linked from it.
+- **Unsure? Test, don't guess.** Rival spikes: one agent per direction, same tests, same report table, code in `spikes/<name>/`. The winner becomes a decision that links the loser's report.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
-- **guerrilla is shared.** Every run and agent writes to one Barkpark workspace. A live probe is one timed call; no loops, and no deletes or bulk writes without the lead.
+- **guerrilla is shared** by every run and agent. A live probe is one timed call: no loops, no deletes or bulk writes without the lead.
 - **No secrets in prompts, files or output.** Entire pushes transcripts with the code.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
 - **Entire:** run `entire agent-help` for the commands you may use. Only the lead fast-forwards `main`; nobody runs `entire trail merge`. Reviews post as `entire trail finding`.
