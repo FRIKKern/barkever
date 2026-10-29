@@ -1,6 +1,9 @@
-import type {ReactNode} from 'react'
-import type {QueryClient} from '@tanstack/react-query'
+import {useEffect, type ReactNode} from 'react'
+import {useQuery, useQueryClient, type QueryClient} from '@tanstack/react-query'
 import {HeadContent, Outlet, Scripts, createRootRouteWithContext, redirect} from '@tanstack/react-router'
+import {datasetQuery, followReplica} from '../lib/library'
+import {nameReplica, replicaName} from '../replica/db'
+import {startSync} from '../sync/engine'
 import appCss from '../styles/app.css?url'
 import {themeBoot, tokenCss} from '../styles/tokens'
 import {meQuery} from '../lib/session'
@@ -17,8 +20,23 @@ export const Route = createRootRouteWithContext<{queryClient: QueryClient}>()({
     scripts: [{children: themeBoot}],
   }),
   shellComponent: RootDocument,
-  component: Outlet,
+  component: App,
 })
+
+function App() {
+  const queryClient = useQueryClient()
+  const me = useQuery(meQuery).data
+  const ds = useQuery({...datasetQuery, enabled: !!me}).data
+  useEffect(() => {
+    if (me && ds) void replicaName(me.email, ds).then(nameReplica)
+  }, [me, ds])
+  useEffect(() => {
+    const stop = followReplica(queryClient)
+    startSync()
+    return stop
+  }, [queryClient])
+  return <Outlet />
+}
 
 function RootDocument({children}: {children: ReactNode}) {
   return (

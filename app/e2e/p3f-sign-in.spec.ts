@@ -20,7 +20,7 @@ test.describe('signed out', () => {
 
   test('P3f: sign in lists your notes at the URL you wanted, no token reaches the page, sign out ends the session', async ({page, context, browser, baseURL}) => {
     const received: Promise<string>[] = []
-    page.on('response', (r) => received.push(r.text().catch(() => '')))
+    page.on('response', (r) => received.push(r.headers()['content-type']?.startsWith('text/event-stream') ? Promise.resolve('') : r.text().catch(() => '')))
 
     await page.goto('/?n=fx-note-01')
     await expect(page).toHaveURL(/\/sign-in\?redirect=%2F%3Fn%3Dfx-note-01$/)

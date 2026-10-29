@@ -15,6 +15,7 @@
     "build": "pnpm -r build",
     "test": "node --test scripts/check-repo.test.mjs && pnpm -r test",
     "e2e": "pnpm --filter @barkever/app e2e",
-    "prepush": "node scripts/check-repo.mjs && pnpm -r build && node --test scripts/check-repo.test.mjs && pnpm -r test && pnpm --filter @barkever/app e2e && node scripts/scan-outgoing.mjs"
+    "prepush": "node scripts/check-repo.mjs && pnpm -r build && node --test scripts/check-repo.test.mjs && pnpm -r test && pnpm --filter @barkever/app e2e && pnpm --filter @barkever/app j10 && node scripts/scan-outgoing.mjs",
+    "j10": "pnpm --filter @barkever/app j10"
   }
 }

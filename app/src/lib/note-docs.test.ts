@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
-import {linkContext, snippet, wikilinks} from '../lib/model.ts'
+import {linkContext, snippet, wikilinks} from './model.ts'
 
 const fixtures = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 const notes = fixtures.filter((d) => d._type === 'note').map((d) => toNote(d as BpNote))
@@ -10,7 +10,7 @@ const notebooks = fixtures.filter((d) => d._type === 'notebook').map((d) => toNo
 
 test('drafts resolve to the published id on note, notebook and links', () => {
   const n = toNote({_id: 'drafts.n1', _rev: 'r1', title: 'Draft', notebook: {_ref: 'drafts.nb-1'}, links: [{_ref: 'drafts.n2'}, {_ref: 'n2'}]})
-  assert.deepEqual(n, {id: 'n1', title: 'Draft', notebook: 'nb-1', tags: [], blocks: [], links: ['n2'], updatedAt: '', rev: 'r1'})
+  assert.deepEqual(n, {id: 'n1', title: 'Draft', notebook: 'nb-1', tags: [], blocks: [], links: ['n2'], updatedAt: '', rev: 'r1', conflicts: [], gen: 0})
 })
 
 test('blank title, missing notebook and null fields fall back', () => {

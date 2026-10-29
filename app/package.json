@@ -10,13 +10,15 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000 --strictPort",
     "test": "node --test --experimental-strip-types src/*/*.test.ts scripts/*.test.ts",
-    "e2e": "playwright test -c e2e/playwright.config.ts"
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "j10": "playwright test -c e2e/j10/playwright.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-router-ssr-query": "1.167.3",
     "@tanstack/react-start": "1.168.60",
+    "idb": "8.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

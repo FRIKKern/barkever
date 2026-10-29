@@ -1,61 +1,57 @@
 import {useEffect, useRef, useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
-import {Link} from '@tanstack/react-router'
-import {flipShortcut, putNote, setTitleFn} from '../lib/library'
+import {Link, useNavigate} from '@tanstack/react-router'
+import {flipShortcut} from '../lib/library'
 import type {Note} from '../lib/model'
-import {enqueue, knowRev, markDirty, useSaveStatus} from '../lib/saver'
+import {markClean, markDirty, useSaveStatus} from '../lib/saver'
+import {deleteNote, editTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
+import {ConflictView} from './ConflictView'
 import {Icon} from './icons'
 import type {World} from './world'
 
-const TITLE_DEBOUNCE_MS = 300
-const LABEL = {saved: 'Saved', saving: 'Saving…', failed: 'Not saved'}
+const LABEL = {saved: 'Saved', saving: 'Saving…', here: 'Offline · saved on this device'}
 
 type Props = {w: World; s: Search; note: Note; online: boolean; onRail: () => void}
 
 export function Editor({w, s, note, online, onRail}: Props) {
   const qc = useQueryClient()
-  knowRev(note.id, note.rev)
+  const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
-  const status = useSaveStatus(note.id)
+  const status = useSaveStatus(note.id, online)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const body = useRef<BodyHandle>(null)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const latest = useRef(title)
+  const writing = useRef(0)
 
-  const flush = () => {
-    if (!timer.current) return
-    clearTimeout(timer.current)
-    timer.current = null
-    const value = latest.current
-    putNote(qc, note.id, {title: value, updatedAt: new Date().toISOString()})
-    enqueue(note.id, async () => (await setTitleFn({data: {id: note.id, title: value}})).rev)
-  }
+  useEffect(() => {
+    if (!writing.current) setTitle(note.title)
+  }, [note.gen])
 
   useEffect(() => {
     if (!note.title) titleRef.current?.focus()
-    return flush
   }, [])
 
   const onTitle = (v: string) => {
     const value = v.replace(/\n/g, ' ')
     setTitle(value)
-    latest.current = value
     markDirty(note.id)
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(flush, TITLE_DEBOUNCE_MS)
+    writing.current++
+    void editTitle(note.id, value).then(() => --writing.current || markClean(note.id))
   }
 
-  const label = status === 'failed' && !online ? 'Offline · not saved' : LABEL[status]
+  const label = LABEL[status]
+  const remove = () => {
+    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}))
+  }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)
   const ins = w.links.backs(note.id).length
   const outs = w.links.outs(note.id).length
 
   return (
-    <main className="editor" aria-label="Note">
+    <main className="editor" aria-label="Note" data-note-id={note.id}>
       <div className="mhead">
         <Link className="back" to="/" search={{...s, n: undefined}}>
           <Icon name="back" />
@@ -78,6 +74,9 @@ export function Editor({w, s, note, online, onRail}: Props) {
           <button className="icon-btn" onClick={onRail} title="Connections" aria-label="Toggle connections">
             <Icon name="rail" />
           </button>
+          <button className="icon-btn" onClick={remove} title="Delete note" aria-label="Delete note" data-testid="delete-note">
+            <Icon name="trash" />
+          </button>
         </div>
       </div>
       <div className="ed-scroll">
@@ -89,8 +88,7 @@ export function Editor({w, s, note, online, onRail}: Props) {
             placeholder="Untitled"
             value={title}
             onChange={(e) => onTitle(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), flush(), body.current?.focus())}
-            onBlur={flush}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), body.current?.focus())}
             spellCheck={false}
             aria-label="Title"
             data-testid="title"
@@ -111,6 +109,7 @@ export function Editor({w, s, note, online, onRail}: Props) {
               {ins} in · {outs} out
             </span>
           </div>
+          <ConflictView note={note} />
           <BodyCanvas note={note} s={s} handle={body} />
         </article>
       </div>

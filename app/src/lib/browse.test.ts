@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {toNote, toNotebook, type BpNote, type BpNotebook} from '../server/note-docs.ts'
+import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
 import {indexLinks} from './links.ts'
 import {GRAPH, layoutGraph, wrapLabel} from './graph-layout.ts'
 import {layoutMap} from './mini-map.ts'
@@ -15,7 +15,7 @@ const lib: Library = {
   notebooks: docs.filter((d) => d._type === 'notebook').map((d) => toNotebook(d as BpNotebook)),
 }
 const links = indexLinks(lib)
-const note = (id: string, links: string[] = [], extra: Partial<Note> = {}): Note => ({id, title: id, notebook: 'nb', tags: [], blocks: [], links, updatedAt: '', rev: '', ...extra})
+const note = (id: string, links: string[] = [], extra: Partial<Note> = {}): Note => ({id, title: id, notebook: 'nb', tags: [], blocks: [], links, updatedAt: '', rev: '', conflicts: [], gen: 0, ...extra})
 
 test('backlinks come from links[] and body wikilinks, without self links or missing notes', () => {
   const l = indexLinks({notebooks: [], notes: [note('a', ['b', 'a', 'gone']), note('b'), note('c', [], {blocks: [{id: 'p', type: 'paragraph', content: [{type: 'wikilink', docId: 'b'}]}]})]})

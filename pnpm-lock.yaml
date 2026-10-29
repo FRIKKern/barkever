@@ -22,6 +22,9 @@ importers:
       '@tanstack/react-start':
         specifier: 1.168.60
         version: 1.168.60(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.15)(vite@8.3.2(@types/node@22.20.5)(jiti@2.7.0))
+      idb:
+        specifier: 8.0.4
+        version: 8.0.4
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -651,6 +654,9 @@ packages:
     peerDependenciesMeta:
       crossws:
         optional: true
+
+  idb@8.0.4:
+    resolution: {integrity: sha512-jd0ITCrN+Zah4J7R/Z2jnR3W7A4BXDAjmo62MwWuSjxCiueUAf7X5rbodEdidWzeknwXHmLpdZkoiiCppNi30Q==}
 
   isbot@5.2.2:
     resolution: {integrity: sha512-iQcBXcd+Rv/pkubRyGh2utW2j1oPG5hZY6TUhVPpqK4G+o3IbxpJNx04hgksjc/N7GK5pEorUxDeg31cFgEk/w==}
@@ -1542,6 +1548,8 @@ snapshots:
     dependencies:
       rou3: 0.8.1
       srvx: 0.11.22
+
+  idb@8.0.4: {}
 
   isbot@5.2.2: {}
 

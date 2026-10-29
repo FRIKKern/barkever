@@ -1,23 +1,18 @@
 import {queryOptions, type QueryClient} from '@tanstack/react-query'
 import {createServerFn} from '@tanstack/react-start'
-import {createNote, readLibrary, saveBody, setTitle, type BodySave} from '../server/notes'
 import {pushRecent, readPrefs, toggleShortcut} from '../server/prefs'
 import {canvasFiles} from '../server/canvas'
+import {dataset} from '../server/barkpark'
+import {db, type LocalNote} from '../replica/db'
+import {onChange} from '../replica/bus'
+import {replayJournal} from '../replica/local'
+import {toNote, toNotebook} from './note-docs'
 import type {Library, Note, Prefs} from './model'
 
-const fetchLibrary = createServerFn({method: 'GET'}).handler(() => readLibrary())
 const fetchPrefs = createServerFn({method: 'GET'}).handler(() => readPrefs())
+const fetchDataset = createServerFn({method: 'GET'}).handler(() => dataset())
 export const fetchCanvasFiles = createServerFn({method: 'GET'}).handler(() => canvasFiles())
 
-export const createNoteFn = createServerFn({method: 'POST'})
-  .validator((d: {id: string; notebook: string; blockId: string}) => d)
-  .handler(({data}) => createNote(data))
-export const setTitleFn = createServerFn({method: 'POST'})
-  .validator((d: {id: string; title: string}) => d)
-  .handler(({data}) => setTitle(data))
-export const saveBodyFn = createServerFn({method: 'POST'})
-  .validator((d: BodySave) => d)
-  .handler(({data}) => saveBody(data))
 const pushRecentFn = createServerFn({method: 'POST'})
   .validator((id: string) => id)
   .handler(({data}) => pushRecent(data))
@@ -25,30 +20,48 @@ const toggleShortcutFn = createServerFn({method: 'POST'})
   .validator((id: string) => id)
   .handler(({data}) => toggleShortcut(data))
 
-export const libraryQuery = queryOptions({queryKey: ['library'], staleTime: 30_000, queryFn: (): Promise<Library> => fetchLibrary()})
+const local = {staleTime: Infinity, networkMode: 'always'} as const
+const otherTab = new Map<string, number>()
+const asNote = (d: LocalNote): Note => ({...toNote(d), gen: (d._gen ?? 0) + (otherTab.get(d._id) ?? 0)})
+
+async function readLibrary(): Promise<Library> {
+  await replayJournal()
+  const d = await db()
+  const [notes, notebooks] = await Promise.all([d.getAll('notes'), d.getAll('notebooks')])
+  return {notes: notes.map(asNote), notebooks: notebooks.map(toNotebook)}
+}
+
+export const libraryQuery = queryOptions({...local, queryKey: ['library'], queryFn: readLibrary})
+export const pendingQuery = queryOptions({...local, queryKey: ['pending'], queryFn: async () => new Set(await (await db()).getAllKeys('outbox'))})
+export const datasetQuery = queryOptions({queryKey: ['dataset'], staleTime: Infinity, queryFn: () => fetchDataset()})
 export const prefsQuery = queryOptions({queryKey: ['prefs'], staleTime: 30_000, queryFn: (): Promise<Prefs> => fetchPrefs()})
 
-export function putNote(qc: QueryClient, id: string, patch: Partial<Note> | ((n: Note) => Partial<Note>)) {
-  qc.setQueryData<Library>(libraryQuery.queryKey, (lib) =>
-    lib && {...lib, notes: lib.notes.map((n) => (n.id === id ? {...n, ...(typeof patch === 'function' ? patch(n) : patch)} : n))},
-  )
+export async function refresh(qc: QueryClient, ids: string[]) {
+  const d = await db()
+  const [docs, notebooks] = await Promise.all([Promise.all(ids.map((id) => d.get('notes', id))), d.getAll('notebooks')])
+  const fresh = docs.filter((x): x is LocalNote => !!x).map(asNote)
+  qc.setQueryData<Library>(libraryQuery.queryKey, (lib) => lib && {notes: [...fresh, ...lib.notes.filter((n) => !ids.includes(n.id))], notebooks: notebooks.map(toNotebook)})
+  void qc.invalidateQueries({queryKey: pendingQuery.queryKey})
 }
 
-export function addNote(qc: QueryClient, note: Note) {
-  qc.setQueryData<Library>(libraryQuery.queryKey, (lib) => lib && {...lib, notes: [note, ...lib.notes]})
-}
+export const followReplica = (qc: QueryClient) =>
+  onChange(({kind, ids, tab}) => {
+    if (tab && kind === 'local') for (const id of ids) otherTab.set(id, (otherTab.get(id) ?? 0) + 1)
+    void refresh(qc, ids)
+  })
 
+const keepLocal = () => undefined
 const setPrefs = (qc: QueryClient, patch: Partial<Prefs>) => qc.setQueryData<Prefs>(prefsQuery.queryKey, (p) => p && {...p, ...patch})
 
 export function rememberRecent(qc: QueryClient, id: string) {
   const p = qc.getQueryData<Prefs>(prefsQuery.queryKey)
   if (p?.recents[0] === id) return
   if (p) setPrefs(qc, {recents: [id, ...p.recents.filter((x) => x !== id)]})
-  pushRecentFn({data: id}).then((recents) => setPrefs(qc, {recents}))
+  pushRecentFn({data: id}).then((recents) => setPrefs(qc, {recents}), keepLocal)
 }
 
 export function flipShortcut(qc: QueryClient, id: string) {
   const p = qc.getQueryData<Prefs>(prefsQuery.queryKey)
   if (p) setPrefs(qc, {shortcuts: p.shortcuts.includes(id) ? p.shortcuts.filter((x) => x !== id) : [...p.shortcuts, id]})
-  toggleShortcutFn({data: id}).then((shortcuts) => setPrefs(qc, {shortcuts}))
+  toggleShortcutFn({data: id}).then((shortcuts) => setPrefs(qc, {shortcuts}), keepLocal)
 }

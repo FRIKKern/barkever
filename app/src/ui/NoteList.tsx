@@ -70,7 +70,7 @@ export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w
           const d = w.links.degree(n.id)
           const nb = w.shelf.byId.get(n.notebook ?? '')
           return (
-            <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} data-testid="note-row">
+            <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} data-testid="note-row" data-note-id={n.id}>
               <div className="row-top">
                 <span className={`row-title${n.title ? '' : ' untitled'}`} data-testid="note-title">
                   {highlight(n.title || UNTITLED, words)}
@@ -80,6 +80,7 @@ export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w
               <div className="row-bot">
                 <span className="dot" style={{background: w.shelf.colour(n.notebook)}} title={nb?.name} data-testid="note-notebook" data-notebook={nb?.name ?? ''} />
                 <span className="row-snip">{highlight(hitLine(n, words) ?? snippet(n), words)}</span>
+                {n.conflicts.length > 0 && <span className="row-clash" title="Kept both versions" data-testid="note-conflict">{n.conflicts.length + 1} versions</span>}
                 {d > 0 && (
                   <span className={`lk${d >= HUB ? ' hub' : ''}`} title={`${d} linked notes`}>
                     <Icon name="link" />

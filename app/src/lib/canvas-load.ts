@@ -1,17 +1,18 @@
 import noteSchema from '../../../contracts/barkpark/note.json' with {type: 'json'}
 import {fetchCanvasFiles} from './library'
 import type {Block} from './model'
+import type {BlockOp} from '../replica/ops'
 
 export const vocabulary = JSON.stringify(noteSchema.fields.find((f) => f.name === 'body')!.blocks)
 
-export type CanvasOps = {ops: unknown[]; seq: number}
+export type CanvasOps = {ops: BlockOp[]; seq: number}
 export type CanvasElement = HTMLElement & {
   blocks: Block[]
   acknowledgedSaves: boolean
   identifyOpsRequest(seq: number, requestId: string): void
-  applyServerBlocks(blocks: Block[], o: {mode: 'own'; requestId: string}): void
+  applyServerBlocks(blocks: Block[], o?: {mode: 'own'; requestId: string}): void
+  flushPendingChanges(): boolean
   acknowledgeOps(seq: number, ok: boolean): void
-  discardInflightOps(seq: number, o: {reason: string}): void
 }
 
 const add = <T extends HTMLElement>(el: T) => (document.head.append(el), el)

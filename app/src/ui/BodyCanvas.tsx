@@ -1,10 +1,10 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
-import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
-import {libraryQuery, putNote, saveBodyFn} from '../lib/library'
 import {loadCanvas, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
-import type {Library, Note} from '../lib/model'
-import {enqueue, markDirty} from '../lib/saver'
+import type {Note} from '../lib/model'
+import {markClean, markDirty} from '../lib/saver'
+import {editBody} from '../replica/local'
+import {same} from '../replica/merge'
 import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
@@ -12,10 +12,10 @@ export type BodyHandle = {focus: () => void}
 type Props = {note: Note; s: Search; handle: Ref<BodyHandle>}
 
 export function BodyCanvas({note, s, handle}: Props) {
-  const qc = useQueryClient()
   const navigate = useNavigate()
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<CanvasElement | null>(null)
+  const agreed = useRef(note.blocks)
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
 
@@ -23,22 +23,19 @@ export function BodyCanvas({note, s, handle}: Props) {
 
   useEffect(() => {
     let gone = false
-    const storedLinks = () => qc.getQueryData<Library>(libraryQuery.queryKey)?.notes.find((n) => n.id === id)?.links ?? []
     const onOps = (e: Event) => {
       const el = e.currentTarget as CanvasElement
-      const {ops, seq} = (e as CustomEvent<CanvasOps>).detail
-      const requestId = `http-${seq}`
+      const {seq, ops} = (e as CustomEvent<CanvasOps>).detail
+      const requestId = `local-${seq}`
       el.identifyOpsRequest(seq, requestId)
-      enqueue(id, async (rev) => {
-        const r = await saveBodyFn({data: {id, ops, rev, links: storedLinks()}}).catch((err: Error) => ({ok: false as const, status: 0, error: err.message}))
-        if (!r.ok) {
-          el.discardInflightOps(seq, {reason: r.error})
-          return null
-        }
-        el.applyServerBlocks(r.blocks, {mode: 'own', requestId})
-        el.acknowledgeOps(seq, true)
-        putNote(qc, id, {blocks: r.blocks, links: r.links, rev: r.rev, updatedAt: new Date().toISOString()})
-        return r.rev
+      el.acknowledgeOps(seq, true)
+      const after = structuredClone(el.blocks)
+      void editBody(id, ops, after).then((saved) => {
+        markClean(id)
+        if (!saved) return
+        const others = !same(saved.before, agreed.current)
+        agreed.current = saved.blocks
+        el.applyServerBlocks(others ? saved.blocks : after, {mode: 'own', requestId})
       })
     }
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
@@ -72,12 +69,20 @@ export function BodyCanvas({note, s, handle}: Props) {
       },
       (e: Error) => !gone && setState({live: false, blocked: e.message}),
     )
+    const flush = () => canvas.current?.flushPendingChanges()
+    addEventListener('pagehide', flush)
     return () => {
       gone = true
+      removeEventListener('pagehide', flush)
+      flush()
       canvas.current?.remove()
       canvas.current = null
     }
   }, [id])
+
+  useEffect(() => {
+    if (note.gen) canvas.current?.applyServerBlocks(note.blocks)
+  }, [note.gen])
 
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">

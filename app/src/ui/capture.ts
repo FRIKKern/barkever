@@ -1,8 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
-import {addNote, createNoteFn, putNote} from '../lib/library'
-import {emptyParagraph} from '../lib/model'
-import {enqueue} from '../lib/saver'
+import {refresh} from '../lib/library'
+import {createNote} from '../replica/local'
 import type {Search} from '../lib/scope'
 import type {World} from './world'
 
@@ -19,12 +18,8 @@ export function useCapture(w: World, s: Search) {
   return () => {
     const id = `note-${crypto.randomUUID()}`
     const blockId = `${id}-p0`
-    addNote(qc, {id, title: '', notebook, tags: [], blocks: [emptyParagraph(blockId)], links: [], updatedAt: new Date().toISOString(), rev: ''})
-    enqueue(id, async () => {
-      const note = await createNoteFn({data: {id, notebook, blockId}})
-      putNote(qc, id, {rev: note.rev})
-      return note.rev
-    })
-    navigate({to: '/', search: {nb: s.nb, tag: s.tag, n: id}})
+    void createNote({id, notebook, blockId})
+      .then(() => refresh(qc, [id]))
+      .then(() => navigate({to: '/', search: {nb: s.nb, tag: s.tag, n: id}}))
   }
 }

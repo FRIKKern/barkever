@@ -1,3 +1,7 @@
+import type {FormEvent} from 'react'
+import {useQuery} from '@tanstack/react-query'
+import {forgetDevice} from '../replica/local'
+import {pendingQuery} from '../lib/library'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Search} from '../lib/scope'
@@ -7,11 +11,19 @@ import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
 const TOP_TAGS = 8
+
+function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
+  e.preventDefault()
+  const form = e.currentTarget
+  if (pending && !confirm(`${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`)) return
+  void forgetDevice().then(() => form.submit())
+}
 const RECENT_SHOWN = 5
 
 type Props = {w: World; s: Search; online: boolean; onNew: (() => void) | null; onPick: () => void}
 
 export function Sidebar({w, s, online, onNew, onPick}: Props) {
+  const pending = useQuery(pendingQuery).data?.size ?? 0
   const {lib, shelf, prefs, links} = w
   const count = (id: string) => lib.notes.filter((n) => n.notebook && shelf.scope(id).includes(n.notebook)).length
   const scoped = !s.q && (s.nb || s.tag)
@@ -76,11 +88,11 @@ export function Sidebar({w, s, online, onNew, onPick}: Props) {
       </nav>
       <div className="side-foot">
         <span className={`dot${online ? '' : ' off'}`} />
-        <span>{online ? 'Synced' : 'Offline'}</span>
+        <span data-testid="sync-status">{online ? (pending ? `Syncing ${pending}` : 'Synced') : pending ? `Offline · ${pending} to sync` : 'Offline'}</span>
         <button className="icon-btn" onClick={toggleTheme} title="Light / dark" aria-label="Toggle theme">
           <Icon name="theme" />
         </button>
-        <form method="post" action="/sign-out">
+        <form method="post" action="/sign-out" onSubmit={(e) => signOut(e, pending)}>
           <button className="icon-btn" title="Sign out" aria-label="Sign out" data-testid="sign-out">
             <Icon name="out" />
           </button>
