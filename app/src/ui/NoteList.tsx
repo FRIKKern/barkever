@@ -1,19 +1,19 @@
-import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type KeyboardEvent, type ReactNode} from 'react'
+import {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {blockText, snippet, UNTITLED, type Note} from '../lib/model'
-import {scopeName, terms, type Search} from '../lib/scope'
+import {scopeName, type Search} from '../lib/scope'
+import type {Found} from '../lib/search'
 import {when} from '../lib/when'
 import {useLeave} from './history'
 import {Icon} from './icons'
 import type {World} from './world'
 
 const HUB = 3
+const PAGE = 100
 
-function highlight(text: string, words: string[]): ReactNode {
-  if (!words.length) return text
-  const re = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
-  return text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part))
-}
+const marker = (words: string[]) => (words.length ? new RegExp(`(${[...words].sort((a, b) => b.length - a.length).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi') : null)
+
+const highlight = (text: string, re: RegExp | null): ReactNode => (re ? text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part)) : text)
 
 const hitLine = (n: Note, words: string[]) => (words.length ? n.blocks.map(blockText).find((t) => words.some((w) => t.toLowerCase().includes(w))) : undefined)
 
@@ -25,9 +25,10 @@ const focusLost = () => {
 }
 
 export type ListHandle = {search: () => void; menu: () => void; row: (id: string) => boolean}
-type Props = {w: World; s: Search; notes: Note[]; onMenu: () => void; onNew: (() => void) | null; onOpen: (id: string) => void}
+type Props = {w: World; s: Search; found: Found; onMenu: () => void; onNew: (() => void) | null; onOpen: (id: string) => void}
 
-export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, notes, onMenu, onNew, onOpen}, handle) {
+export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, found, onMenu, onNew, onOpen}, handle) {
+  const {notes, marks: words} = found
   const navigate = useNavigate()
   const searchRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
@@ -66,8 +67,10 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, n
   }
   const [q, setQ] = useState(s.q ?? '')
   useEffect(() => setQ(s.q ?? ''), [s.q])
-  const words = terms(s.q)
-  const scopeDot = !words.length && s.nb
+  const searching = !!s.q?.trim()
+  const scopeDot = !searching && s.nb
+  const shown = useShown(notes, s, rowsRef)
+  const re = useMemo(() => marker(words), [words])
   const setQuery = (v: string) => {
     setQ(v)
     navigate({to: '/', search: (prev: Search) => ({...prev, q: v || undefined}), replace: true})
@@ -107,24 +110,24 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, n
         <span>
           {notes.length} note{notes.length === 1 ? '' : 's'}
         </span>
-        <span className="sort">Recent ↓</span>
+        <span className="sort">{searching ? 'Best match' : 'Recent ↓'}</span>
       </div>
       <div className="rows" role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys}>
-        {notes.length === 0 && <div className="empty">{words.length ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
-        {notes.map((n) => {
+        {notes.length === 0 && <div className="empty">{searching ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
+        {notes.slice(0, shown).map((n) => {
           const d = w.links.degree(n.id)
           const nb = w.shelf.byId.get(n.notebook ?? '')
           return (
             <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} tabIndex={n.id === active ? 0 : -1} onFocus={() => setCursor(n.id)} data-testid="note-row" data-note-id={n.id}>
               <div className="row-top">
                 <span className={`row-title${n.title ? '' : ' untitled'}`} data-testid="note-title">
-                  {highlight(n.title || UNTITLED, words)}
+                  {highlight(n.title || UNTITLED, re)}
                 </span>
                 <span className="row-date">{when(n.updatedAt)}</span>
               </div>
               <div className="row-bot">
                 <span className="dot" style={{background: w.shelf.colour(n.notebook)}} title={nb?.name} data-testid="note-notebook" data-notebook={nb?.name ?? ''} />
-                <span className="row-snip">{highlight(hitLine(n, words) ?? snippet(n), words)}</span>
+                <span className="row-snip">{highlight(hitLine(n, words) ?? snippet(n), re)}</span>
                 {n.conflicts.length > 0 && <span className="row-clash" title="Kept both versions" data-testid="note-conflict">{n.conflicts.length + 1} versions</span>}
                 {d > 0 && (
                   <span className={`lk${d >= HUB ? ' hub' : ''}`} title={`${d} linked notes`}>
@@ -136,7 +139,23 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, n
             </Link>
           )
         })}
+        {shown < notes.length && <div className="more" data-more />}
       </div>
     </section>
   )
 })
+
+function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | null>): number {
+  const [pages, setPages] = useState(1)
+  useEffect(() => setPages(1), [s.q, s.nb, s.tag])
+  const open = s.n ? notes.findIndex((n) => n.id === s.n) + 1 : 0
+  const shown = Math.max(pages * PAGE, open)
+  useEffect(() => {
+    const more = rows.current?.querySelector('[data-more]')
+    if (!more) return
+    const seen = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setPages((p) => p + 1), {root: rows.current, rootMargin: '600px'})
+    seen.observe(more)
+    return () => seen.disconnect()
+  }, [shown, notes])
+  return shown
+}

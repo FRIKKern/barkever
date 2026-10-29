@@ -16,3 +16,4 @@
 .row-bot { display: flex; align-items: center; gap: var(--sp-half); margin-top: 3px; font-size: var(--fs-s); color: var(--c-muted); }
 .row-snip { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row:focus-visible { outline-offset: -2px; }
+.more { height: 1px; }

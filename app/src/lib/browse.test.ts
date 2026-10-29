@@ -72,13 +72,13 @@ test('the mini map gives every note in a notebook its own slot inside its box', 
 
 test('notebook scope includes its stack; colours are stable tokens', () => {
   const shelf = shelve(lib.notebooks)
-  const work = visibleNotes(lib.notes, {nb: 'fx-nb-work'}, shelf)
+  const work = visibleNotes(lib.notes, {nb: 'fx-nb-work'}, shelf).notes
   assert.ok(work.some((n) => n.notebook === 'fx-nb-projects') && work.some((n) => n.notebook === 'fx-nb-meetings'))
   assert.match(shelf.colour('fx-nb-projects'), /^var\(--nb-\d\)$/)
   assert.equal(shelf.colour(null), 'var(--c-faint)')
   assert.deepEqual(shelf.path('fx-nb-projects'), ['Work', 'Projects'])
-  assert.ok(visibleNotes(lib.notes, {tag: 'harbor'}, shelf).every((n) => n.tags.includes('harbor')))
-  assert.ok(visibleNotes(lib.notes, {nb: 'fx-nb-home', q: 'harbor sitemap'}, shelf).some((n) => n.id === 'fx-note-01'))
+  assert.ok(visibleNotes(lib.notes, {tag: 'harbor'}, shelf).notes.every((n) => n.tags.includes('harbor')))
+  assert.ok(visibleNotes(lib.notes, {nb: 'fx-nb-home', q: 'harbor sitemap'}, shelf).notes.some((n) => n.id === 'fx-note-01'))
 })
 
 test('search params keep only non-empty strings', () => {
@@ -94,7 +94,7 @@ test('a new note lands where you are and stays in the list it was made from', ()
   for (const s of [{tag: 'harbor'}, {nb: 'fx-nb-gone'}, {nb: 'fx-nb-work'}]) {
     const l = landing(s, shelf)!
     const made = note('new', [], {notebook: l.notebook, tags: l.tags})
-    assert.ok(visibleNotes([made], l.search, shelf).length === 1, JSON.stringify(s))
+    assert.ok(visibleNotes([made], l.search, shelf).notes.length === 1, JSON.stringify(s))
   }
 })
 

@@ -6,7 +6,9 @@ workspace barkever ─ project default ─┬─ production   real notes
                                       ├─ spike-*      spike evidence, never read by the app
                                       ├─ e2e-<stamp>  one per e2e run (app and mac), seeded with the fixtures, dropped after a pass once Barkpark can
                                       ├─ j10-<stamp>  one per J10 run (pnpm --filter @barkever/app j10), dropped after a pass once Barkpark can
-                                      └─ probe-history-<stamp>  20,000+ events of history, made once (~100 s) by app/e2e/history.ts, reused by reload-history.spec.ts
+                                      ├─ probe-history-<stamp>  20,000+ events of history, made once (~100 s) by app/e2e/history.ts, reused by reload-history.spec.ts
+                                      ├─ probe-p3g-<stamp>      fixtures, one per J04 run (j04-organize.spec.ts), left for inspection
+                                      └─ probe-p3g-5k-<date>    fixtures + 4,950 synthetic notes, made once by app/e2e/probe.ts, reused by j03-find.spec.ts
 ```
 
 | File | Type | Notes |

@@ -35,8 +35,6 @@ export function linkContext(blocks: Block[], target: string): string {
   return b ? blockText(b) : ''
 }
 
-export const noteText = (n: Note) => `${n.title} ${n.blocks.map(blockText).join(' ')} ${n.tags.join(' ')}`.toLowerCase()
-
 export function snippet(n: Note): string {
   const b = n.blocks.find((b) => b.type === 'paragraph' && blockText(b).trim())
   return b ? blockText(b) : 'No text yet'

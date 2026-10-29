@@ -5,6 +5,7 @@ import {rememberRecent} from '../lib/library'
 import {UNTITLED} from '../lib/model'
 import {useReach} from '../lib/online'
 import {scopeName, visibleNotes, type Search} from '../lib/scope'
+import {prepare} from '../lib/search'
 import {dropBlankDrafts, dropIfBlank, useCapture} from './capture'
 import {Editor} from './Editor'
 import {useBackStep, useLeave} from './history'
@@ -34,7 +35,7 @@ export function Shell({s}: {s: Search}) {
   const list = useRef<ListHandle>(null)
   const capture = useCapture(w, s)
   const back = useBackStep(s)
-  const notes = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s, w.shelf])
+  const found = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s.q, s.nb, s.tag, w.shelf])
   const note = s.n ? w.links.byId.get(s.n) : undefined
   const newNote = capture && (() => (setDrawer(false), capture()))
   const tab = `${note ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
@@ -42,6 +43,8 @@ export function Shell({s}: {s: Search}) {
   useEffect(() => void (document.title = tab), [tab])
 
   useEffect(() => void dropBlankDrafts(s.n), [])
+
+  useEffect(() => prepare(w.lib.notes), [w.lib.notes])
 
   useEffect(() => {
     if (!note) return
@@ -87,7 +90,7 @@ export function Shell({s}: {s: Search}) {
             {AWAY[reach]}
           </div>
         )}
-        <NoteList ref={list} w={w} s={s} notes={notes} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />
+        <NoteList ref={list} w={w} s={s} found={found} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />
         {note ? (
           <>
             <Editor
