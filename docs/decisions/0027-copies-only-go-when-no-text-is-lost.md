@@ -22,7 +22,7 @@ view: one quiet line ─► lanes per writer and part, latest shown, "N earlier"
 
 **Why.** Losses were real on main and A. Every dropped copy now has a writer who edited from its text. Review 3b keeps all six raw titles and shows the latest.
 
-**Limits.** 488 copies in the storm sits at the floor for verbatim versions. Barkpark's size limit at 815 KB is unchecked.
+**Limits.** 488 copies in the storm sits at the floor for verbatim versions. Barkpark's size limit at 815 KB is unchecked. The `_typed` rule alone clears the echo seeds: with both `baseFor` changes reverted, 10k seeds still pass, so no test pins them.
 
 **Open for the owner.** Copies don't name the writer. Whole blocks light up, not words. Lane 2 wraps under lane 1. Keep this has no undo.
 
