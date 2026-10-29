@@ -23,7 +23,7 @@ Each row is a bug a reviewer found that the builder could have found first.
 | Two writers at once, including the first write, a delete racing an update, and **side effects that fire before commit** | #24750: a DELETE during a PATCH gave a bare 404; #24743: revoke broadcasts before commit |
 | Every consumer of what you changed: **grep each stored field for its readers** (retry, sweeper, replay, analytics, Studio), not just the live fan-out | #24744: the stored event row fed retries and replays the old label |
 | **No fallbacks.** A default that covers a missing value hides the bug; remove it and run a mutant per producer | #24744: `details.id` fell back to the named id twice |
-| A mutant: remove your fix and confirm a test fails | all three reviews ran this check |
+| **One mutant per claimed behavior.** List every behavior your PR claims; break each one in turn and name the test that fails | prefs-ops: 3 mutants run, 4 of the reviewer's 6 survived |
 | **Time it at real size**: 150+ documents or rows, with a write to a sibling dataset timed while it runs; nothing holds a workspace lock for the whole walk | #24743: a 60-doc dataset delete hit the 15 s timeout and froze every write in the workspace |
 | **Run locally every step of every job your diff touches**, and every gate that passed on the previous head (boundary, census, doc budgets, repo-papers freshness, format, prod compile) | #24743: Boundary gate red after the push; #24761: ran doc budgets but not repo-papers freshness |
 | Docs and the PR body claim only what a test or your own probe proves | #24750: "replaying changes nothing"; #24743: cited a probe nobody ran |
@@ -32,6 +32,8 @@ Put the table in the PR body, with one line per row: what you tried and what hap
 
 ## Flow
 
+- Barkever branches run this self-check too.
+- The reviewer works in its own worktree at the named sha, never the builder's.
 - The reviewer starts when the PR opens, not when CI turns green.
 - The reviewer sends its fix list straight to the builder by agent name, and copies the lead on the verdict only.
 - The reviewer gives each finding a class and the earliest check that should have caught it. The lead logs it in `pace/misses.jsonl`.
