@@ -1,0 +1,41 @@
+.crumb { display: flex; align-items: center; gap: var(--sp-half); font-size: var(--fs-s); color: var(--c-muted); min-width: 0; white-space: nowrap; }
+.ed-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-1); }
+.saved { font-size: var(--fs-xs); color: var(--c-muted); margin-right: var(--sp-2); }
+.saved.failed { color: var(--c-del-fg); }
+.ed-scroll { flex: 1; overflow: auto; }
+.doc { max-width: var(--w-doc); margin: 0 auto; padding: var(--sp-6) var(--sp-6) var(--sp-7); }
+.doc-title { display: block; width: 100%; resize: none; border: 0; outline: 0; padding: 0; background: none; field-sizing: content; font-size: var(--fs-xl); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin: 0 0 var(--sp-2); letter-spacing: -.01em; color: var(--c-text); }
+.doc-title::placeholder { color: var(--c-faint); }
+.doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-half) var(--sp-3); font-size: var(--fs-s); color: var(--c-muted); padding-bottom: var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
+.nbchip { display: inline-flex; align-items: center; gap: var(--sp-half); color: var(--c-text-2); }
+.doc-body { font-size: var(--fs-body); line-height: var(--lh-body); min-height: var(--sp-7); }
+.blocks p, .blocks h2, .blocks h3, .blocks ul, .blocks ol { margin: 0 0 var(--sp-3); }
+.blocks h2, .blocks h3 { font-size: var(--fs-l); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin-top: var(--sp-2); }
+.blocks ul, .blocks ol { padding-left: calc(var(--sp-5) - var(--sp-hair)); }
+.blocks ul.tasks { list-style: none; padding-left: 0; }
+.blocks ul.tasks li { display: flex; gap: var(--sp-2); align-items: flex-start; }
+.blocks .cb { flex: none; width: var(--sp-4); height: var(--sp-4); margin-top: var(--sp-1); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
+.blocks li.done .cb { background: var(--c-accent); border-color: var(--c-accent); }
+.blocks li.done .li-t { color: var(--c-muted); text-decoration: line-through; }
+.wl { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); white-space: nowrap; }
+.wl::before { content: "↗ "; font-size: .8em; opacity: .7; }
+.wl:hover { background: var(--c-accent); color: var(--c-on-accent); }
+.canvas-note { font-size: var(--fs-s); color: var(--c-warn-fg); background: var(--c-warn-bg); border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); }
+.doc-body.live .blocks { display: none; }
+bp-paper-canvas {
+  --paper-bg: var(--c-surface); --paper-bg-deep: var(--c-rail); --paper-ink: var(--c-text); --paper-ink-soft: var(--c-text-2);
+  --paper-ink-faint: var(--c-muted); --paper-ink-faint-line: var(--c-faint); --paper-rule: var(--c-border-soft); --paper-edit-hover: var(--c-hover);
+  --paper-accent: var(--c-accent); --paper-accent-soft: var(--c-accent-soft); --paper-chrome-bg: var(--c-raised); --paper-chrome-border: var(--c-border);
+  --paper-reading-accent: var(--c-accent); --paper-font-serif: var(--font-sans); --paper-font-sans: var(--font-sans); --paper-font-ui: var(--font-sans);
+  --paper-font-mono: var(--font-mono); --tok-reading-font: var(--font-sans); --bp-body-size: var(--fs-body); --bp-body-lh: var(--lh-body);
+  --bp-h2-size: var(--fs-l); --bp-h2-weight: var(--fw-bold); --bp-h2-lh: var(--lh-tight); --bp-h2-tracking: normal;
+  --bp-section-beat: var(--sp-4); --bp-section-rule: 0; --bp-section-gap: 0; --bp-evidence-pull: 0; --bp-evidence-width: 100%;
+  --bp-para-margin-top: var(--sp-3); --bp-li-gap: var(--sp-1);
+  display: block; color: var(--c-text); font: var(--fs-body)/var(--lh-body) var(--font-sans);
+}
+bp-paper-canvas .ProseMirror > :first-child { margin-top: 0; }
+bp-paper-canvas .bp-paper-editor-body li p { margin: 0; }
+bp-paper-canvas input[type="checkbox"] { accent-color: var(--c-accent); margin: var(--sp-1) 0 0; }
+bp-paper-canvas [data-wikilink] { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); cursor: pointer; }
+bp-paper-canvas [data-wikilink]::before { content: "↗ "; font-size: .8em; opacity: .7; }
+.empty-ed { margin: auto; text-align: center; color: var(--c-muted); font-size: var(--fs-m); }
