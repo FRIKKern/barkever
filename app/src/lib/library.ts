@@ -53,7 +53,7 @@ const STAR_RETRY_MAX_MS = 5 * 60_000
 let retries = 0
 let retry: ReturnType<typeof setTimeout> | undefined
 
-export type DroppedStar = {id: string; on: boolean; status: number}
+export type DroppedStar = {id: string; on: boolean}
 export const droppedStarsQuery = queryOptions({...local, queryKey: ['stars-dropped'], queryFn: (): DroppedStar[] => []})
 
 async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean; dropped: DroppedStar[]}> {
@@ -71,7 +71,7 @@ async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean; droppe
       const answer = await starFn({data: {id, on}})
       shortcuts = answer.shortcuts
       if (answer.refused) {
-        dropped.push({id, on, status: answer.refused})
+        dropped.push({id, on})
         console.warn(`stars: Barkpark refused ${on ? 'starring' : 'unstarring'} ${id} (${answer.refused}); dropped`)
       }
       await editStars((s) => s[id] === on && delete s[id])

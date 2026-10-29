@@ -89,7 +89,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         {dropped.map((x) => (
           <div key={x.id} className="side-dropped" data-testid="star-dropped" role="status">
             <span className="t">
-              Not {x.on ? 'starred' : 'unstarred'}: {links.byId.get(x.id)?.title || UNTITLED}, Barkpark refused it ({x.status})
+              Couldn't {x.on ? 'star' : 'unstar'} “{links.byId.get(x.id)?.title || UNTITLED}”.
             </span>
             <button className="icon-btn" onClick={() => dismissDropped(qc, x.id)} aria-label="Dismiss" data-testid="star-dropped-dismiss">
               ×
