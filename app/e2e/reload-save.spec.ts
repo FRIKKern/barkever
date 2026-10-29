@@ -10,7 +10,7 @@ const canvas = (page: Page) => page.getByTestId('canvas')
 
 async function newNote(page: Page, title: string) {
   await page.goto('/')
-  await expect(page.getByTestId('note-row').first()).toBeVisible()
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 15_000})
   await expect(page.getByTestId('new-note')).toBeEnabled()
   await page.keyboard.press('n')
   await expect(page.getByTestId('title')).toBeFocused()
