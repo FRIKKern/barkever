@@ -1,0 +1,54 @@
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-xs: 11px; --fs-s: 12px; --fs-m: 13px; --fs-base: 14px; --fs-body: 15px; --fs-l: 17px; --fs-xl: 24px;
+  --fs-graph: 10.5px;
+  --lh-tight: 1.25; --lh-body: 1.6;
+  --fw-medium: 500; --fw-bold: 600;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  --r-s: 4px; --r-m: 6px; --r-l: 10px; --r-xl: 16px; --r-pill: 999px;
+  --w-sidebar: 216px; --w-list: 300px; --w-rail: 340px; --h-bar: 44px; --h-row: 54px; --w-doc: 640px;
+  --dur: 280ms; --ease: cubic-bezier(.2, .7, .2, 1);
+  --c-bg: #f6f6f4;
+  --c-sidebar: #f0f0ed;
+  --c-list: #fafaf8;
+  --c-surface: #ffffff;
+  --c-rail: #f8f8f6;
+  --c-raised: #ffffff;
+  --c-border: #e3e2dd;
+  --c-border-soft: #ecebe7;
+  --c-text: #1d1f23;
+  --c-text-2: #4a4d55;
+  --c-muted: #7d8089;
+  --c-faint: #b3b5ba;
+  --c-hover: #ececea;
+  --c-select: #e6ebf5;
+  --c-accent: #3a62b5;
+  --c-accent-soft: #e4eaf7;
+  --c-on-accent: #ffffff;
+  --c-edge: #b4b7bf;
+  --c-ok: #4f8f62;
+  --c-add-bg: #dff1e3; --c-add-fg: #1d6634;
+  --c-del-bg: #fbe4e2; --c-del-fg: #a22d27;
+  --c-warn-bg: #f7f0de; --c-warn-fg: #7d5a12;
+  --c-mark: #fbeeb8;
+  --shadow-pop: 0 8px 28px rgba(20, 22, 28, .12), 0 1px 3px rgba(20, 22, 28, .08);
+  --nb-inbox: #8a8f98; --nb-work: #5374b0; --nb-projects: #3b8b7c; --nb-meetings: #b0843c;
+  --nb-home: #ad6655; --nb-reading: #8467ad; --nb-travel: #5b8a4b; --nb-new: #8a8f98;
+  --tint: .07;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --c-bg: #141518; --c-sidebar: #17181b; --c-list: #1a1b1e; --c-surface: #1f2024; --c-rail: #1b1c1f; --c-raised: #26272c;
+  --c-border: #2c2e33; --c-border-soft: #26282c;
+  --c-text: #e7e8eb; --c-text-2: #b8bbc2; --c-muted: #8a8e97; --c-faint: #565a62;
+  --c-hover: #24262a; --c-select: #252d3d; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
+  --c-edge: #4c5059; --c-ok: #79b98b;
+  --c-add-bg: #173421; --c-add-fg: #92d6a3; --c-del-bg: #3e1c1b; --c-del-fg: #f1a39c;
+  --c-warn-bg: #352b16; --c-warn-fg: #e3c27c; --c-mark: #5a4a17;
+  --shadow-pop: 0 10px 32px rgba(0, 0, 0, .45), 0 1px 3px rgba(0, 0, 0, .4);
+  --nb-inbox: #9aa0aa; --nb-work: #7f9fdb; --nb-projects: #5fb7a5; --nb-meetings: #d3a65c;
+  --nb-home: #d38c7b; --nb-reading: #a98fd3; --nb-travel: #86b875; --nb-new: #9aa0aa;
+  --tint: .10;
+  color-scheme: dark;
+}

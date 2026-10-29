@@ -1,0 +1,12 @@
+.cf { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cf-h { flex: none; display: flex; align-items: center; gap: var(--sp-5); padding: var(--sp-4) var(--sp-7); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-sm); border-bottom: 1px solid var(--line); }
+.cf-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.cf-col { overflow: auto; padding: var(--sp-6) var(--sp-7); border-right: 1px solid var(--line); font-size: var(--fs-lg); line-height: 1.6; }
+.cf-col:last-child { border-right: 0; }
+.cf-ch { display: flex; align-items: center; gap: var(--sp-4); font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: var(--sp-6); }
+.cf-ch b { color: var(--ink); font-size: var(--fs-sm); font-weight: var(--fw-bold); }
+.cf-col h3 { font-size: var(--fs-xl); margin: 0 0 var(--sp-5); letter-spacing: -.015em; }
+.cf-col p { margin: 0 0 var(--sp-5); }
+.cf-col .diffmark { background: var(--mark-bg); border-radius: 2px; padding: 0 1px; }
+.cf-col .ck { font-size: var(--fs-lg); }
+.cf-f { flex: none; display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-5) var(--sp-7); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-3); }

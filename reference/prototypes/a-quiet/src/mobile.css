@@ -1,0 +1,42 @@
+body.framed{background:var(--c-backdrop);display:grid;place-items:center}
+body.framed .app{width:390px;height:min(844px,calc(100vh - 40px));border-radius:28px;border:1px solid var(--c-line-2);box-shadow:var(--shadow-2)}
+
+.m{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto}
+.m .m-only{display:flex!important}
+.m .d-only{display:none!important}
+.m .sb{display:none}
+.m.drawer .sb{display:flex;position:absolute;z-index:30;left:0;top:0;bottom:0;width:84%;box-shadow:var(--shadow-2)}
+.m.drawer .scrim{display:block}
+.scrim{display:none;position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:29}
+.m .list{border-right:0;grid-column:1}
+.m .ed{grid-column:1}
+.m.scr-list .ed{display:none}
+.m.scr-note .list{display:none}
+.m .ask{position:absolute;inset:0;width:auto;z-index:25;border-left:0}
+.m .mtop{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.m .list-h{padding:2px 16px 10px;border-bottom:0}
+.m .list-h h1{font-size:var(--fs-2xl)}
+.m .msearch{display:flex;margin:10px 0 0}
+.m .msearch .search{margin:0;flex:1;background:var(--c-sunken);border-color:transparent}
+.m .row{padding-left:16px;padding-right:16px}
+.m .grp{padding-left:16px}
+.tabbar{grid-column:1/-1;height:58px;border-top:1px solid var(--c-line);background:var(--c-sidebar);align-items:center;justify-content:space-around;padding:0 6px 6px}
+.tabbar .tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--c-text-3);border:0;background:transparent;cursor:pointer;width:62px;padding-top:6px}
+.tabbar .tab svg.i{width:21px;height:21px}
+.tabbar .tab.on{color:var(--c-accent-text);font-weight:var(--fw-semi)}
+.tabbar .plus{width:46px;height:46px;border-radius:var(--r-full);background:var(--c-accent);color:var(--c-text-inv);display:grid;place-items:center;border:0;margin-top:-2px;box-shadow:var(--shadow-1)}
+.tabbar .plus svg.i{width:22px;height:22px;stroke-width:2}
+.m.scr-note .tabbar{display:none!important}
+.m .ed-top{padding:0 6px}
+.m .ed-top .crumb .cur{display:none}
+.m .tool{padding:0 8px;overflow-x:auto}
+.m .doc{padding:20px 18px 100px}
+.m .title{font-size:var(--fs-2xl)}
+.m .ed-foot{padding:0 14px}
+.m .wide-pane{grid-column:1}
+.m .board{grid-template-columns:1fr}
+.m .home-grid{grid-template-columns:1fr}
+.m .ncards{grid-template-columns:1fr 1fr}
+.m .cf-cols{grid-template-columns:1fr}
+.m .aibar .r1 .btn:not(.primary){display:none}
+.m .hunk{flex-direction:column;gap:4px}

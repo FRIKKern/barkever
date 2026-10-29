@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barkever · Linked map</title>
+<style>
+@@CSS@@
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div class="offline" role="status"><span class="dot"></span><span>Offline. Edits save on this Mac and sync when you reconnect.</span><span class="muted" id="pending"></span></div>
+  <div class="mhead" id="mhead"></div>
+
+  <aside class="sidebar" aria-label="Notebooks">
+    <div class="bar"><div class="brand"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="4" cy="5" r="2.2"/><circle cx="14" cy="4" r="1.8"/><circle cx="10" cy="14" r="2.6"/><path d="M6 6.2 8.8 11.7M12.6 5.3l-1.6 6.2M6.2 4.7l6-.5"/></svg>Barkever</div></div>
+    <div class="side-scroll" id="side"></div>
+    <div class="side-foot"><span class="dot"></span><span id="sync">Synced</span><button data-act="theme" title="Light / dark (T)" aria-label="Toggle theme"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg></button></div>
+  </aside>
+
+  <section class="list" aria-label="Notes">
+    <div class="bar"><label class="search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="q" type="search" placeholder="Search notes" autocomplete="off" spellcheck="false"><kbd>/</kbd></label></div>
+    <div class="list-h" id="listh"></div>
+    <div class="rows" id="rows" role="listbox" aria-label="Notes"></div>
+  </section>
+
+  <main class="editor" id="editor" aria-label="Note"></main>
+
+  <aside class="rail" aria-label="Connections">
+    <div class="bar rail-bar"><div class="seg" role="tablist" id="railtabs">
+      <button data-rail="links" role="tab">Links</button><button data-rail="cluster" role="tab">Cluster</button><button data-rail="ask" role="tab">✨ Ask</button>
+    </div></div>
+    <div class="rail-body" id="rail"></div>
+  </aside>
+
+  <section class="board" id="board" aria-label="Tasks"></section>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div class="mapov" id="mapov" aria-label="Map">
+  <div class="bar">
+    <button class="btn ghost" data-act="closemap">← Notes <kbd>Esc</kbd></button>
+    <b>Map</b><span class="muted" id="mapstat"></span>
+    <label class="search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="mq" type="search" placeholder="Find on map" autocomplete="off"></label>
+    <div class="mchips" id="mchips"></div>
+    <div class="zoom"><button data-act="zfit">Fit</button></div>
+  </div>
+  <div class="map-wrap"><svg class="map-svg" id="msvg"></svg><div class="mcard" id="mcard" hidden></div>
+    <div class="mhint">Scroll to zoom · drag to pan · click a note to preview · double-click to open</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<nav class="switcher" id="switcher" aria-label="Prototype states"></nav>
+
+<script id="fixtures" type="application/json">@@DATA@@</script>
+<script>
+"use strict";
+@@JS@@
+</script>
+</body>
+</html>

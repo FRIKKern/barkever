@@ -1,0 +1,30 @@
+body.frame { display: grid; place-items: center; background: var(--c-sidebar); }
+body.frame .app { width: 390px; height: 844px; border-radius: 28px; border: 1px solid var(--c-border); box-shadow: var(--shadow-pop); overflow: hidden auto; }
+.app.m { display: block; overflow-y: auto; overflow-x: hidden; background: var(--c-surface); }
+.app.m .sidebar, .app.m .list, .app.m .editor, .app.m .rail, .app.m .board { display: none; }
+.app.m[data-mv="list"] .list { display: flex; min-height: calc(100% - 104px); border: 0; }
+.app.m[data-mv="note"] .editor { display: flex; }
+.app.m[data-mv="note"] .rail, .app.m[data-mv="ask"] .rail { display: flex; border: 0; }
+.app.m[data-mv="note"] .rail { border-top: 1px solid var(--c-border); }
+.app.m[data-mv="ask"] .rail { min-height: calc(100% - 104px); }
+.app.m[data-mv="tasks"] .board { display: flex; min-height: calc(100% - 104px); }
+.app.m[data-mv="tasks"] .cols { grid-auto-flow: row; grid-auto-columns: auto; }
+.app.m .rail-bar, .app.m .ed-bar, .app.m .list .bar { display: none; }
+.app.m .ed-scroll, .app.m .rail-body, .app.m .rows { overflow: visible; }
+.app.m .doc { padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+.app.m .doc-title { font-size: 22px; }
+.app.m .rel { padding-bottom: var(--sp-2); }
+.app.m .mhead { display: flex; position: sticky; top: 0; z-index: 10; align-items: center; gap: var(--sp-2); height: 48px; padding: 0 var(--sp-3); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
+.mhead .back { display: flex; align-items: center; gap: 2px; color: var(--c-accent); font-size: var(--fs-body); }
+.mhead .mt { flex: 1; text-align: center; font-weight: var(--fw-bold); font-size: var(--fs-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mhead .ic { width: 32px; height: 32px; display: grid; place-items: center; color: var(--c-text-2); border-radius: var(--r-m); }
+.app.m .tabbar { display: flex; position: sticky; bottom: 0; z-index: 10; height: 56px; background: var(--c-sidebar); border-top: 1px solid var(--c-border); }
+.tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10.5px; color: var(--c-muted); }
+.tabbar button.on { color: var(--c-accent); }
+.app.m .m-graph-h { display: flex; }
+.m-graph-h { display: none; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.m-graph-h button { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: var(--fw-medium); color: var(--c-accent); font-size: var(--fs-s); }
+.app.m .offline { display: none; }
+.app.m.is-offline .offline { display: flex; position: sticky; top: 48px; z-index: 9; }
+@media (max-width: 700px) { .switcher { left: auto; right: 8px; bottom: 64px; } .switcher:not(:hover):not(:focus-within) button:not(.on) { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

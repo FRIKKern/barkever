@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barkever · Day lanes</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-lg: 15px; --fs-xl: 19px; --fs-2xl: 26px;
+  --fw-med: 500; --fw-bold: 600;
+  --lh-tight: 1.25; --lh: 1.5;
+  --sp-1: 2px; --sp-2: 4px; --sp-3: 6px; --sp-4: 8px; --sp-5: 12px; --sp-6: 16px; --sp-7: 24px; --sp-8: 32px;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-pill: 999px; --r-device: 34px;
+  --row-h: 40px; --top-h: 48px; --side-w: 228px; --list-w: 316px; --ask-w: 384px; --lane-label-w: 108px; --doc-w: 700px;
+  --cb: 15px;
+
+  --bg: #ffffff;
+  --bg-side: #f6f6f3;
+  --bg-sunk: #f1f1ee;
+  --bg-hover: #efefeb;
+  --bg-sel: #e6eeed;
+  --bg-raised: #ffffff;
+  --ink: #1d1f22;
+  --ink-2: #5c6269;
+  --ink-3: #8f959c;
+  --line: #e6e6e1;
+  --line-strong: #d4d4ce;
+  --accent: #23706a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2eeec;
+  --late: #b3473b;
+  --add-bg: #dcf1e2; --add-ink: #1d6a38;
+  --del-bg: #fbe3e0; --del-ink: #a5372d;
+  --mark-bg: #f8edc8;
+  --warn-bg: #f7f3e8; --warn-ink: #6f5a24;
+  --shadow: 0 1px 2px rgba(20,20,20,.05), 0 6px 20px rgba(20,20,20,.07);
+  --p1: #4369a8; --p2: #b5822a; --p3: #8a6b5c; --p4: #7759a6; --p5: #5a8746; --p6: #b3613f;
+}
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --bg-side: #1d1e21;
+  --bg-sunk: #131416;
+  --bg-hover: #25272a;
+  --bg-sel: #1f3331;
+  --bg-raised: #202124;
+  --ink: #e6e7e9;
+  --ink-2: #a2a7ad;
+  --ink-3: #70767d;
+  --line: #2a2c30;
+  --line-strong: #3a3d42;
+  --accent: #5db2a6;
+  --accent-ink: #0f1a19;
+  --accent-soft: #1d3432;
+  --late: #e3796c;
+  --add-bg: #173a24; --add-ink: #8fdaa8;
+  --del-bg: #43201d; --del-ink: #f1a197;
+  --mark-bg: #4a3f1c;
+  --warn-bg: #26231b; --warn-ink: #d9c38a;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  --p1: #7d9fd8; --p2: #d6a656; --p3: #b8988a; --p4: #a68bd4; --p5: #8dbb76; --p6: #db8b69;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: var(--fs-md)/var(--lh) var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+.muted { color: var(--ink-3); }
+.grow { flex: 1; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pc, var(--ink-3)); flex: none; }
+.pc1 { --pc: var(--p1); } .pc2 { --pc: var(--p2); } .pc3 { --pc: var(--p3); } .pc4 { --pc: var(--p4); } .pc5 { --pc: var(--p5); } .pc6 { --pc: var(--p6); }
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) auto; height: 100vh; overflow: hidden; background: var(--bg); }
+.side { background: var(--bg-side); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.view { flex: 1; min-height: 0; display: flex; }
+
+.brand { display: flex; align-items: center; gap: var(--sp-4); padding: 0 var(--sp-6); height: var(--top-h); font-weight: var(--fw-bold); letter-spacing: -.01em; }
+.brand-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); position: relative; }
+.brand-mark::before, .brand-mark::after { content: ""; position: absolute; left: 4px; right: 4px; height: 2px; border-radius: 1px; background: var(--accent-ink); }
+.brand-mark::before { top: 6px; } .brand-mark::after { top: 10px; right: 7px; }
+.nav { flex: 1; overflow: auto; padding: 0 var(--sp-4) var(--sp-5); }
+.nav-h { font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); padding: var(--sp-6) var(--sp-4) var(--sp-3); }
+.nav-i { display: flex; align-items: center; gap: var(--sp-4); width: 100%; height: 28px; padding: 0 var(--sp-4); border-radius: var(--r-md); color: var(--ink-2); text-align: left; white-space: nowrap; }
+.nav-i:hover { background: var(--bg-hover); }
+.nav-i.on { background: var(--bg-sel); color: var(--ink); font-weight: var(--fw-med); }
+.nav-i .n { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.nav-i.sub { padding-left: 30px; }
+.nav-i .lbl { overflow: hidden; text-overflow: ellipsis; }
+.minibar { margin-left: auto; width: 34px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--pc) 22%, transparent); overflow: hidden; flex: none; }
+.minibar i { display: block; height: 100%; background: var(--pc); }
+.sync { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6); border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-3); }
+.sync .dot { --pc: var(--p5); width: 6px; height: 6px; }
+.sync.off .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+
+.top { height: var(--top-h); flex: none; display: flex; align-items: center; gap: var(--sp-5); padding: 0 var(--sp-6) 0 var(--sp-7); border-bottom: 1px solid var(--line); }
+.crumb { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; font-weight: var(--fw-med); white-space: nowrap; }
+.crumb .sep { color: var(--ink-3); font-weight: 400; }
+.search { margin-left: auto; display: flex; align-items: center; gap: var(--sp-4); width: 340px; height: 30px; padding: 0 var(--sp-4); border-radius: var(--r-md); background: var(--bg-sunk); color: var(--ink-3); border: 1px solid transparent; }
+.search:focus-within { border-color: var(--line-strong); background: var(--bg); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font-size: var(--fs-md); color: var(--ink); }
+.search input::placeholder { color: var(--ink-3); }
+.btn { display: inline-flex; align-items: center; gap: var(--sp-3); height: 28px; padding: 0 var(--sp-5); border-radius: var(--r-md); color: var(--ink-2); font-weight: var(--fw-med); white-space: nowrap; }
+.btn:hover { background: var(--bg-hover); color: var(--ink); }
+.btn.line { border: 1px solid var(--line-strong); }
+.btn.on { background: var(--accent-soft); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.06); background: var(--accent); color: var(--accent-ink); }
+.btn.sm { height: 24px; padding: 0 var(--sp-4); font-size: var(--fs-sm); }
+
+.banner { flex: none; display: flex; align-items: center; gap: var(--sp-4); height: 30px; padding: 0 var(--sp-7); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-sm); border-bottom: 1px solid var(--line); }
+.banner .dot { width: 6px; height: 6px; background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.banner button { margin-left: auto; text-decoration: underline; text-underline-offset: 2px; color: inherit; }
+
+.row { display: flex; align-items: flex-start; gap: var(--sp-4); min-height: var(--row-h); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); cursor: pointer; position: relative; }
+.row:hover { background: var(--bg-hover); }
+.row-main { flex: 1; min-width: 0; }
+.row-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: var(--lh-tight); padding-top: 1px; }
+.row-s { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; margin-top: 3px; }
+.row-s span { overflow: hidden; text-overflow: ellipsis; }
+.row-s .dot { width: 6px; height: 6px; }
+.row-m { flex: none; font-size: var(--fs-xs); color: var(--ink-3); padding-top: 1px; font-variant-numeric: tabular-nums; }
+.row-m.late { color: var(--late); }
+.row.done .row-t { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.row.note .row-t { font-weight: var(--fw-med); }
+.ico-doc { width: var(--cb); height: 17px; flex: none; margin-top: 0; border: 1.5px solid var(--ink-3); border-radius: 3px; position: relative; }
+.ico-doc::after { content: ""; position: absolute; left: 3px; right: 3px; top: 4px; height: 5px; border-top: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); }
+.cb { width: var(--cb); height: var(--cb); flex: none; margin-top: 1px; border-radius: 4px; border: 1.5px solid var(--ink-3); display: grid; place-items: center; }
+.cb:hover { border-color: var(--accent); }
+.cb.on { background: var(--accent); border-color: var(--accent); }
+.cb.on::after { content: ""; width: 7px; height: 4px; border-left: 1.8px solid var(--accent-ink); border-bottom: 1.8px solid var(--accent-ink); transform: translateY(-1px) rotate(-45deg); }
+
+.home { flex: 1; overflow: auto; padding: var(--sp-6) var(--sp-7) var(--sp-8); }
+.home-head { display: flex; align-items: flex-end; gap: var(--sp-7); margin-bottom: var(--sp-6); }
+.home-head h1 { margin: 0; font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.015em; line-height: var(--lh-tight); }
+.home-head .sub { margin: 3px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.home-head .sub b { font-weight: var(--fw-med); color: var(--ink); }
+.home-head .sub .late { color: var(--late); }
+.loadbox { margin-left: auto; display: flex; align-items: flex-end; gap: var(--sp-5); }
+.load { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+.load-d { width: 14px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: var(--fs-2xs); color: var(--ink-3); }
+.load-d i { width: 8px; border-radius: 2px; background: color-mix(in srgb, var(--ink-3) 45%, transparent); min-height: 2px; }
+.load-d.t i { background: var(--accent); } .load-d.t { color: var(--accent); font-weight: var(--fw-bold); }
+.load-d.we { opacity: .65; }
+.load-cap { font-size: var(--fs-2xs); color: var(--ink-3); text-align: right; margin-bottom: 15px; line-height: 1.2; }
+
+.sec-h { display: flex; align-items: baseline; gap: var(--sp-4); font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 var(--sp-4); }
+.sec-h em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.ptiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-7); }
+.ptile { text-align: left; padding: var(--sp-4) var(--sp-5) var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-raised); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.ptile:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+.pt-h { display: flex; align-items: center; gap: var(--sp-3); font-weight: var(--fw-med); white-space: nowrap; }
+.pt-h b { font-weight: var(--fw-med); overflow: hidden; text-overflow: ellipsis; }
+.pt-h span { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.pbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--pc) 10%, var(--bg-sunk)); gap: 1px; }
+.pbar i { display: block; height: 100%; }
+.pbar .s-done { background: var(--pc); }
+.pbar .s-today { background: color-mix(in srgb, var(--pc) 62%, transparent); }
+.pbar .s-week { background: color-mix(in srgb, var(--pc) 38%, transparent); }
+.pbar .s-later { background: color-mix(in srgb, var(--pc) 20%, transparent); }
+.pt-s { font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-s b { color: var(--ink-2); font-weight: var(--fw-med); }
+
+.lanes { border-top: 1px solid var(--line); }
+.lane { display: grid; grid-template-columns: var(--lane-label-w) minmax(0, 1fr); border-bottom: 1px solid var(--line); }
+.lane-l { padding: var(--sp-5) var(--sp-5) var(--sp-5) 0; display: flex; flex-direction: column; gap: 2px; position: relative; }
+.lane-l b { font-size: var(--fs-lg); font-weight: var(--fw-bold); letter-spacing: -.01em; display: flex; align-items: baseline; gap: var(--sp-3); }
+.lane-l b span { font-size: var(--fs-sm); font-weight: var(--fw-med); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.lane-l small { font-size: var(--fs-xs); color: var(--ink-3); }
+.lane-today .lane-l b { color: var(--accent); }
+.lane-today .lane-l::before { content: ""; position: absolute; left: -12px; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--accent); }
+.lane-c { padding: var(--sp-4) 0; min-width: 0; }
+.today-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--sp-5); border-radius: var(--r-md); }
+.cols { display: grid; gap: 0; }
+.days { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.buckets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.col { min-width: 0; padding: 0 var(--sp-3); border-left: 1px solid var(--line); border-radius: 0; min-height: 76px; }
+.col:first-child { border-left: 0; padding-left: 0; }
+.col-h { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4) var(--sp-3); font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; }
+.col-h b { font-size: var(--fs-md); color: var(--ink-2); font-weight: var(--fw-med); }
+.col-h .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+.col.we .col-h b { color: var(--ink-3); }
+.col .row { padding-left: var(--sp-4); }
+.empty { font-size: var(--fs-xs); color: var(--ink-3); padding: var(--sp-3) var(--sp-4); }
+.filterline { font-size: var(--fs-sm); color: var(--ink-2); margin: calc(-1 * var(--sp-4)) 0 var(--sp-5); }
+.filterline button { color: var(--accent); }
+
+.notes { flex: 1; display: grid; grid-template-columns: var(--list-w) minmax(0, 1fr); min-height: 0; }
+.list { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.list-h { flex: none; display: flex; align-items: baseline; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6) var(--sp-4); border-bottom: 1px solid var(--line); }
+.list-h b { font-size: var(--fs-lg); font-weight: var(--fw-bold); }
+.list-h span { font-size: var(--fs-xs); color: var(--ink-3); }
+.list-h .sort { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); }
+.list-b { flex: 1; overflow: auto; }
+.nrow { padding: var(--sp-4) var(--sp-6) var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--line); cursor: pointer; position: relative; }
+.nrow:hover { background: var(--bg-hover); }
+.nrow.on { background: var(--bg-sel); }
+.nrow.on::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.n1 { display: flex; align-items: baseline; gap: var(--sp-4); }
+.n1 .t { flex: 1; min-width: 0; font-weight: var(--fw-med); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.n1 .d { font-size: var(--fs-xs); color: var(--ink-3); flex: none; font-variant-numeric: tabular-nums; }
+.n2 { display: flex; align-items: center; gap: var(--sp-3); margin-top: 2px; font-size: var(--fs-sm); color: var(--ink-3); }
+.n2 .s { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.n2 .dot { width: 6px; height: 6px; }
+.prog { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); flex: none; font-variant-numeric: tabular-nums; }
+.prog i { width: 22px; height: 4px; border-radius: 2px; background: var(--line-strong); overflow: hidden; display: block; }
+.prog i b { display: block; height: 100%; background: var(--accent); }
+mark { background: var(--mark-bg); color: inherit; border-radius: 2px; }
+
+.editor { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.ed-bar { flex: none; display: flex; align-items: center; gap: var(--sp-4); height: 44px; padding: 0 var(--sp-6) 0 var(--sp-7); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-3); white-space: nowrap; }
+.pchip { display: inline-flex; align-items: center; gap: var(--sp-3); height: 22px; padding: 0 var(--sp-4); border-radius: var(--r-pill); background: var(--bg-sunk); color: var(--ink-2); font-size: var(--fs-xs); font-weight: var(--fw-med); }
+.pchip .dot { width: 6px; height: 6px; }
+.ed-scroll { flex: 1; overflow: auto; }
+.doc { max-width: var(--doc-w); margin: 0 auto; padding: var(--sp-7) var(--sp-8) 80px; font-size: var(--fs-lg); line-height: 1.6; }
+.doc [contenteditable] { outline: none; }
+.d-title { font-size: var(--fs-2xl); font-weight: var(--fw-bold); letter-spacing: -.02em; line-height: var(--lh-tight); margin: 0 0 var(--sp-4); }
+.d-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-7); font-size: var(--fs-xs); color: var(--ink-3); }
+.tag { height: 20px; display: inline-flex; align-items: center; padding: 0 var(--sp-4); border-radius: var(--r-pill); border: 1px solid var(--line); color: var(--ink-2); }
+.doc h2 { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); margin: var(--sp-6) 0 var(--sp-3); font-weight: var(--fw-bold); }
+.doc p { margin: 0 0 var(--sp-5); }
+.doc ul { margin: 0 0 var(--sp-5); padding-left: 22px; }
+.wl { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; }
+.wl::before { content: "↗ "; font-size: .8em; }
+.checklist { margin: 0 0 var(--sp-6); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.ck { display: flex; align-items: center; gap: var(--sp-5); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--line); font-size: var(--fs-lg); }
+.ck:first-child { border-top: 0; }
+.ck .cb { margin-top: 0; }
+.ck-t { flex: 1; min-width: 0; }
+.ck.done .ck-t { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.due { height: 22px; padding: 0 var(--sp-4); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--ink-2); background: var(--bg-sunk); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.due.today { background: var(--accent-soft); color: var(--accent); font-weight: var(--fw-med); }
+.due.late { color: var(--late); background: color-mix(in srgb, var(--late) 10%, transparent); font-weight: var(--fw-med); }
+.due.none { color: var(--ink-3); background: none; border: 1px dashed var(--line-strong); }
+.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { 0%, 30% { background: var(--mark-bg); } 100% { background: transparent; } }
+.backlinks { border-top: 1px solid var(--line); margin-top: var(--sp-8); padding-top: var(--sp-5); font-size: var(--fs-md); }
+.backlinks .row { margin: 0 calc(-1 * var(--sp-4)); }
+
+.ai-strip { display: flex; align-items: center; gap: var(--sp-4); margin: 0 0 var(--sp-6); padding: var(--sp-4) var(--sp-5); border-radius: var(--r-lg); background: var(--bg-sunk); font-size: var(--fs-sm); color: var(--ink-2); }
+.ai-strip b { color: var(--ink); font-weight: var(--fw-med); }
+.ai-strip .cost { color: var(--ink-3); font-size: var(--fs-xs); margin-top: 1px; }
+.ai-l { min-width: 0; }
+.chg { position: relative; margin: 0 0 var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--bg-raised); }
+.chg-body { line-height: 1.65; }
+.chg-body.task { display: flex; gap: var(--sp-5); align-items: baseline; }
+.chg-body.task .cb { transform: translateY(2px); }
+del { background: var(--del-bg); color: var(--del-ink); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--del-ink) 50%, transparent); border-radius: 2px; padding: 0 1px; }
+ins { background: var(--add-bg); color: var(--add-ink); text-decoration: none; border-radius: 2px; padding: 0 1px; }
+.chg-f { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); font-size: var(--fs-xs); color: var(--ink-3); }
+.chg-f a { color: var(--accent); cursor: pointer; }
+.chg.accepted { border-color: color-mix(in srgb, var(--add-ink) 40%, var(--line)); }
+.chg.rejected { opacity: .62; }
+.chg .state { font-weight: var(--fw-med); }
+.chg.accepted .state { color: var(--add-ink); }
+.ok { color: var(--add-ink); } .no { color: var(--del-ink); }
+
+.cf { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cf-h { flex: none; display: flex; align-items: center; gap: var(--sp-5); padding: var(--sp-4) var(--sp-7); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--fs-sm); border-bottom: 1px solid var(--line); }
+.cf-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.cf-col { overflow: auto; padding: var(--sp-6) var(--sp-7); border-right: 1px solid var(--line); font-size: var(--fs-lg); line-height: 1.6; }
+.cf-col:last-child { border-right: 0; }
+.cf-ch { display: flex; align-items: center; gap: var(--sp-4); font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: var(--sp-6); }
+.cf-ch b { color: var(--ink); font-size: var(--fs-sm); font-weight: var(--fw-bold); }
+.cf-col h3 { font-size: var(--fs-xl); margin: 0 0 var(--sp-5); letter-spacing: -.015em; }
+.cf-col p { margin: 0 0 var(--sp-5); }
+.cf-col .diffmark { background: var(--mark-bg); border-radius: 2px; padding: 0 1px; }
+.cf-col .ck { font-size: var(--fs-lg); }
+.cf-f { flex: none; display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-5) var(--sp-7); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-3); }
+
+.board { flex: 1; overflow: auto; padding: var(--sp-6) var(--sp-7) var(--sp-8); }
+.board-head { display: flex; align-items: center; gap: var(--sp-5); margin-bottom: var(--sp-5); flex-wrap: wrap; }
+.board-head h1 { margin: 0; font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.015em; }
+.pills { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: var(--sp-3); height: 26px; padding: 0 var(--sp-5); border-radius: var(--r-pill); color: var(--ink-2); font-size: var(--fs-sm); }
+.pill:hover { background: var(--bg-hover); }
+.pill.on { background: var(--ink); color: var(--bg); }
+.pill .dot { width: 6px; height: 6px; }
+.hint { font-size: var(--fs-xs); color: var(--ink-3); margin-left: auto; }
+.bgrid { display: grid; border-top: 1px solid var(--line); }
+.bh { position: sticky; top: calc(-1 * var(--sp-6)); z-index: 2; background: var(--bg); display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4); border-bottom: 1px solid var(--line); font-weight: var(--fw-med); font-size: var(--fs-md); }
+.bh span { font-size: var(--fs-xs); color: var(--ink-3); font-weight: 400; font-variant-numeric: tabular-nums; }
+.bh.c-today { color: var(--accent); }
+.bl { padding: var(--sp-5) var(--sp-4) var(--sp-5) 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.bl b { display: flex; align-items: center; gap: var(--sp-3); font-weight: var(--fw-med); white-space: nowrap; cursor: pointer; }
+.bl small { font-size: var(--fs-xs); color: var(--ink-3); }
+.bl .pbar { width: 100%; }
+.bc { padding: var(--sp-3) var(--sp-3); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); min-height: 56px; min-width: 0; }
+.bc.c-today { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.card { background: var(--bg-raised); border: 1px solid var(--line); margin-bottom: var(--sp-3); }
+.card:hover { background: var(--bg-raised); border-color: var(--line-strong); box-shadow: var(--shadow); }
+.bc .more { font-size: var(--fs-xs); color: var(--ink-3); padding: var(--sp-2) var(--sp-4); }
+.single { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 240px; gap: 0; border-top: 1px solid var(--line); }
+.single .bc { min-height: 420px; border-bottom: 0; }
+.single .bh { border-left: 1px solid var(--line); }
+.single .bh:first-child { border-left: 0; }
+.single .bc:first-of-type { border-left: 0; }
+.pnotes { border-left: 1px solid var(--line); padding: var(--sp-3) 0 0 var(--sp-4); }
+
+.ask { width: var(--ask-w); border-left: 1px solid var(--line); background: var(--bg-side); display: flex; flex-direction: column; min-height: 0; }
+.ask[hidden] { display: none; }
+.ask-h { flex: none; height: var(--top-h); display: flex; align-items: center; gap: var(--sp-4); padding: 0 var(--sp-5) 0 var(--sp-6); border-bottom: 1px solid var(--line); font-weight: var(--fw-bold); }
+.ask-b { flex: 1; overflow: auto; padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-6); }
+.q { align-self: flex-end; max-width: 88%; padding: var(--sp-4) var(--sp-5); border-radius: var(--r-lg) var(--r-lg) var(--r-sm) var(--r-lg); background: var(--bg-raised); border: 1px solid var(--line); }
+.a { font-size: var(--fs-md); line-height: 1.6; }
+.a p { margin: 0 0 var(--sp-4); }
+.a .none { display: inline-flex; align-items: center; gap: var(--sp-3); font-weight: var(--fw-bold); }
+.a .none::before { content: ""; width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.cite { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; margin: 0 1px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent); font-size: var(--fs-2xs); font-weight: var(--fw-bold); vertical-align: 1px; cursor: pointer; }
+.srcs { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
+.src { display: flex; gap: var(--sp-4); padding: var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--bg-raised); cursor: pointer; font-size: var(--fs-sm); }
+.src:hover { border-color: var(--line-strong); }
+.src .cite { flex: none; margin-top: 1px; }
+.src b { display: block; font-weight: var(--fw-med); }
+.src q { display: block; color: var(--ink-2); font-size: var(--fs-xs); margin-top: 2px; quotes: "“" "”"; }
+.a-meta { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-4); }
+.ask-f { flex: none; padding: var(--sp-5) var(--sp-6) var(--sp-6); border-top: 1px solid var(--line); }
+.ask-in { display: flex; align-items: center; gap: var(--sp-4); height: 38px; padding: 0 var(--sp-3) 0 var(--sp-5); border-radius: var(--r-lg); border: 1px solid var(--line-strong); background: var(--bg-raised); }
+.ask-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; }
+.ask-note { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); font-size: var(--fs-xs); color: var(--ink-3); }
+.switch { width: 26px; height: 15px; border-radius: 8px; background: var(--line-strong); position: relative; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--bg-raised); transition: transform .15s; }
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(11px); }
+.ask-off { color: var(--ink-3); font-size: var(--fs-sm); }
+
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: var(--sp-5); padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-6); border-radius: var(--r-lg); background: var(--ink); color: var(--bg); font-size: var(--fs-sm); box-shadow: var(--shadow); }
+.toast button { color: var(--bg); font-weight: var(--fw-bold); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-sm); }
+.toast button:hover { background: color-mix(in srgb, var(--bg) 15%, transparent); }
+
+.switcher { position: fixed; left: 50%; top: 13px; transform: translateX(-50%); z-index: 80; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--bg-raised); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: var(--fs-2xs); color: var(--ink-3); opacity: .7; }
+.switcher:hover { opacity: 1; }
+.switcher button { min-width: 20px; height: 20px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; }
+.switcher button:hover { background: var(--bg-hover); color: var(--ink); }
+.switcher button.on { background: var(--ink); color: var(--bg); }
+.switcher .rest { display: none; gap: 2px; }
+.switcher:hover .rest, .switcher:focus-within .rest { display: flex; }
+
+.tabbar { display: none; }
+body.frame { background: var(--bg-sunk); }
+body.frame .app { width: 390px; height: 844px; margin: 24px auto; border-radius: var(--r-device); border: 1px solid var(--line-strong); box-shadow: var(--shadow); }
+.app.m { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.app.m .side, .app.m .crumb { display: none; }
+.app.m .home, .app.m .board { min-width: 0; }
+.tabbar span { font-size: 17px; line-height: 20px; height: 20px; }
+.app.m .top { padding: 0 var(--sp-6); }
+.app.m .search { width: auto; flex: 1; margin-left: 0; }
+.app.m .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--bg-side); padding: var(--sp-3) 0 22px; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: var(--fs-2xs); color: var(--ink-3); padding-top: var(--sp-2); }
+.tabbar button.on { color: var(--accent); font-weight: var(--fw-med); }
+.tabbar svg.i { width: 20px; height: 20px; }
+.app.m .home { padding: var(--sp-5) var(--sp-6) var(--sp-7); }
+.app.m .home-head { align-items: flex-start; flex-direction: column; gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.app.m .loadbox { margin-left: 0; } .app.m .load { height: 32px; } .app.m .load-cap { display: none; }
+.app.m .ptiles { display: flex; overflow-x: auto; margin: 0 calc(-1 * var(--sp-6)) var(--sp-6); padding: 0 var(--sp-6) var(--sp-2); scrollbar-width: none; }
+.app.m .ptile { flex: 0 0 176px; }
+.app.m .lane { grid-template-columns: 1fr; }
+.app.m .lane-l { flex-direction: row; align-items: baseline; gap: var(--sp-4); padding: var(--sp-5) 0 var(--sp-2); }
+.app.m .lane-today .lane-l::before { display: none; }
+.app.m .today-grid, .app.m .cols { grid-template-columns: minmax(0, 1fr); }
+.app.m .col { border-left: 0; padding: 0; min-height: 0; }
+.app.m .col.empty-col { display: none; }
+.app.m .col-h { padding: var(--sp-4) var(--sp-4) var(--sp-1); }
+.app.m .lane-c { padding-top: 0; }
+.app.m .ask { position: absolute; inset: 0 0 64px 0; width: auto; z-index: 20; }
+.app.m { position: relative; }
+.app.m .notes { grid-template-columns: 1fr; }
+.app.m .notes.ed .list, .app.m .notes:not(.ed) .editor { display: none; }
+.app.m .doc { padding: var(--sp-6) var(--sp-6) 60px; }
+.app.m .ed-bar { padding: 0 var(--sp-5); }
+.app.m .board { padding: var(--sp-5) var(--sp-6); }
+.app.m .hint { display: none; }
+.app.m .bgrid { overflow-x: auto; }
+.app.m .banner { padding: 0 var(--sp-6); }
+.app.m .cf-cols { grid-template-columns: 1fr; }
+.back { display: none; }
+.app.m .back { display: inline-flex; }
+@media (max-width: 600px) { .switcher { top: auto; bottom: 78px; left: auto; right: 12px; transform: none; } }
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <aside id="side" class="side"></aside>
+  <main class="main">
+    <header class="top">
+      <div id="crumb" class="crumb"></div>
+      <label class="search"><svg class="i" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><input id="q" type="search" placeholder="Search notes and tasks" autocomplete="off" spellcheck="false"></label>
+      <div id="topr"></div>
+    </header>
+    <div id="banner"></div>
+    <div id="view" class="view"></div>
+  </main>
+  <aside id="ask" class="ask" hidden></aside>
+  <nav id="tabbar" class="tabbar"></nav>
+</div>
+<div id="switcher" class="switcher" aria-label="Prototype states"></div>
+<div id="layer"></div>
+<script>
+"use strict";
+const DATA = {"today":"2026-10-29","now":"14:20","notebooks":[{"id":"fx-nb-inbox","name":"Inbox","parent":null},{"id":"fx-nb-work","name":"Work","parent":null},{"id":"fx-nb-projects","name":"Projects","parent":"fx-nb-work"},{"id":"fx-nb-meetings","name":"Meetings","parent":"fx-nb-work"},{"id":"fx-nb-home","name":"Home","parent":null},{"id":"fx-nb-reading","name":"Reading","parent":null},{"id":"fx-nb-travel","name":"Travel","parent":null}],"projects":[{"id":"harbor","name":"Harbor redesign","hue":1},{"id":"lighthouse","name":"Lighthouse app","hue":2},{"id":"quarry","name":"Quarry rebrand","hue":3},{"id":"team","name":"Team","hue":4},{"id":"household","name":"Household","hue":5},{"id":"travel","name":"Travel","hue":6}],"notes":[{"id":"fx-note-00","title":"Harbor redesign: kickoff","nb":"fx-nb-projects","tags":["harbor","kickoff"],"blocks":[{"id":"fx-note-00-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-00-p0","type":"paragraph","content":[{"type":"text","value":"Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action."}]},{"id":"fx-note-00-p1","type":"paragraph","content":[{"type":"text","value":"Owner: Ola Testesen. Deadline end of quarter."}]},{"id":"fx-note-00-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-5},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":2},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":17}]}],"links":[],"project":"harbor","day":null,"edited":-97},{"id":"fx-note-01","title":"Harbor redesign: sitemap","nb":"fx-nb-projects","tags":["harbor","ia"],"blocks":[{"id":"fx-note-01-p0","type":"paragraph","content":[{"type":"text","value":"Top level: Home, Services, Work, About, Contact. Services splits into three."}]},{"id":"fx-note-01-p1","type":"paragraph","content":[{"type":"text","value":"Open question: does Work need filters?"}]},{"id":"fx-note-01-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}],"links":["fx-note-00"],"project":"harbor","day":null,"edited":-10358},{"id":"fx-note-02","title":"Harbor redesign: wireframes","nb":"fx-nb-projects","tags":["harbor","design"],"blocks":[{"id":"fx-note-02-p0","type":"paragraph","content":[{"type":"text","value":"Three wireframe rounds. Round two dropped the carousel."}]},{"id":"fx-note-02-p1","type":"paragraph","content":[{"type":"text","value":"Mobile first, then desktop."}]},{"id":"fx-note-02-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}],"links":["fx-note-01"],"project":"harbor","day":null,"edited":-20619},{"id":"fx-note-03","title":"Harbor redesign: content plan","nb":"fx-nb-projects","tags":["harbor","content"],"blocks":[{"id":"fx-note-03-p0","type":"paragraph","content":[{"type":"text","value":"Every page gets one owner and one deadline."}]},{"id":"fx-note-03-p1","type":"paragraph","content":[{"type":"text","value":"Copy lives in the CMS from day one."}]},{"id":"fx-note-03-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-6},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":17},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":2}]}],"links":[],"project":"harbor","day":null,"edited":-30280},{"id":"fx-note-04","title":"Lighthouse app: brief","nb":"fx-nb-projects","tags":["lighthouse","brief"],"blocks":[{"id":"fx-note-04-p0","type":"paragraph","content":[{"type":"text","value":"A small app that reminds field crews of safety checks."}]},{"id":"fx-note-04-p1","type":"paragraph","content":[{"type":"text","value":"Works offline; syncs at the depot."}]},{"id":"fx-note-04-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}],"links":["fx-note-00"],"project":"lighthouse","day":null,"edited":-26493},{"id":"fx-note-05","title":"Lighthouse app: risks","nb":"fx-nb-projects","tags":["lighthouse","risk"],"blocks":[{"id":"fx-note-05-p0","type":"paragraph","content":[{"type":"text","value":"Biggest risk: crews ignore notifications."}]},{"id":"fx-note-05-p1","type":"paragraph","content":[{"type":"text","value":"Second: battery drain from location checks."}]},{"id":"fx-note-05-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"lighthouse","day":2,"edited":-3034},{"id":"fx-note-06","title":"Lighthouse app: estimate","nb":"fx-nb-projects","tags":["lighthouse","estimate"],"blocks":[{"id":"fx-note-06-p0","type":"paragraph","content":[{"type":"text","value":"Rough estimate: six weeks for two people."}]},{"id":"fx-note-06-p1","type":"paragraph","content":[{"type":"text","value":"Excludes the admin dashboard."}]},{"id":"fx-note-06-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-04","docId":"fx-note-04","children":[{"type":"text","value":"Lighthouse app: brief"}]},{"type":"text","value":"."}]}],"links":["fx-note-04"],"project":"lighthouse","day":null,"edited":-13295},{"id":"fx-note-07","title":"Quarry rebrand: moodboard","nb":"fx-nb-projects","tags":["quarry","design"],"blocks":[{"id":"fx-note-07-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-07-p0","type":"paragraph","content":[{"type":"text","value":"Stone greys, one warm accent, a lot of white space."}]},{"id":"fx-note-07-p1","type":"paragraph","content":[{"type":"text","value":"Typeface shortlist: three grotesks."}]}],"links":[],"project":"quarry","day":null,"edited":-23556},{"id":"fx-note-08","title":"Quarry rebrand: naming","nb":"fx-nb-projects","tags":["quarry","naming"],"blocks":[{"id":"fx-note-08-p0","type":"paragraph","content":[{"type":"text","value":"Twelve candidates, three survived the shout test."}]},{"id":"fx-note-08-p1","type":"paragraph","content":[{"type":"text","value":"Check domains before the next meeting."}]},{"id":"fx-note-08-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-3},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":17},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":0}]}],"links":[],"project":"quarry","day":null,"edited":-19169},{"id":"fx-note-09","title":"Quarry rebrand: launch","nb":"fx-nb-projects","tags":["quarry","launch"],"blocks":[{"id":"fx-note-09-p0","type":"paragraph","content":[{"type":"text","value":"Soft launch to customers first, press a week later."}]},{"id":"fx-note-09-p1","type":"paragraph","content":[{"type":"text","value":"Need a one-page story for sales."}]},{"id":"fx-note-09-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-07","docId":"fx-note-07","children":[{"type":"text","value":"Quarry rebrand: moodboard"}]},{"type":"text","value":"."}]}],"links":["fx-note-07"],"project":"quarry","day":9,"edited":-28830},{"id":"fx-note-10","title":"Weekly sync, week 41","nb":"fx-nb-meetings","tags":["weekly"],"blocks":[{"id":"fx-note-10-p0","type":"paragraph","content":[{"type":"text","value":"Harbor is on track. Lighthouse waits on the risk review."}]},{"id":"fx-note-10-p1","type":"paragraph","content":[{"type":"text","value":"Decision: drop the carousel."}]},{"id":"fx-note-10-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}],"links":["fx-note-00"],"project":"team","day":null,"edited":-13448},{"id":"fx-note-11","title":"Weekly sync, week 42","nb":"fx-nb-meetings","tags":["weekly"],"blocks":[{"id":"fx-note-11-p0","type":"paragraph","content":[{"type":"text","value":"Quarry naming narrowed to three."}]},{"id":"fx-note-11-p1","type":"paragraph","content":[{"type":"text","value":"Lighthouse estimate approved."}]},{"id":"fx-note-11-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-5},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":5},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":0}]}],"links":[],"project":"team","day":null,"edited":-3187},{"id":"fx-note-12","title":"Weekly sync, week 43","nb":"fx-nb-meetings","tags":["weekly"],"blocks":[{"id":"fx-note-12-p0","type":"paragraph","content":[{"type":"text","value":"Harbor wireframes signed off."}]},{"id":"fx-note-12-p1","type":"paragraph","content":[{"type":"text","value":"Hiring: one designer, start in January."}]},{"id":"fx-note-12-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-02","docId":"fx-note-02","children":[{"type":"text","value":"Harbor redesign: wireframes"}]},{"type":"text","value":"."}]}],"links":["fx-note-02"],"project":"harbor","day":null,"edited":-26046},{"id":"fx-note-13","title":"Client call: Harbor","nb":"fx-nb-meetings","tags":["harbor","client"],"blocks":[{"id":"fx-note-13-p0","type":"paragraph","content":[{"type":"text","value":"Client wants a stronger services page."}]},{"id":"fx-note-13-p1","type":"paragraph","content":[{"type":"text","value":"They like the calm navigation."}]},{"id":"fx-note-13-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}],"links":["fx-note-01"],"project":"harbor","day":0,"edited":-345},{"id":"fx-note-14","title":"Client call: Quarry","nb":"fx-nb-meetings","tags":["quarry","client"],"blocks":[{"id":"fx-note-14-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-14-p0","type":"paragraph","content":[{"type":"text","value":"Client prefers the warmest of the three names."}]},{"id":"fx-note-14-p1","type":"paragraph","content":[{"type":"text","value":"Logo first, then the site."}]},{"id":"fx-note-14-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-08","docId":"fx-note-08","children":[{"type":"text","value":"Quarry rebrand: naming"}]},{"type":"text","value":"."}]}],"links":["fx-note-08"],"project":"quarry","day":null,"edited":-6124},{"id":"fx-note-15","title":"Retro: September","nb":"fx-nb-meetings","tags":["retro"],"blocks":[{"id":"fx-note-15-p0","type":"paragraph","content":[{"type":"text","value":"Went well: short meetings. Went badly: too many tools."}]},{"id":"fx-note-15-p1","type":"paragraph","content":[{"type":"text","value":"Try: one notes app for everything."}]},{"id":"fx-note-15-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"team","day":null,"edited":-28983},{"id":"fx-note-16","title":"1:1 with Kari Eksempel","nb":"fx-nb-meetings","tags":["1on1"],"blocks":[{"id":"fx-note-16-p0","type":"paragraph","content":[{"type":"text","value":"Kari wants more ownership of Lighthouse."}]},{"id":"fx-note-16-p1","type":"paragraph","content":[{"type":"text","value":"Follow up on the conference budget."}]},{"id":"fx-note-16-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-2},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":1},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":3}]}],"links":[],"project":"lighthouse","day":null,"edited":-18722},{"id":"fx-note-17","title":"Planning: Q4","nb":"fx-nb-meetings","tags":["planning"],"blocks":[{"id":"fx-note-17-p0","type":"paragraph","content":[{"type":"text","value":"Three bets for Q4: Harbor launch, Lighthouse beta, Quarry identity."}]},{"id":"fx-note-17-p1","type":"paragraph","content":[{"type":"text","value":"Everything else waits."}]},{"id":"fx-note-17-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}],"links":["fx-note-00"],"project":"team","day":6,"edited":-9061},{"id":"fx-note-18","title":"Team handbook","nb":"fx-nb-work","tags":["handbook"],"blocks":[{"id":"fx-note-18-p0","type":"paragraph","content":[{"type":"text","value":"How we work: small teams, written decisions, short meetings."}]},{"id":"fx-note-18-p1","type":"paragraph","content":[{"type":"text","value":"Ask before pushing to production."}]},{"id":"fx-note-18-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"team","day":null,"edited":-31920},{"id":"fx-note-19","title":"Onboarding checklist","nb":"fx-nb-work","tags":["handbook","onboarding"],"blocks":[{"id":"fx-note-19-p0","type":"paragraph","content":[{"type":"text","value":"Day one is for laptops and coffee."}]},{"id":"fx-note-19-p1","type":"paragraph","content":[{"type":"text","value":"Week one ends with a small shipped change."}]},{"id":"fx-note-19-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-3},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":0},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":3}]}],"links":[],"project":"team","day":null,"edited":-21659},{"id":"fx-note-20","title":"Writing guide","nb":"fx-nb-work","tags":["handbook","writing"],"blocks":[{"id":"fx-note-20-p0","type":"paragraph","content":[{"type":"text","value":"Plain words. Lead with the picture. Cut every sentence a reader can skip."}]}],"links":[],"project":"team","day":null,"edited":-24731},{"id":"fx-note-21","title":"Tool list","nb":"fx-nb-work","tags":["tools"],"blocks":[{"id":"fx-note-21-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-21-p0","type":"paragraph","content":[{"type":"text","value":"Notes, chat, calendar, code host. Nothing else without a reason."}]},{"id":"fx-note-21-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"team","day":null,"edited":-19048},{"id":"fx-note-22","title":"Untitled","nb":"fx-nb-inbox","tags":[],"blocks":[{"id":"fx-note-22-p0","type":"paragraph","content":[{"type":"text","value":"Call the printer about the Quarry samples."}]}],"links":[],"project":"quarry","day":null,"edited":-4809},{"id":"fx-note-23","title":"Idea: visual diff for AI edits","nb":"fx-nb-inbox","tags":["idea","ai"],"blocks":[{"id":"fx-note-23-p0","type":"paragraph","content":[{"type":"text","value":"Show AI changes as red and green, accept one by one."}]}],"links":[],"project":null,"day":null,"edited":-14470},{"id":"fx-note-24","title":"Idea: offline banner","nb":"fx-nb-inbox","tags":["idea"],"blocks":[{"id":"fx-note-24-p0","type":"paragraph","content":[{"type":"text","value":"A quiet line at the top when offline, nothing more."}]}],"links":[],"project":null,"day":null,"edited":-17407},{"id":"fx-note-25","title":"Book the dentist","nb":"fx-nb-inbox","tags":[],"blocks":[{"id":"fx-note-25-p0","type":"paragraph","content":[{"type":"text","value":"Before the end of the month."}]},{"id":"fx-note-25-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-2},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":8},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":0}]}],"links":[],"project":"household","day":null,"edited":-27668},{"id":"fx-note-26","title":"Podcast to try","nb":"fx-nb-inbox","tags":["listen"],"blocks":[{"id":"fx-note-26-p0","type":"paragraph","content":[{"type":"text","value":"Someone recommended a show about city planning."}]}],"links":[],"project":null,"day":null,"edited":-30605},{"id":"fx-note-27","title":"Gift ideas","nb":"fx-nb-inbox","tags":["gifts"],"blocks":[{"id":"fx-note-27-p0","type":"paragraph","content":[{"type":"text","value":"Plant, cookbook, a good pen."}]},{"id":"fx-note-27-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":null,"day":null,"edited":-7746},{"id":"fx-note-28","title":"Plan for the day","nb":"fx-nb-home","tags":["daily"],"blocks":[{"id":"fx-note-28-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-28-p0","type":"paragraph","content":[{"type":"text","value":"Morning: deep work. Afternoon: calls. Evening: walk."}]},{"id":"fx-note-28-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-3},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":3},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":1}]}],"links":[],"project":"household","day":0,"edited":-195},{"id":"fx-note-29","title":"Groceries","nb":"fx-nb-home","tags":["shopping"],"blocks":[{"id":"fx-note-29-p0","type":"paragraph","content":[{"type":"text","value":"The usual, plus things for Sunday dinner."}]},{"id":"fx-note-29-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-4},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":4},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":0}]}],"links":[],"project":"household","day":null,"edited":-576},{"id":"fx-note-30","title":"Garden: autumn","nb":"fx-nb-home","tags":["garden"],"blocks":[{"id":"fx-note-30-p0","type":"paragraph","content":[{"type":"text","value":"Plant tulips in late October."}]},{"id":"fx-note-30-p1","type":"paragraph","content":[{"type":"text","value":"Cover the roses before frost."}]},{"id":"fx-note-30-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-6},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":2},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":10}]}],"links":[],"project":"household","day":null,"edited":-22138},{"id":"fx-note-31","title":"Garden: spring","nb":"fx-nb-home","tags":["garden"],"blocks":[{"id":"fx-note-31-p0","type":"paragraph","content":[{"type":"text","value":"Sow peas in April."}]},{"id":"fx-note-31-p1","type":"paragraph","content":[{"type":"text","value":"Prune the apple tree."}]},{"id":"fx-note-31-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-30","docId":"fx-note-30","children":[{"type":"text","value":"Garden: autumn"}]},{"type":"text","value":"."}]}],"links":["fx-note-30"],"project":"household","day":null,"edited":-11877},{"id":"fx-note-32","title":"Recipes: sourdough","nb":"fx-nb-home","tags":["recipes"],"blocks":[{"id":"fx-note-32-p0","type":"paragraph","content":[{"type":"text","value":"Starter at 100 percent hydration."}]},{"id":"fx-note-32-p1","type":"paragraph","content":[{"type":"text","value":"Bake at 250 degrees, lid on for 20 minutes."}]},{"id":"fx-note-32-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"household","day":null,"edited":-8940},{"id":"fx-note-33","title":"Recipes: fish soup","nb":"fx-nb-home","tags":["recipes"],"blocks":[{"id":"fx-note-33-p0","type":"paragraph","content":[{"type":"text","value":"Stock, cream, leeks, carrots, and whatever fish is fresh."}]},{"id":"fx-note-33-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-32","docId":"fx-note-32","children":[{"type":"text","value":"Recipes: sourdough"}]},{"type":"text","value":"."}]}],"links":["fx-note-32"],"project":"household","day":null,"edited":-31799},{"id":"fx-note-34","title":"Kitchen cupboards","nb":"fx-nb-home","tags":["home"],"blocks":[{"id":"fx-note-34-p0","type":"paragraph","content":[{"type":"text","value":"Go through every cupboard. One shelf per evening."}]},{"id":"fx-note-34-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-6},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":2},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":-1}]}],"links":[],"project":"household","day":null,"edited":-28862},{"id":"fx-note-35","title":"Car service","nb":"fx-nb-home","tags":["car"],"blocks":[{"id":"fx-note-35-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-35-p0","type":"paragraph","content":[{"type":"text","value":"Winter tyres in November."}]},{"id":"fx-note-35-p1","type":"paragraph","content":[{"type":"text","value":"Check the brake fluid."}]},{"id":"fx-note-35-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-1},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":null},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":1}]}],"links":[],"project":"household","day":null,"edited":-19201},{"id":"fx-note-36","title":"Budget: November","nb":"fx-nb-home","tags":["money"],"blocks":[{"id":"fx-note-36-p0","type":"paragraph","content":[{"type":"text","value":"Rent, food, transport, one dinner out."}]},{"id":"fx-note-36-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"household","day":3,"edited":-16264},{"id":"fx-note-37","title":"Notes: The Calm Interface","nb":"fx-nb-reading","tags":["book","design"],"blocks":[{"id":"fx-note-37-p0","type":"paragraph","content":[{"type":"text","value":"Main idea: visible information makes a screen feel cleaner."}]},{"id":"fx-note-37-p1","type":"paragraph","content":[{"type":"text","value":"Chapter four: predictable layouts."}]}],"links":[],"project":null,"day":null,"edited":-6003},{"id":"fx-note-38","title":"Notes: Small Teams","nb":"fx-nb-reading","tags":["book","work"],"blocks":[{"id":"fx-note-38-p0","type":"paragraph","content":[{"type":"text","value":"Teams of three to five decide faster."}]},{"id":"fx-note-38-p1","type":"paragraph","content":[{"type":"text","value":"Write decisions down."}]},{"id":"fx-note-38-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}],"links":["fx-note-18"],"project":null,"day":null,"edited":-23434},{"id":"fx-note-39","title":"Notes: Local First","nb":"fx-nb-reading","tags":["book","tech"],"blocks":[{"id":"fx-note-39-p0","type":"paragraph","content":[{"type":"text","value":"Your data lives on your device first, the cloud second."}]},{"id":"fx-note-39-p1","type":"paragraph","content":[{"type":"text","value":"Conflicts should never lose work."}]}],"links":[],"project":null,"day":null,"edited":-13173},{"id":"fx-note-40","title":"Article: Information architecture","nb":"fx-nb-reading","tags":["article","ia"],"blocks":[{"id":"fx-note-40-p0","type":"paragraph","content":[{"type":"text","value":"IA is organizing, labelling and prioritizing content so it is easy to find."}]},{"id":"fx-note-40-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}],"links":["fx-note-01"],"project":"harbor","day":null,"edited":-31749},{"id":"fx-note-41","title":"Article: Writing for screens","nb":"fx-nb-reading","tags":["article","writing"],"blocks":[{"id":"fx-note-41-p0","type":"paragraph","content":[{"type":"text","value":"People scan. Front-load the point."}]},{"id":"fx-note-41-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-20","docId":"fx-note-20","children":[{"type":"text","value":"Writing guide"}]},{"type":"text","value":"."}]}],"links":["fx-note-20"],"project":null,"day":null,"edited":-8890},{"id":"fx-note-42","title":"Reading list","nb":"fx-nb-reading","tags":["list"],"blocks":[{"id":"fx-note-42-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-42-p0","type":"paragraph","content":[{"type":"text","value":"Five books for winter."}]},{"id":"fx-note-42-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":null,"day":null,"edited":-19151},{"id":"fx-note-43","title":"Trip: Bergen weekend","nb":"fx-nb-travel","tags":["trip"],"blocks":[{"id":"fx-note-43-p0","type":"paragraph","content":[{"type":"text","value":"Train Friday evening, back Sunday."}]},{"id":"fx-note-43-p1","type":"paragraph","content":[{"type":"text","value":"Fish market Saturday morning."}]},{"id":"fx-note-43-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-2},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":3},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":0}]}],"links":[],"project":"travel","day":1,"edited":-28812},{"id":"fx-note-44","title":"Trip: Lofoten summer","nb":"fx-nb-travel","tags":["trip"],"blocks":[{"id":"fx-note-44-p0","type":"paragraph","content":[{"type":"text","value":"Rent a cabin for a week in July."}]},{"id":"fx-note-44-p1","type":"paragraph","content":[{"type":"text","value":"Bring rain gear."}]},{"id":"fx-note-44-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"travel","day":null,"edited":-5953},{"id":"fx-note-45","title":"Packing list","nb":"fx-nb-travel","tags":["trip","list"],"blocks":[{"id":"fx-note-45-p0","type":"paragraph","content":[{"type":"text","value":"Charger, passport, wool sweater."}]},{"id":"fx-note-45-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true,"done":-4},{"content":[{"type":"text","value":"Second step"}],"checked":false,"due":1},{"content":[{"type":"text","value":"Follow up"}],"checked":false,"due":8}]}],"links":[],"project":"travel","day":null,"edited":-16214},{"id":"fx-note-46","title":"Conference: Design Days","nb":"fx-nb-travel","tags":["conference"],"blocks":[{"id":"fx-note-46-p0","type":"paragraph","content":[{"type":"text","value":"Two days of talks in Oslo, one workshop."}]},{"id":"fx-note-46-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-16","docId":"fx-note-16","children":[{"type":"text","value":"1:1 with Kari Eksempel"}]},{"type":"text","value":"."}]}],"links":["fx-note-16"],"project":"travel","day":15,"edited":-26475},{"id":"fx-note-47","title":"Hotels to remember","nb":"fx-nb-travel","tags":["trip"],"blocks":[{"id":"fx-note-47-p0","type":"paragraph","content":[{"type":"text","value":"The small one by the harbour had the best breakfast."}]}],"links":[],"project":"travel","day":null,"edited":-3016},{"id":"fx-note-48","title":"Decision log","nb":"fx-nb-work","tags":["decisions"],"blocks":[{"id":"fx-note-48-p0","type":"paragraph","content":[{"type":"text","value":"Every decision gets a number, a date and a reason."}]},{"id":"fx-note-48-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}],"links":["fx-note-18"],"project":"team","day":null,"edited":-13277},{"id":"fx-note-49","title":"Glossary","nb":"fx-nb-work","tags":["handbook"],"blocks":[{"id":"fx-note-49-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-49-p0","type":"paragraph","content":[{"type":"text","value":"Journey: a stable acceptance requirement. Spike: a rival test."}]},{"id":"fx-note-49-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}],"links":[],"project":"team","day":null,"edited":-23538}]};
+const D = DATA;
+const byId = Object.fromEntries(D.notes.map((n) => [n.id, n]));
+const nbById = Object.fromEntries(D.notebooks.map((b) => [b.id, b]));
+const prById = Object.fromEntries(D.projects.map((p) => [p.id, p]));
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const [Y, M, DD] = D.today.split("-").map(Number);
+const day = (n) => new Date(Y, M - 1, DD + n);
+const isWe = (n) => [0, 6].includes(day(n).getDay());
+const dShort = (n) => `${WD[day(n).getDay()]} ${day(n).getDate()}`;
+const dLong = (n) => `${day(n).getDate()} ${MO[day(n).getMonth()]}`;
+const dueLabel = (n) => n == null ? "No date" : n < 0 ? `${-n}d late` : n === 0 ? "Today" : n === 1 ? "Tomorrow" : n <= 6 ? dShort(n) : dLong(n);
+const dueCls = (n) => n == null ? "none" : n < 0 ? "late" : n === 0 ? "today" : "";
+const NOW_MIN = D.now.split(":").reduce((h, m) => +h * 60 + +m);
+function editedLabel(min) {
+  const t = NOW_MIN + min;
+  if (min > -60) return `${-min} min ago`;
+  if (t >= 0) { const h = Math.floor(t / 60), m = t % 60; return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`; }
+  const back = Math.ceil(-t / 1440);
+  return back === 1 ? "Yesterday" : back < 7 ? WD[day(-back).getDay()] : dLong(-back);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inl = (c) => c.type === "text" ? c.value : (c.children || []).map((x) => x.value).join("");
+const txt = (content) => (content || []).map(inl).join("");
+const blockText = (b) => b.text ?? (b.content ? txt(b.content) : (b.items || []).map((i) => txt(i.content || i)).join(" · "));
+const plain = (n) => n.blocks.map(blockText).join(" ");
+const snippet = (n) => { const b = n.blocks.find((b) => b.type === "paragraph"); return b ? txt(b.content) : ""; };
+const projOf = (n) => n.project ? prById[n.project] : null;
+const nbPath = (id) => { const b = nbById[id]; return b.parent ? [nbById[b.parent].name, b.name] : [b.name]; };
+
+function tasks() {
+  const out = [];
+  for (const n of D.notes) for (const b of n.blocks) if (b.task) b.items.forEach((it, i) => out.push({ k: "t", n, b, i, it, key: `${b.id}:${i}`, text: txt(it.content) }));
+  return out;
+}
+const taskByKey = (key) => tasks().find((t) => t.key === key);
+const datedNotes = () => D.notes.filter((n) => n.day != null).map((n) => ({ k: "n", n, key: n.id, text: n.title }));
+const laneOf = (t) => t.it.checked ? "done" : t.it.due == null ? "none" : t.it.due <= 0 ? "today" : t.it.due <= 6 ? "week" : t.it.due <= 13 ? "next" : "later";
+const boardCol = (t) => ({ done: "done", today: "today", week: "week" }[laneOf(t)] || "later");
+
+const S = {
+  view: "home", ctx: { kind: "nb", id: "fx-nb-projects" }, noteId: "fx-note-00", q: "",
+  board: "all", ask: false, aiOn: true, ai: null, conflict: null, offline: false,
+  mobile: false, frame: false, mpane: "list", flash: null, toast: null, state: 1,
+  convo: [],
+};
+let undoSnap = null;
+
+const ic = {
+  home: '<svg class="i" viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h7M2.5 12h4"/></svg>',
+  board: '<svg class="i" viewBox="0 0 16 16"><rect x="2" y="2.5" width="3.2" height="11" rx="1"/><rect x="6.4" y="2.5" width="3.2" height="7" rx="1"/><rect x="10.8" y="2.5" width="3.2" height="9" rx="1"/></svg>',
+  notes: '<svg class="i" viewBox="0 0 16 16"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M6.2 8h4M6.2 10.6h4"/></svg>',
+  book: '<svg class="i" viewBox="0 0 16 16"><path d="M3.5 2.5h8.5v11H3.5z"/><path d="M5.8 2.5v11"/></svg>',
+  inbox: '<svg class="i" viewBox="0 0 16 16"><path d="M2.5 9l1.8-6h7.4l1.8 6v4.5h-11z"/><path d="M2.5 9h3.2l.8 1.6h3l.8-1.6h3.2"/></svg>',
+  back: '<svg class="i" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg>',
+  close: '<svg class="i" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  spark: '<span aria-hidden="true">✨</span>',
+};
+function hl(s) {
+  const e = esc(s);
+  if (!S.q) return e;
+  const q = S.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return q ? e.replace(new RegExp(`(${q})`, "ig"), "<mark>$1</mark>") : e;
+}
+const matchQ = (n, extra = "") => !S.q || (n.title + " " + plain(n) + " " + extra).toLowerCase().includes(S.q.trim().toLowerCase());
+function ctxNotes(ctx = S.ctx) {
+  let list = D.notes;
+  if (ctx.kind === "nb") list = list.filter((n) => n.nb === ctx.id || nbById[n.nb].parent === ctx.id);
+  if (ctx.kind === "project") list = list.filter((n) => n.project === ctx.id);
+  return list.filter((n) => matchQ(n)).slice().sort((a, b) => b.edited - a.edited);
+}
+const ctxName = (ctx) => ctx.kind === "all" ? "All notes" : ctx.kind === "project" ? prById[ctx.id].name : nbById[ctx.id].name;
+function projectStats(pid) {
+  const ts = tasks().filter((t) => t.n.project === pid);
+  const c = { done: 0, today: 0, week: 0, later: 0 };
+  ts.forEach((t) => c[boardCol(t)]++);
+  const open = ts.filter((t) => !t.it.checked).sort((a, b) => (a.it.due ?? 999) - (b.it.due ?? 999));
+  return { total: ts.length, ...c, next: open[0], notes: D.notes.filter((n) => n.project === pid).length };
+}
+function pbar(st, pc) {
+  if (!st.total) return `<div class="pbar pc${pc}"></div>`;
+  const w = (n) => `${(n / st.total) * 100}%`;
+  return `<div class="pbar pc${pc}"><i class="s-done" style="width:${w(st.done)}"></i><i class="s-today" style="width:${w(st.today)}"></i><i class="s-week" style="width:${w(st.week)}"></i><i class="s-later" style="width:${w(st.later)}"></i></div>`;
+}
+
+function taskRow(t, { meta = "due", cls = "" } = {}) {
+  const p = projOf(t.n), d = t.it.due;
+  let m = "";
+  if (t.it.checked) m = t.it.done != null ? dueLabel(t.it.done).replace("late", "ago") : "";
+  else if (meta === "due") m = d != null && d !== 0 ? dueLabel(d) : "";
+  else if (meta === "late" && d != null && d < 0) m = dueLabel(d);
+  const late = !t.it.checked && d != null && d < 0;
+  return `<div class="row task ${t.it.checked ? "done" : ""} ${cls}" data-open="${t.n.id}" data-line="${t.key}">
+    <button class="cb ${t.it.checked ? "on" : ""}" data-tick="${t.key}" aria-label="Done"></button>
+    <div class="row-main"><div class="row-t">${hl(t.text)}</div><div class="row-s">${p ? `<i class="dot pc${p.hue}"></i>` : ""}<span>${hl(t.n.title)}</span></div></div>
+    ${m ? `<span class="row-m ${late ? "late" : ""}">${m}</span>` : ""}</div>`;
+}
+function noteRow(n, meta = "") {
+  const p = projOf(n);
+  return `<div class="row note" data-open="${n.id}">
+    <span class="ico-doc"></span>
+    <div class="row-main"><div class="row-t">${hl(n.title)}</div><div class="row-s">${p ? `<i class="dot pc${p.hue}"></i>` : ""}<span>${esc(nbPath(n.nb).at(-1))} · ${esc(snippet(n))}</span></div></div>
+    ${meta ? `<span class="row-m">${meta}</span>` : ""}</div>`;
+}
+
+function renderSide() {
+  const open = tasks().filter((t) => !t.it.checked);
+  const todayN = open.filter((t) => t.it.due != null && t.it.due <= 0).length + D.notes.filter((n) => n.day === 0).length;
+  const on = (v, extra = true) => S.view === v && extra ? "on" : "";
+  const nbCount = (id) => D.notes.filter((n) => n.nb === id || nbById[n.nb].parent === id).length;
+  const nbs = D.notebooks.filter((b) => !b.parent).flatMap((b) => [b, ...D.notebooks.filter((c) => c.parent === b.id)]);
+  const pend = S.offline ? 3 : 0;
+  return `
+  <div class="brand"><span class="brand-mark"></span>Barkever</div>
+  <div class="nav">
+    <button class="nav-i ${on("home")}" data-nav="home">${ic.home}<span class="lbl">Home</span><span class="n">${todayN} today</span></button>
+    <button class="nav-i ${on("board", S.board === "all")}" data-nav="board">${ic.board}<span class="lbl">Board</span><span class="n">${open.length}</span></button>
+    <button class="nav-i ${on("notes", S.ctx.kind === "all")}" data-ctx="all">${ic.notes}<span class="lbl">All notes</span><span class="n">${D.notes.length}</span></button>
+    <div class="nav-h">Projects</div>
+    ${D.projects.map((p) => { const st = projectStats(p.id); return `<button class="nav-i ${(S.view === "board" && S.board === p.id) || (S.view === "notes" && S.ctx.kind === "project" && S.ctx.id === p.id) ? "on" : ""}" data-board="${p.id}"><i class="dot pc${p.hue}"></i><span class="lbl">${esc(p.name)}</span><span class="minibar pc${p.hue}" title="${st.done}/${st.total} done"><i style="width:${st.total ? (st.done / st.total) * 100 : 0}%"></i></span></button>`; }).join("")}
+    <div class="nav-h">Notebooks</div>
+    ${nbs.map((b) => `<button class="nav-i ${b.parent ? "sub" : ""} ${S.view === "notes" && S.ctx.kind === "nb" && S.ctx.id === b.id ? "on" : ""}" data-nb="${b.id}">${b.id === "fx-nb-inbox" ? ic.inbox : ic.book}<span class="lbl">${esc(b.name)}</span><span class="n">${nbCount(b.id)}</span></button>`).join("")}
+  </div>
+  <div class="sync ${S.offline ? "off" : ""}"><i class="dot"></i>${S.offline ? `Offline · ${pend} changes waiting` : "Synced · just now"}</div>`;
+}
+
+function renderHome() {
+  const all = tasks().filter((t) => matchQ(t.n, t.text));
+  const open = all.filter((t) => !t.it.checked);
+  const notes = datedNotes().filter((x) => matchQ(x.n));
+  const by = (lane) => open.filter((t) => laneOf(t) === lane).sort((a, b) => a.it.due - b.it.due);
+  const today = by("today").sort((a, b) => a.it.due - b.it.due || (a.n.project || "").localeCompare(b.n.project || ""));
+  const todayNotes = notes.filter((x) => x.n.day <= 0);
+  const late = today.filter((t) => t.it.due < 0).length;
+  const week = by("week"), weekNotes = notes.filter((x) => x.n.day >= 1 && x.n.day <= 6);
+  const nextW = [...by("next")], laterW = [...by("later")], none = by("none");
+  const doneToday = all.filter((t) => t.it.checked && t.it.done === 0).length;
+
+  const load = Array.from({ length: 14 }, (_, d) => open.filter((t) => t.it.due != null && (d === 0 ? t.it.due <= 0 : t.it.due === d)).length + notes.filter((x) => x.n.day === d).length);
+  const max = Math.max(4, ...load);
+  const loadHtml = `<div class="loadbox"><div class="load-cap">Next<br>14 days</div><div class="load" title="Open items per day">${load.map((n, d) => `<div class="load-d ${d === 0 ? "t" : ""} ${isWe(d) ? "we" : ""}" title="${dShort(d)}: ${n} open"><i style="height:${Math.max(2, (n / max) * 26)}px"></i>${WD[day(d).getDay()][0]}</div>`).join("")}</div></div>`;
+
+  const tiles = D.projects.map((p) => {
+    const st = projectStats(p.id);
+    const nx = st.next ? `next <b>${esc(st.next.text)}</b> · ${dueLabel(st.next.it.due)}` : st.total ? "all done" : "no checklists yet";
+    return `<button class="ptile" data-board="${p.id}"><div class="pt-h"><i class="dot pc${p.hue}"></i><b>${esc(p.name)}</b><span>${st.done}/${st.total}</span></div>${pbar(st, p.hue)}<div class="pt-s">${nx}</div></button>`;
+  }).join("");
+
+  const col = (title, sub, items, cls = "") => `<div class="col ${cls} ${items.length ? "" : "empty-col"}"><div class="col-h"><b>${title}</b>${sub}<span class="n">${items.length || ""}</span></div>${items.join("") || `<div class="empty">—</div>`}</div>`;
+  const days = Array.from({ length: 6 }, (_, i) => i + 1).map((d) => col(WD[day(d).getDay()], `<span>${day(d).getDate()}</span>`, [...week.filter((t) => t.it.due === d).map((t) => taskRow(t, { meta: "" })), ...weekNotes.filter((x) => x.n.day === d).map((x) => noteRow(x.n))], isWe(d) ? "we" : "")).join("");
+  const notesLater = notes.filter((x) => x.n.day > 6);
+  const buckets = [
+    col("Next week", `<span>${dLong(7)}–${dLong(13)}</span>`, [...nextW.map((t) => taskRow(t)), ...notesLater.filter((x) => x.n.day <= 13).map((x) => noteRow(x.n, dueLabel(x.n.day)))]),
+    col("Later", `<span>from ${dLong(14)}</span>`, [...laterW.map((t) => taskRow(t)), ...notesLater.filter((x) => x.n.day > 13).map((x) => noteRow(x.n, dueLabel(x.n.day)))]),
+    col("No date", "", none.map((t) => taskRow(t))),
+  ].join("");
+  const qn = S.q ? D.notes.filter((n) => matchQ(n)).length : 0;
+  const weekN = week.length + weekNotes.length, laterN = nextW.length + laterW.length + none.length + notesLater.length;
+
+  return `<div class="home" data-keep="home">
+    <div class="home-head"><div><h1>${WD[day(0).getDay()].replace("Thu", "Thursday")} ${dLong(0).replace("Oct", "October")}</h1>
+      <p class="sub"><b>${today.length + todayNotes.length}</b> for today${late ? ` · <span class="late">${late} late</span>` : ""} · <b>${weekN}</b> this week · <b>${doneToday}</b> done today</p></div>${loadHtml}</div>
+    ${S.q ? `<div class="filterline">Lanes filtered by “${esc(S.q)}” · ${qn} matching notes · <button data-act="q-list">open as list</button> · <button data-act="q-clear">clear</button></div>` : ""}
+    <div class="sec-h">Projects <em>· click for its board</em></div>
+    <div class="ptiles">${tiles}</div>
+    <div class="lanes">
+      <div class="lane lane-today"><div class="lane-l"><b>Today <span>${today.length + todayNotes.length}</span></b><small>${dShort(0)} ${MO[day(0).getMonth()]}</small></div>
+        <div class="lane-c"><div class="today-grid">${[...today.map((t) => taskRow(t, { meta: "late" })), ...todayNotes.map((x) => noteRow(x.n, "note"))].join("")}</div></div></div>
+      <div class="lane"><div class="lane-l"><b>This week <span>${weekN}</span></b><small>${dLong(1)} – ${dLong(6)}</small></div><div class="lane-c cols days">${days}</div></div>
+      <div class="lane"><div class="lane-l"><b>Later <span>${laterN}</span></b><small>from ${dLong(7)}</small></div><div class="lane-c cols buckets">${buckets}</div></div>
+    </div></div>`;
+}
+
+const COLS = [["later", "Later"], ["week", "This week"], ["today", "Today"], ["done", "Done"]];
+function renderBoard() {
+  const all = tasks().filter((t) => matchQ(t.n, t.text));
+  const pills = `<div class="pills"><button class="pill ${S.board === "all" ? "on" : ""}" data-board="all">All projects</button>${D.projects.map((p) => `<button class="pill ${S.board === p.id ? "on" : ""}" data-board="${p.id}"><i class="dot pc${p.hue}"></i>${esc(p.name)}</button>`).join("")}</div>`;
+  const cell = (ts, c, limitDone = true) => {
+    let items = ts.filter((t) => boardCol(t) === c).sort((a, b) => (a.it.due ?? 99) - (b.it.due ?? 99));
+    let more = "";
+    if (c === "done" && limitDone && items.length > 3) { more = `<div class="more">+${items.length - 3} more done</div>`; items = items.slice(0, 3); }
+    return items.map((t) => taskRow(t, { cls: "card" })).join("") + more;
+  };
+  const head = (ts) => COLS.map(([c, l]) => `<div class="bh c-${c}">${l} <span>${ts.filter((t) => boardCol(t) === c).length}</span></div>`).join("");
+  if (S.board === "all") {
+    const rows = D.projects.map((p) => {
+      const ts = all.filter((t) => t.n.project === p.id), st = projectStats(p.id);
+      return `<div class="bl pc${p.hue}"><b data-board="${p.id}"><i class="dot"></i>${esc(p.name)}</b>${pbar(st, p.hue)}<small>${st.done}/${st.total} done · ${st.notes} notes</small></div>` +
+        COLS.map(([c]) => `<div class="bc c-${c}">${cell(ts, c)}</div>`).join("");
+    }).join("");
+    return `<div class="board" data-keep="board"><div class="board-head"><h1>Board</h1>${pills}<span class="hint">Each card is a checklist line in a note · tick to finish</span></div>
+      <div class="bgrid" style="grid-template-columns: 168px repeat(4, minmax(0, 1fr))"><div class="bh"></div>${head(all)}${rows}</div></div>`;
+  }
+  const p = prById[S.board], ts = all.filter((t) => t.n.project === p.id), st = projectStats(p.id);
+  const pn = D.notes.filter((n) => n.project === p.id).sort((a, b) => b.edited - a.edited);
+  return `<div class="board" data-keep="board"><div class="board-head"><h1>${esc(p.name)}</h1>${pills}<span class="hint">${st.done}/${st.total} done</span></div>
+    <div class="single">${head(ts)}<div class="bh" style="border-left:1px solid var(--line)">Notes <span>${pn.length}</span></div>
+    ${COLS.map(([c]) => `<div class="bc c-${c}">${cell(ts, c, false) || `<div class="empty">${c === "later" && !st.total ? "Type [ ] in a project note to add a task" : "—"}</div>`}</div>`).join("")}
+    <div class="pnotes">${pn.map((n) => noteRow(n, editedLabel(n.edited))).join("")}<button class="btn sm" data-ctx-project="${p.id}" style="margin:6px 4px">Open as list →</button></div></div></div>`;
+}
+
+function renderNotes() {
+  const list = ctxNotes();
+  if (!list.find((n) => n.id === S.noteId) && list[0] && !S.conflict) S.noteId = list[0].id;
+  const rows = list.map((n) => {
+    const p = projOf(n);
+    const ts = n.blocks.filter((b) => b.task).flatMap((b) => b.items);
+    const done = ts.filter((i) => i.checked).length;
+    const prog = ts.length ? `<span class="prog"><i><b style="width:${(done / ts.length) * 100}%"></b></i>${done}/${ts.length}</span>` : "";
+    return `<div class="nrow ${n.id === S.noteId ? "on" : ""}" data-note="${n.id}"><div class="n1"><span class="t">${hl(n.title || "Untitled")}</span><span class="d">${editedLabel(n.edited)}</span></div>
+      <div class="n2">${p ? `<i class="dot pc${p.hue}"></i>` : ""}<span class="s">${hl(snippet(n))}</span>${prog}</div></div>`;
+  }).join("") || `<div class="empty" style="padding:16px 24px">No notes match “${esc(S.q)}”. Clear the search to see all.</div>`;
+  const back = `<button class="btn back" data-act="mback">${ic.back}</button>`;
+  return `<div class="notes ${S.mpane === "editor" ? "ed" : ""}">
+    <section class="list"><div class="list-h"><b>${esc(ctxName(S.ctx))}</b><span>${list.length} notes</span><span class="sort">Edited ↓</span></div><div class="list-b" data-keep="list">${rows}</div></section>
+    <section class="editor">${S.conflict ? renderConflict(back) : renderEditor(back)}</section></div>`;
+}
+
+function inlineHtml(content) {
+  return content.map((c) => c.type === "wikilink" ? `<a class="wl" contenteditable="false" data-link="${c.docId || c.target}">${esc(inl(c))}</a>` : esc(c.value)).join("");
+}
+function renderEditor(back) {
+  const n = byId[S.noteId];
+  if (!n) return `<div class="empty" style="margin:auto">Pick a note on the left, or press N for a new one.</div>`;
+  const p = projOf(n);
+  const ai = S.ai && S.ai.noteId === n.id ? S.ai : null;
+  const chg = (id) => ai && ai.changes.find((c) => c.target === id);
+  const blocks = n.blocks.map((b) => {
+    if (b.type === "heading") return `<h2 id="blk-${b.id}">${esc(b.text)}</h2>`;
+    if (b.type === "paragraph") { const c = chg(b.id); return c ? changeCard(c) : `<p id="blk-${b.id}" contenteditable="true" data-para="${b.id}">${inlineHtml(b.content)}</p>`; }
+    if (b.type === "list" && b.task) {
+      return `<div class="checklist" id="blk-${b.id}">${b.items.map((it, i) => {
+        const key = `${b.id}:${i}`, c = chg(key);
+        if (c) return `<div style="padding:8px 8px 0">${changeCard(c, it)}</div>`;
+        const d = it.due;
+        const dueBtn = it.checked ? `<span class="due">${it.done != null ? "done " + dueLabel(it.done).replace(" late", " ago").replace("Today", "today") : "done"}</span>` : `<span class="due ${dueCls(d)}">${dueLabel(d)}</span>`;
+        return `<div class="ck ${it.checked ? "done" : ""}" id="line-${key.replace(":", "-")}"><button class="cb ${it.checked ? "on" : ""}" data-tick="${key}" aria-label="Done"></button><span class="ck-t" contenteditable="true" data-item="${key}">${inlineHtml(it.content)}</span>${dueBtn}</div>`;
+      }).join("")}</div>`;
+    }
+    if (b.type === "list") return `<ul id="blk-${b.id}">${b.items.map((it) => `<li>${inlineHtml(it.content || it)}</li>`).join("")}</ul>`;
+    return "";
+  }).join("");
+  const backs = D.notes.filter((o) => o.links.includes(n.id));
+  const aiStrip = ai ? (() => {
+    const pend = ai.changes.filter((c) => c.status === "pending").length, acc = ai.changes.filter((c) => c.status === "accepted").length;
+    return `<div class="ai-strip"><div class="ai-l"><b>${ic.spark} AI Edit</b> “${esc(ai.prompt)}”<div class="cost">${ai.changes.length} changes${pend ? ` · ${pend} to review` : ""} · Claude, your login · ≈0.3¢</div></div><span class="grow"></span>
+      <button class="btn sm line" data-act="ai-all-no">Reject all</button><button class="btn sm line" data-act="ai-all-ok">Accept all</button><button class="btn sm primary" data-act="ai-done">${acc ? `Apply ${acc}` : "Close"}</button></div>`;
+  })() : "";
+  return `<div class="ed-bar">${back}<span>${nbPath(n.nb).map(esc).join(" › ")}</span>${p ? `<button class="pchip" data-board="${p.id}"><i class="dot pc${p.hue}"></i>${esc(p.name)}</button>` : ""}<span class="grow"></span><span>Edited ${editedLabel(n.edited)}</span>
+    ${S.aiOn ? `<button class="btn ${ai ? "on" : ""}" data-act="ai-edit" title="Rewrite with a diff you accept per change">${ic.spark} Edit</button>` : ""}</div>
+    <div class="ed-scroll" data-keep="ed"><article class="doc">
+      ${aiStrip}
+      <h1 class="d-title" contenteditable="true" data-title="${n.id}">${esc(n.title)}</h1>
+      <div class="d-meta">${n.tags.map((t) => `<span class="tag">#${esc(t)}</span>`).join("")}${n.day != null ? `<span class="due ${dueCls(n.day)}">${dueLabel(n.day)}</span>` : ""}</div>
+      ${blocks}
+      ${backs.length ? `<footer class="backlinks"><div class="sec-h">Linked from <em>· ${backs.length}</em></div>${backs.map((o) => noteRow(o, editedLabel(o.edited))).join("")}</footer>` : ""}
+    </article></div>`;
+}
+
+const AI_SCRIPT = {
+  "fx-note-00": { prompt: "Tighten it and name the open tasks", changes: [
+    { target: "fx-note-00-p0", neu: "Goals: faster pages, calmer navigation and one clear call to action." },
+    { target: "fx-note-00-p1", neu: "Owner: Ola Testesen. Deadline: end of Q4." },
+    { target: "fx-note-00-t:1", neu: "Agree the sitemap with the client", cite: "fx-note-01", why: "Open question: does Work need filters?" },
+    { target: "fx-note-00-t:2", neu: "Follow up on a stronger services page", cite: "fx-note-13", why: "Client wants a stronger services page." },
+  ] },
+};
+function getText(target) {
+  if (target.includes(":")) { const t = taskByKey(target); return t.text; }
+  const n = D.notes.find((n) => n.blocks.some((b) => b.id === target)); return txt(n.blocks.find((b) => b.id === target).content);
+}
+function setText(target, s) {
+  if (target.includes(":")) { taskByKey(target).it.content = [{ type: "text", value: s }]; return; }
+  const n = D.notes.find((n) => n.blocks.some((b) => b.id === target)); n.blocks.find((b) => b.id === target).content = [{ type: "text", value: s }];
+}
+function wdiff(a, b) {
+  const A = a.split(/(\s+)/).filter(Boolean), B = b.split(/(\s+)/).filter(Boolean);
+  const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
+  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = []; let i = 0, j = 0;
+  const push = (t, s) => { const last = out.at(-1); if (last && last.t === t) last.s += s; else out.push({ t, s }); };
+  while (i < A.length && j < B.length) { if (A[i] === B[j]) { push("=", A[i]); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) push("-", A[i++]); else push("+", B[j++]); }
+  while (i < A.length) push("-", A[i++]); while (j < B.length) push("+", B[j++]);
+  return out;
+}
+function hunks(a, b) {
+  const out = [];
+  for (const p of wdiff(a, b)) {
+    const last = out.at(-1);
+    if (p.t === "=" && !(last?.t === "x" && !last.gap && /^\s+$/.test(p.s))) {
+      if (last?.gap) { out.push({ t: "=", s: last.gap }); last.gap = ""; }
+      out.push({ t: "=", s: p.s });
+      continue;
+    }
+    if (last?.t !== "x") out.push({ t: "x", del: "", ins: "", gap: "" });
+    const h = out.at(-1);
+    if (p.t === "=") { h.gap = p.s; continue; }
+    if (h.gap) { h.del += h.del && h.gap; h.ins += h.ins && h.gap; h.gap = ""; }
+    h[p.t === "-" ? "del" : "ins"] += p.s;
+  }
+  return out.flatMap((h) => (h.gap ? [h, { t: "=", s: h.gap }] : [h]));
+}
+const diffHtml = (a, b) => hunks(a, b).map((h) => h.t === "=" ? esc(h.s) : (h.del ? `<del>${esc(h.del)}</del>` : "") + (h.ins ? `<ins>${esc(h.ins)}</ins>` : "")).join("");
+function changeCard(c, item) {
+  const body = c.status === "accepted" ? `<ins>${esc(c.neu)}</ins>` : c.status === "rejected" ? esc(c.old) : diffHtml(c.old, c.neu);
+  const isTask = c.target.includes(":");
+  const why = c.cite ? `<span>· from <a data-open="${c.cite}">${esc(byId[c.cite].title)}</a></span>` : "";
+  const acts = c.status === "pending"
+    ? `<button class="btn sm line" data-act="ai-no" data-id="${c.target}"><span class="no">✕</span> Reject</button><button class="btn sm line" data-act="ai-ok" data-id="${c.target}"><span class="ok">✓</span> Accept</button>`
+    : `<span class="state">${c.status === "accepted" ? "✓ Accepted" : "Rejected · original kept"}</span><button class="btn sm" data-act="ai-reset" data-id="${c.target}">Change</button>`;
+  return `<div class="chg ${c.status}" id="blk-${c.target}"><div class="chg-body ${isTask ? "task" : ""}">${isTask ? `<span class="cb ${item && item.checked ? "on" : ""}"></span>` : ""}<span>${body}</span></div>
+    <div class="chg-f"><span>${isTask ? "Checklist line" : "Paragraph"}</span>${why}<span class="grow"></span>${acts}</div></div>`;
+}
+function startAiEdit(id) {
+  const sc = AI_SCRIPT[id];
+  if (!sc) { toast("AI Edit is scripted for “Harbor redesign: kickoff” in this prototype", { open: "fx-note-00" }); return; }
+  S.ai = { noteId: id, prompt: sc.prompt, changes: sc.changes.map((c) => ({ ...c, old: getText(c.target), status: "pending" })) };
+}
+function setChange(target, status) {
+  S.ai.changes.find((c) => c.target === target).status = status;
+}
+function undoAiEdit() {
+  if (undoSnap) byId[undoSnap.noteId].blocks = undoSnap.blocks;
+  undoSnap = null;
+  S.toast = null;
+}
+function finishAiEdit() {
+  const ai = S.ai; const acc = ai.changes.filter((c) => c.status === "accepted");
+  if (acc.length) { undoSnap = { noteId: ai.noteId, blocks: structuredClone(byId[ai.noteId].blocks) }; acc.forEach((c) => setText(c.target, c.neu)); byId[ai.noteId].edited = 0; }
+  S.ai = null;
+  if (acc.length) toast(`${acc.length} AI change${acc.length > 1 ? "s" : ""} applied`, { undo: true });
+}
+
+const CONFLICT = {
+  id: "fx-note-30", mac: "This Mac", macAt: "edited offline 12:41", other: "iPhone", otherAt: "edited 13:05",
+  otherBlocks: { "fx-note-30-p0": "Plant tulips and crocuses in late October.", "fx-note-30-p1": "Cover the roses before the first frost, around 10 November." },
+  otherChecks: { 1: true },
+};
+function renderConflict(back) {
+  const n = byId[CONFLICT.id];
+  const col = (side) => {
+    const isMac = side === "mac";
+    const body = n.blocks.map((b) => {
+      if (b.type === "paragraph") {
+        const a = txt(b.content), o = CONFLICT.otherBlocks[b.id] ?? a;
+        return `<p>${hunks(a, o).map((h) => h.t === "=" ? esc(h.s) : h[isMac ? "del" : "ins"] ? `<span class="diffmark">${esc(h[isMac ? "del" : "ins"])}</span>` : "").join("")}</p>`;
+      }
+      if (b.task) return `<div class="checklist">${b.items.map((it, i) => { const ch = isMac ? it.checked : CONFLICT.otherChecks[i] ?? it.checked; const diff = ch !== (CONFLICT.otherChecks[i] ?? it.checked) || ch !== it.checked; return `<div class="ck ${ch ? "done" : ""}"><span class="cb ${ch ? "on" : ""}"></span><span class="ck-t ${diff ? "diffmark" : ""}">${esc(txt(it.content))}</span></div>`; }).join("")}</div>`;
+      return "";
+    }).join("");
+    return `<div class="cf-col"><div class="cf-ch"><b>${isMac ? CONFLICT.mac : CONFLICT.other}</b><span>${isMac ? CONFLICT.macAt : CONFLICT.otherAt}</span><span class="grow"></span><button class="btn sm line" data-act="cf-keep" data-side="${side}">Keep only this</button></div><h3>${esc(n.title)}</h3>${body}</div>`;
+  };
+  return `<div class="ed-bar">${back}<span>${nbPath(n.nb).map(esc).join(" › ")}</span><span class="grow"></span><span>2 versions</span></div>
+    <div class="cf"><div class="cf-h"><b>Edited in two places while offline.</b><span>Both versions are kept. Nothing is lost until you choose.</span></div>
+    <div class="cf-cols">${col("mac")}${col("other")}</div>
+    <div class="cf-f"><span class="diffmark" style="background:var(--mark-bg);padding:0 4px;border-radius:2px">marked</span> = differs<span class="grow"></span><button class="btn primary" data-act="cf-keep" data-side="both">Keep both as two notes</button></div></div>`;
+}
+
+const STOP = new Set("a an and are as at be by did do does for from has have how i in is it my of on or our say said the to was we what when where which who why with about you your me can there any".split(" "));
+const terms = (s) => s.toLowerCase().match(/[a-zæøå0-9]+/g)?.filter((w) => w.length > 2 && !STOP.has(w)).map((w) => w.replace(/(ing|es|s)$/, "")) ?? [];
+function retrieve(q) {
+  const qs = [...new Set(terms(q))];
+  if (!qs.length) return [];
+  const hits = [];
+  for (const n of D.notes) for (const b of n.blocks) {
+    if (b.type === "heading") continue;
+    const t = b.type === "paragraph" ? txt(b.content) : blockText(b);
+    if (/^See /.test(t)) continue;
+    const words = new Set([...terms(t), ...terms(n.title)]);
+    const score = qs.filter((w) => words.has(w)).length + qs.filter((w) => terms(t).includes(w)).length * 0.5;
+    if (score) hits.push({ n, b, t, score });
+  }
+  return hits.sort((a, b) => b.score - a.score).filter((h, i, arr) => h.score >= Math.max(1.5, arr[0].score * 0.6) && i < 3);
+}
+function answer(q) {
+  const hits = retrieve(q);
+  if (!hits.length) return { q, none: true, text: "Nothing in your notes answers this. I looked at titles and text in all 50 notes.", cites: [] };
+  return { q, text: "From your notes:", lines: hits.map((h, i) => ({ s: h.t, c: [i + 1] })), cites: hits.map((h) => ({ id: h.n.id, blk: h.b.id, quote: h.t })) };
+}
+const SEED_CONVO = [
+  { q: "What did the Harbor client ask for?", lines: [
+      { s: "The client wants a stronger services page and likes the calm navigation.", c: [1] },
+      { s: "The sitemap already splits Services into three.", c: [2] },
+      { s: "Wireframes were signed off in week 43.", c: [3] }],
+    cites: [{ id: "fx-note-13", blk: "fx-note-13-p0", quote: "Client wants a stronger services page." }, { id: "fx-note-01", blk: "fx-note-01-p0", quote: "Top level: Home, Services, Work, About, Contact. Services splits into three." }, { id: "fx-note-12", blk: "fx-note-12-p0", quote: "Harbor wireframes signed off." }] },
+  { q: "What is our budget for Design Days?", none: true, text: "There is no amount for Design Days in your notes. The closest is a reminder to follow up on the conference budget.", cites: [{ id: "fx-note-16", blk: "fx-note-16-p1", quote: "Follow up on the conference budget." }] },
+];
+function renderAsk() {
+  if (!S.aiOn) return `<div class="ask-h">${ic.spark} Ask<span class="grow"></span><button class="btn sm" data-act="ask-close">${ic.close}</button></div><div class="ask-b"><p class="ask-off">AI is off. Nothing leaves this Mac.</p></div><div class="ask-f"><div class="ask-note"><button class="switch" data-act="ai-toggle" aria-label="AI on"></button>AI off</div></div>`;
+  const msgs = S.convo.map((m) => {
+    const lines = m.lines ? `<p>${m.text ? esc(m.text) + " " : ""}</p>${m.lines.map((l) => `<p>${esc(l.s)} ${l.c.map((c) => `<span class="cite" data-cite="${m.cites[c - 1].id}" data-blk="${m.cites[c - 1].blk}">${c}</span>`).join("")}</p>`).join("")}` : "";
+    const none = m.none ? `<p><span class="none">Not in your notes</span></p><p>${esc(m.text)}</p>` : "";
+    const srcs = m.cites.length ? `<div class="sec-h" style="margin:10px 0 2px">${m.none ? "Closest note" : "Sources"} <em>· ${m.cites.length}</em></div><div class="srcs">${m.cites.map((c, i) => `<div class="src" data-cite="${c.id}" data-blk="${c.blk}"><span class="cite">${m.none ? "~" : i + 1}</span><div><b>${esc(byId[c.id].title)}</b><q>${esc(c.quote)}</q></div></div>`).join("")}</div>` : "";
+    return `<div class="q">${esc(m.q)}</div><div class="a">${none}${lines.replace("<p></p>", "")}${srcs}<div class="a-meta">Claude · your login · ${m.cites.length + 2} notes read · ≈0.2¢</div></div>`;
+  }).join("");
+  return `<div class="ask-h">${ic.spark} Ask your notes<span class="grow"></span><button class="btn sm" data-act="ask-close" aria-label="Close">${ic.close}</button></div>
+    <div class="ask-b" data-keep="ask">${msgs || `<p class="ask-off">Ask anything. Answers come only from your notes, with a source for every line.</p>`}</div>
+    <div class="ask-f"><form class="ask-in"><input id="askq" placeholder="Ask about your notes…" autocomplete="off"><button class="btn sm primary" type="submit">Ask</button></form>
+    <div class="ask-note"><button class="switch on" data-act="ai-toggle" aria-label="AI off"></button>AI on · answers cite notes · never edits</div></div>`;
+}
+
+const $ = (s, r = document) => r.querySelector(s);
+function render() {
+  const keep = {}; document.querySelectorAll("[data-keep]").forEach((el) => (keep[el.dataset.keep] = el.scrollTop));
+  document.documentElement.dataset.theme = S.theme || "light";
+  document.body.classList.toggle("frame", S.frame);
+  const app = $("#app"); app.classList.toggle("m", S.mobile);
+  $("#side").innerHTML = S.mobile ? "" : renderSide();
+  const crumbs = S.view === "home" ? "Home" : S.view === "board" ? `Board${S.board !== "all" ? ` <span class="sep">›</span> ${esc(prById[S.board].name)}` : ""}` : `Notes <span class="sep">›</span> ${esc(ctxName(S.ctx))}`;
+  $("#crumb").innerHTML = crumbs;
+  $("#topr").innerHTML = S.aiOn ? `<button class="btn ${S.ask ? "on" : ""}" data-act="ask" title="Ask your notes">${ic.spark} Ask</button>` : "";
+  $("#banner").innerHTML = S.offline ? `<div class="banner"><i class="dot"></i>Offline · edits save on this Mac and sync when you’re back<button data-act="online">Try now</button></div>` : "";
+  $("#view").innerHTML = S.view === "home" ? renderHome() : S.view === "board" ? renderBoard() : renderNotes();
+  const ask = $("#ask"); ask.hidden = !S.ask; ask.innerHTML = S.ask ? renderAsk() : "";
+  $("#tabbar").innerHTML = [["home", ic.home, "Home"], ["notes", ic.notes, "Notes"], ["board", ic.board, "Board"], ["ask", ic.spark, "Ask"]].map(([v, i, l]) => `<button class="${(v === "ask" ? S.ask : S.view === v && !S.ask) ? "on" : ""}" data-tab="${v}">${i}${l}</button>`).join("");
+  $("#switcher").innerHTML = `<button class="on" title="Prototype state (keys 1–8)">${S.state || "·"}</button><span class="rest">${["Home lanes", "Note open", "Ask", "AI Edit", "Board", "Offline", "Conflict", "Mobile"].map((l, i) => `<button data-state="${i + 1}" title="${i + 1} · ${l}">${i + 1}</button>`).join("")}<button data-act="theme" title="Light or dark">◐</button></span>`;
+  $("#layer").innerHTML = S.toast ? `<div class="toast">${esc(S.toast.text)}${S.toast.undo ? `<button data-act="undo">Undo</button>` : ""}${S.toast.open ? `<button data-open="${S.toast.open}">Open it</button>` : ""}</div>` : "";
+  document.querySelectorAll("[data-keep]").forEach((el) => { if (keep[el.dataset.keep] != null) el.scrollTop = keep[el.dataset.keep]; });
+  if (S.flash) {
+    const el = document.getElementById("line-" + S.flash.replace(":", "-")) || document.getElementById("blk-" + S.flash);
+    if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("flash"); }
+    S.flash = null;
+  }
+  const sel = $(".nrow.on"); if (sel && S.view === "notes") sel.scrollIntoView({ block: "nearest" });
+}
+let toastTimer;
+function toast(text, opts = {}) { S.toast = { text, ...opts }; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = null; render(); }, 6000); }
+
+function route() { return S.view === "home" ? "#/home" : S.view === "board" ? `#/board/${S.board}` : `#/notes/${S.ctx.kind}${S.ctx.id ? ":" + S.ctx.id : ""}/${S.noteId}`; }
+function go(patch, push = true) {
+  Object.assign(S, patch); S.state = 0;
+  if (patch.view && patch.view !== "notes") S.conflict = null;
+  const list = S.view === "notes" ? ctxNotes() : [];
+  if (list.length && !list.some((n) => n.id === S.noteId)) S.noteId = list[0].id;
+  if (push && location.hash !== route()) history.pushState(null, "", route());
+  render();
+}
+function parseRoute(h) {
+  const [, v, a, b] = h.split("/");
+  if (v === "board") return { view: "board", board: prById[a] ? a : "all" };
+  if (v === "notes") { const [kind, id] = (a || "all").split(":"); return { view: "notes", ctx: { kind, id }, noteId: byId[b] ? b : S.noteId }; }
+  return { view: "home" };
+}
+function selectNote(id) {
+  if (S.ai && S.ai.noteId !== id) S.ai = null;
+  go({ noteId: id, mpane: "editor", conflict: id === CONFLICT.id ? S.conflict : null });
+}
+function openNote(id, flash) {
+  const n = byId[id]; if (!n) return;
+  const inCtx = S.view === "notes" && ctxNotes().some((x) => x.id === id);
+  const ctx = inCtx ? S.ctx : { kind: "nb", id: n.nb };
+  if (!inCtx && S.q && !matchQ(n)) S.q = $("#q").value = "";
+  if (S.ai && S.ai.noteId !== id) S.ai = null;
+  go({ view: "notes", ctx, noteId: id, flash, mpane: "editor", conflict: id === CONFLICT.id ? S.conflict : null });
+}
+
+function applyState(n) {
+  Object.assign(S, { view: "home", ask: false, ai: null, conflict: null, offline: false, mobile: false, frame: false, toast: null, q: "", board: "all", mpane: "list", aiOn: true, convo: [] });
+  $("#q").value = "";
+  if (n === 2) Object.assign(S, { view: "notes", ctx: { kind: "nb", id: "fx-nb-projects" }, noteId: "fx-note-00" });
+  if (n === 3) Object.assign(S, { view: "notes", ctx: { kind: "project", id: "harbor" }, noteId: "fx-note-13", ask: true, convo: structuredClone(SEED_CONVO) });
+  if (n === 4) { Object.assign(S, { view: "notes", ctx: { kind: "nb", id: "fx-nb-projects" }, noteId: "fx-note-00" }); startAiEdit("fx-note-00"); S.ai.changes[0].status = "accepted"; }
+  if (n === 5) Object.assign(S, { view: "board", board: "all" });
+  if (n === 6) Object.assign(S, { offline: true });
+  if (n === 7) byId[CONFLICT.id].edited = -99;
+  if (n === 7) Object.assign(S, { view: "notes", ctx: { kind: "nb", id: "fx-nb-home" }, noteId: CONFLICT.id, conflict: true, offline: false });
+  if (n === 8) Object.assign(S, { mobile: true, frame: innerWidth > 600 });
+  S.state = n;
+  history.replaceState(null, "", route());
+  render();
+}
+
+function tick(key) {
+  const t = taskByKey(key);
+  t.it.checked = !t.it.checked;
+  if (t.it.checked) t.it.done = 0;
+  else { delete t.it.done; t.it.due ??= 0; }
+  t.n.edited = 0;
+  render();
+}
+
+function keepConflict(side) {
+  const n = byId[CONFLICT.id];
+  const takeOther = (blocks) => blocks.forEach((b) => {
+    const o = CONFLICT.otherBlocks[b.id.replace(/-b$/, "")];
+    if (o) b.content = [{ type: "text", value: o }];
+    if (b.task) Object.entries(CONFLICT.otherChecks).forEach(([i, v]) => (b.items[i].checked = v));
+  });
+  if (side === "other") takeOther(n.blocks);
+  if (side === "both") {
+    const copy = structuredClone(n);
+    copy.id += "-b";
+    copy.title += " (iPhone)";
+    copy.blocks.forEach((b) => (b.id += "-b"));
+    takeOther(copy.blocks);
+    D.notes.push(copy);
+    byId[copy.id] = copy;
+  }
+  S.conflict = null;
+  toast(side === "both" ? "Kept both versions as two notes" : "Kept one version");
+}
+
+const ACTS = {
+  ask: () => { S.ask = !S.ask; S.state = 0; },
+  "ask-close": () => { S.ask = false; },
+  "ai-toggle": () => { S.aiOn = !S.aiOn; S.ai = null; },
+  "ai-edit": () => { if (S.ai) S.ai = null; else startAiEdit(S.noteId); },
+  "ai-ok": (x) => setChange(x.dataset.id, "accepted"),
+  "ai-no": (x) => setChange(x.dataset.id, "rejected"),
+  "ai-reset": (x) => setChange(x.dataset.id, "pending"),
+  "ai-all-ok": () => S.ai.changes.forEach((c) => c.status === "pending" && (c.status = "accepted")),
+  "ai-all-no": () => S.ai.changes.forEach((c) => c.status === "pending" && (c.status = "rejected")),
+  "ai-done": () => finishAiEdit(),
+  undo: () => undoAiEdit(),
+  theme: () => { S.theme = S.theme === "dark" ? "light" : "dark"; },
+  online: () => { S.offline = false; toast("Back online · 3 changes synced"); },
+  "q-clear": () => { S.q = $("#q").value = ""; },
+  "q-list": () => go({ view: "notes", ctx: { kind: "all" } }),
+  mback: () => go({ mpane: "list" }),
+  "cf-keep": (x) => keepConflict(x.dataset.side),
+};
+
+document.addEventListener("click", (e) => {
+  const at = (s) => e.target.closest(s);
+  let x;
+  if ((x = at("[data-state]"))) return applyState(+x.dataset.state);
+  if ((x = at("[data-tick]"))) return tick(x.dataset.tick);
+  if ((x = at("[data-link]"))) return openNote(x.dataset.link);
+  if ((x = at("[data-cite]"))) return openNote(x.dataset.cite, x.dataset.blk);
+  if ((x = at("[data-act]"))) { ACTS[x.dataset.act]?.(x); return render(); }
+  if ((x = at("[data-tab]"))) {
+    const v = x.dataset.tab;
+    S.ask = v === "ask" ? !S.ask : false;
+    return v === "ask" ? render() : go(v === "notes" ? { view: "notes", mpane: "list" } : { view: v, board: "all" });
+  }
+  if ((x = at("[data-board]"))) return go({ view: "board", board: x.dataset.board });
+  if ((x = at("[data-ctx-project]"))) return go({ view: "notes", ctx: { kind: "project", id: x.dataset.ctxProject }, mpane: "list" });
+  if ((x = at("[data-nav]"))) return go({ view: x.dataset.nav, board: "all" });
+  if ((x = at("[data-ctx]"))) return go({ view: "notes", ctx: { kind: "all" }, mpane: "list" });
+  if ((x = at("[data-nb]"))) return go({ view: "notes", ctx: { kind: "nb", id: x.dataset.nb }, mpane: "list" });
+  if ((x = at("[data-note]"))) return selectNote(x.dataset.note);
+  if ((x = at("[data-open]")) && !at("[contenteditable=true]")) return openNote(x.dataset.open, x.dataset.line);
+});
+
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("#askq").value.trim();
+  if (!q) return;
+  S.convo.push(answer(q));
+  render();
+  $(".ask-b").scrollTop = 1e6;
+  $("#askq").focus();
+});
+
+$("#q").addEventListener("input", (e) => { S.q = e.target.value; S.state = 0; render(); });
+$("#q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && S.view !== "notes") go({ view: "notes", ctx: { kind: "all" }, mpane: "list" });
+  if (e.key === "Escape") { S.q = e.target.value = ""; e.target.blur(); render(); }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, [contenteditable=true]")) {
+    if (e.key === "Escape") e.target.blur();
+    return;
+  }
+  if (/^[1-8]$/.test(e.key) && !e.metaKey && !e.ctrlKey) return applyState(+e.key);
+  if (e.key === "Escape") { if (S.ask) S.ask = false; else S.ai = null; return render(); }
+  if (S.view !== "notes" || !["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  const list = ctxNotes();
+  const i = list.findIndex((n) => n.id === S.noteId) + (e.key === "ArrowDown" ? 1 : -1);
+  const next = list[Math.max(0, Math.min(list.length - 1, i))];
+  if (next) selectNote(next.id);
+});
+
+document.addEventListener("input", (e) => {
+  const t = e.target, n = byId[S.noteId];
+  if (!n || !t.isContentEditable) return;
+  if (t.dataset.title) n.title = t.textContent;
+  if (t.dataset.para) n.blocks.find((b) => b.id === t.dataset.para).content = domInline(t);
+  if (t.dataset.item) taskByKey(t.dataset.item).it.content = [{ type: "text", value: t.textContent }];
+  n.edited = 0;
+  const row = $(`.nrow[data-note="${n.id}"]`);
+  if (!row) return;
+  $(".t", row).textContent = n.title || "Untitled";
+  $(".s", row).textContent = snippet(n);
+  $(".d", row).textContent = "just now";
+});
+
+const domInline = (el) => [...el.childNodes].map((nd) => nd.dataset?.link
+  ? { type: "wikilink", target: nd.dataset.link, docId: nd.dataset.link, children: [{ type: "text", value: nd.textContent }] }
+  : { type: "text", value: nd.textContent });
+
+window.addEventListener("popstate", () => { Object.assign(S, parseRoute(location.hash), { state: 0 }); render(); });
+window.addEventListener("resize", () => {
+  if (S.frame || S.mobile === innerWidth < 600) return;
+  S.mobile = innerWidth < 600;
+  render();
+});
+
+S.theme = new URLSearchParams(location.search).get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+const preset = location.hash.match(/s=(\d)/);
+if (preset) applyState(+preset[1]);
+else {
+  if (location.hash.startsWith("#/")) Object.assign(S, parseRoute(location.hash), { state: 0 });
+  S.mobile = innerWidth < 600;
+  history.replaceState(null, "", route());
+  render();
+}
+</script>
+</body>
+</html>

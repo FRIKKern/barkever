@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Barkever · A Quiet</title>
+<style>
+:root{
+  --c-bg:#ffffff; --c-sidebar:#f5f4f0; --c-list:#ffffff; --c-editor:#ffffff; --c-raised:#ffffff;
+  --c-sunken:#f0eee9; --c-hover:rgba(40,36,28,.045); --c-active:rgba(40,36,28,.08); --c-sel:#edf3f0;
+  --c-text:#1c1b19; --c-text-2:#56534d; --c-text-3:#8a867e; --c-text-inv:#ffffff;
+  --c-line:#e8e5df; --c-line-2:#d6d2ca;
+  --c-accent:#1f6f5c; --c-accent-hover:#195c4c; --c-accent-soft:#e3efea; --c-accent-text:#1a6150;
+  --c-ins-bg:#d9f0df; --c-ins-fg:#155c2c; --c-del-bg:#fbe2dd; --c-del-fg:#9e2618;
+  --c-warn:#b7860f; --c-warn-soft:#faf3e1; --c-mark:#fbeaa0;
+  --c-backdrop:#e6e3dd; --c-toast:#262522; --c-toast-text:#f4f2ee;
+  --shadow-1:0 1px 2px rgba(20,18,15,.06),0 3px 10px rgba(20,18,15,.06);
+  --shadow-2:0 12px 40px rgba(20,18,15,.16),0 2px 6px rgba(20,18,15,.06);
+
+  --f-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs-2xs:10.5px; --fs-xs:11.5px; --fs-sm:12.5px; --fs-md:13.5px; --fs-base:14px;
+  --fs-body:15.5px; --fs-lg:18px; --fs-xl:21px; --fs-2xl:26px; --fs-title:30px;
+  --lh-body:1.65; --fw-med:510; --fw-semi:600; --fw-bold:690; --ls-caps:.07em; --ls-tight:-.015em;
+
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  --r-xs:3px; --r-sm:5px; --r-md:7px; --r-lg:10px; --r-xl:14px; --r-full:999px;
+
+  --w-sidebar:240px; --w-list:340px; --w-ask:376px; --w-read:700px;
+  --h-row:98px; --h-bar:48px; --h-tool:40px; --h-foot:44px; --dur:140ms;
+}
+:root[data-theme=dark]{
+  --c-bg:#191918; --c-sidebar:#131312; --c-list:#191918; --c-editor:#1b1b1a; --c-raised:#232321;
+  --c-sunken:#262624; --c-hover:rgba(255,250,240,.045); --c-active:rgba(255,250,240,.08); --c-sel:#1f2b27;
+  --c-text:#ebe9e4; --c-text-2:#aaa69e; --c-text-3:#77736c; --c-text-inv:#0f1d19;
+  --c-line:#2a2a28; --c-line-2:#3a3936;
+  --c-accent:#5dbea2; --c-accent-hover:#74cbb2; --c-accent-soft:rgba(93,190,162,.14); --c-accent-text:#7fd0b8;
+  --c-ins-bg:rgba(80,180,110,.2); --c-ins-fg:#9adfae; --c-del-bg:rgba(235,95,75,.2); --c-del-fg:#f3a497;
+  --c-warn:#d9a93a; --c-warn-soft:rgba(217,169,58,.12); --c-mark:rgba(250,210,80,.3);
+  --c-backdrop:#0e0e0d; --c-toast:#ebe9e4; --c-toast-text:#191918;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4),0 3px 10px rgba(0,0,0,.3);
+  --shadow-2:0 12px 40px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--c-bg);color:var(--c-text);font:var(--fs-base)/1.45 var(--f-sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+mark{background:var(--c-mark);color:inherit;border-radius:2px;padding:0 1px}
+.muted{color:var(--c-text-3)}
+.kbd{font:500 var(--fs-2xs)/1 var(--f-sans);color:var(--c-text-3);border:1px solid var(--c-line-2);border-radius:4px;padding:2px 4px}
+.caps{font-size:var(--fs-2xs);letter-spacing:var(--ls-caps);text-transform:uppercase;color:var(--c-text-3);font-weight:var(--fw-semi)}
+.btn{height:30px;padding:0 12px;border-radius:var(--r-md);border:1px solid var(--c-line-2);background:var(--c-raised);font-size:var(--fs-md);display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--c-sunken)}
+.btn.primary{background:var(--c-accent);border-color:transparent;color:var(--c-text-inv);font-weight:var(--fw-semi)}
+.btn.primary:hover{background:var(--c-accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--c-text-2)}
+.btn.ghost:hover{background:var(--c-hover)}
+.btn.sm{height:26px;padding:0 9px;font-size:var(--fs-sm)}
+.ib{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r-md);border:0;background:transparent;color:var(--c-text-2);cursor:pointer;padding:0}
+.ib:hover{background:var(--c-hover);color:var(--c-text)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--r-full);background:var(--c-sunken);color:var(--c-text-2);font-size:var(--fs-sm);border:0;cursor:pointer;white-space:nowrap}
+.chip:hover{color:var(--c-text)}
+.chip svg.i{width:13px;height:13px}
+.chip.accent{background:var(--c-accent-soft);color:var(--c-accent-text);font-weight:var(--fw-med)}
+.app{display:grid;grid-template-columns:var(--w-sidebar) var(--w-list) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100vh;position:relative;overflow:hidden;background:var(--c-bg)}
+#offline{grid-column:1/-1}
+.app.wide{grid-template-columns:var(--w-sidebar) minmax(0,1fr)}
+.app.wide .list,.app.wide .ed{display:none}
+.app:not(.wide) .wide-pane{display:none}
+.m-only{display:none!important}
+
+.offline{display:flex;align-items:center;gap:10px;height:30px;padding:0 16px;background:var(--c-warn-soft);border-bottom:1px solid var(--c-line);font-size:var(--fs-sm);color:var(--c-text-2)}
+.offline b{color:var(--c-text);font-weight:var(--fw-semi)}
+.offline .btn{margin-left:auto;height:22px;font-size:var(--fs-xs)}
+.sb{background:var(--c-sidebar);border-right:1px solid var(--c-line);display:flex;flex-direction:column;min-height:0}
+.acct{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;font-weight:var(--fw-semi);font-size:var(--fs-md)}
+.avatar{width:24px;height:24px;border-radius:var(--r-full);background:var(--c-accent);color:var(--c-text-inv);font-size:10px;font-weight:700;display:grid;place-items:center;letter-spacing:.02em}
+.acct .ib{margin-left:auto;width:26px;height:26px}
+.search{margin:6px 12px 0;display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 10px;border-radius:var(--r-md);background:var(--c-raised);border:1px solid var(--c-line);color:var(--c-text-3)}
+.search:focus-within{border-color:var(--c-accent);box-shadow:0 0 0 3px var(--c-accent-soft)}
+.search input{border:0;background:transparent;flex:1;min-width:0;font:inherit;font-size:var(--fs-md);color:var(--c-text);outline:none}
+.search input::placeholder{color:var(--c-text-3)}
+.new{margin:10px 12px 8px;height:34px;width:calc(100% - 24px);border-radius:var(--r-md);background:var(--c-accent);color:var(--c-text-inv);display:flex;align-items:center;gap:8px;padding:0 12px;font-weight:var(--fw-semi);font-size:var(--fs-md);border:0;cursor:pointer}
+.new:hover{background:var(--c-accent-hover)}
+.new .kbd{margin-left:auto;color:inherit;opacity:.7;border-color:currentColor}
+.sb-scroll{flex:1;overflow:auto;padding:4px 8px 16px}
+.nav{display:flex;align-items:center;gap:10px;height:29px;padding:0 8px 0 10px;border-radius:var(--r-sm);color:var(--c-text-2);cursor:pointer;font-size:var(--fs-md);user-select:none;white-space:nowrap}
+.nav:hover{background:var(--c-hover);color:var(--c-text)}
+.nav.on{background:var(--c-active);color:var(--c-text);font-weight:var(--fw-semi)}
+.nav>svg.i{color:var(--c-text-3)}
+.nav.on>svg.i{color:var(--c-accent)}
+.nav .lbl{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nav .count{margin-left:auto;font-size:var(--fs-xs);color:var(--c-text-3);font-variant-numeric:tabular-nums;font-weight:400}
+.nav .tw{width:14px;display:grid;place-items:center;margin-left:-4px;margin-right:-6px;color:var(--c-text-3)}
+.nav .tw svg.i{width:12px;height:12px}
+.nav.sub{padding-left:34px}
+.nav.recent{font-size:var(--fs-sm)}
+.sec{margin-top:18px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:0 10px 4px}
+.sec-h .ib{width:20px;height:20px}
+.sec-h .ib svg.i{width:13px;height:13px}
+.sb-foot{display:flex;align-items:center;gap:8px;padding:10px 16px 42px;border-top:1px solid var(--c-line);font-size:var(--fs-xs);color:var(--c-text-3)}
+.sb-foot .dot{width:7px;height:7px;border-radius:50%;background:var(--c-accent)}
+.sb-foot .dot.off{background:var(--c-warn)}
+.list{background:var(--c-list);border-right:1px solid var(--c-line);display:flex;flex-direction:column;min-height:0}
+.list-h{padding:16px 16px 12px 20px;border-bottom:1px solid var(--c-line)}
+.list-h .top{display:flex;align-items:center;gap:4px}
+.list-h h1{font-size:var(--fs-xl);font-weight:var(--fw-bold);margin:0;letter-spacing:var(--ls-tight);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-h .sub{display:flex;align-items:center;gap:8px;margin-top:4px;color:var(--c-text-3);font-size:var(--fs-sm)}
+.list-h .sub .chip{height:20px;font-size:var(--fs-xs)}
+.rows{flex:1;overflow:auto;overscroll-behavior:contain}
+.grp{position:sticky;top:0;z-index:1;background:var(--c-list);padding:12px 20px 5px;border-bottom:1px solid var(--c-line)}
+.row{position:relative;height:var(--h-row);padding:11px 18px 0 20px;border-bottom:1px solid var(--c-line);cursor:pointer;overflow:hidden}
+.row:hover{background:var(--c-hover)}
+.row.on{background:var(--c-sel)}
+.row.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c-accent)}
+.row-meta{display:flex;gap:5px;align-items:center;font-size:var(--fs-xs);color:var(--c-text-3);height:16px;white-space:nowrap}
+.row-meta .nb{color:var(--c-text-2);font-weight:var(--fw-med)}
+.row-meta .ind{margin-left:auto;display:flex;gap:10px;align-items:center}
+.row-meta .ind span{display:inline-flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
+.row-meta .ind svg.i{width:12px;height:12px}
+.row-t{font-size:var(--fs-base);font-weight:var(--fw-semi);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.003em}
+.row-s{font-size:var(--fs-sm);color:var(--c-text-2);line-height:1.42;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:3px}
+.empty{padding:40px 24px;text-align:center;color:var(--c-text-3);font-size:var(--fs-md)}
+.empty svg.i{width:28px;height:28px;display:block;margin:0 auto 10px;stroke-width:1.3}
+.ed{display:flex;min-width:0;min-height:0;overflow:hidden;background:var(--c-editor)}
+.ed-main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.ed-top{height:var(--h-bar);flex:none;display:flex;align-items:center;gap:10px;padding:0 12px 0 20px;border-bottom:1px solid var(--c-line)}
+.crumb{display:flex;align-items:center;gap:6px;color:var(--c-text-2);font-size:var(--fs-md);min-width:0;white-space:nowrap}
+.crumb a{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.crumb a:hover{color:var(--c-text)}
+.crumb svg.i{color:var(--c-text-3);width:15px;height:15px}
+.crumb .sep{color:var(--c-line-2)}
+.crumb .cur{color:var(--c-text);font-weight:var(--fw-med)}
+.ed-actions{margin-left:auto;display:flex;align-items:center;gap:6px}
+.ed-actions .who{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--c-text-3);margin-right:6px}
+.tool{height:var(--h-tool);flex:none;display:flex;align-items:center;gap:1px;padding:0 12px;border-bottom:1px solid var(--c-line);overflow:hidden;white-space:nowrap}
+.tool .div{width:1px;height:18px;background:var(--c-line);margin:0 7px;flex:none}
+.tb{height:28px;min-width:28px;padding:0 7px;border-radius:var(--r-sm);border:0;background:transparent;color:var(--c-text-2);display:inline-flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;font-size:var(--fs-md);flex:none}
+.tb:hover{background:var(--c-hover);color:var(--c-text)}
+.tb.lead{color:var(--c-text);font-weight:var(--fw-semi)}
+.tb.lead svg.i{color:var(--c-accent)}
+.tb.drop::after{content:"";width:0;height:0;border:3.5px solid transparent;border-top:4px solid currentColor;margin-top:4px;opacity:.6}
+.tb.on{background:var(--c-accent-soft);color:var(--c-accent-text)}
+.tb b,.tb i,.tb u,.tb s{font-size:14px;width:12px;text-align:center}
+.menu{position:absolute;z-index:20;background:var(--c-raised);border:1px solid var(--c-line);border-radius:var(--r-lg);box-shadow:var(--shadow-2);padding:6px;min-width:210px}
+.menu .mi{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:var(--r-sm);cursor:pointer;font-size:var(--fs-md);color:var(--c-text)}
+.menu .mi:hover{background:var(--c-hover)}
+.menu .mi svg.i{color:var(--c-text-3)}
+.menu .mi .kbd{margin-left:auto}
+.ed-scroll{flex:1;overflow:auto;min-height:0}
+.doc{max-width:var(--w-read);margin:0 auto;padding:34px 48px 120px}
+.title{font-size:var(--fs-title);font-weight:var(--fw-bold);letter-spacing:-.022em;line-height:1.18;margin:0 0 12px;outline:none}
+.title:empty::before{content:"Untitled";color:var(--c-text-3)}
+.doc-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;color:var(--c-text-3);font-size:var(--fs-sm);margin-bottom:28px}
+.doc-meta .sep{width:3px;height:3px;border-radius:50%;background:var(--c-line-2)}
+.progress{display:inline-flex;align-items:center;gap:7px}
+.bar{width:44px;height:4px;border-radius:2px;background:var(--c-sunken);overflow:hidden;display:inline-block}
+.bar>i{display:block;height:100%;background:var(--c-accent);border-radius:2px}
+.body{font-size:var(--fs-body);line-height:var(--lh-body);outline:none;caret-color:var(--c-accent)}
+.body h2{font-size:var(--fs-lg);font-weight:var(--fw-bold);letter-spacing:-.01em;margin:0 0 6px;line-height:1.35}
+.body h3{font-size:var(--fs-body);font-weight:var(--fw-bold);margin:0 0 4px}
+.body p{margin:0 0 12px}
+.body ul.bl{margin:0 0 14px;padding-left:22px}
+.body ul.bl li{padding:1px 0}
+.body ul.bl li::marker{color:var(--c-text-3)}
+.cl{list-style:none;padding:0;margin:4px 0 16px}
+.cl li{display:flex;gap:11px;align-items:flex-start;padding:2px 0}
+.cb{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--c-line-2);margin-top:5px;flex:none;display:grid;place-items:center;background:var(--c-raised);cursor:pointer;padding:0;color:var(--c-text-inv)}
+.cb:hover{border-color:var(--c-accent)}
+.cb svg.i{width:12px;height:12px;stroke-width:2.4;opacity:0}
+.cb.on{background:var(--c-accent);border-color:var(--c-accent)}
+.cb.on svg.i{opacity:1}
+.cl li.done>span{color:var(--c-text-3);text-decoration:line-through;text-decoration-color:var(--c-line-2)}
+.wl{color:var(--c-accent-text);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--c-accent) 35%,transparent);cursor:pointer;white-space:nowrap}
+.wl:hover{border-bottom-color:var(--c-accent)}
+.wl svg.i{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
+[data-b]{border-radius:var(--r-sm);transition:background 1.2s}
+.flash{background:var(--c-mark)!important;transition:none}
+.linked{margin-top:44px;padding-top:16px;border-top:1px solid var(--c-line)}
+.linked .caps{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.lcard{border:1px solid var(--c-line);border-radius:var(--r-lg);padding:10px 12px 11px;cursor:pointer;background:var(--c-raised);min-width:0}
+.lcard:hover{border-color:var(--c-line-2);box-shadow:var(--shadow-1)}
+.lcard .t{font-weight:var(--fw-semi);font-size:var(--fs-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcard .m{font-size:var(--fs-xs);color:var(--c-text-3);margin-bottom:3px}
+.lcard .s{font-size:var(--fs-sm);color:var(--c-text-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;line-height:1.4}
+.ed-foot{height:var(--h-foot);flex:none;border-top:1px solid var(--c-line);display:flex;align-items:center;padding:0 16px 0 20px;gap:6px;white-space:nowrap;overflow:hidden}
+.ed-foot>svg.i{color:var(--c-text-3);margin-right:4px}
+.ed-foot .add{color:var(--c-text-3);background:transparent;border:1px dashed var(--c-line-2)}
+.saved{margin-left:auto;color:var(--c-text-3);font-size:var(--fs-sm);display:flex;align-items:center;gap:6px}
+.saved svg.i{width:14px;height:14px;color:var(--c-accent)}
+.saved.off svg.i{color:var(--c-warn)}
+.fab{position:absolute;right:22px;bottom:calc(var(--h-foot) + 18px);width:44px;height:44px;border-radius:var(--r-full);background:var(--c-raised);border:1px solid var(--c-line);box-shadow:var(--shadow-1);display:grid;place-items:center;color:var(--c-accent);cursor:pointer;z-index:5;padding:0}
+.fab:hover{box-shadow:var(--shadow-2)}
+.fab svg.i{width:20px;height:20px}
+.fab.on{background:var(--c-accent);color:var(--c-text-inv);border-color:transparent}
+.aibar{position:sticky;top:0;z-index:4;background:var(--c-editor);border-bottom:1px solid var(--c-line);padding:10px 20px}
+.aibar .r1{display:flex;align-items:center;gap:10px;font-size:var(--fs-md)}
+.aibar .r1 svg.i{color:var(--c-accent)}
+.aibar .instr{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;border:1px solid var(--c-line-2);border-radius:var(--r-md);background:var(--c-raised);color:var(--c-text);white-space:nowrap;overflow:hidden}
+.aibar .r2{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:var(--fs-xs);color:var(--c-text-3)}
+.aibar .legend{display:inline-flex;gap:6px;align-items:center}
+.aibar .legend del,.aibar .legend ins{font-size:var(--fs-xs)}
+del{background:var(--c-del-bg);color:var(--c-del-fg);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--c-del-fg) 55%,transparent);border-radius:3px;padding:0 2px}
+ins{background:var(--c-ins-bg);color:var(--c-ins-fg);text-decoration:none;border-radius:3px;padding:0 2px}
+.hunk{position:relative;display:flex;gap:12px;align-items:flex-start;margin:0 -12px 6px;padding:4px 8px 4px 12px;border-radius:var(--r-md);background:color-mix(in srgb,var(--c-accent-soft) 45%,transparent);box-shadow:inset 2px 0 0 var(--c-accent)}
+.hunk .hx{flex:1;min-width:0}
+.hunk .hx p{margin:0}
+.hunk .hc{flex:none;display:flex;gap:4px;margin-top:2px}
+.hc button{height:24px;padding:0 8px;border-radius:var(--r-sm);border:1px solid var(--c-line-2);background:var(--c-raised);cursor:pointer;font-size:var(--fs-xs);display:inline-flex;align-items:center;gap:4px;color:var(--c-text-2)}
+.hc button svg.i{width:12px;height:12px;stroke-width:2.2}
+.hc .yes:hover{border-color:var(--c-ins-fg);color:var(--c-ins-fg)}
+.hc .no:hover{border-color:var(--c-del-fg);color:var(--c-del-fg)}
+.hunk.li{margin-left:-12px}
+.hunk .n{position:absolute;left:-26px;top:6px;font-size:var(--fs-2xs);color:var(--c-text-3);font-variant-numeric:tabular-nums}
+.res{font-size:var(--fs-2xs);color:var(--c-text-3);margin-left:8px;letter-spacing:var(--ls-caps);text-transform:uppercase}
+
+.ask{width:var(--w-ask);flex:none;border-left:1px solid var(--c-line);display:flex;flex-direction:column;background:var(--c-editor);min-height:0}
+.ask-h{height:var(--h-bar);flex:none;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;border-bottom:1px solid var(--c-line);font-weight:var(--fw-semi)}
+.ask-h svg.i{color:var(--c-accent)}
+.ask-h .scope{font-weight:400}
+.ask-h .ib{margin-left:auto}
+.ask-meta{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--c-line);font-size:var(--fs-xs);color:var(--c-text-3)}
+.ask-meta .on{display:inline-flex;align-items:center;gap:5px;margin-left:auto;cursor:pointer}
+.sw{width:24px;height:14px;border-radius:7px;background:var(--c-accent);position:relative}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff}
+.ask-body{flex:1;min-height:0;overflow:auto;padding:12px 16px 4px;display:flex;flex-direction:column}
+.q{align-self:flex-end;max-width:86%;background:var(--c-sunken);border-radius:12px 12px 4px 12px;padding:8px 12px;font-size:var(--fs-md);line-height:1.45}
+.a{font-size:var(--fs-md);line-height:1.55;margin:10px 0 16px}
+.a .lead{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--c-text-3);margin-bottom:4px}
+.a .lead svg.i{width:13px;height:13px;color:var(--c-accent)}
+.a.nf .verdict{display:inline-flex;align-items:center;gap:6px;font-weight:var(--fw-semi);padding:2px 8px 2px 6px;border-radius:var(--r-sm);background:var(--c-sunken);margin-bottom:6px}
+.a.nf .verdict svg.i{width:14px;height:14px;color:var(--c-text-3)}
+.cite{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;margin:0 1px;border-radius:4px;background:var(--c-accent-soft);color:var(--c-accent-text);font-size:10px;font-weight:700;vertical-align:2px;cursor:pointer;line-height:1;border:0}
+.cite:hover{background:var(--c-accent);color:var(--c-text-inv)}
+.srcs{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.src{display:grid;grid-template-columns:18px 1fr;gap:1px 8px;padding:5px 10px;border:1px solid var(--c-line);border-radius:var(--r-md);cursor:pointer;background:var(--c-raised)}
+.src:hover{border-color:var(--c-line-2)}
+.src .k{grid-row:span 2;font-size:10px;font-weight:700;color:var(--c-accent-text);background:var(--c-accent-soft);border-radius:4px;height:16px;display:grid;place-items:center;margin-top:2px}
+.src .t{font-size:var(--fs-sm);font-weight:var(--fw-semi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src .t span{font-weight:400;color:var(--c-text-3)}
+.src .qt{font-size:var(--fs-xs);color:var(--c-text-2);line-height:1.4}
+.searched{font-size:var(--fs-xs);color:var(--c-text-3);margin-top:8px;display:flex;align-items:center;gap:6px}
+.thinking{font-size:var(--fs-sm);color:var(--c-text-3);display:flex;align-items:center;gap:8px;margin:12px 0}
+.thinking i{width:6px;height:6px;border-radius:50%;background:var(--c-accent);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.ask-in{border-top:1px solid var(--c-line);padding:12px 16px 14px}
+.ask-in .box{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--c-line-2);border-radius:var(--r-lg);padding:8px 8px 8px 12px;background:var(--c-raised)}
+.ask-in .box:focus-within{border-color:var(--c-accent);box-shadow:0 0 0 3px var(--c-accent-soft)}
+.ask-in textarea{flex:1;border:0;outline:none;resize:none;background:transparent;font:inherit;font-size:var(--fs-md);color:var(--c-text);height:40px;line-height:1.45}
+.ask-in .ib{background:var(--c-accent);color:var(--c-text-inv);width:28px;height:28px}
+.ask-in .note{font-size:var(--fs-xs);color:var(--c-text-3);margin-top:8px;display:flex;gap:6px;align-items:center}
+.body .para{margin:0 0 12px}
+.cl li .hunk{flex:1;margin:0 -12px 0 -4px;padding-left:8px}
+.cl li .hunk .n{left:-48px}
+.cf-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--c-line);border-radius:var(--r-lg);background:var(--c-warn-soft);margin-bottom:18px}
+.cf-head>svg.i{color:var(--c-warn);width:18px;height:18px;margin-top:1px}
+.cf-head b{display:block;font-size:var(--fs-base)}
+.cf-head span{font-size:var(--fs-sm);color:var(--c-text-2)}
+.cf-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cf-col{border:1px solid var(--c-line);border-radius:var(--r-lg);background:var(--c-raised);display:flex;flex-direction:column;overflow:hidden}
+.cf-col .h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--c-line);font-size:var(--fs-md);font-weight:var(--fw-semi)}
+.cf-col .h span{font-weight:400;color:var(--c-text-3);font-size:var(--fs-sm)}
+.cf-col .h svg.i{color:var(--c-text-3)}
+.cf-col .b{padding:12px 14px;flex:1;font-size:var(--fs-md);line-height:1.55}
+.cf-line{display:flex;gap:9px;align-items:flex-start;padding:3px 8px;margin:0 -8px 2px;border-radius:var(--r-sm)}
+.cf-line.diff{background:var(--c-warn-soft);box-shadow:inset 2px 0 0 var(--c-warn)}
+.cf-line .cb{margin-top:3px;width:15px;height:15px;cursor:default}
+.cf-line .tagd{margin-left:auto;font-size:var(--fs-2xs);color:var(--c-warn);white-space:nowrap;font-weight:var(--fw-semi);padding-top:2px}
+.cf-col .f{padding:10px 14px;border-top:1px solid var(--c-line)}
+.cf-both{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;font-size:var(--fs-sm);color:var(--c-text-3)}
+.struck{color:var(--c-text-3);text-decoration:line-through}
+.wide-pane{display:flex;flex-direction:column;min-height:0;background:var(--c-list)}
+.wide-h{padding:16px 24px 14px;border-bottom:1px solid var(--c-line);display:flex;align-items:flex-end;gap:16px}
+.wide-h h1{font-size:var(--fs-xl);font-weight:var(--fw-bold);margin:0;letter-spacing:var(--ls-tight)}
+.wide-h .sub{color:var(--c-text-3);font-size:var(--fs-sm);margin-top:4px;display:flex;align-items:center;gap:10px}
+.wide-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--c-line-2);border-radius:var(--r-md);overflow:hidden;height:28px}
+.seg button{border:0;background:var(--c-raised);padding:0 11px;font-size:var(--fs-sm);cursor:pointer;color:var(--c-text-2)}
+.seg button+button{border-left:1px solid var(--c-line-2)}
+.seg button.on{background:var(--c-sunken);color:var(--c-text);font-weight:var(--fw-semi)}
+.wide-body{flex:1;overflow:auto;padding:20px 24px 40px;min-height:0}
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:16px;align-items:start}
+.col-h{display:flex;align-items:center;gap:8px;padding:0 4px 10px;font-weight:var(--fw-semi);font-size:var(--fs-md)}
+.col-h svg.i{color:var(--c-text-3)}
+.col-h .count{color:var(--c-text-3);font-weight:400;font-size:var(--fs-sm);margin-left:auto;font-variant-numeric:tabular-nums}
+.col{background:var(--c-sidebar);border:1px solid var(--c-line);border-radius:var(--r-xl);padding:12px 10px 10px}
+.tcard{background:var(--c-raised);border:1px solid var(--c-line);border-radius:var(--r-lg);padding:10px 12px 8px;margin-bottom:8px;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+.tcard .h{display:flex;align-items:center;gap:8px}
+.tcard .h a{font-weight:var(--fw-semi);font-size:var(--fs-md);cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard .h a:hover{color:var(--c-accent-text)}
+.tcard .h .n{font-size:var(--fs-xs);color:var(--c-text-3);font-variant-numeric:tabular-nums}
+.tcard .m{font-size:var(--fs-xs);color:var(--c-text-3);margin:2px 0 6px;display:flex;align-items:center;gap:8px}
+.tcard .bar{width:100%;height:3px;margin:0 0 6px}
+.titem{display:flex;align-items:center;gap:9px;padding:4px 4px;margin:0 -4px;border-radius:var(--r-sm);font-size:var(--fs-md)}
+.titem:hover{background:var(--c-hover)}
+.titem .cb{margin-top:0;width:16px;height:16px}
+.titem.done>span{color:var(--c-text-3);text-decoration:line-through;text-decoration-color:var(--c-line-2)}
+.titem .go{margin-left:auto;opacity:0;color:var(--c-text-3);cursor:pointer;display:grid}
+.titem:hover .go{opacity:1}
+.titem .go svg.i{width:13px;height:13px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--c-toast);color:var(--c-toast-text);padding:8px 8px 8px 14px;border-radius:var(--r-lg);font-size:var(--fs-md);display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-2);z-index:50}
+.toast button{white-space:nowrap;border:0;background:transparent;color:inherit;font-weight:var(--fw-semi);cursor:pointer;padding:4px 8px;border-radius:var(--r-sm);text-decoration:underline;text-underline-offset:2px}
+.states{position:fixed;left:12px;bottom:9px;z-index:40;display:flex;align-items:center;gap:1px;padding:3px;border-radius:var(--r-md);background:var(--c-sidebar);border:1px solid var(--c-line);opacity:.8}
+.states:hover{opacity:1}
+.states .l{font-size:var(--fs-2xs);color:var(--c-text-3);padding:0 6px 0 4px;letter-spacing:var(--ls-caps);text-transform:uppercase;font-weight:var(--fw-semi)}
+.states button{width:20px;height:20px;border:0;border-radius:4px;background:transparent;color:var(--c-text-3);font-size:var(--fs-xs);cursor:pointer;padding:0;font-variant-numeric:tabular-nums;display:grid;place-items:center}
+.states button:hover{color:var(--c-text);background:var(--c-hover)}
+.states button.on{background:var(--c-accent);color:var(--c-text-inv);font-weight:700}
+.states button svg.i{width:13px;height:13px}
+body.noui .states{display:none}
+@media (max-width:700px){.states{left:50%;transform:translateX(-50%);top:8px;bottom:auto}.states .l{display:none}}
+body.framed{background:var(--c-backdrop);display:grid;place-items:center}
+body.framed .app{width:390px;height:min(844px,calc(100vh - 40px));border-radius:28px;border:1px solid var(--c-line-2);box-shadow:var(--shadow-2)}
+
+.m{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto}
+.m .m-only{display:flex!important}
+.m .d-only{display:none!important}
+.m .sb{display:none}
+.m.drawer .sb{display:flex;position:absolute;z-index:30;left:0;top:0;bottom:0;width:84%;box-shadow:var(--shadow-2)}
+.m.drawer .scrim{display:block}
+.scrim{display:none;position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:29}
+.m .list{border-right:0;grid-column:1}
+.m .ed{grid-column:1}
+.m.scr-list .ed{display:none}
+.m.scr-note .list{display:none}
+.m .ask{position:absolute;inset:0;width:auto;z-index:25;border-left:0}
+.m .mtop{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.m .list-h{padding:2px 16px 10px;border-bottom:0}
+.m .list-h h1{font-size:var(--fs-2xl)}
+.m .msearch{display:flex;margin:10px 0 0}
+.m .msearch .search{margin:0;flex:1;background:var(--c-sunken);border-color:transparent}
+.m .row{padding-left:16px;padding-right:16px}
+.m .grp{padding-left:16px}
+.tabbar{grid-column:1/-1;height:58px;border-top:1px solid var(--c-line);background:var(--c-sidebar);align-items:center;justify-content:space-around;padding:0 6px 6px}
+.tabbar .tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--c-text-3);border:0;background:transparent;cursor:pointer;width:62px;padding-top:6px}
+.tabbar .tab svg.i{width:21px;height:21px}
+.tabbar .tab.on{color:var(--c-accent-text);font-weight:var(--fw-semi)}
+.tabbar .plus{width:46px;height:46px;border-radius:var(--r-full);background:var(--c-accent);color:var(--c-text-inv);display:grid;place-items:center;border:0;margin-top:-2px;box-shadow:var(--shadow-1)}
+.tabbar .plus svg.i{width:22px;height:22px;stroke-width:2}
+.m.scr-note .tabbar{display:none!important}
+.m .ed-top{padding:0 6px}
+.m .ed-top .crumb .cur{display:none}
+.m .tool{padding:0 8px;overflow-x:auto}
+.m .doc{padding:20px 18px 100px}
+.m .title{font-size:var(--fs-2xl)}
+.m .ed-foot{padding:0 14px}
+.m .wide-pane{grid-column:1}
+.m .board{grid-template-columns:1fr}
+.m .home-grid{grid-template-columns:1fr}
+.m .ncards{grid-template-columns:1fr 1fr}
+.m .cf-cols{grid-template-columns:1fr}
+.m .aibar .r1 .btn:not(.primary){display:none}
+.m .hunk{flex-direction:column;gap:4px}
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div id="offline"></div>
+  <aside class="sb" id="sb"></aside>
+  <section class="list" id="list"></section>
+  <main class="ed" id="ed"></main>
+  <section class="wide-pane" id="wide"></section>
+  <nav class="tabbar m-only" id="tabbar"></nav>
+  <div class="scrim" data-act="drawer"></div>
+</div>
+<div class="states" id="states"></div>
+<div id="layer"></div>
+<script id="fixture" type="application/json">{"meta":{"now":"2026-10-29T12:00","user":"Ola Testesen","shortcuts":["fx-note-00","fx-note-28","fx-note-18","fx-note-42","fx-note-49"]},"notebooks":[{"_id":"fx-nb-inbox","name":"Inbox","parent":null},{"_id":"fx-nb-work","name":"Work","parent":null},{"_id":"fx-nb-projects","name":"Projects","parent":"fx-nb-work"},{"_id":"fx-nb-meetings","name":"Meetings","parent":"fx-nb-work"},{"_id":"fx-nb-home","name":"Home","parent":null},{"_id":"fx-nb-reading","name":"Reading","parent":null},{"_id":"fx-nb-travel","name":"Travel","parent":null}],"notes":[{"_type":"note","_id":"fx-note-00","title":"Harbor redesign: kickoff","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","kickoff"],"body":{"blocks":[{"id":"fx-note-00-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-00-p0","type":"paragraph","content":[{"type":"text","value":"Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action."}]},{"id":"fx-note-00-p1","type":"paragraph","content":[{"type":"text","value":"Owner: Ola Testesen. Deadline end of quarter."}]},{"id":"fx-note-00-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-29T10:42"},{"_type":"note","_id":"fx-note-01","title":"Harbor redesign: sitemap","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","ia"],"body":{"blocks":[{"id":"fx-note-01-p0","type":"paragraph","content":[{"type":"text","value":"Top level: Home, Services, Work, About, Contact. Services splits into three."}]},{"id":"fx-note-01-p1","type":"paragraph","content":[{"type":"text","value":"Open question: does Work need filters?"}]},{"id":"fx-note-01-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}],"updated":"2026-10-22T11:57"},{"_type":"note","_id":"fx-note-02","title":"Harbor redesign: wireframes","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","design"],"body":{"blocks":[{"id":"fx-note-02-p0","type":"paragraph","content":[{"type":"text","value":"Three wireframe rounds. Round two dropped the carousel."}]},{"id":"fx-note-02-p1","type":"paragraph","content":[{"type":"text","value":"Mobile first, then desktop."}]},{"id":"fx-note-02-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}],"updated":"2026-10-22T19:30"},{"_type":"note","_id":"fx-note-03","title":"Harbor redesign: content plan","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","content"],"body":{"blocks":[{"id":"fx-note-03-p0","type":"paragraph","content":[{"type":"text","value":"Every page gets one owner and one deadline."}]},{"id":"fx-note-03-p1","type":"paragraph","content":[{"type":"text","value":"Copy lives in the CMS from day one."}]},{"id":"fx-note-03-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-25T10:27"},{"_type":"note","_id":"fx-note-04","title":"Lighthouse app: brief","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","brief"],"body":{"blocks":[{"id":"fx-note-04-p0","type":"paragraph","content":[{"type":"text","value":"A small app that reminds field crews of safety checks."}]},{"id":"fx-note-04-p1","type":"paragraph","content":[{"type":"text","value":"Works offline; syncs at the depot."}]},{"id":"fx-note-04-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}],"updated":"2026-10-13T03:32"},{"_type":"note","_id":"fx-note-05","title":"Lighthouse app: risks","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","risk"],"body":{"blocks":[{"id":"fx-note-05-p0","type":"paragraph","content":[{"type":"text","value":"Biggest risk: crews ignore notifications."}]},{"id":"fx-note-05-p1","type":"paragraph","content":[{"type":"text","value":"Second: battery drain from location checks."}]},{"id":"fx-note-05-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-10-14T03:15"},{"_type":"note","_id":"fx-note-06","title":"Lighthouse app: estimate","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","estimate"],"body":{"blocks":[{"id":"fx-note-06-p0","type":"paragraph","content":[{"type":"text","value":"Rough estimate: six weeks for two people."}]},{"id":"fx-note-06-p1","type":"paragraph","content":[{"type":"text","value":"Excludes the admin dashboard."}]},{"id":"fx-note-06-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-04","docId":"fx-note-04","children":[{"type":"text","value":"Lighthouse app: brief"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-04","_key":"fx-note-04"}],"updated":"2026-09-17T15:17"},{"_type":"note","_id":"fx-note-07","title":"Quarry rebrand: moodboard","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","design"],"body":{"blocks":[{"id":"fx-note-07-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-07-p0","type":"paragraph","content":[{"type":"text","value":"Stone greys, one warm accent, a lot of white space."}]},{"id":"fx-note-07-p1","type":"paragraph","content":[{"type":"text","value":"Typeface shortlist: three grotesks."}]}]},"links":[],"updated":"2026-09-18T00:30"},{"_type":"note","_id":"fx-note-08","title":"Quarry rebrand: naming","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","naming"],"body":{"blocks":[{"id":"fx-note-08-p0","type":"paragraph","content":[{"type":"text","value":"Twelve candidates, three survived the shout test."}]},{"id":"fx-note-08-p1","type":"paragraph","content":[{"type":"text","value":"Check domains before the next meeting."}]},{"id":"fx-note-08-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-18T00:35"},{"_type":"note","_id":"fx-note-09","title":"Quarry rebrand: launch","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","launch"],"body":{"blocks":[{"id":"fx-note-09-p0","type":"paragraph","content":[{"type":"text","value":"Soft launch to customers first, press a week later."}]},{"id":"fx-note-09-p1","type":"paragraph","content":[{"type":"text","value":"Need a one-page story for sales."}]},{"id":"fx-note-09-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-07","docId":"fx-note-07","children":[{"type":"text","value":"Quarry rebrand: moodboard"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-07","_key":"fx-note-07"}],"updated":"2026-09-19T03:06"},{"_type":"note","_id":"fx-note-10","title":"Weekly sync, week 41","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-10-p0","type":"paragraph","content":[{"type":"text","value":"Harbor is on track. Lighthouse waits on the risk review."}]},{"id":"fx-note-10-p1","type":"paragraph","content":[{"type":"text","value":"Decision: drop the carousel."}]},{"id":"fx-note-10-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}],"updated":"2026-10-16T03:42"},{"_type":"note","_id":"fx-note-11","title":"Weekly sync, week 42","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-11-p0","type":"paragraph","content":[{"type":"text","value":"Quarry naming narrowed to three."}]},{"id":"fx-note-11-p1","type":"paragraph","content":[{"type":"text","value":"Lighthouse estimate approved."}]},{"id":"fx-note-11-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-20T03:00"},{"_type":"note","_id":"fx-note-12","title":"Weekly sync, week 43","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-12-p0","type":"paragraph","content":[{"type":"text","value":"Harbor wireframes signed off."}]},{"id":"fx-note-12-p1","type":"paragraph","content":[{"type":"text","value":"Hiring: one designer, start in January."}]},{"id":"fx-note-12-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-02","docId":"fx-note-02","children":[{"type":"text","value":"Harbor redesign: wireframes"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-02","_key":"fx-note-02"}],"updated":"2026-10-27T22:51"},{"_type":"note","_id":"fx-note-13","title":"Client call: Harbor","notebook":{"_ref":"fx-nb-meetings"},"tags":["harbor","client"],"body":{"blocks":[{"id":"fx-note-13-p0","type":"paragraph","content":[{"type":"text","value":"Client wants a stronger services page."}]},{"id":"fx-note-13-p1","type":"paragraph","content":[{"type":"text","value":"They like the calm navigation."}]},{"id":"fx-note-13-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}],"updated":"2026-10-21T14:47"},{"_type":"note","_id":"fx-note-14","title":"Client call: Quarry","notebook":{"_ref":"fx-nb-meetings"},"tags":["quarry","client"],"body":{"blocks":[{"id":"fx-note-14-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-14-p0","type":"paragraph","content":[{"type":"text","value":"Client prefers the warmest of the three names."}]},{"id":"fx-note-14-p1","type":"paragraph","content":[{"type":"text","value":"Logo first, then the site."}]},{"id":"fx-note-14-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-08","docId":"fx-note-08","children":[{"type":"text","value":"Quarry rebrand: naming"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-08","_key":"fx-note-08"}],"updated":"2026-09-19T16:05"},{"_type":"note","_id":"fx-note-15","title":"Retro: September","notebook":{"_ref":"fx-nb-meetings"},"tags":["retro"],"body":{"blocks":[{"id":"fx-note-15-p0","type":"paragraph","content":[{"type":"text","value":"Went well: short meetings. Went badly: too many tools."}]},{"id":"fx-note-15-p1","type":"paragraph","content":[{"type":"text","value":"Try: one notes app for everything."}]},{"id":"fx-note-15-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-09-20T21:27"},{"_type":"note","_id":"fx-note-16","title":"1:1 with Kari Eksempel","notebook":{"_ref":"fx-nb-meetings"},"tags":["1on1"],"body":{"blocks":[{"id":"fx-note-16-p0","type":"paragraph","content":[{"type":"text","value":"Kari wants more ownership of Lighthouse."}]},{"id":"fx-note-16-p1","type":"paragraph","content":[{"type":"text","value":"Follow up on the conference budget."}]},{"id":"fx-note-16-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-24T06:45"},{"_type":"note","_id":"fx-note-17","title":"Planning: Q4","notebook":{"_ref":"fx-nb-meetings"},"tags":["planning"],"body":{"blocks":[{"id":"fx-note-17-p0","type":"paragraph","content":[{"type":"text","value":"Three bets for Q4: Harbor launch, Lighthouse beta, Quarry identity."}]},{"id":"fx-note-17-p1","type":"paragraph","content":[{"type":"text","value":"Everything else waits."}]},{"id":"fx-note-17-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}],"updated":"2026-09-21T13:12"},{"_type":"note","_id":"fx-note-18","title":"Team handbook","notebook":{"_ref":"fx-nb-work"},"tags":["handbook"],"body":{"blocks":[{"id":"fx-note-18-p0","type":"paragraph","content":[{"type":"text","value":"How we work: small teams, written decisions, short meetings."}]},{"id":"fx-note-18-p1","type":"paragraph","content":[{"type":"text","value":"Ask before pushing to production."}]},{"id":"fx-note-18-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-09-22T21:20"},{"_type":"note","_id":"fx-note-19","title":"Onboarding checklist","notebook":{"_ref":"fx-nb-work"},"tags":["handbook","onboarding"],"body":{"blocks":[{"id":"fx-note-19-p0","type":"paragraph","content":[{"type":"text","value":"Day one is for laptops and coffee."}]},{"id":"fx-note-19-p1","type":"paragraph","content":[{"type":"text","value":"Week one ends with a small shipped change."}]},{"id":"fx-note-19-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-15T14:50"},{"_type":"note","_id":"fx-note-20","title":"Writing guide","notebook":{"_ref":"fx-nb-work"},"tags":["handbook","writing"],"body":{"blocks":[{"id":"fx-note-20-p0","type":"paragraph","content":[{"type":"text","value":"Plain words. Lead with the picture. Cut every sentence a reader can skip."}]}]},"links":[],"updated":"2026-09-23T15:51"},{"_type":"note","_id":"fx-note-21","title":"Tool list","notebook":{"_ref":"fx-nb-work"},"tags":["tools"],"body":{"blocks":[{"id":"fx-note-21-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-21-p0","type":"paragraph","content":[{"type":"text","value":"Notes, chat, calendar, code host. Nothing else without a reason."}]},{"id":"fx-note-21-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-09-25T03:45"},{"_type":"note","_id":"fx-note-22","title":"Untitled","notebook":{"_ref":"fx-nb-inbox"},"tags":[],"body":{"blocks":[{"id":"fx-note-22-p0","type":"paragraph","content":[{"type":"text","value":"Call the printer about the Quarry samples."}]}]},"links":[],"updated":"2026-09-26T01:02"},{"_type":"note","_id":"fx-note-23","title":"Idea: visual diff for AI edits","notebook":{"_ref":"fx-nb-inbox"},"tags":["idea","ai"],"body":{"blocks":[{"id":"fx-note-23-p0","type":"paragraph","content":[{"type":"text","value":"Show AI changes as red and green, accept one by one."}]}]},"links":[],"updated":"2026-10-25T23:32"},{"_type":"note","_id":"fx-note-24","title":"Idea: offline banner","notebook":{"_ref":"fx-nb-inbox"},"tags":["idea"],"body":{"blocks":[{"id":"fx-note-24-p0","type":"paragraph","content":[{"type":"text","value":"A quiet line at the top when offline, nothing more."}]}]},"links":[],"updated":"2026-10-17T08:57"},{"_type":"note","_id":"fx-note-25","title":"Book the dentist","notebook":{"_ref":"fx-nb-inbox"},"tags":[],"body":{"blocks":[{"id":"fx-note-25-p0","type":"paragraph","content":[{"type":"text","value":"Before the end of the month."}]},{"id":"fx-note-25-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-09-26T08:42"},{"_type":"note","_id":"fx-note-26","title":"Podcast to try","notebook":{"_ref":"fx-nb-inbox"},"tags":["listen"],"body":{"blocks":[{"id":"fx-note-26-p0","type":"paragraph","content":[{"type":"text","value":"Someone recommended a show about city planning."}]}]},"links":[],"updated":"2026-09-27T08:45"},{"_type":"note","_id":"fx-note-27","title":"Gift ideas","notebook":{"_ref":"fx-nb-inbox"},"tags":["gifts"],"body":{"blocks":[{"id":"fx-note-27-p0","type":"paragraph","content":[{"type":"text","value":"Plant, cookbook, a good pen."}]},{"id":"fx-note-27-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-09-27T19:11"},{"_type":"note","_id":"fx-note-28","title":"Plan for the day","notebook":{"_ref":"fx-nb-home"},"tags":["daily"],"body":{"blocks":[{"id":"fx-note-28-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-28-p0","type":"paragraph","content":[{"type":"text","value":"Morning: deep work. Afternoon: calls. Evening: walk."}]},{"id":"fx-note-28-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-29T08:05"},{"_type":"note","_id":"fx-note-29","title":"Groceries","notebook":{"_ref":"fx-nb-home"},"tags":["shopping"],"body":{"blocks":[{"id":"fx-note-29-p0","type":"paragraph","content":[{"type":"text","value":"The usual, plus things for Sunday dinner."}]},{"id":"fx-note-29-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-23T20:26"},{"_type":"note","_id":"fx-note-30","title":"Garden: autumn","notebook":{"_ref":"fx-nb-home"},"tags":["garden"],"body":{"blocks":[{"id":"fx-note-30-p0","type":"paragraph","content":[{"type":"text","value":"Plant tulips in late October."}]},{"id":"fx-note-30-p1","type":"paragraph","content":[{"type":"text","value":"Cover the roses before frost."}]},{"id":"fx-note-30-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-19T08:36"},{"_type":"note","_id":"fx-note-31","title":"Garden: spring","notebook":{"_ref":"fx-nb-home"},"tags":["garden"],"body":{"blocks":[{"id":"fx-note-31-p0","type":"paragraph","content":[{"type":"text","value":"Sow peas in April."}]},{"id":"fx-note-31-p1","type":"paragraph","content":[{"type":"text","value":"Prune the apple tree."}]},{"id":"fx-note-31-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-30","docId":"fx-note-30","children":[{"type":"text","value":"Garden: autumn"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-30","_key":"fx-note-30"}],"updated":"2026-09-28T23:00"},{"_type":"note","_id":"fx-note-32","title":"Recipes: sourdough","notebook":{"_ref":"fx-nb-home"},"tags":["recipes"],"body":{"blocks":[{"id":"fx-note-32-p0","type":"paragraph","content":[{"type":"text","value":"Starter at 100 percent hydration."}]},{"id":"fx-note-32-p1","type":"paragraph","content":[{"type":"text","value":"Bake at 250 degrees, lid on for 20 minutes."}]},{"id":"fx-note-32-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-09-29T12:12"},{"_type":"note","_id":"fx-note-33","title":"Recipes: fish soup","notebook":{"_ref":"fx-nb-home"},"tags":["recipes"],"body":{"blocks":[{"id":"fx-note-33-p0","type":"paragraph","content":[{"type":"text","value":"Stock, cream, leeks, carrots, and whatever fish is fresh."}]},{"id":"fx-note-33-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-32","docId":"fx-note-32","children":[{"type":"text","value":"Recipes: sourdough"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-32","_key":"fx-note-32"}],"updated":"2026-09-30T18:47"},{"_type":"note","_id":"fx-note-34","title":"Kitchen cupboards","notebook":{"_ref":"fx-nb-home"},"tags":["home"],"body":{"blocks":[{"id":"fx-note-34-p0","type":"paragraph","content":[{"type":"text","value":"Go through every cupboard. One shelf per evening."}]},{"id":"fx-note-34-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-01T11:45"},{"_type":"note","_id":"fx-note-35","title":"Car service","notebook":{"_ref":"fx-nb-home"},"tags":["car"],"body":{"blocks":[{"id":"fx-note-35-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-35-p0","type":"paragraph","content":[{"type":"text","value":"Winter tyres in November."}]},{"id":"fx-note-35-p1","type":"paragraph","content":[{"type":"text","value":"Check the brake fluid."}]},{"id":"fx-note-35-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-02T21:06"},{"_type":"note","_id":"fx-note-36","title":"Budget: November","notebook":{"_ref":"fx-nb-home"},"tags":["money"],"body":{"blocks":[{"id":"fx-note-36-p0","type":"paragraph","content":[{"type":"text","value":"Rent, food, transport, one dinner out."}]},{"id":"fx-note-36-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-10-03T16:50"},{"_type":"note","_id":"fx-note-37","title":"Notes: The Calm Interface","notebook":{"_ref":"fx-nb-reading"},"tags":["book","design"],"body":{"blocks":[{"id":"fx-note-37-p0","type":"paragraph","content":[{"type":"text","value":"Main idea: visible information makes a screen feel cleaner."}]},{"id":"fx-note-37-p1","type":"paragraph","content":[{"type":"text","value":"Chapter four: predictable layouts."}]}]},"links":[],"updated":"2026-10-03T21:57"},{"_type":"note","_id":"fx-note-38","title":"Notes: Small Teams","notebook":{"_ref":"fx-nb-reading"},"tags":["book","work"],"body":{"blocks":[{"id":"fx-note-38-p0","type":"paragraph","content":[{"type":"text","value":"Teams of three to five decide faster."}]},{"id":"fx-note-38-p1","type":"paragraph","content":[{"type":"text","value":"Write decisions down."}]},{"id":"fx-note-38-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-18","_key":"fx-note-18"}],"updated":"2026-10-04T20:27"},{"_type":"note","_id":"fx-note-39","title":"Notes: Local First","notebook":{"_ref":"fx-nb-reading"},"tags":["book","tech"],"body":{"blocks":[{"id":"fx-note-39-p0","type":"paragraph","content":[{"type":"text","value":"Your data lives on your device first, the cloud second."}]},{"id":"fx-note-39-p1","type":"paragraph","content":[{"type":"text","value":"Conflicts should never lose work."}]}]},"links":[],"updated":"2026-10-05T05:20"},{"_type":"note","_id":"fx-note-40","title":"Article: Information architecture","notebook":{"_ref":"fx-nb-reading"},"tags":["article","ia"],"body":{"blocks":[{"id":"fx-note-40-p0","type":"paragraph","content":[{"type":"text","value":"IA is organizing, labelling and prioritizing content so it is easy to find."}]},{"id":"fx-note-40-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}],"updated":"2026-10-06T06:36"},{"_type":"note","_id":"fx-note-41","title":"Article: Writing for screens","notebook":{"_ref":"fx-nb-reading"},"tags":["article","writing"],"body":{"blocks":[{"id":"fx-note-41-p0","type":"paragraph","content":[{"type":"text","value":"People scan. Front-load the point."}]},{"id":"fx-note-41-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-20","docId":"fx-note-20","children":[{"type":"text","value":"Writing guide"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-20","_key":"fx-note-20"}],"updated":"2026-10-06T18:15"},{"_type":"note","_id":"fx-note-42","title":"Reading list","notebook":{"_ref":"fx-nb-reading"},"tags":["list"],"body":{"blocks":[{"id":"fx-note-42-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-42-p0","type":"paragraph","content":[{"type":"text","value":"Five books for winter."}]},{"id":"fx-note-42-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-10-07T22:17"},{"_type":"note","_id":"fx-note-43","title":"Trip: Bergen weekend","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-43-p0","type":"paragraph","content":[{"type":"text","value":"Train Friday evening, back Sunday."}]},{"id":"fx-note-43-p1","type":"paragraph","content":[{"type":"text","value":"Fish market Saturday morning."}]},{"id":"fx-note-43-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-14T12:21"},{"_type":"note","_id":"fx-note-44","title":"Trip: Lofoten summer","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-44-p0","type":"paragraph","content":[{"type":"text","value":"Rent a cabin for a week in July."}]},{"id":"fx-note-44-p1","type":"paragraph","content":[{"type":"text","value":"Bring rain gear."}]},{"id":"fx-note-44-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-10-08T12:42"},{"_type":"note","_id":"fx-note-45","title":"Packing list","notebook":{"_ref":"fx-nb-travel"},"tags":["trip","list"],"body":{"blocks":[{"id":"fx-note-45-p0","type":"paragraph","content":[{"type":"text","value":"Charger, passport, wool sweater."}]},{"id":"fx-note-45-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[],"updated":"2026-10-27T06:00"},{"_type":"note","_id":"fx-note-46","title":"Conference: Design Days","notebook":{"_ref":"fx-nb-travel"},"tags":["conference"],"body":{"blocks":[{"id":"fx-note-46-p0","type":"paragraph","content":[{"type":"text","value":"Two days of talks in Oslo, one workshop."}]},{"id":"fx-note-46-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-16","docId":"fx-note-16","children":[{"type":"text","value":"1:1 with Kari Eksempel"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-16","_key":"fx-note-16"}],"updated":"2026-10-09T20:30"},{"_type":"note","_id":"fx-note-47","title":"Hotels to remember","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-47-p0","type":"paragraph","content":[{"type":"text","value":"The small one by the harbour had the best breakfast."}]}]},"links":[],"updated":"2026-10-10T13:41"},{"_type":"note","_id":"fx-note-48","title":"Decision log","notebook":{"_ref":"fx-nb-work"},"tags":["decisions"],"body":{"blocks":[{"id":"fx-note-48-p0","type":"paragraph","content":[{"type":"text","value":"Every decision gets a number, a date and a reason."}]},{"id":"fx-note-48-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-18","_key":"fx-note-18"}],"updated":"2026-10-12T00:15"},{"_type":"note","_id":"fx-note-49","title":"Glossary","notebook":{"_ref":"fx-nb-work"},"tags":["handbook"],"body":{"blocks":[{"id":"fx-note-49-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-49-p0","type":"paragraph","content":[{"type":"text","value":"Journey: a stable acceptance requirement. Spike: a rival test."}]},{"id":"fx-note-49-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[],"updated":"2026-10-12T21:12"}]}</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("fixture").textContent);
+const META = DATA.meta, NBS = DATA.notebooks, NOTES = DATA.notes;
+const byId = Object.fromEntries(NOTES.map((n) => [n._id, n]));
+const nbById = Object.fromEntries(NBS.map((b) => [b._id, b]));
+const ORIGINAL = JSON.stringify(NOTES);
+const P = {
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  home:'<path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V19.5h4.5v-5h3v5H18V9.5"/>',
+  star:'<path d="M12 4.5l2.3 4.7 5.2.8-3.8 3.6.9 5.1L12 16.3l-4.6 2.4.9-5.1-3.8-3.6 5.2-.8z"/>',
+  note:'<path d="M7 3.5h7l4 4v13H7a1 1 0 01-1-1v-15a1 1 0 011-1z"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6"/>',
+  notes:'<path d="M8 3.5h8.5l3 3V18a1 1 0 01-1 1H8a1 1 0 01-1-1V4.5a1 1 0 011-1z"/><path d="M4.5 7v12.5a1 1 0 001 1H15"/>',
+  task:'<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  file:'<path d="M8.5 12.5l5.4-5.4a2.5 2.5 0 013.6 3.5l-7.1 7.1a4 4 0 01-5.7-5.7l6.6-6.5"/>',
+  cal:'<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
+  tpl:'<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 9.5h16M10 9.5V20"/>',
+  book:'<path d="M6.5 4H18.5v16H6.5A1.5 1.5 0 015 18.5v-13A1.5 1.5 0 016.5 4z"/><path d="M9 4v16"/>',
+  stack:'<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 16l8 4 8-4"/>',
+  down:'<path d="M7 10l5 5 5-5"/>', right:'<path d="M10 7l5 5-5 5"/>', left:'<path d="M15 6l-6 6 6 6"/>',
+  clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>',
+  spark:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+  pen:'<path d="M4.5 19.5l1-4.2L15.8 5a2 2 0 012.8 0l.4.4a2 2 0 010 2.8L8.7 18.5z"/><path d="M13.5 7.3l3.2 3.2"/>',
+  tag:'<path d="M4 4.5h7l8.5 8.5-6.5 6.5L4.5 11z"/><circle cx="8.3" cy="8.8" r="1.3"/>',
+  link:'<path d="M10 14a3.5 3.5 0 005 0l3-3a3.5 3.5 0 00-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 00-5 0l-3 3a3.5 3.5 0 005 5l1-1"/>',
+  back:'<path d="M9 14l-4.5-4.5L9 5"/><path d="M4.5 9.5h9a5.5 5.5 0 015.5 5.5v4"/>',
+  cloudoff:'<path d="M8 18.5h9a4 4 0 00.6-8 6 6 0 00-10.4-2.3M5.2 9.3A4.5 4.5 0 007 18.5"/><path d="M4 4l16 16"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>', x:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  more:'<circle cx="6" cy="12" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="18" cy="12" r=".9"/>',
+  share:'<path d="M12 14.5V4M8 7.5L12 3.5l4 4"/><path d="M6 11v8.5h12V11"/>',
+  bullets:'<path d="M10 7h10M10 12h10M10 17h10"/><circle cx="5" cy="7" r=".8"/><circle cx="5" cy="12" r=".8"/><circle cx="5" cy="17" r=".8"/>',
+  ordered:'<path d="M10 7h10M10 12h10M10 17h10M4.5 5.5h1.5v4M4 14.5h2.5L4 17.5h2.5"/>',
+  sort:'<path d="M7 5v14M4 16l3 3 3-3M17 19V5M14 8l3-3 3 3"/>',
+  view:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 5v14"/>',
+  laptop:'<rect x="5" y="5.5" width="14" height="10" rx="1.5"/><path d="M3 18.5h18"/>',
+  phone:'<rect x="7" y="3.5" width="10" height="17" rx="2.2"/><path d="M11 17.5h2"/>',
+  open:'<path d="M9 15l7.5-7.5M10 7.5h6.5V14"/>', send:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  moon:'<path d="M19 14.5A7.5 7.5 0 019.5 5a7.5 7.5 0 109.5 9.5z"/>',
+  image:'<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M20 15.5l-4.5-4.5L7 19"/>',
+  table:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M4 14.5h16M10 5v14"/>',
+  code:'<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>', minus:'<path d="M5 12h14"/>',
+  undo:'<path d="M9 6.5L4.5 11 9 15.5"/><path d="M4.5 11h10a4.5 4.5 0 010 9H12"/>',
+  warn:'<path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4M12 17v.2"/>',
+  lock:'<rect x="6" y="10.5" width="12" height="9" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+  hl:'<path d="M4 20h16"/><path d="M7 16l1.5-4.5 6-6 3 3-6 6z"/>', nf:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5M8.5 11h5"/>',
+};
+const ic = (n, cls = "") => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const isTyping = (el) => !!el?.closest?.("input,textarea,[contenteditable=true]");
+
+function parseT(s) {
+  const [y, m, d, h, mi] = s.split(/[-T:]/).map(Number);
+  return new Date(y, m - 1, d, h || 0, mi || 0);
+}
+const NOW = parseT(META.now);
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const day0 = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const daysAgo = (s) => Math.round((day0(NOW) - day0(parseT(s))) / 864e5);
+const hhmm = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const monDay = (d) => `${MON[d.getMonth()]} ${d.getDate()}`;
+
+function shortDate(s) {
+  const d = parseT(s), n = daysAgo(s);
+  if (n === 0) return hhmm(d);
+  if (n === 1) return "Yesterday";
+  return n < 7 ? WD[d.getDay()] : monDay(d);
+}
+
+function longDate(s) {
+  const d = parseT(s), n = daysAgo(s);
+  const day = n === 0 ? "today" : n === 1 ? "yesterday" : monDay(d) + ",";
+  return `${day} ${hhmm(d)}`;
+}
+
+function groupOf(s) {
+  const d = parseT(s), n = daysAgo(s);
+  if (n === 0) return "Today";
+  if (n === 1) return "Yesterday";
+  if (n < 7) return "Earlier this week";
+  return d.getMonth() === NOW.getMonth() ? `Earlier in ${MONTH[d.getMonth()]}` : MONTH[d.getMonth()];
+}
+
+const items = (b) => b.items.map((it) => (Array.isArray(it) ? { content: it } : it));
+const inlineText = (c) => (c || []).map((x) => (x.type === "wikilink" ? inlineText(x.children) : x.value || "")).join("");
+
+function blockText(b, sep = " ") {
+  if (b.type === "paragraph") return inlineText(b.content);
+  if (b.type === "list") return items(b).map((i) => inlineText(i.content)).join(sep);
+  return "";
+}
+const plain = (n, skipTasks = false) => n.body.blocks.filter((b) => !(skipTasks && b.task)).map((b) => blockText(b, " · ")).filter(Boolean).join("  ");
+
+const nbName = (id) => nbById[id]?.name ?? "";
+const nbPath = (id) => (nbById[id]?.parent ? [nbById[id].parent, id] : [id]);
+const notesIn = (nb) => NOTES.filter((n) => n.notebook._ref === nb || nbById[n.notebook._ref]?.parent === nb);
+const sortRecent = (arr) => [...arr].sort((a, b) => (a.updated < b.updated ? 1 : -1));
+
+const tasksOf = (n) => n.body.blocks.filter((b) => b.type === "list" && b.task).flatMap((b) => items(b).map((it, i) => ({ n, b, i, it })));
+function progress(n) {
+  const t = tasksOf(n);
+  return t.length ? { done: t.filter((x) => x.it.checked).length, all: t.length } : null;
+}
+
+const BACK = {};
+NOTES.forEach((n) => n.links.forEach((l) => (BACK[l._ref] ||= []).push(n._id)));
+
+const terms = (q) => q.toLowerCase().split(/\s+/).filter(Boolean);
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function hl(html, q) {
+  const t = terms(q);
+  return t.length ? html.replace(new RegExp(`(${t.map((x) => reEsc(esc(x))).join("|")})`, "gi"), "<mark>$1</mark>") : html;
+}
+
+function matches(n, q) {
+  const hay = `${n.title} ${plain(n)} ${n.tags.join(" ")}`.toLowerCase();
+  return terms(q).every((t) => hay.includes(t));
+}
+
+function snippet(n, q) {
+  const p = plain(n, !q);
+  const i = q ? p.toLowerCase().indexOf(terms(q)[0]) : -1;
+  return i > 40 ? "…" + p.slice(i - 30) : p;
+}
+const S = { view: "notes", nb: null, tag: null, q: "", note: null, s: 0, ask: false, edit: false, offline: false, conflict: false, frame: false, scr: "list", drawer: false, aiOff: false, tf: "open", theme: null, noui: false };
+const WIDE = new Set(["home", "tasks", "files", "calendar", "templates"]);
+const FLAGS = { a: "ask", e: "edit", o: "offline", c: "conflict", m: "frame", x: "noui" };
+const VALUES = { v: "view", nb: "nb", tag: "tag", q: "q", n: "note", s: "s", scr: "scr", t: "theme" };
+
+function toHash() {
+  const p = new URLSearchParams();
+  for (const [k, f] of Object.entries(VALUES)) if (S[f] && !(f === "scr" && S.scr === "list")) p.set(k, S[f]);
+  for (const [k, f] of Object.entries(FLAGS)) if (S[f]) p.set(k, 1);
+  return "#" + p;
+}
+
+function fromHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (!p.has("v") && p.has("s")) applyState(+p.get("s"), false);
+  else {
+    for (const [k, f] of Object.entries(VALUES)) S[f] = p.get(k);
+    for (const [k, f] of Object.entries(FLAGS)) S[f] = p.has(k);
+    Object.assign(S, { view: S.view || "notes", q: S.q || "", s: +S.s || 0, scr: S.scr || "list" });
+    if (S.edit && !EDIT) startEdit(false);
+    if (S.ask && !ASK.length) ASK = demoAsk();
+  }
+  S.theme = p.get("t");
+  S.noui = p.has("x");
+}
+
+function go(patch, mode = "push") {
+  Object.assign(S, patch);
+  const h = toHash();
+  if (h !== location.hash) history[mode === "push" ? "pushState" : "replaceState"](null, "", h);
+  render();
+}
+window.addEventListener("popstate", () => { fromHash(); render(); });
+
+const KICKOFF = { view: "notes", nb: "fx-nb-projects", note: "fx-note-00" };
+const STATES = [
+  [1, "Browse", { view: "notes", nb: null, note: "fx-note-28" }],
+  [2, "Note open", KICKOFF],
+  [3, "✨ Ask", { ...KICKOFF, ask: true }],
+  [4, "AI Edit diff", { ...KICKOFF, edit: true }],
+  [5, "Tasks board", { view: "tasks" }],
+  [6, "Offline", { ...KICKOFF, offline: true }],
+  [7, "Conflict", { view: "notes", nb: "fx-nb-travel", note: "fx-note-45", conflict: true }],
+  [8, "Mobile", { view: "notes", nb: null, note: "fx-note-00", frame: true }],
+];
+
+function applyState(k, push = true) {
+  const st = STATES.find((x) => x[0] === k);
+  if (!st) return;
+  NOTES.splice(0, NOTES.length, ...JSON.parse(ORIGINAL));
+  NOTES.forEach((n) => (byId[n._id] = n));
+  $("#layer").innerHTML = "";
+  EDIT = null;
+  ASK = k === 3 ? demoAsk() : [];
+  CONFLICT_DONE = false;
+  Object.assign(S, { ask: false, edit: false, offline: false, conflict: false, frame: false, q: "", tag: null, scr: "list", drawer: false, aiOff: false, s: k }, st[2]);
+  if (k === 4) startEdit(false);
+  if (push) go({});
+  else render();
+}
+const OPEN_STACKS = new Set(["fx-nb-work"]);
+const NAV = [["home", "home", "Home"], ["shortcuts", "star", "Shortcuts"], ["notes", "notes", "Notes"], ["tasks", "task", "Tasks"], ["files", "file", "Files"], ["calendar", "cal", "Calendar"], ["templates", "tpl", "Templates"]];
+
+function navHTML([key, icon, label]) {
+  const counts = { shortcuts: META.shortcuts.length, notes: NOTES.length, tasks: NOTES.flatMap(tasksOf).filter((t) => !t.it.checked).length };
+  const on = S.view === key && !S.q && !S.tag && !(key === "notes" && S.nb);
+  const count = counts[key] ? `<span class="count">${counts[key]}</span>` : "";
+  return `<div class="nav ${on ? "on" : ""}" data-view="${key}">${ic(icon)}<span class="lbl">${label}</span>${count}</div>`;
+}
+
+function notebookHTML(b, sub = false) {
+  const kids = NBS.filter((k) => k.parent === b._id), stack = kids.length > 0, open = OPEN_STACKS.has(b._id);
+  const count = stack ? notesIn(b._id).length : NOTES.filter((n) => n.notebook._ref === b._id).length;
+  const on = S.view === "notes" && !S.q && !S.tag && S.nb === b._id;
+  const twisty = stack ? `<span class="tw" data-tw="${b._id}">${ic(open ? "down" : "right")}</span>` : sub ? "" : `<span class="tw"></span>`;
+  const row = `<div class="nav ${sub ? "sub" : ""} ${on ? "on" : ""}" data-nb="${b._id}">${twisty}${ic(stack ? "stack" : "book")}
+    <span class="lbl">${esc(b.name)}</span><span class="count">${count}</span></div>`;
+  return row + (stack && open ? kids.map((k) => notebookHTML(k, true)).join("") : "");
+}
+
+function renderSidebar() {
+  const recent = sortRecent(NOTES).slice(0, 4).map((n) => `<div class="nav recent" data-open="${n._id}">${ic("clock")}<span class="lbl">${esc(n.title || "Untitled")}</span></div>`);
+  const sync = S.offline ? `<span class="dot off"></span>Offline · 3 edits waiting` : `<span class="dot"></span>Synced · just now`;
+  $("#sb").innerHTML = `
+    <div class="acct"><span class="avatar">OT</span><span>${esc(META.user)}</span><button class="ib" title="Settings">${ic("more")}</button></div>
+    <label class="search">${ic("search")}<input id="q" placeholder="Search" value="${esc(S.q)}" autocomplete="off" spellcheck="false"><span class="kbd">⌘K</span></label>
+    <button class="new" data-act="new">${ic("plus")}<span>Note</span><span class="kbd">N</span></button>
+    <div class="sb-scroll">${NAV.map(navHTML).join("")}
+      <div class="sec"><div class="sec-h"><span class="caps">Recent</span></div>${recent.join("")}</div>
+      <div class="sec"><div class="sec-h"><span class="caps">Notebooks</span><button class="ib" title="New notebook">${ic("plus")}</button></div>
+        ${NBS.filter((b) => !b.parent).map((b) => notebookHTML(b)).join("")}</div>
+    </div>
+    <div class="sb-foot">${sync}</div>`;
+}
+function currentList() {
+  if (S.q) return sortRecent(NOTES.filter((n) => matches(n, S.q)));
+  if (S.view === "shortcuts") return META.shortcuts.map((id) => byId[id]);
+  if (S.tag) return sortRecent(NOTES.filter((n) => n.tags.includes(S.tag)));
+  return sortRecent(S.nb ? notesIn(S.nb) : NOTES);
+}
+
+function rowHTML(n) {
+  const pr = progress(n), bl = (BACK[n._id] || []).length;
+  const ind = (pr ? `<span title="Checklist">${ic("task")}${pr.done}/${pr.all}</span>` : "")
+    + (bl ? `<span title="Backlinks">${ic("back")}${bl}</span>` : "");
+  const snip = hl(esc(snippet(n, S.q)), S.q) || `<span class="muted">No text yet</span>`;
+  return `<div class="row ${S.note === n._id ? "on" : ""}" data-row="${n._id}">
+    <div class="row-meta"><span class="nb">${esc(nbName(n.notebook._ref))}</span><span>·</span><span>${shortDate(n.updated)}</span><span class="ind">${ind}</span></div>
+    <div class="row-t">${hl(esc(n.title || "Untitled"), S.q)}</div>
+    <div class="row-s">${snip}</div></div>`;
+}
+
+function listTitle(count) {
+  if (S.q) return ["Search", plural(count, "result"), `<button class="chip" data-act="clearq">“${esc(S.q)}” ${ic("x")}</button>`];
+  if (S.view === "shortcuts") return ["Shortcuts", plural(count, "note"), ""];
+  if (S.tag) return ["#" + S.tag, plural(count, "note"), `<button class="chip" data-act="cleartag">tag ${ic("x")}</button>`];
+  if (S.nb) return [nbName(S.nb), plural(count, "note"), ""];
+  return ["Notes", plural(count, "note"), ""];
+}
+
+function rowsHTML(list) {
+  if (!list.length) return S.q
+    ? `<div class="empty">${ic("search")}No notes match “${esc(S.q)}”. Try fewer words.</div>`
+    : `<div class="empty">${ic("note")}No notes here yet. Press <span class="kbd">N</span> to write one.</div>`;
+  let last = "";
+  return list.map((n) => {
+    const g = S.view === "shortcuts" ? "" : groupOf(n.updated);
+    const head = g && g !== last ? `<div class="grp caps">${g}</div>` : "";
+    last = g;
+    return head + rowHTML(n);
+  }).join("");
+}
+
+function renderList() {
+  const list = currentList();
+  const [title, sub, chip] = listTitle(list.length);
+  $("#list").innerHTML = `
+    <div class="mtop m-only"><button class="ib" data-act="drawer" title="Menu">${ic("menu")}</button><button class="ib">${ic("sort")}</button></div>
+    <div class="list-h">
+      <div class="top"><h1>${esc(title)}</h1><button class="ib d-only" title="Sort: date edited">${ic("sort")}</button><button class="ib d-only" title="View options">${ic("view")}</button></div>
+      <div class="sub">${sub}${chip}<span style="margin-left:auto" class="d-only">Date edited</span></div>
+      <div class="msearch m-only"><label class="search">${ic("search")}<input data-msearch placeholder="Search notes" value="${esc(S.q)}"></label></div>
+    </div>
+    <div class="rows">${rowsHTML(list)}</div>`;
+}
+const plural = (k, word) => `${k} ${word}${k === 1 ? "" : "s"}`;
+
+function inlineHTML(c) {
+  return (c || []).map((x) => x.type === "wikilink"
+    ? `<a class="wl" data-open="${x.docId}" contenteditable="false">${ic("note")}${esc(inlineText(x.children))}</a>`
+    : esc(x.value || "")).join("");
+}
+
+function checkItemHTML(n, b, it, i) {
+  return `<li class="${it.checked ? "done" : ""}" data-b="${b.id}:${i}">
+    <button class="cb ${it.checked ? "on" : ""}" contenteditable="false" data-check="${n._id}|${b.id}|${i}" aria-label="Toggle">${ic("check")}</button>
+    <span>${inlineHTML(it.content)}</span></li>`;
+}
+
+function blockHTML(b, n) {
+  if (b.type === "heading") return `<h2 data-b="${b.id}">${esc(b.text)}</h2>`;
+  if (b.type === "paragraph") return `<p data-b="${b.id}">${inlineHTML(b.content)}</p>`;
+  if (b.type === "list" && b.task) return `<ul class="cl" data-b="${b.id}">${items(b).map((it, i) => checkItemHTML(n, b, it, i)).join("")}</ul>`;
+  const tag = b.ordered ? "ol" : "ul";
+  return `<${tag} class="bl" data-b="${b.id}">${items(b).map((it) => `<li>${inlineHTML(it.content)}</li>`).join("")}</${tag}>`;
+}
+
+function crumbHTML(n) {
+  const path = nbPath(n.notebook._ref);
+  const icon = ic(path.length > 1 ? "stack" : "book");
+  return `<button class="ib m-only" data-act="back">${ic("left")}</button>`
+    + path.map((id, i) => `<a data-nb="${id}">${i === 0 ? icon : ""}${esc(nbName(id))}</a>`).join(`<span class="sep">/</span>`);
+}
+
+function metaHTML(n) {
+  const pr = progress(n), bl = BACK[n._id] || [];
+  return [
+    bl.length && `<button class="chip accent" data-act="tobacklinks">${ic("back")}${plural(bl.length, "backlink")}</button>`,
+    `<span>Edited ${longDate(n.updated)}</span>`,
+    pr && `<span class="progress"><span class="bar"><i style="width:${(pr.done / pr.all) * 100}%"></i></span>${pr.done} of ${pr.all} done</span>`,
+  ].filter(Boolean).join(`<span class="sep"></span>`);
+}
+
+function linkedHTML(n) {
+  const bl = BACK[n._id] || [];
+  if (!bl.length) return "";
+  const card = (s) => `<div class="lcard" data-open="${s._id}"><div class="m">${esc(nbName(s.notebook._ref))} · ${shortDate(s.updated)}</div>
+    <div class="t">${esc(s.title)}</div><div class="s">${esc(plain(s, true))}</div></div>`;
+  return `<div class="linked" id="linked"><div class="caps">${ic("back")}Linked from ${plural(bl.length, "note")}</div>
+    <div class="lcards">${bl.map((id) => card(byId[id])).join("")}</div></div>`;
+}
+
+function docHTML(n) {
+  if (S.conflict && !CONFLICT_DONE && n._id === CONFLICT.note) return conflictHTML(n);
+  if (S.edit && EDIT?.note === n._id) return editDocHTML(n);
+  return `<div class="doc">
+    <h1 class="title" contenteditable="true" spellcheck="false" data-title>${esc(n.title)}</h1>
+    <div class="doc-meta">${metaHTML(n)}</div>
+    <div class="body" contenteditable="true" spellcheck="false" data-body>${n.body.blocks.map((b) => blockHTML(b, n)).join("")}</div>
+    ${linkedHTML(n)}</div>`;
+}
+
+function toolbarHTML() {
+  const aiEdit = S.aiOff ? "" : `<button class="tb ${S.edit ? "on" : ""}" data-act="aiedit" title="Rewrite with AI; you review every change">${ic("pen")}AI Edit</button>`;
+  return `<div class="tool">
+    <button class="tb lead drop" data-act="insert">${ic("plus")}Insert</button>${aiEdit}
+    <span class="div"></span><button class="tb drop">Body text</button><button class="tb drop d-only">Sans serif</button><button class="tb drop d-only">15</button>
+    <span class="div"></span><button class="tb"><b>B</b></button><button class="tb"><i>I</i></button><button class="tb"><u>U</u></button><button class="tb d-only">${ic("hl")}</button>
+    <span class="div"></span><button class="tb">${ic("bullets")}</button><button class="tb">${ic("ordered")}</button><button class="tb">${ic("task")}</button>
+    <span class="div d-only"></span><button class="tb d-only" title="Link to note">${ic("link")}</button><button class="tb d-only">${ic("more")}</button></div>`;
+}
+
+function footHTML(n) {
+  const saved = S.offline
+    ? `<span class="saved off">${ic("laptop")}Saved on this Mac</span>`
+    : `<span class="saved" id="saved">${ic("check")}All changes saved</span>`;
+  return `<div class="ed-foot">${ic("tag")}${n.tags.map((t) => `<button class="chip" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
+    <button class="chip add">+ Add tag</button>${saved}</div>`;
+}
+
+function renderEditor() {
+  const n = byId[S.note], ed = $("#ed");
+  if (!n) { ed.innerHTML = `<div class="ed-main"><div class="empty" style="margin:auto">${ic("note")}Pick a note, or press <span class="kbd">N</span> for a new one.</div></div>`; return; }
+  const fab = S.aiOff ? "" : `<button class="fab ${S.ask ? "on" : ""}" data-act="ask" title="Ask your notes">${ic("spark")}</button>`;
+  ed.innerHTML = `<div class="ed-main">
+      <div class="ed-top"><div class="crumb">${crumbHTML(n)}</div>
+        <div class="ed-actions"><span class="who d-only">${ic("lock")}Only you</span><button class="btn sm d-only">${ic("share")}Share</button><button class="ib" title="More">${ic("more")}</button></div></div>
+      ${toolbarHTML()}${S.edit && EDIT?.note === n._id ? editBarHTML() : ""}
+      <div class="ed-scroll">${docHTML(n)}</div>${footHTML(n)}${fab}
+    </div>${S.ask && !S.aiOff ? askHTML() : ""}`;
+  const ask = $("#askbody");
+  if (ask) ask.scrollTop = ask.scrollHeight;
+}
+let ASK = [];
+
+function demoAsk() {
+  return [
+    {
+      q: "What did we decide about the Harbor carousel?",
+      parts: [
+        "Round two of the wireframes dropped it", { c: "fx-note-02", qt: "Three wireframe rounds. Round two dropped the carousel." },
+        ", and the week 41 sync made it a decision: drop the carousel", { c: "fx-note-10", qt: "Decision: drop the carousel." },
+        ". The wireframes were signed off in week 43", { c: "fx-note-12", qt: "Harbor wireframes signed off." }, ".",
+      ],
+    },
+    {
+      q: "What's the hotel budget for Design Days?",
+      nf: true,
+      searched: ["hotel", "budget", "Design Days"],
+      parts: [
+        "Design Days is two days of talks in Oslo", { c: "fx-note-46", qt: "Two days of talks in Oslo, one workshop." },
+        ", and Kari asked to follow up on the conference budget", { c: "fx-note-16", qt: "Follow up on the conference budget." },
+        ", but no amount is written down anywhere.",
+      ],
+    },
+  ];
+}
+
+function answerHTML(m) {
+  const cites = m.parts.filter((p) => typeof p === "object");
+  const order = [...new Set(cites.map((p) => p.c))];
+  const quote = Object.fromEntries(cites.map((p) => [p.c, p.qt]));
+  const num = (id) => order.indexOf(id) + 1;
+  const text = m.parts.map((p) => typeof p === "string" ? esc(p)
+    : `<button class="cite" data-cite="${p.c}" data-qt="${esc(p.qt)}" title="${esc(byId[p.c].title)}">${num(p.c)}</button>`).join("");
+  const src = (id) => `<div class="src" data-cite="${id}" data-qt="${esc(quote[id])}"><span class="k">${num(id)}</span>
+    <span class="t">${esc(byId[id].title)} <span>· ${esc(nbName(byId[id].notebook._ref))}</span></span><span class="qt">“${esc(quote[id])}”</span></div>`;
+  const lead = m.nf ? "Checked your notes" : `From ${order.length} notes`;
+  const verdict = m.nf ? `<div class="verdict">${ic("nf")}Not in your notes</div>` : "";
+  const searched = m.nf ? `<div class="searched">${ic("search")}Searched ${NOTES.length} notes for ${m.searched.map((s) => `“${esc(s)}”`).join(", ")}</div>` : "";
+  return `<div class="q">${esc(m.q)}</div>
+    <div class="a ${m.nf ? "nf" : ""}"><div class="lead">${ic("spark")}${lead}</div>${verdict}<div>${text}</div>
+      <div class="srcs">${order.map(src).join("")}</div>${searched}</div>`;
+}
+
+function askHTML() {
+  return `<aside class="ask">
+    <div class="ask-h">${ic("spark")}Ask your notes<span class="chip scope">${ic("notes")}All notebooks</span><button class="ib" data-act="ask" title="Close (Esc)">${ic("x")}</button></div>
+    <div class="ask-meta"><span>Claude · your login · ~1.4k tokens per answer</span><span class="on" data-act="aioff" title="Turn AI off">AI on<span class="sw"></span></span></div>
+    <div class="ask-body" id="askbody">${ASK.map(answerHTML).join("")}</div>
+    <div class="ask-in"><div class="box"><textarea placeholder="Ask about your notes…" rows="2"></textarea><button class="ib" title="Ask">${ic("send")}</button></div>
+      <div class="note">${ic("lock")}Reads notes, never edits them. Note text is data, not instructions.</div></div>
+  </aside>`;
+}
+let EDIT = null;
+
+const EDIT_DEMO = {
+  note: "fx-note-00",
+  instr: "Tighten the wording and make the next steps concrete",
+  tokens: 1180,
+  changes: [
+    { b: "fx-note-00-p0", to: "Harbor redesign goals: faster pages, calmer navigation and one clear call to action." },
+    { b: "fx-note-00-p1", to: "Owner: Ola Testesen. Due at the end of the quarter." },
+    { b: "fx-note-00-t", i: 1, to: "Sign off the wireframes" },
+    { b: "fx-note-00-t", i: 2, to: "Follow up with the client on the services page" },
+  ],
+};
+
+const tok = (s) => s.match(/\s+|[^\s.,:;!?]+|[.,:;!?]/g) || [];
+
+function wdiff(a, b) {
+  const A = tok(a), B = tok(b);
+  const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
+  for (let i = A.length - 1; i >= 0; i--)
+    for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  const push = (t, s) => (out.at(-1)?.t === t ? (out.at(-1).s += s) : out.push({ t, s }));
+  let i = 0, j = 0;
+  while (i < A.length || j < B.length) {
+    if (i < A.length && j < B.length && A[i] === B[j]) { push("=", A[i++]); j++; }
+    else if (j >= B.length || (i < A.length && L[i + 1][j] >= L[i][j + 1])) push("-", A[i++]);
+    else push("+", B[j++]);
+  }
+  const tag = { "=": (s) => s, "-": (s) => `<del>${s}</del>`, "+": (s) => `<ins>${s}</ins>` };
+  return out.map((p) => tag[p.t](esc(p.s))).join("");
+}
+
+const blockOf = (n, ch) => n.body.blocks.find((x) => x.id === ch.b);
+const getText = (n, ch) => inlineText(ch.i == null ? blockOf(n, ch).content : items(blockOf(n, ch))[ch.i].content);
+
+function setText(n, ch, v) {
+  const b = blockOf(n, ch), content = [{ type: "text", value: v }];
+  if (ch.i == null) b.content = content;
+  else b.items[ch.i].content = content;
+}
+
+function startEdit(doRender = true) {
+  const n = byId[S.note];
+  if (n?._id !== EDIT_DEMO.note) {
+    toast("AI Edit is scripted for one note in this prototype.", "Open it", () => { applyState(4); });
+    return;
+  }
+  EDIT = { ...EDIT_DEMO, snapshot: JSON.stringify(n.body), changes: EDIT_DEMO.changes.map((c) => ({ ...c, from: getText(n, c), st: "pending" })) };
+  S.edit = true;
+  S.ask = false;
+  if (doRender) go({});
+}
+
+function editBarHTML() {
+  const count = (st) => EDIT.changes.filter((c) => c.st === st).length;
+  const pend = count("pending");
+  const r1 = pend
+    ? `${ic("pen")}<span class="instr">${esc(EDIT.instr)}</span>
+       <button class="btn sm" data-act="rejectall">Reject all</button>
+       <button class="btn sm primary" data-act="acceptall">${ic("check")}Accept all ${pend}</button>`
+    : `${ic("check")}<span style="flex:1"><b>${count("yes")} accepted</b>, ${count("no")} rejected. Note updated.</span>
+       <button class="btn sm" data-act="undoedit">${ic("undo")}Undo AI Edit</button>
+       <button class="btn sm primary" data-act="doneedit">Done</button>`;
+  return `<div class="aibar"><div class="r1">${r1}</div>
+    <div class="r2"><span>AI Edit · Claude · your login · ${EDIT.tokens.toLocaleString("en")} tokens</span><span>·</span>
+    <span>${EDIT.changes.length} changes, ${pend} to review</span><span class="legend" style="margin-left:auto"><del>removed</del><ins>added</ins></span></div></div>`;
+}
+
+function hunkHTML(k, current) {
+  const c = EDIT.changes[k];
+  if (c.st !== "pending") return `${current}<span class="res">${c.st === "yes" ? "accepted" : "rejected"}</span>`;
+  return `<div class="hunk"><span class="n">${k + 1}</span><div class="hx">${wdiff(c.from, c.to)}</div>
+    <span class="hc"><button class="yes" data-hunk="${k}|yes">${ic("check")}Accept</button><button class="no" data-hunk="${k}|no">${ic("x")}Reject</button></span></div>`;
+}
+
+function editDocHTML(n) {
+  const find = (bid, i = null) => EDIT.changes.findIndex((c) => c.b === bid && (c.i ?? null) === i);
+  const block = (b) => {
+    if (b.type === "paragraph" && find(b.id) >= 0) return `<div class="para" data-b="${b.id}">${hunkHTML(find(b.id), inlineHTML(b.content))}</div>`;
+    if (!(b.type === "list" && b.task)) return blockHTML(b, n);
+    return `<ul class="cl">${items(b).map((it, i) => {
+      const k = find(b.id, i);
+      const box = `<button class="cb ${it.checked ? "on" : ""}" data-check="${n._id}|${b.id}|${i}">${ic("check")}</button>`;
+      const text = k < 0 ? `<span>${inlineHTML(it.content)}</span>` : hunkHTML(k, `<span>${inlineHTML(it.content)}</span>`);
+      return `<li class="${it.checked ? "done" : ""}">${box}${text}</li>`;
+    }).join("")}</ul>`;
+  };
+  return `<div class="doc"><h1 class="title">${esc(n.title)}</h1>
+    <div class="doc-meta"><span>Reviewing ${EDIT.changes.length} suggested changes. Nothing is saved until you accept.</span></div>
+    <div class="body">${n.body.blocks.map(block).join("")}</div></div>`;
+}
+
+function resolveHunk(k, v) {
+  const n = byId[EDIT.note], c = EDIT.changes[k];
+  if (c.st !== "pending") return;
+  c.st = v;
+  if (v === "yes") setText(n, c, c.to);
+  n.updated = META.now;
+  render();
+}
+const CONFLICT = {
+  note: "fx-note-45",
+  a: { dev: "This Mac", icon: "laptop", ago: 9, text: "Charger, passport, wool sweater, rain jacket.",
+    tasks: [["First step", true], ["Second step", false], ["Follow up", false]] },
+  b: { dev: "Phone", icon: "phone", ago: 0, note: "while offline", text: "Charger, passport, wool sweater.",
+    tasks: [["First step", true], ["Second step", true], ["Follow up", false], ["Buy a travel adapter", false]] },
+};
+let CONFLICT_DONE = false;
+
+function editedAgo(min) {
+  const d = parseT(byId[CONFLICT.note].updated);
+  d.setMinutes(d.getMinutes() - min);
+  return `${WD[d.getDay()]} ${hhmm(d)}`;
+}
+
+function versionHTML(side) {
+  const v = CONFLICT[side], other = CONFLICT[side === "a" ? "b" : "a"];
+  const otherTasks = new Set(other.tasks.map(String));
+  const line = (inner, differs) => `<div class="cf-line${differs ? " diff" : ""}">${inner}${differs ? `<span class="tagd">only here</span>` : ""}</div>`;
+  const task = ([t, done]) => line(`<span class="cb ${done ? "on" : ""}">${ic("check")}</span><span class="${done ? "struck" : ""}">${esc(t)}</span>`, !otherTasks.has(String([t, done])));
+  return `<div class="cf-col"><div class="h">${ic(v.icon)}${v.dev}<span>· ${editedAgo(v.ago)}${v.note ? " · " + v.note : ""}</span></div>
+    <div class="b">${line(`<span>${esc(v.text)}</span>`, v.text !== other.text)}${v.tasks.map(task).join("")}</div>
+    <div class="f"><button class="btn sm" data-keep="${side}">${ic("check")}Keep ${v.dev} version</button></div></div>`;
+}
+
+function conflictHTML(n) {
+  return `<div class="doc" style="max-width:860px"><h1 class="title">${esc(n.title)}</h1>
+    <div class="cf-head">${ic("warn")}<div><b>Edited on two devices while one was offline</b><span>Both versions are kept until you choose. Differences are marked.</span></div></div>
+    <div class="cf-cols">${versionHTML("a")}${versionHTML("b")}</div>
+    <div class="cf-both"><button class="btn sm" data-keep="both">Keep both as separate notes</button></div></div>`;
+}
+
+function versionBody(id, v) {
+  return { blocks: [
+    { id: id + "-p0", type: "paragraph", content: [{ type: "text", value: v.text }] },
+    { id: id + "-t", type: "list", ordered: false, task: true, items: v.tasks.map(([t, checked]) => ({ content: [{ type: "text", value: t }], checked })) },
+  ] };
+}
+
+function keepVersion(side) {
+  const n = byId[CONFLICT.note];
+  n.body = versionBody(n._id, CONFLICT[side === "both" ? "a" : side]);
+  n.updated = META.now;
+  if (side === "both") {
+    const copy = { ...n, _id: n._id + "-phone", title: n.title + " (Phone)", body: versionBody(n._id + "-phone", CONFLICT.b) };
+    NOTES.push(copy);
+    byId[copy._id] = copy;
+    toast("Kept both. The phone version is a new note.");
+  } else toast(`Kept the ${CONFLICT[side].dev} version. The other stays in note history.`, "Undo", () => applyState(7));
+  CONFLICT_DONE = true;
+  go({ conflict: false });
+}
+function taskItemHTML(t) {
+  const done = t.it.checked ? "done" : "";
+  return `<div class="titem ${done}">
+    <button class="cb ${t.it.checked ? "on" : ""}" data-check="${t.n._id}|${t.b.id}|${t.i}">${ic("check")}</button>
+    <span>${inlineHTML(t.it.content)}</span>
+    <span class="go" data-line="${t.n._id}|${t.b.id}:${t.i}" title="Open the line in its note">${ic("open")}</span></div>`;
+}
+
+function taskCardHTML(n) {
+  const ts = tasksOf(n);
+  const done = ts.filter((t) => t.it.checked).length;
+  const shown = S.tf === "open" ? ts.filter((t) => !t.it.checked) : ts;
+  return `<div class="tcard">
+    <div class="h"><a data-open="${n._id}">${esc(n.title)}</a><span class="n">${done}/${ts.length}</span></div>
+    <div class="m">${esc(nbName(n.notebook._ref))} · ${shortDate(n.updated)}</div>
+    <span class="bar"><i style="width:${(done / ts.length) * 100}%"></i></span>
+    ${shown.map(taskItemHTML).join("") || `<div class="titem muted">All done</div>`}</div>`;
+}
+
+function tasksHTML() {
+  const all = NOTES.flatMap(tasksOf);
+  const open = all.filter((t) => !t.it.checked).length;
+  const sources = sortRecent(NOTES.filter((n) => tasksOf(n).length));
+  const cols = NBS.filter((b) => !b.parent)
+    .map((b) => ({ b, notes: sources.filter((n) => notesIn(b._id).includes(n)) }))
+    .filter((c) => c.notes.length);
+  const seg = ["open", "all"].map((f) => `<button data-tf="${f}" class="${S.tf === f ? "on" : ""}">${f === "open" ? "Open" : "All"}</button>`).join("");
+  const sub = `<span>${open} open · ${all.length - open} done · from ${sources.length} notes</span>
+    <span class="bar" style="width:120px"><i style="width:${((all.length - open) / all.length) * 100}%"></i></span>`;
+  const col = (c) => {
+    const openHere = c.notes.flatMap(tasksOf).filter((t) => !t.it.checked).length;
+    const icon = NBS.some((k) => k.parent === c.b._id) ? "stack" : "book";
+    return `<div><div class="col-h">${ic(icon)}${esc(c.b.name)}<span class="count">${openHere} open</span></div>
+      <div class="col">${c.notes.map(taskCardHTML).join("")}</div></div>`;
+  };
+  return wideHead("Tasks", sub, `<div class="seg">${seg}</div><span class="muted" style="font-size:var(--fs-sm)">Grouped by notebook</span>`)
+    + `<div class="wide-body"><div class="board">${cols.map(col).join("")}</div></div>`;
+}
+const EMPTY = {
+  home: ["home", "Home", "Recent notes, shortcuts and open tasks gather here as you write."],
+  files: ["file", "Files", "No files yet. Drag an image or PDF into any note."],
+  calendar: ["cal", "Calendar", "No events yet. Connect a calendar to see meetings next to their notes."],
+  templates: ["tpl", "Templates", "No templates yet. Save any note as a template from its ⋯ menu."],
+};
+
+function wideHead(title, sub, right = "") {
+  return `<div class="mtop m-only"><button class="ib" data-act="drawer">${ic("menu")}</button></div>
+    <div class="wide-h"><div><h1>${title}</h1><div class="sub">${sub}</div></div><div class="right">${right}</div></div>`;
+}
+
+function renderWide() {
+  const w = $("#wide");
+  if (!WIDE.has(S.view)) { w.innerHTML = ""; return; }
+  if (S.view === "tasks") { w.innerHTML = tasksHTML(); return; }
+  const [icon, title, line] = EMPTY[S.view];
+  w.innerHTML = wideHead(title, "") + `<div class="wide-body"><div class="empty" style="margin-top:80px">${ic(icon)}${line}</div></div>`;
+}
+const isMobile = () => S.frame || window.innerWidth <= 700;
+
+function renderOffline() {
+  $("#offline").innerHTML = S.offline
+    ? `<div class="offline">${ic("cloudoff")}<b>Offline.</b> Changes are saved on this Mac and sync when you reconnect · 3 edits waiting
+       <button class="btn sm ghost" data-act="reconnect">Reconnect</button></div>`
+    : "";
+}
+
+function renderStates() {
+  const btn = ([k, l]) => `<button class="${S.s === k ? "on" : ""}" data-state="${k}" title="${k} · ${l}">${k}</button>`;
+  $("#states").innerHTML = `<span class="l">State</span>${STATES.map(btn).join("")}<button data-act="theme" title="Light / dark (T)">${ic("moon")}</button>`;
+}
+
+function renderTabbar() {
+  const tab = (v, icon, l) => `<button class="tab ${S.view === v ? "on" : ""}" data-view="${v}">${ic(icon)}${l}</button>`;
+  $("#tabbar").innerHTML = tab("home", "home", "Home") + tab("notes", "notes", "Notes")
+    + `<button class="plus" data-act="new" title="New note">${ic("plus")}</button>`
+    + tab("tasks", "task", "Tasks") + tab("shortcuts", "star", "Shortcuts");
+}
+
+function keepSelectionVisible() {
+  if (WIDE.has(S.view)) return;
+  const list = currentList();
+  const pinned = S.scr === "note" && byId[S.note];
+  if (list.length && !pinned && !list.some((n) => n._id === S.note)) S.note = list[0]._id;
+}
+
+function render() {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = S.theme || (dark ? "dark" : "light");
+  const app = $("#app"), m = isMobile();
+  app.classList.toggle("wide", WIDE.has(S.view));
+  app.classList.toggle("m", m);
+  app.classList.toggle("scr-note", m && S.scr === "note");
+  app.classList.toggle("scr-list", m && S.scr !== "note");
+  app.classList.toggle("drawer", m && S.drawer);
+  document.body.classList.toggle("framed", S.frame && window.innerWidth > 700);
+  document.body.classList.toggle("noui", S.noui);
+  keepSelectionVisible();
+  const q = document.activeElement?.id === "q" ? document.activeElement.selectionStart : null;
+  renderOffline(); renderSidebar(); renderList(); renderEditor(); renderWide(); renderStates(); renderTabbar();
+  if (q !== null) { $("#q").focus(); $("#q").setSelectionRange(q, q); }
+  $(".row.on")?.scrollIntoView({ block: "nearest" });
+}
+let toastTimer;
+function toast(msg, action, fn) {
+  const layer = $("#layer");
+  clearTimeout(toastTimer);
+  layer.innerHTML = `<div class="toast"><span>${esc(msg)}</span>${action ? `<button id="toastbtn">${action}</button>` : ""}</div>`;
+  if (action) $("#toastbtn").onclick = () => { layer.innerHTML = ""; fn(); };
+  toastTimer = setTimeout(() => (layer.innerHTML = ""), 4200);
+}
+
+function flashLine(sel) {
+  requestAnimationFrame(() => {
+    const el = $(`[data-b="${sel}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    el.classList.add("flash");
+    setTimeout(() => el.classList.remove("flash"), 60);
+  });
+}
+
+function openNote(id, extra = {}) {
+  const n = byId[id];
+  if (!n) return;
+  const inList = !WIDE.has(S.view) && currentList().includes(n);
+  const where = inList ? {} : { view: "notes", nb: n.notebook._ref, tag: null, q: "", drawer: false };
+  go({ ...where, note: id, scr: "note", ...extra });
+}
+
+function newNote() {
+  const nb = S.nb || "fx-nb-inbox", id = "fx-note-n" + Date.now().toString(36);
+  const body = { blocks: [{ id: id + "-p0", type: "paragraph", content: [{ type: "text", value: "" }] }] };
+  const n = { _type: "note", _id: id, title: "", notebook: { _ref: nb }, tags: [], body, links: [], updated: META.now };
+  NOTES.push(n);
+  byId[id] = n;
+  go({ view: "notes", nb, q: "", tag: null, note: id, scr: "note", edit: false, conflict: false });
+  $("[data-title]")?.focus();
+}
+const CLEAR = { tag: null, q: "", scr: "list", drawer: false, edit: false, conflict: false };
+const INSERT = [["image", "Image"], ["file", "File"], ["task", "Checklist"], ["table", "Table"], ["link", "Link to note"], ["code", "Code block"], ["minus", "Divider"]];
+
+function toggleCheck(ref) {
+  const [nid, bid, i] = ref.split("|");
+  const it = byId[nid].body.blocks.find((x) => x.id === bid).items[+i];
+  it.checked = !it.checked;
+  render();
+}
+
+function openCite(id, qt) {
+  const blk = byId[id].body.blocks.find((b) => blockText(b).includes(qt));
+  openNote(id, { ask: S.ask });
+  if (blk) flashLine(blk.id);
+}
+
+function toggleInsertMenu(btn) {
+  if ($(".menu")) return $(".menu").remove();
+  const r = btn.getBoundingClientRect(), menu = document.createElement("div");
+  menu.className = "menu";
+  menu.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 4}px`;
+  menu.innerHTML = INSERT.map(([i, l]) => `<div class="mi">${ic(i)}${l}</div>`).join("");
+  document.body.appendChild(menu);
+}
+
+const ACTS = {
+  new: () => newNote(),
+  ask: () => go({ ask: !S.ask, edit: false }, "replace"),
+  aiedit: () => (S.edit ? go({ edit: false }) : startEdit()),
+  acceptall: () => EDIT.changes.forEach((c, k) => resolveHunk(k, "yes")),
+  rejectall: () => EDIT.changes.forEach((c, k) => resolveHunk(k, "no")),
+  undoedit: () => { byId[EDIT.note].body = JSON.parse(EDIT.snapshot); EDIT = null; toast("AI Edit undone. The note is back as it was."); go({ edit: false }); },
+  doneedit: () => { EDIT = null; go({ edit: false }); },
+  aioff: () => { toast("AI is off. ✨ and AI Edit are hidden.", "Turn on", () => go({ aiOff: false })); go({ aiOff: true, ask: false, edit: false }); },
+  theme: () => go({ theme: document.documentElement.dataset.theme === "dark" ? "light" : "dark" }, "replace"),
+  clearq: () => go({ q: "" }),
+  cleartag: () => go({ tag: null }),
+  reconnect: () => { toast("Back online. 3 edits synced."); go({ offline: false }); },
+  tobacklinks: () => $("#linked")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+  back: () => go({ scr: "list" }),
+  drawer: () => go({ drawer: !S.drawer }, "replace"),
+};
+
+const CLICKS = {
+  tw: (v) => { OPEN_STACKS.has(v) ? OPEN_STACKS.delete(v) : OPEN_STACKS.add(v); renderSidebar(); },
+  state: (v) => applyState(+v),
+  check: toggleCheck,
+  hunk: (v) => { const [k, st] = v.split("|"); resolveHunk(+k, st); },
+  keep: (v) => keepVersion(v),
+  cite: (v, d) => openCite(v, d.qt),
+  line: (v) => { const [nid, sel] = v.split("|"); openNote(nid); flashLine(sel); },
+  tf: (v) => go({ tf: v }, "replace"),
+  tag: (v) => go({ ...CLEAR, view: "notes", nb: null, tag: v }),
+  view: (v) => go({ ...CLEAR, view: v, nb: null, ask: false }),
+  nb: (v) => go({ ...CLEAR, view: "notes", nb: v }),
+  row: (v) => go({ note: v, scr: "note", edit: S.edit && EDIT?.note === v, conflict: S.conflict && v === CONFLICT.note }),
+  open: (v) => openNote(v),
+  act: (v, d, el) => (v === "insert" ? toggleInsertMenu(el) : ACTS[v]?.()),
+};
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(Object.keys(CLICKS).map((k) => `[data-${k}]`).join(","));
+  if (el?.dataset.act !== "insert") $(".menu")?.remove();
+  if (!el) return;
+  const key = Object.keys(CLICKS).find((k) => k in el.dataset);
+  e.preventDefault();
+  CLICKS[key](el.dataset[key], el.dataset, el);
+});
+
+document.addEventListener("input", (e) => {
+  const t = e.target, n = byId[S.note];
+  if (t.id === "q" || "msearch" in t.dataset) return go({ q: t.value, scr: "list", view: WIDE.has(S.view) ? "notes" : S.view }, "replace");
+  if (!n) return;
+  if ("title" in t.dataset) {
+    n.title = t.textContent;
+    const row = $(`[data-row="${n._id}"] .row-t`);
+    if (row) row.textContent = n.title || "Untitled";
+  }
+  const s = $("#saved");
+  if (!s) return;
+  s.innerHTML = `${ic("clock")}Saving…`;
+  clearTimeout(s.timer);
+  s.timer = setTimeout(() => (s.innerHTML = `${ic("check")}All changes saved`), 500);
+});
+
+window.addEventListener("resize", () => render());
+function move(dir) {
+  if (WIDE.has(S.view)) return;
+  const list = currentList();
+  if (!list.length) return;
+  const i = list.findIndex((n) => n._id === S.note);
+  const id = list[Math.max(0, Math.min(list.length - 1, i + dir))]._id;
+  go({ note: id, edit: S.edit && EDIT?.note === id, conflict: S.conflict && id === CONFLICT.note }, "replace");
+}
+
+function focusSearch() {
+  const q = $("#q");
+  q?.focus();
+  q?.select();
+}
+
+function onTypingKey(e, t) {
+  if (t.id === "q" && e.key === "ArrowDown") { e.preventDefault(); t.blur(); move(1); }
+  if ("title" in t.dataset && e.key === "Enter") { e.preventDefault(); $("[data-body]")?.focus(); }
+  if (e.key !== "Escape") return;
+  t.blur();
+  if (t.id === "q" && S.q) go({ q: "" });
+}
+
+const KEYS = {
+  ArrowDown: () => move(1),
+  ArrowUp: () => move(-1),
+  "/": focusSearch,
+  n: newNote,
+  t: ACTS.theme,
+  Enter: () => $("[data-body]")?.focus(),
+  Escape: () => { $(".menu")?.remove(); if (S.ask) go({ ask: false }, "replace"); else if (S.drawer) go({ drawer: false }, "replace"); },
+};
+
+document.addEventListener("keydown", (e) => {
+  const t = e.target, mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); return focusSearch(); }
+  if (isTyping(t)) return onTypingKey(e, t);
+  if (mod || e.altKey) return;
+  if (/^[1-8]$/.test(e.key)) return applyState(+e.key);
+  if (!KEYS[e.key]) return;
+  e.preventDefault();
+  KEYS[e.key]();
+});
+if (location.hash.length > 1) fromHash(); else { applyState(1, false); history.replaceState(null, "", toHash()); }
+render();
+</script>
+</body>
+</html>

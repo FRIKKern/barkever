@@ -1,0 +1,7 @@
+.switcher { position: fixed; left: 50%; top: 13px; transform: translateX(-50%); z-index: 80; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--bg-raised); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: var(--fs-2xs); color: var(--ink-3); opacity: .7; }
+.switcher:hover { opacity: 1; }
+.switcher button { min-width: 20px; height: 20px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; }
+.switcher button:hover { background: var(--bg-hover); color: var(--ink); }
+.switcher button.on { background: var(--ink); color: var(--bg); }
+.switcher .rest { display: none; gap: 2px; }
+.switcher:hover .rest, .switcher:focus-within .rest { display: flex; }

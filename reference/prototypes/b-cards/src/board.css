@@ -1,0 +1,44 @@
+.board { flex: 1; overflow: auto; padding: 0 var(--space-6) var(--space-8); }
+.board-head { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-6) 0 var(--space-4); }
+.board-head h1 { margin: 0; font-size: var(--text-xl); font-weight: var(--weight-strong); letter-spacing: -.01em; }
+.board-head .sub { font-size: var(--text-s); color: var(--text-3); }
+.cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.col { background: var(--bg-list); border: 1px solid var(--line); border-radius: var(--radius-l); padding: var(--space-3); }
+.col-h { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-s); font-weight: var(--weight-strong); color: var(--text-2); padding: 2px var(--space-1) var(--space-3); }
+.col-h .count { font-weight: var(--weight-medium); color: var(--text-3); }
+.col-grid { columns: 2 250px; column-gap: var(--space-3); }
+.col.done .col-grid { columns: 1; }
+.tcard { break-inside: avoid; margin-bottom: var(--space-3); background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius-m); padding: var(--space-3); }
+.tcard-h { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2); text-align: left; width: 100%; }
+.tcard-h .t { font-size: var(--text-m); font-weight: var(--weight-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcard-h .t:hover { color: var(--accent); }
+.tcard-h .p { display: flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-3); }
+.titem { display: flex; align-items: flex-start; gap: var(--space-2); padding: 4px 0; font-size: var(--text-m); }
+.titem .cb { width: 16px; height: 16px; margin-top: 2px; }
+.titem .cb svg { width: 10px; height: 10px; }
+.titem .txt { flex: 1; text-align: left; color: var(--text); }
+.titem .txt:hover { color: var(--accent); }
+.titem.done .txt { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.titem .jump { opacity: 0; color: var(--text-3); }
+.titem:hover .jump { opacity: 1; }
+.tnb { font-size: var(--text-xs); color: var(--text-3); margin-top: 2px; }
+
+.conflict-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-left: 3px solid var(--warn); background: var(--bg-inset); border-radius: var(--radius-m); margin-bottom: var(--space-5); font-size: var(--text-m); }
+.conflict-head .grow { flex: 1; color: var(--text-2); }
+.conflict-head b { color: var(--text); font-weight: var(--weight-strong); }
+.versions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.ver { border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--bg-card); display: flex; flex-direction: column; }
+.ver-h { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+.ver-h .who { font-size: var(--text-m); font-weight: var(--weight-strong); }
+.ver-h .when { font-size: var(--text-xs); color: var(--text-3); }
+.ver-b { padding: var(--space-3) var(--space-4); font-size: var(--text-base); flex: 1; }
+.ver-b p { margin: 0 0 var(--space-2); color: var(--text-2); font-size: var(--text-m); }
+.vi { display: flex; gap: var(--space-2); align-items: center; padding: 3px 6px; margin: 0 -6px; border-radius: var(--radius-xs); }
+.vi .cb { width: 16px; height: 16px; margin-top: 0; }
+.vi .cb svg { width: 10px; height: 10px; }
+.vi.changed { background: var(--warn-soft); }
+.vi.added { background: var(--ins-bg); }
+.vi .tag { margin-left: auto; font-size: var(--text-2xs); font-weight: var(--weight-strong); color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; }
+.ver-f { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--line); display: flex; gap: var(--space-2); }
+.legend { display: flex; gap: var(--space-4); font-size: var(--text-xs); color: var(--text-3); margin-top: var(--space-3); align-items: center; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }

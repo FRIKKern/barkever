@@ -1,0 +1,67 @@
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-lg: 15px; --fs-xl: 19px; --fs-2xl: 26px;
+  --fw-med: 500; --fw-bold: 600;
+  --lh-tight: 1.25; --lh: 1.5;
+  --sp-1: 2px; --sp-2: 4px; --sp-3: 6px; --sp-4: 8px; --sp-5: 12px; --sp-6: 16px; --sp-7: 24px; --sp-8: 32px;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-pill: 999px; --r-device: 34px;
+  --row-h: 40px; --top-h: 48px; --side-w: 228px; --list-w: 316px; --ask-w: 384px; --lane-label-w: 108px; --doc-w: 700px;
+  --cb: 15px;
+
+  --bg: #ffffff;
+  --bg-side: #f6f6f3;
+  --bg-sunk: #f1f1ee;
+  --bg-hover: #efefeb;
+  --bg-sel: #e6eeed;
+  --bg-raised: #ffffff;
+  --ink: #1d1f22;
+  --ink-2: #5c6269;
+  --ink-3: #8f959c;
+  --line: #e6e6e1;
+  --line-strong: #d4d4ce;
+  --accent: #23706a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2eeec;
+  --late: #b3473b;
+  --add-bg: #dcf1e2; --add-ink: #1d6a38;
+  --del-bg: #fbe3e0; --del-ink: #a5372d;
+  --mark-bg: #f8edc8;
+  --warn-bg: #f7f3e8; --warn-ink: #6f5a24;
+  --shadow: 0 1px 2px rgba(20,20,20,.05), 0 6px 20px rgba(20,20,20,.07);
+  --p1: #4369a8; --p2: #b5822a; --p3: #8a6b5c; --p4: #7759a6; --p5: #5a8746; --p6: #b3613f;
+}
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --bg-side: #1d1e21;
+  --bg-sunk: #131416;
+  --bg-hover: #25272a;
+  --bg-sel: #1f3331;
+  --bg-raised: #202124;
+  --ink: #e6e7e9;
+  --ink-2: #a2a7ad;
+  --ink-3: #70767d;
+  --line: #2a2c30;
+  --line-strong: #3a3d42;
+  --accent: #5db2a6;
+  --accent-ink: #0f1a19;
+  --accent-soft: #1d3432;
+  --late: #e3796c;
+  --add-bg: #173a24; --add-ink: #8fdaa8;
+  --del-bg: #43201d; --del-ink: #f1a197;
+  --mark-bg: #4a3f1c;
+  --warn-bg: #26231b; --warn-ink: #d9c38a;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  --p1: #7d9fd8; --p2: #d6a656; --p3: #b8988a; --p4: #a68bd4; --p5: #8dbb76; --p6: #db8b69;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: var(--fs-md)/var(--lh) var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+.muted { color: var(--ink-3); }
+.grow { flex: 1; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pc, var(--ink-3)); flex: none; }
+.pc1 { --pc: var(--p1); } .pc2 { --pc: var(--p2); } .pc3 { --pc: var(--p3); } .pc4 { --pc: var(--p4); } .pc5 { --pc: var(--p5); } .pc6 { --pc: var(--p6); }
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

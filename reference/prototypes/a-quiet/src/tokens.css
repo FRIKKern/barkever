@@ -1,0 +1,36 @@
+:root{
+  --c-bg:#ffffff; --c-sidebar:#f5f4f0; --c-list:#ffffff; --c-editor:#ffffff; --c-raised:#ffffff;
+  --c-sunken:#f0eee9; --c-hover:rgba(40,36,28,.045); --c-active:rgba(40,36,28,.08); --c-sel:#edf3f0;
+  --c-text:#1c1b19; --c-text-2:#56534d; --c-text-3:#8a867e; --c-text-inv:#ffffff;
+  --c-line:#e8e5df; --c-line-2:#d6d2ca;
+  --c-accent:#1f6f5c; --c-accent-hover:#195c4c; --c-accent-soft:#e3efea; --c-accent-text:#1a6150;
+  --c-ins-bg:#d9f0df; --c-ins-fg:#155c2c; --c-del-bg:#fbe2dd; --c-del-fg:#9e2618;
+  --c-warn:#b7860f; --c-warn-soft:#faf3e1; --c-mark:#fbeaa0;
+  --c-backdrop:#e6e3dd; --c-toast:#262522; --c-toast-text:#f4f2ee;
+  --shadow-1:0 1px 2px rgba(20,18,15,.06),0 3px 10px rgba(20,18,15,.06);
+  --shadow-2:0 12px 40px rgba(20,18,15,.16),0 2px 6px rgba(20,18,15,.06);
+
+  --f-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs-2xs:10.5px; --fs-xs:11.5px; --fs-sm:12.5px; --fs-md:13.5px; --fs-base:14px;
+  --fs-body:15.5px; --fs-lg:18px; --fs-xl:21px; --fs-2xl:26px; --fs-title:30px;
+  --lh-body:1.65; --fw-med:510; --fw-semi:600; --fw-bold:690; --ls-caps:.07em; --ls-tight:-.015em;
+
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  --r-xs:3px; --r-sm:5px; --r-md:7px; --r-lg:10px; --r-xl:14px; --r-full:999px;
+
+  --w-sidebar:240px; --w-list:340px; --w-ask:376px; --w-read:700px;
+  --h-row:98px; --h-bar:48px; --h-tool:40px; --h-foot:44px; --dur:140ms;
+}
+:root[data-theme=dark]{
+  --c-bg:#191918; --c-sidebar:#131312; --c-list:#191918; --c-editor:#1b1b1a; --c-raised:#232321;
+  --c-sunken:#262624; --c-hover:rgba(255,250,240,.045); --c-active:rgba(255,250,240,.08); --c-sel:#1f2b27;
+  --c-text:#ebe9e4; --c-text-2:#aaa69e; --c-text-3:#77736c; --c-text-inv:#0f1d19;
+  --c-line:#2a2a28; --c-line-2:#3a3936;
+  --c-accent:#5dbea2; --c-accent-hover:#74cbb2; --c-accent-soft:rgba(93,190,162,.14); --c-accent-text:#7fd0b8;
+  --c-ins-bg:rgba(80,180,110,.2); --c-ins-fg:#9adfae; --c-del-bg:rgba(235,95,75,.2); --c-del-fg:#f3a497;
+  --c-warn:#d9a93a; --c-warn-soft:rgba(217,169,58,.12); --c-mark:rgba(250,210,80,.3);
+  --c-backdrop:#0e0e0d; --c-toast:#ebe9e4; --c-toast-text:#191918;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4),0 3px 10px rgba(0,0,0,.3);
+  --shadow-2:0 12px 40px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4);
+}

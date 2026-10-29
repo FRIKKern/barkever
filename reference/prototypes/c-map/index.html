@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barkever · Linked map</title>
+<style>
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-xs: 11px; --fs-s: 12px; --fs-m: 13px; --fs-base: 14px; --fs-body: 15px; --fs-l: 17px; --fs-xl: 24px;
+  --fs-graph: 10.5px;
+  --lh-tight: 1.25; --lh-body: 1.6;
+  --fw-medium: 500; --fw-bold: 600;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  --r-s: 4px; --r-m: 6px; --r-l: 10px; --r-xl: 16px; --r-pill: 999px;
+  --w-sidebar: 216px; --w-list: 300px; --w-rail: 340px; --h-bar: 44px; --h-row: 54px; --w-doc: 640px;
+  --dur: 280ms; --ease: cubic-bezier(.2, .7, .2, 1);
+  --c-bg: #f6f6f4;
+  --c-sidebar: #f0f0ed;
+  --c-list: #fafaf8;
+  --c-surface: #ffffff;
+  --c-rail: #f8f8f6;
+  --c-raised: #ffffff;
+  --c-border: #e3e2dd;
+  --c-border-soft: #ecebe7;
+  --c-text: #1d1f23;
+  --c-text-2: #4a4d55;
+  --c-muted: #7d8089;
+  --c-faint: #b3b5ba;
+  --c-hover: #ececea;
+  --c-select: #e6ebf5;
+  --c-accent: #3a62b5;
+  --c-accent-soft: #e4eaf7;
+  --c-on-accent: #ffffff;
+  --c-edge: #b4b7bf;
+  --c-ok: #4f8f62;
+  --c-add-bg: #dff1e3; --c-add-fg: #1d6634;
+  --c-del-bg: #fbe4e2; --c-del-fg: #a22d27;
+  --c-warn-bg: #f7f0de; --c-warn-fg: #7d5a12;
+  --c-mark: #fbeeb8;
+  --shadow-pop: 0 8px 28px rgba(20, 22, 28, .12), 0 1px 3px rgba(20, 22, 28, .08);
+  --nb-inbox: #8a8f98; --nb-work: #5374b0; --nb-projects: #3b8b7c; --nb-meetings: #b0843c;
+  --nb-home: #ad6655; --nb-reading: #8467ad; --nb-travel: #5b8a4b; --nb-new: #8a8f98;
+  --tint: .07;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --c-bg: #141518; --c-sidebar: #17181b; --c-list: #1a1b1e; --c-surface: #1f2024; --c-rail: #1b1c1f; --c-raised: #26272c;
+  --c-border: #2c2e33; --c-border-soft: #26282c;
+  --c-text: #e7e8eb; --c-text-2: #b8bbc2; --c-muted: #8a8e97; --c-faint: #565a62;
+  --c-hover: #24262a; --c-select: #252d3d; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
+  --c-edge: #4c5059; --c-ok: #79b98b;
+  --c-add-bg: #173421; --c-add-fg: #92d6a3; --c-del-bg: #3e1c1b; --c-del-fg: #f1a39c;
+  --c-warn-bg: #352b16; --c-warn-fg: #e3c27c; --c-mark: #5a4a17;
+  --shadow-pop: 0 10px 32px rgba(0, 0, 0, .45), 0 1px 3px rgba(0, 0, 0, .4);
+  --nb-inbox: #9aa0aa; --nb-work: #7f9fdb; --nb-projects: #5fb7a5; --nb-meetings: #d3a65c;
+  --nb-home: #d38c7b; --nb-reading: #a98fd3; --nb-travel: #86b875; --nb-new: #9aa0aa;
+  --tint: .10;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: var(--fs-base)/1.4 var(--font-sans); color: var(--c-text); background: var(--c-bg); -webkit-font-smoothing: antialiased; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+.muted { color: var(--c-muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+kbd { font: 10px/1 var(--font-mono); color: var(--c-muted); border: 1px solid var(--c-border); border-bottom-width: 2px; border-radius: var(--r-s); padding: 2px 4px; background: var(--c-surface); }
+mark { background: var(--c-mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+.app { display: grid; grid-template-columns: var(--w-sidebar) var(--w-list) minmax(0, 1fr) var(--w-rail); grid-template-rows: auto minmax(0, 1fr); height: 100vh; }
+.offline { grid-column: 1 / -1; display: none; align-items: center; gap: var(--sp-2); height: 28px; padding: 0 var(--sp-4); font-size: var(--fs-s); color: var(--c-text-2); background: var(--c-warn-bg); border-bottom: 1px solid var(--c-border); }
+.offline .dot { background: none; border: 1.5px solid var(--c-warn-fg); width: 7px; height: 7px; }
+.app.is-offline .offline { display: flex; }
+.sidebar, .list, .editor, .rail, .board { grid-row: 2; min-height: 0; display: flex; flex-direction: column; }
+.sidebar { grid-column: 1; background: var(--c-sidebar); border-right: 1px solid var(--c-border); }
+.list { grid-column: 2; background: var(--c-list); border-right: 1px solid var(--c-border); }
+.editor { grid-column: 3; background: var(--c-surface); min-width: 0; }
+.rail { grid-column: 4; background: var(--c-rail); border-left: 1px solid var(--c-border); }
+.board { grid-column: 2 / -1; display: none; background: var(--c-bg); }
+.app.v-tasks .list, .app.v-tasks .editor, .app.v-tasks .rail { display: none; }
+.app.v-tasks .board { display: flex; }
+.app.no-rail { grid-template-columns: var(--w-sidebar) var(--w-list) minmax(0, 1fr) 0; }
+.app.no-rail .rail { display: none; }
+.bar { height: var(--h-bar); flex: none; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); border-bottom: 1px solid var(--c-border); }
+.mhead, .tabbar { display: none; }
+.brand { font-weight: var(--fw-bold); font-size: var(--fs-base); display: flex; align-items: center; gap: var(--sp-2); }
+.brand svg { color: var(--c-accent); }
+.side-scroll { flex: 1; overflow: auto; padding: var(--sp-3) var(--sp-2); }
+.side-h { font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); padding: var(--sp-3) var(--sp-3) var(--sp-1); }
+.si { display: flex; align-items: center; gap: var(--sp-2); width: 100%; height: 28px; padding: 0 var(--sp-3); border-radius: var(--r-m); color: var(--c-text-2); text-align: left; }
+.si:hover { background: var(--c-hover); }
+.si.on { background: var(--c-select); color: var(--c-text); font-weight: var(--fw-medium); }
+.si .n { margin-left: auto; font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.si.child { padding-left: 28px; }
+.si svg { color: var(--c-muted); flex: none; }
+.tag { font-size: var(--fs-s); color: var(--c-text-2); padding: 1px 7px; border-radius: var(--r-pill); background: var(--c-hover); }
+.mini { margin: var(--sp-3) var(--sp-2) 0; padding: var(--sp-2); border: 1px solid var(--c-border); border-radius: var(--r-l); background: var(--c-surface); cursor: pointer; display: block; width: calc(100% - 16px); text-align: left; }
+.mini:hover { border-color: var(--c-faint); }
+.mini-h { display: flex; align-items: center; font-size: var(--fs-xs); color: var(--c-muted); margin-bottom: 4px; }
+.mini-h b { color: var(--c-text-2); font-weight: var(--fw-bold); margin-right: auto; }
+.mini svg { display: block; width: 100%; height: auto; }
+.side-foot { height: 36px; flex: none; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-4); font-size: var(--fs-s); color: var(--c-muted); border-top: 1px solid var(--c-border); }
+.side-foot .dot { background: var(--c-ok); width: 7px; height: 7px; }
+.app.is-offline .side-foot .dot { background: none; border: 1.5px solid var(--c-warn-fg); }
+.side-foot button { margin-left: auto; color: var(--c-muted); padding: 4px; border-radius: var(--r-s); }
+.side-foot button:hover { background: var(--c-hover); color: var(--c-text); }
+.search { flex: 1; display: flex; align-items: center; gap: var(--sp-2); height: 30px; padding: 0 var(--sp-2); border-radius: var(--r-m); background: var(--c-surface); border: 1px solid var(--c-border); color: var(--c-muted); }
+.search:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-soft); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font-size: var(--fs-m); color: var(--c-text); }
+.list-h { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) var(--sp-2); font-size: var(--fs-s); color: var(--c-muted); border-bottom: 1px solid var(--c-border-soft); }
+.list-h b { color: var(--c-text); font-size: var(--fs-m); font-weight: var(--fw-bold); }
+.list-h .sort { margin-left: auto; }
+.rows { flex: 1; overflow: auto; }
+.row { display: block; width: 100%; text-align: left; height: var(--h-row); padding: 9px var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
+.row:hover { background: var(--c-hover); }
+.row.sel { background: var(--c-select); box-shadow: inset 3px 0 0 var(--c-accent); }
+.row-top { display: flex; align-items: baseline; gap: var(--sp-2); }
+.row-title { flex: 1; font-weight: var(--fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-date { font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; flex: none; }
+.row-bot { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: var(--fs-s); color: var(--c-muted); }
+.row-snip { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lk { flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; color: var(--c-muted); }
+.lk.hub { color: var(--c-accent); }
+.badge { flex: none; font-size: var(--fs-xs); padding: 0 6px; border-radius: var(--r-pill); background: var(--c-warn-bg); color: var(--c-warn-fg); }
+.empty { padding: var(--sp-6) var(--sp-4); color: var(--c-muted); font-size: var(--fs-m); text-align: center; }
+.empty button { color: var(--c-accent); }
+.crumb { display: flex; align-items: center; gap: 6px; font-size: var(--fs-s); color: var(--c-muted); min-width: 0; white-space: nowrap; }
+.ed-actions { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); }
+.saved { font-size: var(--fs-xs); color: var(--c-muted); }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 var(--sp-3); border-radius: var(--r-m); font-size: var(--fs-m); font-weight: var(--fw-medium); border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text); white-space: nowrap; }
+.btn:hover { border-color: var(--c-faint); }
+.btn.primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
+.btn.ghost { border-color: transparent; background: none; color: var(--c-text-2); }
+.btn.ghost:hover { background: var(--c-hover); }
+.btn.sm { height: 24px; padding: 0 var(--sp-2); font-size: var(--fs-s); }
+.ed-scroll { flex: 1; overflow: auto; }
+.doc { max-width: var(--w-doc); margin: 0 auto; padding: var(--sp-6) var(--sp-6) var(--sp-7); }
+.doc-title { font-size: var(--fs-xl); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin: 0 0 var(--sp-2); outline: none; letter-spacing: -.01em; }
+.doc-title:empty::before { content: "Untitled"; color: var(--c-faint); }
+.doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-3); font-size: var(--fs-s); color: var(--c-muted); padding-bottom: var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
+.doc-meta .nbchip { display: inline-flex; align-items: center; gap: 6px; color: var(--c-text-2); }
+.doc-body { outline: none; font-size: var(--fs-body); line-height: var(--lh-body); }
+.doc-body p, .doc-body h2, .doc-body h3, .doc-body ul { margin: 0 0 var(--sp-3); }
+.doc-body h2 { font-size: var(--fs-l); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin-top: var(--sp-2); }
+.doc-body ul { padding-left: 22px; }
+.doc-body ul.tasks { list-style: none; padding-left: 0; }
+.doc-body ul.tasks li { display: flex; gap: 10px; align-items: flex-start; }
+.cb { flex: none; width: 16px; height: 16px; margin-top: 4px; border: 1.5px solid var(--c-faint); border-radius: var(--r-s); cursor: pointer; display: grid; place-items: center; background: var(--c-surface); }
+li.done > .cb, .tk.done .cb { background: var(--c-accent); border-color: var(--c-accent); }
+li.done > .cb::after, .tk.done .cb::after { content: ""; width: 8px; height: 4px; border: 2px solid var(--c-on-accent); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+li.done > .li-t { color: var(--c-muted); text-decoration: line-through; }
+.wl { color: var(--c-accent); text-decoration: none; background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 4px; cursor: pointer; white-space: nowrap; }
+.wl::before { content: "↗ "; font-size: .8em; opacity: .7; }
+.wl:hover, .wl.hl { background: var(--c-accent); color: var(--c-on-accent); }
+.wl.prop { background: var(--c-add-bg); color: var(--c-add-fg); }
+.flash { animation: flash 1.6s var(--ease); border-radius: var(--r-s); }
+@keyframes flash { 0%, 40% { background: var(--c-mark); } 100% { background: transparent; } }
+.aibar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); border-bottom: 1px solid var(--c-border); background: var(--c-rail); font-size: var(--fs-s); color: var(--c-text-2); }
+.aibar .grow { flex: 1; }
+.aibar b { color: var(--c-text); }
+.chip { font-size: var(--fs-s); padding: 2px 8px; border-radius: var(--r-pill); border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text-2); }
+.chip:hover { border-color: var(--c-faint); }
+.chg { position: relative; margin: 0 -10px var(--sp-3); padding: 6px 10px; border-radius: var(--r-m); border: 1px solid var(--c-border); background: var(--c-surface); }
+.chg.pending { border-color: var(--c-faint); }
+.chg.done { border-style: dashed; }
+.chg-h { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--c-muted); margin-bottom: 2px; }
+.chg-h .num { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--c-text); color: var(--c-surface); font-weight: var(--fw-bold); font-size: 10px; }
+.chg-h .acts { margin-left: auto; display: flex; gap: 4px; }
+.acc, .rej { height: 22px; padding: 0 8px; border-radius: var(--r-s); font-size: var(--fs-s); font-weight: var(--fw-medium); border: 1px solid var(--c-border); }
+.acc { color: var(--c-add-fg); } .acc:hover { background: var(--c-add-bg); border-color: var(--c-add-fg); }
+.rej { color: var(--c-del-fg); } .rej:hover { background: var(--c-del-bg); border-color: var(--c-del-fg); }
+.chg p { margin: 0; }
+.del-line { display: block; width: fit-content; margin-bottom: 2px; }
+del { margin-right: 3px; background: var(--c-del-bg); color: var(--c-del-fg); text-decoration: line-through; text-decoration-thickness: 1px; border-radius: 2px; }
+ins { background: var(--c-add-bg); color: var(--c-add-fg); text-decoration: none; border-radius: 2px; }
+.state-tag { font-size: var(--fs-xs); font-weight: var(--fw-medium); }
+.state-tag.a { color: var(--c-add-fg); } .state-tag.r { color: var(--c-del-fg); }
+.cf-note { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); font-size: var(--fs-s); color: var(--c-warn-fg); background: var(--c-warn-bg); border-bottom: 1px solid var(--c-border); }
+.cf { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); padding: var(--sp-5); max-width: 1040px; margin: 0 auto; }
+.cf-col { border: 1px solid var(--c-border); border-radius: var(--r-l); background: var(--c-surface); display: flex; flex-direction: column; }
+.cf-head { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-s); color: var(--c-muted); }
+.cf-head b { color: var(--c-text); font-size: var(--fs-m); }
+.cf-body { padding: var(--sp-4); font-size: var(--fs-body); line-height: var(--lh-body); flex: 1; }
+.cf-body h1 { font-size: var(--fs-l); margin: 0 0 var(--sp-3); }
+.cf-body p { margin: 0 0 var(--sp-3); }
+.cf-body ul { list-style: none; padding: 0; margin: 0; }
+.cf-body li { display: flex; gap: 10px; }
+.cf-body li.diff { background: var(--c-mark); border-radius: var(--r-s); }
+.cf-body .only { background: var(--c-mark); border-radius: 2px; }
+.cf-foot { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--c-border-soft); display: flex; gap: var(--sp-2); }
+.cf-both { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--sp-3); justify-content: center; font-size: var(--fs-s); color: var(--c-muted); }
+.seg { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-m); background: var(--c-hover); }
+.seg button { height: 26px; padding: 0 var(--sp-3); border-radius: var(--r-s); font-size: var(--fs-m); color: var(--c-text-2); }
+.seg button.on { background: var(--c-surface); color: var(--c-text); font-weight: var(--fw-medium); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.rail-body { flex: 1; overflow: auto; position: relative; }
+.graph { position: relative; border-bottom: 1px solid var(--c-border-soft); }
+.graph svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: var(--sp-3); justify-content: center; font-size: var(--fs-xs); color: var(--c-muted); padding: 0 0 var(--sp-2); }
+.legend i { display: inline-block; width: 16px; vertical-align: middle; border-top: 1.5px solid var(--c-edge); margin-right: 4px; }
+.legend i.t { border-top-style: dotted; border-top-width: 2px; }
+.legend i.p { border-top: 1.5px dashed var(--c-add-fg); }
+.rel { padding: var(--sp-3) var(--sp-4) 0; }
+.rel h4 { margin: 0 0 4px; font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.rel-row { display: block; width: 100%; text-align: left; padding: 5px 8px; margin: 0 -8px; border-radius: var(--r-m); }
+.rel-row:hover, .rel-row.hl { background: var(--c-hover); }
+.rel-row .t { display: flex; align-items: center; gap: 6px; font-size: var(--fs-m); font-weight: var(--fw-medium); }
+.rel-row .c { display: block; font-size: var(--fs-s); color: var(--c-muted); padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rel-empty { font-size: var(--fs-s); color: var(--c-muted); padding: 2px 0 4px; }
+.cl-h { padding: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-s); color: var(--c-muted); }
+.cl-h b { display: flex; align-items: center; gap: 6px; font-size: var(--fs-m); color: var(--c-text); margin-bottom: 2px; }
+.rail-foot { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.cl-nb { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-s); color: var(--c-text-2); padding: 3px 0; }
+.cl-nb i { height: 6px; border-radius: 3px; flex: none; }
+.cl-nb .n { margin-left: auto; color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.tip { position: absolute; z-index: 20; width: 220px; pointer-events: none; background: var(--c-raised); border: 1px solid var(--c-border); border-radius: var(--r-l); box-shadow: var(--shadow-pop); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-s); color: var(--c-text-2); }
+.tip b { display: block; color: var(--c-text); font-size: var(--fs-m); margin: 2px 0; }
+.tip .nbline { display: flex; align-items: center; gap: 6px; color: var(--c-muted); font-size: var(--fs-xs); }
+.g-edge { fill: none; stroke: var(--c-edge); stroke-width: 1.4; transition: opacity .15s, stroke .15s; }
+.g-edge.tagged { stroke-dasharray: 1.5 4; stroke-linecap: round; stroke-width: 1.8; }
+.g-edge.prop { stroke: var(--c-add-fg); stroke-dasharray: 5 4; }
+.g-edge.d2 { stroke-width: 1; opacity: .7; }
+.g-node { cursor: pointer; transition: opacity .15s; }
+.g-node circle.b { stroke: var(--c-rail); stroke-width: 2; }
+.g-node.tagged circle.b { fill: var(--c-rail) !important; stroke-width: 1.6; }
+.g-node.prop circle.b { fill: var(--c-add-bg) !important; stroke: var(--c-add-fg) !important; stroke-dasharray: 3 2; stroke-width: 1.5; }
+.g-node.center circle.halo { fill: var(--c-accent-soft); }
+.g-node text { font-size: var(--fs-graph); fill: var(--c-text-2); paint-order: stroke; stroke: var(--c-rail); stroke-width: 3px; stroke-linejoin: round; }
+.g-node.center text { font-size: 11.5px; font-weight: var(--fw-bold); fill: var(--c-text); }
+.g-node.more text { fill: var(--c-muted); }
+.g-cap { font-size: 9.5px; letter-spacing: .08em; fill: var(--c-muted); font-weight: var(--fw-bold); }
+.g-hint { font-size: var(--fs-s); fill: var(--c-muted); }
+svg.hov .g-edge:not(.on), svg.hov .g-node:not(.on) { opacity: .28; }
+svg.hov .g-edge.on { stroke: var(--c-accent); }
+.g-node.on circle.b, .g-node.hl circle.b { stroke: var(--c-accent); stroke-width: 2.5; }
+.mb-r { fill-opacity: var(--tint); stroke-opacity: .32; stroke-width: 1; }
+.mb.dim { opacity: .4; }
+.mb-l { font-weight: var(--fw-bold); fill: var(--c-text-2); }
+.mb-n { fill: var(--c-muted); }
+.m-edge { fill: none; stroke: var(--c-edge); stroke-width: 1.3; vector-effect: non-scaling-stroke; transition: opacity .15s; }
+.m-edge.on { stroke: var(--c-accent); stroke-width: 2; }
+.m-edge.dim { opacity: .22; }
+.m-edge.prop { stroke: var(--c-add-fg); stroke-dasharray: 5 4; }
+.m-node { cursor: pointer; transition: opacity .15s; }
+.m-node circle.b { stroke: var(--c-bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.m-node.sel circle.b { stroke: var(--c-accent); stroke-width: 3; }
+.m-node.sel circle.halo { fill: var(--c-accent); opacity: .16; }
+.m-node.dim { opacity: .4; }
+.m-node.cited circle.b { stroke: var(--c-accent); stroke-width: 2.5; }
+.m-node text.lbl { fill: var(--c-text-2); paint-order: stroke; stroke: var(--c-bg); stroke-linejoin: round; }
+.m-node.sel text.lbl, .m-node.nb1 text.lbl { fill: var(--c-text); font-weight: var(--fw-bold); }
+.m-mark { fill: var(--c-accent); }
+.m-mark-t { fill: var(--c-on-accent); font-weight: var(--fw-bold); text-anchor: middle; }
+.rail .m-node circle.b { stroke: var(--c-rail); }
+.rail .m-node text.lbl { stroke: var(--c-rail); }
+.mini .m-node circle.b, .ask-map .m-node circle.b { stroke: var(--c-surface); stroke-width: .8; }
+.mini .m-node.sel circle.b { stroke: var(--c-accent); stroke-width: 2; }
+.ask { display: flex; flex-direction: column; min-height: 100%; }
+.ask-head { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-s); }
+.ask-head strong { font-size: var(--fs-m); display: block; }
+.switch { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--c-muted); cursor: pointer; flex: none; }
+.switch input { appearance: none; width: 28px; height: 16px; border-radius: var(--r-pill); background: var(--c-faint); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.switch input:checked { background: var(--c-accent); }
+.switch input:checked::after { transform: translateX(12px); }
+.thread { flex: 1; padding: var(--sp-3) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
+.q { align-self: flex-end; max-width: 85%; background: var(--c-select); color: var(--c-text); padding: 6px 10px; border-radius: var(--r-l) var(--r-l) var(--r-s) var(--r-l); font-size: var(--fs-m); }
+.a { font-size: var(--fs-m); line-height: 1.55; }
+.a p { margin: 0 0 var(--sp-2); }
+.cite { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: var(--r-s); background: var(--c-accent-soft); color: var(--c-accent); font-size: 10px; font-weight: var(--fw-bold); vertical-align: 1px; margin: 0 1px; }
+.cite:hover { background: var(--c-accent); color: var(--c-on-accent); }
+.nf { border: 1px solid var(--c-border); border-left: 3px solid var(--c-faint); border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); background: var(--c-surface); }
+.nf b { display: block; }
+.srcs { display: flex; flex-direction: column; gap: 4px; margin: var(--sp-2) 0; }
+.src { display: block; width: 100%; text-align: left; border: 1px solid var(--c-border); border-radius: var(--r-m); padding: 6px 8px; background: var(--c-surface); font-size: var(--fs-s); }
+.src:hover { border-color: var(--c-faint); }
+.src .t { display: flex; align-items: center; gap: 6px; font-weight: var(--fw-medium); color: var(--c-text); }
+.src .t .cite { margin: 0; }
+.src .qt { display: block; color: var(--c-muted); margin-top: 2px; padding-left: 22px; }
+.ask-map { border: 1px solid var(--c-border-soft); border-radius: var(--r-m); background: var(--c-surface); padding: 4px 6px 2px; margin-top: var(--sp-2); }
+.ask-map .cap { font-size: var(--fs-xs); color: var(--c-muted); }
+.ask-map svg { display: block; width: 100%; height: auto; }
+.meta { font-size: var(--fs-xs); color: var(--c-muted); margin-top: var(--sp-1); }
+.sugg { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.ask-in { position: sticky; bottom: 0; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--c-border-soft); background: var(--c-rail); }
+.ask-in form { display: flex; gap: 6px; }
+.ask-in input { flex: 1; height: 32px; border: 1px solid var(--c-border); border-radius: var(--r-m); padding: 0 var(--sp-3); background: var(--c-surface); outline: 0; font-size: var(--fs-m); }
+.ask-in input:focus { border-color: var(--c-accent); }
+.ask-in .fine { font-size: var(--fs-xs); color: var(--c-muted); margin-top: 6px; }
+.ai-off { padding: var(--sp-6) var(--sp-4); text-align: center; color: var(--c-muted); font-size: var(--fs-m); }
+.board-h { display: flex; align-items: center; gap: var(--sp-3); }
+.board-h b { font-size: var(--fs-base); }
+.cols { flex: 1; overflow: auto; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(176px, 1fr); gap: var(--sp-3); padding: var(--sp-4); align-items: start; }
+.col-h { display: flex; align-items: center; gap: 6px; font-size: var(--fs-m); font-weight: var(--fw-bold); padding: 0 2px; }
+.col-h .n { margin-left: auto; font-size: var(--fs-xs); color: var(--c-muted); font-weight: 400; }
+.prog { height: 3px; border-radius: 2px; background: var(--c-border); margin: 6px 2px var(--sp-2); overflow: hidden; }
+.prog i { display: block; height: 100%; }
+.card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-l); padding: var(--sp-2) var(--sp-3) var(--sp-2); margin-bottom: var(--sp-2); }
+.card-t { display: block; width: 100%; text-align: left; font-size: var(--fs-m); font-weight: var(--fw-bold); margin-bottom: 4px; }
+.card-t:hover { color: var(--c-accent); }
+.tk { display: flex; align-items: center; gap: 8px; font-size: var(--fs-m); padding: 3px 0; }
+.tk .cb { margin-top: 0; width: 15px; height: 15px; }
+.tk.done .tt { color: var(--c-muted); text-decoration: line-through; }
+.tk .go { margin-left: auto; opacity: 0; color: var(--c-muted); font-size: var(--fs-s); padding: 0 4px; border-radius: var(--r-s); }
+.tk:hover .go { opacity: 1; }
+.tk .go:hover { background: var(--c-hover); color: var(--c-accent); }
+.mapov { position: fixed; inset: 0; z-index: 30; background: var(--c-bg); display: none; flex-direction: column; }
+.mapov.open { display: flex; }
+.mapov .bar { background: var(--c-sidebar); gap: var(--sp-3); }
+.mapov .search { flex: 0 1 260px; }
+.mchips { display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: var(--fs-s); color: var(--c-text-2); border: 1px solid var(--c-border); background: var(--c-surface); white-space: nowrap; }
+.mchip:hover { border-color: var(--c-faint); }
+.zoom { margin-left: auto; display: flex; gap: 2px; }
+.zoom button { height: 28px; padding: 0 10px; font-size: var(--fs-s); border-radius: var(--r-m); border: 1px solid var(--c-border); background: var(--c-surface); }
+.map-wrap { flex: 1; position: relative; min-height: 0; }
+.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+.map-svg.drag { cursor: grabbing; }
+.mcard { position: absolute; top: var(--sp-4); right: var(--sp-4); width: 300px; background: var(--c-raised); border: 1px solid var(--c-border); border-radius: var(--r-l); box-shadow: var(--shadow-pop); padding: var(--sp-4); font-size: var(--fs-m); }
+.mcard h3 { margin: 4px 0 6px; font-size: var(--fs-l); line-height: var(--lh-tight); }
+.mcard p { margin: 0 0 var(--sp-3); color: var(--c-text-2); line-height: 1.5; }
+.mcard .nbline { display: flex; align-items: center; gap: 6px; font-size: var(--fs-s); color: var(--c-muted); }
+.mcard .stat { display: flex; gap: var(--sp-4); font-size: var(--fs-s); color: var(--c-muted); margin-bottom: var(--sp-2); }
+.mcard .stat b { color: var(--c-text); font-size: var(--fs-base); margin-right: 3px; }
+.mcard .nbrs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: var(--sp-3); }
+.mcard .nbrs button { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-s); padding: 2px 8px; border-radius: var(--r-pill); background: var(--c-hover); color: var(--c-text-2); }
+.mhint { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--sp-4); font-size: var(--fs-xs); color: var(--c-muted); background: var(--c-bg); padding: 4px 8px; border-radius: var(--r-m); }
+.switcher { position: fixed; z-index: 60; left: 8px; bottom: 44px; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--c-raised); border: 1px solid var(--c-border); box-shadow: 0 1px 4px rgba(0, 0, 0, .06); opacity: .55; transition: opacity .15s; font-size: var(--fs-xs); }
+.switcher:hover, .switcher:focus-within { opacity: 1; }
+.switcher button { width: 19px; height: 19px; border-radius: 50%; color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+.switcher button:hover { background: var(--c-hover); }
+.switcher button.on { background: var(--c-text); color: var(--c-surface); }
+.toast { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--c-text); color: var(--c-surface); padding: 8px 14px; border-radius: var(--r-m); font-size: var(--fs-m); box-shadow: var(--shadow-pop); display: none; align-items: center; gap: var(--sp-3); }
+.toast.show { display: flex; }
+.toast button { color: var(--c-accent-soft); text-decoration: underline; }
+body.frame { display: grid; place-items: center; background: var(--c-sidebar); }
+body.frame .app { width: 390px; height: 844px; border-radius: 28px; border: 1px solid var(--c-border); box-shadow: var(--shadow-pop); overflow: hidden auto; }
+.app.m { display: block; overflow-y: auto; overflow-x: hidden; background: var(--c-surface); }
+.app.m .sidebar, .app.m .list, .app.m .editor, .app.m .rail, .app.m .board { display: none; }
+.app.m[data-mv="list"] .list { display: flex; min-height: calc(100% - 104px); border: 0; }
+.app.m[data-mv="note"] .editor { display: flex; }
+.app.m[data-mv="note"] .rail, .app.m[data-mv="ask"] .rail { display: flex; border: 0; }
+.app.m[data-mv="note"] .rail { border-top: 1px solid var(--c-border); }
+.app.m[data-mv="ask"] .rail { min-height: calc(100% - 104px); }
+.app.m[data-mv="tasks"] .board { display: flex; min-height: calc(100% - 104px); }
+.app.m[data-mv="tasks"] .cols { grid-auto-flow: row; grid-auto-columns: auto; }
+.app.m .rail-bar, .app.m .ed-bar, .app.m .list .bar { display: none; }
+.app.m .ed-scroll, .app.m .rail-body, .app.m .rows { overflow: visible; }
+.app.m .doc { padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+.app.m .doc-title { font-size: 22px; }
+.app.m .rel { padding-bottom: var(--sp-2); }
+.app.m .mhead { display: flex; position: sticky; top: 0; z-index: 10; align-items: center; gap: var(--sp-2); height: 48px; padding: 0 var(--sp-3); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
+.mhead .back { display: flex; align-items: center; gap: 2px; color: var(--c-accent); font-size: var(--fs-body); }
+.mhead .mt { flex: 1; text-align: center; font-weight: var(--fw-bold); font-size: var(--fs-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mhead .ic { width: 32px; height: 32px; display: grid; place-items: center; color: var(--c-text-2); border-radius: var(--r-m); }
+.app.m .tabbar { display: flex; position: sticky; bottom: 0; z-index: 10; height: 56px; background: var(--c-sidebar); border-top: 1px solid var(--c-border); }
+.tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10.5px; color: var(--c-muted); }
+.tabbar button.on { color: var(--c-accent); }
+.app.m .m-graph-h { display: flex; }
+.m-graph-h { display: none; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.m-graph-h button { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: var(--fw-medium); color: var(--c-accent); font-size: var(--fs-s); }
+.app.m .offline { display: none; }
+.app.m.is-offline .offline { display: flex; position: sticky; top: 48px; z-index: 9; }
+@media (max-width: 700px) { .switcher { left: auto; right: 8px; bottom: 64px; } .switcher:not(:hover):not(:focus-within) button:not(.on) { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div class="offline" role="status"><span class="dot"></span><span>Offline. Edits save on this Mac and sync when you reconnect.</span><span class="muted" id="pending"></span></div>
+  <div class="mhead" id="mhead"></div>
+
+  <aside class="sidebar" aria-label="Notebooks">
+    <div class="bar"><div class="brand"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="4" cy="5" r="2.2"/><circle cx="14" cy="4" r="1.8"/><circle cx="10" cy="14" r="2.6"/><path d="M6 6.2 8.8 11.7M12.6 5.3l-1.6 6.2M6.2 4.7l6-.5"/></svg>Barkever</div></div>
+    <div class="side-scroll" id="side"></div>
+    <div class="side-foot"><span class="dot"></span><span id="sync">Synced</span><button data-act="theme" title="Light / dark (T)" aria-label="Toggle theme"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg></button></div>
+  </aside>
+
+  <section class="list" aria-label="Notes">
+    <div class="bar"><label class="search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="q" type="search" placeholder="Search notes" autocomplete="off" spellcheck="false"><kbd>/</kbd></label></div>
+    <div class="list-h" id="listh"></div>
+    <div class="rows" id="rows" role="listbox" aria-label="Notes"></div>
+  </section>
+
+  <main class="editor" id="editor" aria-label="Note"></main>
+
+  <aside class="rail" aria-label="Connections">
+    <div class="bar rail-bar"><div class="seg" role="tablist" id="railtabs">
+      <button data-rail="links" role="tab">Links</button><button data-rail="cluster" role="tab">Cluster</button><button data-rail="ask" role="tab">✨ Ask</button>
+    </div></div>
+    <div class="rail-body" id="rail"></div>
+  </aside>
+
+  <section class="board" id="board" aria-label="Tasks"></section>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div class="mapov" id="mapov" aria-label="Map">
+  <div class="bar">
+    <button class="btn ghost" data-act="closemap">← Notes <kbd>Esc</kbd></button>
+    <b>Map</b><span class="muted" id="mapstat"></span>
+    <label class="search"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="mq" type="search" placeholder="Find on map" autocomplete="off"></label>
+    <div class="mchips" id="mchips"></div>
+    <div class="zoom"><button data-act="zfit">Fit</button></div>
+  </div>
+  <div class="map-wrap"><svg class="map-svg" id="msvg"></svg><div class="mcard" id="mcard" hidden></div>
+    <div class="mhint">Scroll to zoom · drag to pan · click a note to preview · double-click to open</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<nav class="switcher" id="switcher" aria-label="Prototype states"></nav>
+
+<script id="fixtures" type="application/json">[{"_type":"notebook","_id":"fx-nb-inbox","name":"Inbox"},{"_type":"notebook","_id":"fx-nb-work","name":"Work"},{"_type":"notebook","_id":"fx-nb-projects","name":"Projects","parent":{"_ref":"fx-nb-work"}},{"_type":"notebook","_id":"fx-nb-meetings","name":"Meetings","parent":{"_ref":"fx-nb-work"}},{"_type":"notebook","_id":"fx-nb-home","name":"Home"},{"_type":"notebook","_id":"fx-nb-reading","name":"Reading"},{"_type":"notebook","_id":"fx-nb-travel","name":"Travel"},{"_type":"note","_id":"fx-note-00","title":"Harbor redesign: kickoff","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","kickoff"],"body":{"blocks":[{"id":"fx-note-00-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-00-p0","type":"paragraph","content":[{"type":"text","value":"Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action."}]},{"id":"fx-note-00-p1","type":"paragraph","content":[{"type":"text","value":"Owner: Ola Testesen. Deadline end of quarter."}]},{"id":"fx-note-00-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-01","title":"Harbor redesign: sitemap","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","ia"],"body":{"blocks":[{"id":"fx-note-01-p0","type":"paragraph","content":[{"type":"text","value":"Top level: Home, Services, Work, About, Contact. Services splits into three."}]},{"id":"fx-note-01-p1","type":"paragraph","content":[{"type":"text","value":"Open question: does Work need filters?"}]},{"id":"fx-note-01-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}]},{"_type":"note","_id":"fx-note-02","title":"Harbor redesign: wireframes","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","design"],"body":{"blocks":[{"id":"fx-note-02-p0","type":"paragraph","content":[{"type":"text","value":"Three wireframe rounds. Round two dropped the carousel."}]},{"id":"fx-note-02-p1","type":"paragraph","content":[{"type":"text","value":"Mobile first, then desktop."}]},{"id":"fx-note-02-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}]},{"_type":"note","_id":"fx-note-03","title":"Harbor redesign: content plan","notebook":{"_ref":"fx-nb-projects"},"tags":["harbor","content"],"body":{"blocks":[{"id":"fx-note-03-p0","type":"paragraph","content":[{"type":"text","value":"Every page gets one owner and one deadline."}]},{"id":"fx-note-03-p1","type":"paragraph","content":[{"type":"text","value":"Copy lives in the CMS from day one."}]},{"id":"fx-note-03-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-04","title":"Lighthouse app: brief","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","brief"],"body":{"blocks":[{"id":"fx-note-04-p0","type":"paragraph","content":[{"type":"text","value":"A small app that reminds field crews of safety checks."}]},{"id":"fx-note-04-p1","type":"paragraph","content":[{"type":"text","value":"Works offline; syncs at the depot."}]},{"id":"fx-note-04-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}]},{"_type":"note","_id":"fx-note-05","title":"Lighthouse app: risks","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","risk"],"body":{"blocks":[{"id":"fx-note-05-p0","type":"paragraph","content":[{"type":"text","value":"Biggest risk: crews ignore notifications."}]},{"id":"fx-note-05-p1","type":"paragraph","content":[{"type":"text","value":"Second: battery drain from location checks."}]},{"id":"fx-note-05-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-06","title":"Lighthouse app: estimate","notebook":{"_ref":"fx-nb-projects"},"tags":["lighthouse","estimate"],"body":{"blocks":[{"id":"fx-note-06-p0","type":"paragraph","content":[{"type":"text","value":"Rough estimate: six weeks for two people."}]},{"id":"fx-note-06-p1","type":"paragraph","content":[{"type":"text","value":"Excludes the admin dashboard."}]},{"id":"fx-note-06-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-04","docId":"fx-note-04","children":[{"type":"text","value":"Lighthouse app: brief"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-04","_key":"fx-note-04"}]},{"_type":"note","_id":"fx-note-07","title":"Quarry rebrand: moodboard","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","design"],"body":{"blocks":[{"id":"fx-note-07-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-07-p0","type":"paragraph","content":[{"type":"text","value":"Stone greys, one warm accent, a lot of white space."}]},{"id":"fx-note-07-p1","type":"paragraph","content":[{"type":"text","value":"Typeface shortlist: three grotesks."}]}]},"links":[]},{"_type":"note","_id":"fx-note-08","title":"Quarry rebrand: naming","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","naming"],"body":{"blocks":[{"id":"fx-note-08-p0","type":"paragraph","content":[{"type":"text","value":"Twelve candidates, three survived the shout test."}]},{"id":"fx-note-08-p1","type":"paragraph","content":[{"type":"text","value":"Check domains before the next meeting."}]},{"id":"fx-note-08-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-09","title":"Quarry rebrand: launch","notebook":{"_ref":"fx-nb-projects"},"tags":["quarry","launch"],"body":{"blocks":[{"id":"fx-note-09-p0","type":"paragraph","content":[{"type":"text","value":"Soft launch to customers first, press a week later."}]},{"id":"fx-note-09-p1","type":"paragraph","content":[{"type":"text","value":"Need a one-page story for sales."}]},{"id":"fx-note-09-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-07","docId":"fx-note-07","children":[{"type":"text","value":"Quarry rebrand: moodboard"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-07","_key":"fx-note-07"}]},{"_type":"note","_id":"fx-note-10","title":"Weekly sync, week 41","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-10-p0","type":"paragraph","content":[{"type":"text","value":"Harbor is on track. Lighthouse waits on the risk review."}]},{"id":"fx-note-10-p1","type":"paragraph","content":[{"type":"text","value":"Decision: drop the carousel."}]},{"id":"fx-note-10-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}]},{"_type":"note","_id":"fx-note-11","title":"Weekly sync, week 42","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-11-p0","type":"paragraph","content":[{"type":"text","value":"Quarry naming narrowed to three."}]},{"id":"fx-note-11-p1","type":"paragraph","content":[{"type":"text","value":"Lighthouse estimate approved."}]},{"id":"fx-note-11-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-12","title":"Weekly sync, week 43","notebook":{"_ref":"fx-nb-meetings"},"tags":["weekly"],"body":{"blocks":[{"id":"fx-note-12-p0","type":"paragraph","content":[{"type":"text","value":"Harbor wireframes signed off."}]},{"id":"fx-note-12-p1","type":"paragraph","content":[{"type":"text","value":"Hiring: one designer, start in January."}]},{"id":"fx-note-12-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-02","docId":"fx-note-02","children":[{"type":"text","value":"Harbor redesign: wireframes"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-02","_key":"fx-note-02"}]},{"_type":"note","_id":"fx-note-13","title":"Client call: Harbor","notebook":{"_ref":"fx-nb-meetings"},"tags":["harbor","client"],"body":{"blocks":[{"id":"fx-note-13-p0","type":"paragraph","content":[{"type":"text","value":"Client wants a stronger services page."}]},{"id":"fx-note-13-p1","type":"paragraph","content":[{"type":"text","value":"They like the calm navigation."}]},{"id":"fx-note-13-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}]},{"_type":"note","_id":"fx-note-14","title":"Client call: Quarry","notebook":{"_ref":"fx-nb-meetings"},"tags":["quarry","client"],"body":{"blocks":[{"id":"fx-note-14-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-14-p0","type":"paragraph","content":[{"type":"text","value":"Client prefers the warmest of the three names."}]},{"id":"fx-note-14-p1","type":"paragraph","content":[{"type":"text","value":"Logo first, then the site."}]},{"id":"fx-note-14-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-08","docId":"fx-note-08","children":[{"type":"text","value":"Quarry rebrand: naming"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-08","_key":"fx-note-08"}]},{"_type":"note","_id":"fx-note-15","title":"Retro: September","notebook":{"_ref":"fx-nb-meetings"},"tags":["retro"],"body":{"blocks":[{"id":"fx-note-15-p0","type":"paragraph","content":[{"type":"text","value":"Went well: short meetings. Went badly: too many tools."}]},{"id":"fx-note-15-p1","type":"paragraph","content":[{"type":"text","value":"Try: one notes app for everything."}]},{"id":"fx-note-15-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-16","title":"1:1 with Kari Eksempel","notebook":{"_ref":"fx-nb-meetings"},"tags":["1on1"],"body":{"blocks":[{"id":"fx-note-16-p0","type":"paragraph","content":[{"type":"text","value":"Kari wants more ownership of Lighthouse."}]},{"id":"fx-note-16-p1","type":"paragraph","content":[{"type":"text","value":"Follow up on the conference budget."}]},{"id":"fx-note-16-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-17","title":"Planning: Q4","notebook":{"_ref":"fx-nb-meetings"},"tags":["planning"],"body":{"blocks":[{"id":"fx-note-17-p0","type":"paragraph","content":[{"type":"text","value":"Three bets for Q4: Harbor launch, Lighthouse beta, Quarry identity."}]},{"id":"fx-note-17-p1","type":"paragraph","content":[{"type":"text","value":"Everything else waits."}]},{"id":"fx-note-17-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-00","docId":"fx-note-00","children":[{"type":"text","value":"Harbor redesign: kickoff"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-00","_key":"fx-note-00"}]},{"_type":"note","_id":"fx-note-18","title":"Team handbook","notebook":{"_ref":"fx-nb-work"},"tags":["handbook"],"body":{"blocks":[{"id":"fx-note-18-p0","type":"paragraph","content":[{"type":"text","value":"How we work: small teams, written decisions, short meetings."}]},{"id":"fx-note-18-p1","type":"paragraph","content":[{"type":"text","value":"Ask before pushing to production."}]},{"id":"fx-note-18-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-19","title":"Onboarding checklist","notebook":{"_ref":"fx-nb-work"},"tags":["handbook","onboarding"],"body":{"blocks":[{"id":"fx-note-19-p0","type":"paragraph","content":[{"type":"text","value":"Day one is for laptops and coffee."}]},{"id":"fx-note-19-p1","type":"paragraph","content":[{"type":"text","value":"Week one ends with a small shipped change."}]},{"id":"fx-note-19-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-20","title":"Writing guide","notebook":{"_ref":"fx-nb-work"},"tags":["handbook","writing"],"body":{"blocks":[{"id":"fx-note-20-p0","type":"paragraph","content":[{"type":"text","value":"Plain words. Lead with the picture. Cut every sentence a reader can skip."}]}]},"links":[]},{"_type":"note","_id":"fx-note-21","title":"Tool list","notebook":{"_ref":"fx-nb-work"},"tags":["tools"],"body":{"blocks":[{"id":"fx-note-21-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-21-p0","type":"paragraph","content":[{"type":"text","value":"Notes, chat, calendar, code host. Nothing else without a reason."}]},{"id":"fx-note-21-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-22","title":"Untitled","notebook":{"_ref":"fx-nb-inbox"},"tags":[],"body":{"blocks":[{"id":"fx-note-22-p0","type":"paragraph","content":[{"type":"text","value":"Call the printer about the Quarry samples."}]}]},"links":[]},{"_type":"note","_id":"fx-note-23","title":"Idea: visual diff for AI edits","notebook":{"_ref":"fx-nb-inbox"},"tags":["idea","ai"],"body":{"blocks":[{"id":"fx-note-23-p0","type":"paragraph","content":[{"type":"text","value":"Show AI changes as red and green, accept one by one."}]}]},"links":[]},{"_type":"note","_id":"fx-note-24","title":"Idea: offline banner","notebook":{"_ref":"fx-nb-inbox"},"tags":["idea"],"body":{"blocks":[{"id":"fx-note-24-p0","type":"paragraph","content":[{"type":"text","value":"A quiet line at the top when offline, nothing more."}]}]},"links":[]},{"_type":"note","_id":"fx-note-25","title":"Book the dentist","notebook":{"_ref":"fx-nb-inbox"},"tags":[],"body":{"blocks":[{"id":"fx-note-25-p0","type":"paragraph","content":[{"type":"text","value":"Before the end of the month."}]},{"id":"fx-note-25-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-26","title":"Podcast to try","notebook":{"_ref":"fx-nb-inbox"},"tags":["listen"],"body":{"blocks":[{"id":"fx-note-26-p0","type":"paragraph","content":[{"type":"text","value":"Someone recommended a show about city planning."}]}]},"links":[]},{"_type":"note","_id":"fx-note-27","title":"Gift ideas","notebook":{"_ref":"fx-nb-inbox"},"tags":["gifts"],"body":{"blocks":[{"id":"fx-note-27-p0","type":"paragraph","content":[{"type":"text","value":"Plant, cookbook, a good pen."}]},{"id":"fx-note-27-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-28","title":"Plan for the day","notebook":{"_ref":"fx-nb-home"},"tags":["daily"],"body":{"blocks":[{"id":"fx-note-28-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-28-p0","type":"paragraph","content":[{"type":"text","value":"Morning: deep work. Afternoon: calls. Evening: walk."}]},{"id":"fx-note-28-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-29","title":"Groceries","notebook":{"_ref":"fx-nb-home"},"tags":["shopping"],"body":{"blocks":[{"id":"fx-note-29-p0","type":"paragraph","content":[{"type":"text","value":"The usual, plus things for Sunday dinner."}]},{"id":"fx-note-29-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-30","title":"Garden: autumn","notebook":{"_ref":"fx-nb-home"},"tags":["garden"],"body":{"blocks":[{"id":"fx-note-30-p0","type":"paragraph","content":[{"type":"text","value":"Plant tulips in late October."}]},{"id":"fx-note-30-p1","type":"paragraph","content":[{"type":"text","value":"Cover the roses before frost."}]},{"id":"fx-note-30-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-31","title":"Garden: spring","notebook":{"_ref":"fx-nb-home"},"tags":["garden"],"body":{"blocks":[{"id":"fx-note-31-p0","type":"paragraph","content":[{"type":"text","value":"Sow peas in April."}]},{"id":"fx-note-31-p1","type":"paragraph","content":[{"type":"text","value":"Prune the apple tree."}]},{"id":"fx-note-31-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-30","docId":"fx-note-30","children":[{"type":"text","value":"Garden: autumn"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-30","_key":"fx-note-30"}]},{"_type":"note","_id":"fx-note-32","title":"Recipes: sourdough","notebook":{"_ref":"fx-nb-home"},"tags":["recipes"],"body":{"blocks":[{"id":"fx-note-32-p0","type":"paragraph","content":[{"type":"text","value":"Starter at 100 percent hydration."}]},{"id":"fx-note-32-p1","type":"paragraph","content":[{"type":"text","value":"Bake at 250 degrees, lid on for 20 minutes."}]},{"id":"fx-note-32-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-33","title":"Recipes: fish soup","notebook":{"_ref":"fx-nb-home"},"tags":["recipes"],"body":{"blocks":[{"id":"fx-note-33-p0","type":"paragraph","content":[{"type":"text","value":"Stock, cream, leeks, carrots, and whatever fish is fresh."}]},{"id":"fx-note-33-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-32","docId":"fx-note-32","children":[{"type":"text","value":"Recipes: sourdough"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-32","_key":"fx-note-32"}]},{"_type":"note","_id":"fx-note-34","title":"Kitchen cupboards","notebook":{"_ref":"fx-nb-home"},"tags":["home"],"body":{"blocks":[{"id":"fx-note-34-p0","type":"paragraph","content":[{"type":"text","value":"Go through every cupboard. One shelf per evening."}]},{"id":"fx-note-34-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-35","title":"Car service","notebook":{"_ref":"fx-nb-home"},"tags":["car"],"body":{"blocks":[{"id":"fx-note-35-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-35-p0","type":"paragraph","content":[{"type":"text","value":"Winter tyres in November."}]},{"id":"fx-note-35-p1","type":"paragraph","content":[{"type":"text","value":"Check the brake fluid."}]},{"id":"fx-note-35-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-36","title":"Budget: November","notebook":{"_ref":"fx-nb-home"},"tags":["money"],"body":{"blocks":[{"id":"fx-note-36-p0","type":"paragraph","content":[{"type":"text","value":"Rent, food, transport, one dinner out."}]},{"id":"fx-note-36-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-37","title":"Notes: The Calm Interface","notebook":{"_ref":"fx-nb-reading"},"tags":["book","design"],"body":{"blocks":[{"id":"fx-note-37-p0","type":"paragraph","content":[{"type":"text","value":"Main idea: visible information makes a screen feel cleaner."}]},{"id":"fx-note-37-p1","type":"paragraph","content":[{"type":"text","value":"Chapter four: predictable layouts."}]}]},"links":[]},{"_type":"note","_id":"fx-note-38","title":"Notes: Small Teams","notebook":{"_ref":"fx-nb-reading"},"tags":["book","work"],"body":{"blocks":[{"id":"fx-note-38-p0","type":"paragraph","content":[{"type":"text","value":"Teams of three to five decide faster."}]},{"id":"fx-note-38-p1","type":"paragraph","content":[{"type":"text","value":"Write decisions down."}]},{"id":"fx-note-38-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-18","_key":"fx-note-18"}]},{"_type":"note","_id":"fx-note-39","title":"Notes: Local First","notebook":{"_ref":"fx-nb-reading"},"tags":["book","tech"],"body":{"blocks":[{"id":"fx-note-39-p0","type":"paragraph","content":[{"type":"text","value":"Your data lives on your device first, the cloud second."}]},{"id":"fx-note-39-p1","type":"paragraph","content":[{"type":"text","value":"Conflicts should never lose work."}]}]},"links":[]},{"_type":"note","_id":"fx-note-40","title":"Article: Information architecture","notebook":{"_ref":"fx-nb-reading"},"tags":["article","ia"],"body":{"blocks":[{"id":"fx-note-40-p0","type":"paragraph","content":[{"type":"text","value":"IA is organizing, labelling and prioritizing content so it is easy to find."}]},{"id":"fx-note-40-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-01","docId":"fx-note-01","children":[{"type":"text","value":"Harbor redesign: sitemap"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-01","_key":"fx-note-01"}]},{"_type":"note","_id":"fx-note-41","title":"Article: Writing for screens","notebook":{"_ref":"fx-nb-reading"},"tags":["article","writing"],"body":{"blocks":[{"id":"fx-note-41-p0","type":"paragraph","content":[{"type":"text","value":"People scan. Front-load the point."}]},{"id":"fx-note-41-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-20","docId":"fx-note-20","children":[{"type":"text","value":"Writing guide"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-20","_key":"fx-note-20"}]},{"_type":"note","_id":"fx-note-42","title":"Reading list","notebook":{"_ref":"fx-nb-reading"},"tags":["list"],"body":{"blocks":[{"id":"fx-note-42-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-42-p0","type":"paragraph","content":[{"type":"text","value":"Five books for winter."}]},{"id":"fx-note-42-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-43","title":"Trip: Bergen weekend","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-43-p0","type":"paragraph","content":[{"type":"text","value":"Train Friday evening, back Sunday."}]},{"id":"fx-note-43-p1","type":"paragraph","content":[{"type":"text","value":"Fish market Saturday morning."}]},{"id":"fx-note-43-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-44","title":"Trip: Lofoten summer","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-44-p0","type":"paragraph","content":[{"type":"text","value":"Rent a cabin for a week in July."}]},{"id":"fx-note-44-p1","type":"paragraph","content":[{"type":"text","value":"Bring rain gear."}]},{"id":"fx-note-44-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]},{"_type":"note","_id":"fx-note-45","title":"Packing list","notebook":{"_ref":"fx-nb-travel"},"tags":["trip","list"],"body":{"blocks":[{"id":"fx-note-45-p0","type":"paragraph","content":[{"type":"text","value":"Charger, passport, wool sweater."}]},{"id":"fx-note-45-t","type":"list","ordered":false,"task":true,"items":[{"content":[{"type":"text","value":"First step"}],"checked":true},{"content":[{"type":"text","value":"Second step"}],"checked":false},{"content":[{"type":"text","value":"Follow up"}],"checked":false}]}]},"links":[]},{"_type":"note","_id":"fx-note-46","title":"Conference: Design Days","notebook":{"_ref":"fx-nb-travel"},"tags":["conference"],"body":{"blocks":[{"id":"fx-note-46-p0","type":"paragraph","content":[{"type":"text","value":"Two days of talks in Oslo, one workshop."}]},{"id":"fx-note-46-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-16","docId":"fx-note-16","children":[{"type":"text","value":"1:1 with Kari Eksempel"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-16","_key":"fx-note-16"}]},{"_type":"note","_id":"fx-note-47","title":"Hotels to remember","notebook":{"_ref":"fx-nb-travel"},"tags":["trip"],"body":{"blocks":[{"id":"fx-note-47-p0","type":"paragraph","content":[{"type":"text","value":"The small one by the harbour had the best breakfast."}]}]},"links":[]},{"_type":"note","_id":"fx-note-48","title":"Decision log","notebook":{"_ref":"fx-nb-work"},"tags":["decisions"],"body":{"blocks":[{"id":"fx-note-48-p0","type":"paragraph","content":[{"type":"text","value":"Every decision gets a number, a date and a reason."}]},{"id":"fx-note-48-l","type":"paragraph","content":[{"type":"text","value":"See "},{"type":"wikilink","target":"fx-note-18","docId":"fx-note-18","children":[{"type":"text","value":"Team handbook"}]},{"type":"text","value":"."}]}]},"links":[{"_ref":"fx-note-18","_key":"fx-note-18"}]},{"_type":"note","_id":"fx-note-49","title":"Glossary","notebook":{"_ref":"fx-nb-work"},"tags":["handbook"],"body":{"blocks":[{"id":"fx-note-49-h","type":"heading","level":2,"text":"Summary"},{"id":"fx-note-49-p0","type":"paragraph","content":[{"type":"text","value":"Journey: a stable acceptance requirement. Spike: a rival test."}]},{"id":"fx-note-49-b","type":"list","ordered":false,"items":[[{"type":"text","value":"One"}],[{"type":"text","value":"Two"}],[{"type":"text","value":"Three"}]]}]},"links":[]}]</script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const RAW = JSON.parse($("#fixtures").textContent);
+const NB = RAW.filter((d) => d._type === "notebook");
+const NOTES = RAW.filter((d) => d._type === "note");
+const byId = Object.fromEntries(NOTES.map((n) => [n._id, n]));
+const nbById = Object.fromEntries(NB.map((n) => [n._id, n]));
+const nbColor = (id) => `var(--nb-${id.replace("fx-nb-", "")})`;
+const nbChildren = (id) => NB.filter((n) => n.parent?._ref === id).map((n) => n._id);
+const nbScope = (id) => [id, ...nbChildren(id)];
+const nbPath = (id) => { const nb = nbById[id]; return nb.parent ? [nbById[nb.parent._ref].name, nb.name] : [nb.name]; };
+
+const NOW = new Date("2026-10-29T10:00:00");
+NOTES.forEach((n, i) => { n._updated = new Date(+NOW - (((i * 17) % 50) * 7.3 + 0.3) * 3600e3); });
+let touchN = 0;
+const touch = (n) => { n._updated = new Date(+NOW + ++touchN * 60e3); };
+function fmtDate(d) {
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((day(NOW) - day(d)) / 864e5);
+  if (diff <= 0) return d.toTimeString().slice(0, 5);
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return d.toLocaleDateString("en-GB", { weekday: "short" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+const itemContent = (it) => (Array.isArray(it) ? it : it.content);
+const inlineText = (c) => (c || []).map((x) => (x.type === "text" ? x.value : x.type === "wikilink" ? x.children.map((y) => y.value).join("") : "")).join("");
+const blockText = (b) => (b.type === "heading" ? b.text : b.type === "paragraph" ? inlineText(b.content) : b.type === "list" ? b.items.map((it) => inlineText(itemContent(it))).join(" · ") : "");
+const noteText = (n) => n.body.blocks.map(blockText).join(" ");
+const sentences = (n) => n.body.blocks.filter((b) => b.type === "paragraph").flatMap((b) => inlineText(b.content).split(/(?<=[.?!])\s+/)).filter(Boolean);
+const snippet = (n) => { const b = n.body.blocks.find((b) => b.type === "paragraph" && inlineText(b.content).trim()); return b ? inlineText(b.content) : "No text yet"; };
+const matches = (n, q) => { const t = (n.title + " " + noteText(n) + " " + n.tags.join(" ")).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((x) => t.includes(x)); };
+
+const outs = (id) => [...new Set((byId[id]?.links || []).map((l) => l._ref).filter((r) => byId[r] && r !== id))];
+const backs = (id) => NOTES.filter((n) => n._id !== id && n.links.some((l) => l._ref === id)).map((n) => n._id);
+const nbrs = (id) => [...new Set([...outs(id), ...backs(id)])];
+const degree = (id) => nbrs(id).length;
+const linkCount = () => NOTES.reduce((s, n) => s + outs(n._id).length, 0);
+function tagRelated(id, max) {
+  const n = byId[id]; const skip = new Set([id, ...nbrs(id)]);
+  return NOTES.filter((m) => !skip.has(m._id) && m.tags.some((t) => n.tags.includes(t)))
+    .map((m) => ({ id: m._id, s: m.tags.filter((t) => n.tags.includes(t)).length + (m.notebook._ref === n.notebook._ref ? 0.5 : 0) + degree(m._id) * 0.1 }))
+    .sort((a, b) => b.s - a.s).slice(0, max).map((x) => x.id);
+}
+function linkContext(fromId, toId) {
+  const b = byId[fromId].body.blocks.find((b) => b.type === "paragraph" && b.content.some((x) => x.type === "wikilink" && x.docId === toId));
+  return b ? inlineText(b.content) : "";
+}
+function wrapLabel(t, max, lines = 2) {
+  const out = []; let cur = "";
+  for (const w of t.split(/\s+/)) {
+    if (!cur) cur = w; else if ((cur + " " + w).length <= max) cur += " " + w; else { out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  const res = out.slice(0, lines).map((l) => (l.length > max ? l.slice(0, max - 1) + "…" : l));
+  if (out.length > lines) res[lines - 1] = res[lines - 1].slice(0, max - 1) + "…";
+  return res;
+}
+
+const S = {
+  nb: "all", noteId: "fx-note-01", query: "", rail: "links", view: "notes",
+  map: false, mapSel: null, mapHov: null, mapQ: "", vb: null,
+  offline: false, pending: 0, conflict: null, ai: null,
+  ask: [], aiOn: true, forced: false, mv: "note", tipId: null, stateN: 0,
+};
+const isMobile = () => S.forced || matchMedia("(max-width: 700px)").matches;
+
+const ICON = {
+  notes: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>',
+  tasks: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="3" width="4" height="4" rx="1"/><path d="M9 5h4.5M9 11h4.5"/><rect x="2.5" y="9" width="4" height="4" rx="1"/></svg>',
+  map: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="5" r="2"/><circle cx="12.3" cy="4" r="1.6"/><circle cx="9" cy="12" r="2.2"/><path d="M5.6 6.4 7.7 10.2M11.8 5.5l-1.8 4.6M6 4.8l4.7-.6"/></svg>',
+  link: '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="2.5" cy="6" r="1.7"/><circle cx="9.5" cy="2.7" r="1.5"/><circle cx="9.5" cy="9.3" r="1.5"/><path d="M4 5.2 8 3.3M4 6.8l4 1.9"/></svg>',
+  back: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3 5 8l5 5"/></svg>',
+  ask: '<span style="font-size:15px;line-height:1">✨</span>',
+};
+
+const MC = { dx: 132, dy: 76, padX: 66, padTop: 62, padBot: 50, gapX: 46, gapY: 46 };
+const MAP_ROWS = [["fx-nb-home", "fx-nb-projects", "fx-nb-meetings", "fx-nb-travel"], ["fx-nb-inbox", "fx-nb-work", "fx-nb-reading"]];
+let MAP;
+
+function computeMap() {
+  const boxes = {};
+  for (const nb of NB) {
+    const notes = NOTES.filter((n) => n.notebook._ref === nb._id);
+    const cols = Math.max(2, Math.ceil(Math.sqrt(notes.length * 0.8)));
+    const rows = Math.max(1, Math.ceil(notes.length / cols));
+    boxes[nb._id] = { id: nb._id, notes, cols, rows, w: (cols - 1) * MC.dx + 2 * MC.padX, h: (rows - 1) * MC.dy + MC.padTop + MC.padBot };
+  }
+  const rowW = MAP_ROWS.map((r) => r.reduce((s, id) => s + boxes[id].w, 0) + MC.gapX * (r.length - 1));
+  const W = Math.max(...rowW);
+  let y = 0;
+  MAP_ROWS.forEach((r, i) => {
+    let x = (W - rowW[i]) / 2; const h = Math.max(...r.map((id) => boxes[id].h));
+    for (const id of r) { const b = boxes[id]; b.x = x; b.y = y + (i === 0 ? h - b.h : 0); x += b.w + MC.gapX; }
+    y += h + MC.gapY;
+  });
+  const pos = {};
+  const centerOf = (b) => ({ x: b.x + b.w / 2, y: b.y + MC.padTop + (b.rows - 1) * MC.dy / 2 });
+  for (const b of Object.values(boxes)) {
+    const slots = [];
+    for (let r = 0; r < b.rows; r++) for (let c = 0; c < b.cols; c++) slots.push({ x: b.x + MC.padX + c * MC.dx, y: b.y + MC.padTop + r * MC.dy });
+    const ctr = centerOf(b);
+    const order = b.notes.slice().sort((a, c) => degree(c._id) - degree(a._id) || a._id.localeCompare(c._id));
+    for (const n of order) {
+      let best = slots[0], bestCost = Infinity;
+      for (const s of slots) {
+        let cost = 0.35 * Math.hypot(s.x - ctr.x, s.y - ctr.y);
+        for (const m of nbrs(n._id)) {
+          const other = byId[m].notebook._ref;
+          const p = pos[m] || (other !== b.id ? centerOf(boxes[other]) : null);
+          if (p) cost += Math.hypot(s.x - p.x, s.y - p.y);
+        }
+        if (cost < bestCost) { bestCost = cost; best = s; }
+      }
+      pos[n._id] = best; slots.splice(slots.indexOf(best), 1);
+    }
+  }
+  MAP = { boxes, pos, W, H: y - MC.gapY };
+}
+
+function edgePath(a, b, ra, rb) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const cx = (a.x + b.x) / 2 - dy * 0.16, cy = (a.y + b.y) / 2 + dx * 0.16;
+  const unit = (px, py) => { const l = Math.hypot(cx - px, cy - py) || 1; return [(cx - px) / l, (cy - py) / l]; };
+  const [sx, sy] = unit(a.x, a.y), [ex, ey] = unit(b.x, b.y);
+  const f = (v) => v.toFixed(1);
+  return `M${f(a.x + sx * ra)} ${f(a.y + sy * ra)}Q${f(cx)} ${f(cy)} ${f(b.x + ex * rb)} ${f(b.y + ey * rb)}`;
+}
+
+const arrow = (id, color) => `<marker id="${id}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 .5 7.5 4 0 7.5z" style="fill:var(${color})"/></marker>`;
+const arrowDefs = (p) => `<defs>${arrow(p + "a", "--c-edge")}${arrow(p + "h", "--c-accent")}${arrow(p + "p", "--c-add-fg")}</defs>`;
+const mapR = (id, mini) => (mini ? 16 + Math.min(degree(id), 4) * 3 : 6 + Math.min(degree(id), 4) * 1.6);
+
+function mapSVG(o) {
+  const mini = o.mode === "mini", full = o.mode === "full", plain = mini || o.mode === "ask";
+  const k = o.scale || 1, fs = 10.5 / k, p = o.prefix || "m";
+  const lit = o.hov || o.sel;
+  const litSet = lit && full ? new Set([lit, ...nbrs(lit)]) : null;
+  const q = (o.q || "").trim();
+  const hit = (n) => !q || matches(n, q);
+  let s = mini ? "" : arrowDefs(p);
+  for (const b of Object.values(MAP.boxes)) {
+    const c = nbColor(b.id);
+    s += `<g class="mb${o.focus && o.focus !== b.id ? " dim" : ""}"><rect class="mb-r" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="22" style="fill:${c};stroke:${c}"/>`;
+    if (!plain) {
+      const lfs = 12.5 / k;
+      s += `<circle cx="${b.x + 22}" cy="${b.y + 24}" r="${4.5 / k}" style="fill:${c}"/><text class="mb-l" x="${b.x + 22 + 10 / k}" y="${b.y + 24 + lfs * 0.36}" style="font-size:${lfs}px">${esc(nbPath(b.id).join(" › "))}<tspan class="mb-n" dx="${6 / k}">${b.notes.length}</tspan></text>`;
+    }
+    s += `</g>`;
+  }
+  for (const n of NOTES) for (const t of outs(n._id)) {
+    const a = MAP.pos[n._id], b = MAP.pos[t]; if (!a || !b || o.marks) continue;
+    const on = !mini && lit && (n._id === lit || t === lit);
+    const off = (litSet && !on) || (o.focus && byId[t].notebook._ref !== o.focus && n.notebook._ref !== o.focus) || (q && !(hit(n) && hit(byId[t])));
+    const marker = plain ? "" : ` marker-end="url(#${p}${on ? "h" : "a"})"`;
+    s += `<path class="m-edge${on ? " on" : ""}${off ? " dim" : ""}" d="${edgePath(a, b, mapR(n._id, mini) + 1, mapR(t, mini) + (mini ? 1 : 4))}"${marker}/>`;
+  }
+  for (const n of NOTES) {
+    const at = MAP.pos[n._id]; if (!at) continue;
+    const r = mapR(n._id, mini);
+    const isSel = n._id === o.sel, mark = o.marks?.[n._id];
+    const dim = (q && !hit(n)) || (litSet && !litSet.has(n._id)) || (o.marks && !mark);
+    const near = litSet && litSet.has(n._id) && lit !== n._id;
+    const label = full || (o.mode === "cluster" && n.notebook._ref === o.focus);
+    s += `<g class="m-node${isSel ? " sel" : ""}${mark ? " cited" : ""}${dim ? " dim" : ""}${near ? " nb1" : ""}" data-mid="${n._id}" transform="translate(${at.x} ${at.y})">`;
+    if (isSel && !mini) s += `<circle class="halo" r="${r + 9}"/>`;
+    s += `<circle r="${r + 8}" fill="transparent"/><circle class="b" r="${r}" style="fill:${nbColor(n.notebook._ref)}"/>`;
+    if (label) s += `<text class="lbl" text-anchor="middle" style="font-size:${fs}px;stroke-width:${3 / k}px">` + wrapLabel(n.title || "Untitled", 16).map((l, i) => `<tspan x="0" y="${r + fs * 1.25 + i * fs * 1.2}">${esc(l)}</tspan>`).join("") + `</text>`;
+    if (mark) { const R = 7 / k; s += `<circle class="m-mark" cx="${r + R}" cy="${-r - R}" r="${R}"/><text class="m-mark-t" x="${r + R}" y="${-r - R + R * 0.4}" style="font-size:${R * 1.15}px">${mark}</text>`; }
+    s += `</g>`;
+  }
+  return s;
+}
+
+const LG = { W: 340, H: 300, pos: {}, raf: 0 };
+
+function localLayout(id, proposed) {
+  const { W, H } = LG; const cx = W / 2, cy = 158;
+  const nodes = [{ key: id, id, x: cx, y: cy, kind: "center", r: 10 }], edges = [];
+  const ins = backs(id), right = [...outs(id), ...proposed.filter((p) => !outs(id).includes(p))];
+  const left = ins.filter((x) => !right.includes(x));
+  const shown = new Set([id, ...left, ...right]);
+  const column = (list, x, side) => {
+    const items = list.slice(0, list.length > 4 ? 3 : 4);
+    const more = list.length - items.length;
+    const n = items.length + (more ? 1 : 0); const gap = Math.min(70, (H - 90) / Math.max(n - 1, 1));
+    items.forEach((nid, i) => {
+      const y = cy + (i - (n - 1) / 2) * gap;
+      const prop = side === "r" && !outs(id).includes(nid);
+      nodes.push({ key: nid, id: nid, x, y, kind: prop ? "prop" : "n", r: 6 + Math.min(degree(nid), 4) * 0.8 });
+      edges.push(side === "l" ? { a: nid, b: id, cls: "" } : { a: id, b: nid, cls: prop ? "prop" : "", both: ins.includes(nid) });
+      const beyond = (side === "l" ? backs(nid) : outs(nid)).filter((d) => !shown.has(d)).slice(0, 3);
+      beyond.forEach((d, j) => {
+        shown.add(d);
+        nodes.push({ key: d, id: d, x: side === "l" ? 14 : W - 14, y: y + (j - (beyond.length - 1) / 2) * 11, kind: "d2", r: 3.2 });
+        edges.push(side === "l" ? { a: d, b: nid, cls: "d2" } : { a: nid, b: d, cls: "d2" });
+      });
+    });
+    if (more) nodes.push({ key: "more-" + side, id: null, x, y: cy + (n - 1) / 2 * gap, kind: "more", r: 5, label: `+${more} more` });
+  };
+  column(left, 62, "l"); column(right, W - 62, "r");
+  tagRelated(id, 4).filter((r) => !shown.has(r)).slice(0, 2).forEach((rid, i) => {
+    nodes.push({ key: rid, id: rid, x: cx, y: i === 0 ? cy - 86 : cy + 82, kind: "tagged", r: 5 });
+    edges.push({ a: id, b: rid, cls: "tagged" });
+  });
+  return { nodes, edges, cx, cy, empty: !left.length && !right.length };
+}
+
+function edgeD(e, A, B, a, b) {
+  if (e.cls === "tagged") { const down = b.y > a.y ? 1 : -1; return `M${a.x} ${a.y + down * (A.r + 3)}L${b.x} ${b.y - down * (B.r + 3)}`; }
+  const x1 = a.x + A.r + 2, x2 = b.x - B.r - 4, mx = (x1 + x2) / 2, f = (v) => v.toFixed(1);
+  return `M${f(x1)} ${f(a.y)}C${f(mx)} ${f(a.y)} ${f(mx)} ${f(b.y)} ${f(x2)} ${f(b.y)}`;
+}
+
+function drawLocal(svg, L, P) {
+  const { W, H } = LG;
+  let s = arrowDefs("lg") + `<text class="g-cap" x="62" y="22" text-anchor="middle">LINKED FROM</text><text class="g-cap" x="${W - 62}" y="22" text-anchor="middle">LINKS TO</text>`;
+  const byKey = Object.fromEntries(L.nodes.map((n) => [n.key, n]));
+  for (const e of L.edges) {
+    const A = byKey[e.a], B = byKey[e.b];
+    const mk = e.cls === "tagged" ? "" : ` marker-end="url(#lg${e.cls === "prop" ? "p" : "a"})"${e.both ? ' marker-start="url(#lga)"' : ""}`;
+    s += `<path class="g-edge ${e.cls}" data-a="${e.a}" data-b="${e.b}" d="${edgeD(e, A, B, P[e.a], P[e.b])}"${mk} style="opacity:${Math.min(P[e.a].o, P[e.b].o)}"/>`;
+  }
+  for (const n of L.nodes) {
+    const p = P[n.key]; const note = n.id && byId[n.id];
+    const color = note ? nbColor(note.notebook._ref) : "var(--c-faint)";
+    s += `<g class="g-node ${n.kind}" ${n.id ? `data-open="${n.id}" data-gid="${n.id}"` : `data-act="morelinks"`} transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})" style="opacity:${p.o}">`;
+    if (n.kind === "center") s += `<circle class="halo" r="${n.r + 7}"/>`;
+    s += `<circle r="${n.r + 7}" fill="transparent"/><circle class="b" r="${n.r}" style="fill:${color};stroke:${n.kind === "tagged" ? color : ""}"/>`;
+    if (n.kind !== "d2") {
+      const lines = n.label ? [n.label] : wrapLabel(note.title || "Untitled", n.kind === "center" ? 18 : 16);
+      s += `<text text-anchor="middle">` + lines.map((l, i) => `<tspan x="0" y="${n.r + 13 + i * 12.5}">${esc(l)}</tspan>`).join("") + `</text>`;
+    }
+    s += `</g>`;
+  }
+  if (L.empty) s += `<text class="g-hint" x="${W / 2}" y="${H - 14}" text-anchor="middle">No links yet</text>`;
+  svg.innerHTML = s;
+}
+
+function renderLocalGraph(animate) {
+  const svg = $("#lg"); if (!svg) return;
+  const proposed = S.ai?.noteId === S.noteId ? S.ai.changes.filter((c) => c.link && c.status === "pending").map((c) => c.link) : [];
+  const L = localLayout(S.noteId, proposed);
+  const target = Object.fromEntries(L.nodes.map((n) => [n.key, { x: n.x, y: n.y, o: 1 }]));
+  const from = LG.pos, origin = from[S.noteId] || { x: L.cx, y: L.cy };
+  cancelAnimationFrame(LG.raf);
+  const finish = () => { LG.pos = target; drawLocal(svg, L, target); if (S.tipId) showTip(S.tipId); };
+  if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches || !Object.keys(from).length) return finish();
+  const t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / 320), e = 1 - Math.pow(1 - k, 3);
+    const P = {};
+    for (const [key, to] of Object.entries(target)) {
+      const f = from[key] || { ...origin, o: 0 };
+      P[key] = { x: f.x + (to.x - f.x) * e, y: f.y + (to.y - f.y) * e, o: f.o + (1 - f.o) * e };
+    }
+    drawLocal(svg, L, P);
+    if (k < 1) LG.raf = requestAnimationFrame(step); else finish();
+  };
+  LG.raf = requestAnimationFrame(step);
+}
+
+function hoverGraph(id) {
+  const svg = $("#lg"); if (!svg) return;
+  svg.classList.toggle("hov", !!id);
+  $$(".g-node", svg).forEach((g) => g.classList.toggle("on", !!id && (g.dataset.gid === id || g.dataset.gid === S.noteId)));
+  $$(".g-edge", svg).forEach((p) => p.classList.toggle("on", !!id && (p.dataset.a === id || p.dataset.b === id)));
+  $$(".wl").forEach((w) => w.classList.toggle("hl", w.dataset.id === id));
+  $$(".rel-row").forEach((r) => r.classList.toggle("hl", r.dataset.open === id));
+  if (id && id !== S.noteId) showTip(id); else $("#tip").hidden = true;
+}
+
+function showTip(id) {
+  const svg = $("#lg"), tip = $("#tip"); const g = svg && $(`.g-node[data-gid="${id}"]`, svg); if (!g) return;
+  const n = byId[id], d = degree(id);
+  const wrap = svg.parentElement.getBoundingClientRect(), dot = g.querySelector("circle.b").getBoundingClientRect();
+  tip.innerHTML = `<span class="nbline"><span class="dot" style="background:${nbColor(n.notebook._ref)}"></span>${esc(nbPath(n.notebook._ref).join(" › "))} · ${d} link${d === 1 ? "" : "s"}</span><b>${esc(n.title)}</b>${esc(snippet(n))}`;
+  tip.hidden = false;
+  tip.style.left = Math.min(Math.max(dot.left - wrap.left - 110 + dot.width / 2, 8), wrap.width - 228) + "px";
+  tip.style.top = dot.bottom - wrap.top + 34 + "px";
+}
+
+const taskItems = () => NOTES.flatMap((n) => n.body.blocks.filter((b) => b.task).flatMap((b) => b.items));
+
+function renderSidebar() {
+  const count = (id) => NOTES.filter((n) => nbScope(id).includes(n.notebook._ref)).length;
+  const on = (k) => (S.view === "notes" && S.nb === k ? " on" : "");
+  const item = (nb, child) => `<button class="si${child ? " child" : ""}${on(nb._id)}" data-nb="${nb._id}"><span class="dot" style="background:${nbColor(nb._id)}"></span>${esc(nb.name)}<span class="n">${count(nb._id)}</span></button>`;
+  let h = `<button class="si${on("all")}" data-nb="all">${ICON.notes}All notes<span class="n">${NOTES.length}</span></button>`;
+  h += `<button class="si${S.view === "tasks" ? " on" : ""}" data-act="tasks">${ICON.tasks}Tasks<span class="n">${taskItems().filter((i) => !i.checked).length}</span></button>`;
+  h += `<button class="si" data-act="openmap">${ICON.map}Map<span class="n"><kbd>M</kbd></span></button>`;
+  h += `<div class="side-h">Notebooks</div>`;
+  for (const nb of NB.filter((n) => !n.parent)) h += item(nb) + nbChildren(nb._id).map((c) => item(nbById[c], true)).join("");
+  h += `<button class="mini" data-act="openmap" aria-label="Open the map"><div class="mini-h"><b>Map</b>${NOTES.length} notes · ${linkCount()} links</div><svg viewBox="-10 -10 ${MAP.W + 20} ${MAP.H + 20}">${mapSVG({ mode: "mini", sel: S.noteId })}</svg></button>`;
+  $("#side").innerHTML = h;
+  $("#sync").textContent = S.offline ? `Offline · ${S.pending} waiting` : "Synced";
+}
+
+function listNotes() {
+  const q = S.query.trim();
+  let arr = NOTES;
+  if (q) arr = arr.filter((n) => matches(n, q));
+  else if (S.nb !== "all") arr = arr.filter((n) => nbScope(S.nb).includes(n.notebook._ref));
+  return arr.slice().sort((a, b) => b._updated - a._updated);
+}
+
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function hiText(t, q) {
+  const terms = q.split(/\s+/).filter(Boolean);
+  return terms.length ? esc(t).replace(new RegExp(`(${terms.map(reEsc).join("|")})`, "gi"), "<mark>$1</mark>") : esc(t);
+}
+
+function renderList() {
+  const arr = listNotes(); S.visible = arr.map((n) => n._id);
+  const q = S.query.trim();
+  const title = q ? "Search" : S.nb === "all" ? "All notes" : nbById[S.nb].name;
+  const dot = !q && S.nb !== "all" ? `<span class="dot" style="background:${nbColor(S.nb)}"></span>` : "";
+  $("#listh").innerHTML = `${dot}<b>${esc(title)}</b><span>${arr.length} note${arr.length === 1 ? "" : "s"}</span><span class="sort">Recent ↓</span>`;
+  if (!arr.length) { $("#rows").innerHTML = `<div class="empty">Nothing matches “${esc(q)}”.</div>`; return; }
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  $("#rows").innerHTML = arr.map((n) => {
+    const hit = q && sentences(n).find((s) => terms.some((t) => s.toLowerCase().includes(t)));
+    const d = degree(n._id);
+    const conflict = S.conflict?.noteId === n._id;
+    return `<button class="row${n._id === S.noteId ? " sel" : ""}" data-open="${n._id}" role="option" aria-selected="${n._id === S.noteId}">
+      <div class="row-top"><span class="row-title">${hiText(n.title || "Untitled", q)}</span><span class="row-date">${fmtDate(n._updated)}</span></div>
+      <div class="row-bot"><span class="dot" style="background:${nbColor(n.notebook._ref)}"></span><span class="row-snip">${hiText(hit || snippet(n), q)}</span>${conflict ? `<span class="badge">2 versions</span>` : ""}${d ? `<span class="lk${d >= 3 ? " hub" : ""}" title="${d} linked notes">${ICON.link}${d}</span>` : ""}</div></button>`;
+  }).join("");
+}
+
+function inlineHTML(c, cls = "") {
+  return (c || []).map((x) => {
+    if (x.type === "text") return esc(x.value);
+    if (x.type === "wikilink") return `<a class="wl ${cls}" contenteditable="false" data-id="${esc(x.docId)}">${esc(byId[x.docId]?.title || inlineText(x.children))}</a>`;
+    return "";
+  }).join("");
+}
+
+function blockHTML(b) {
+  if (b.type === "heading") return `<h${b.level} data-block="${b.id}">${esc(b.text)}</h${b.level}>`;
+  if (b.type === "paragraph") return `<p data-block="${b.id}">${inlineHTML(b.content) || "<br>"}</p>`;
+  if (b.task) return `<ul class="tasks" data-block="${b.id}">` + b.items.map((it, i) => `<li data-i="${i}" class="${it.checked ? "done" : ""}"><span class="cb" contenteditable="false" role="checkbox" aria-checked="${!!it.checked}"></span><span class="li-t">${inlineHTML(it.content)}</span></li>`).join("") + `</ul>`;
+  if (b.type === "list") return `<ul data-block="${b.id}">` + b.items.map((it) => `<li>${inlineHTML(itemContent(it))}</li>`).join("") + `</ul>`;
+  return "";
+}
+
+const nbDot = (id) => `<span class="dot" style="background:${nbColor(id)}"></span>`;
+const crumbHTML = (n) => `<div class="crumb">${nbDot(n.notebook._ref)}${nbPath(n.notebook._ref).map(esc).join(" › ")}</div>`;
+function metaHTML(n) {
+  const d = degree(n._id);
+  return `<div class="doc-meta"><span class="nbchip">${nbDot(n.notebook._ref)}${esc(nbById[n.notebook._ref].name)}</span>${n.tags.map((t) => `<span class="tag">#${esc(t)}</span>`).join("")}<span>Edited ${fmtDate(n._updated)}</span><span class="lk${d >= 3 ? " hub" : ""}">${ICON.link}${backs(n._id).length} in · ${outs(n._id).length} out</span></div>`;
+}
+
+let edKey = "";
+function renderEditor(force) {
+  const n = byId[S.noteId];
+  const mode = S.conflict?.noteId === n._id ? "conflict" : S.ai?.noteId === n._id ? "ai" : "edit";
+  if (!force && n._id + mode === edKey && mode === "edit") return;
+  edKey = n._id + mode;
+  $("#app").classList.toggle("no-rail", mode === "conflict" && !isMobile());
+  if (mode === "conflict") return renderConflict(n);
+  const bar = `<div class="bar ed-bar">${crumbHTML(n)}<div class="ed-actions"><span class="saved">${S.offline ? "Saved on this Mac" : "Saved"}</span>${mode === "edit" ? `<button class="btn ghost" data-act="aiedit">✨ AI Edit</button>` : ""}</div></div>`;
+  if (mode === "ai") return renderAIEdit(n, bar);
+  $("#editor").innerHTML = bar + `<div class="ed-scroll"><article class="doc">
+    <h1 class="doc-title" contenteditable="true" spellcheck="false" id="title">${esc(n.title)}</h1>
+    ${metaHTML(n)}
+    <div class="doc-body" contenteditable="true" spellcheck="false" id="body">${n.body.blocks.map(blockHTML).join("")}</div>
+  </article></div>`;
+}
+
+function inlineFromDOM(el) {
+  const out = [];
+  const walk = (node) => {
+    for (const c of node.childNodes) {
+      if (c.nodeType === 3) out.push({ type: "text", value: c.textContent.replace(/ /g, " ") });
+      else if (c.classList.contains("wl")) out.push({ type: "wikilink", target: c.dataset.id, docId: c.dataset.id, children: [{ type: "text", value: c.textContent }] });
+      else if (!c.classList.contains("cb")) walk(c);
+    }
+  };
+  walk(el);
+  return out.filter((x) => x.type !== "text" || x.value);
+}
+
+function syncBody() {
+  const n = byId[S.noteId];
+  const old = Object.fromEntries(n.body.blocks.map((b) => [b.id, b]));
+  n.body.blocks = [...$("#body").children].map((el, i) => {
+    const id = el.dataset.block || `${n._id}-e${i}`;
+    if (/^H\d$/.test(el.tagName)) return { id, type: "heading", level: +el.tagName[1], text: el.textContent };
+    if (el.tagName === "UL") {
+      const task = el.classList.contains("tasks");
+      const items = [...el.children].map((li) => (task ? { content: inlineFromDOM(li.querySelector(".li-t") || li), checked: li.classList.contains("done") } : inlineFromDOM(li)));
+      return { ...old[id], id, type: "list", items };
+    }
+    return { id, type: "paragraph", content: inlineFromDOM(el) };
+  });
+  const refs = new Set(n.body.blocks.flatMap((b) => (b.type === "list" ? b.items.flatMap(itemContent) : b.content || [])).filter((x) => x.type === "wikilink").map((x) => x.docId));
+  n.links = [...refs].map((r) => ({ _ref: r, _key: r }));
+  changed(n);
+}
+
+let syncT = 0;
+function changed(n) {
+  touch(n);
+  if (S.offline) { S.pending++; $("#pending").textContent = `${S.pending} edits waiting`; }
+  clearTimeout(syncT);
+  syncT = setTimeout(() => { renderList(); renderSidebar(); renderRail(false); const m = $(".doc-meta"); if (m) m.outerHTML = metaHTML(n); }, 250);
+}
+
+function wordDiff(a, b) {
+  const A = a.split(/(\s+)/).filter(Boolean), B = b.split(/(\s+)/).filter(Boolean);
+  const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
+  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  const push = (t, v) => { const last = out[out.length - 1]; if (last?.t === t) last.v += v; else out.push({ t, v }); };
+  let i = 0, j = 0;
+  while (i < A.length && j < B.length) {
+    if (A[i] === B[j]) { push("=", A[i++]); j++; } else if (L[i + 1][j] >= L[i][j + 1]) push("-", A[i++]); else push("+", B[j++]);
+  }
+  while (i < A.length) push("-", A[i++]);
+  while (j < B.length) push("+", B[j++]);
+  return out;
+}
+function diffHTML(a, b) {
+  const d = wordDiff(a, b);
+  const kept = d.filter((s) => s.t === "=").map((s) => s.v).join("").trim().split(/\s+/).filter(Boolean).length;
+  if (kept < b.split(/\s+/).length / 2) return `<del class="del-line">${esc(a)}</del><ins>${esc(b)}</ins>`;
+  return d.map((s) => (s.t === "=" ? esc(s.v) : s.t === "-" ? `<del>${esc(s.v)}</del>` : `<ins>${esc(s.v)}</ins>`)).join("");
+}
+
+function proposeChanges(n) {
+  if (n._id === "fx-note-00") return [
+    { kind: "replace", block: "fx-note-00-p0", after: "Goal: a faster, calmer Harbor site with one clear call to action." },
+    { kind: "replace", block: "fx-note-00-p1", after: "Owner: Ola Testesen. Deadline: end of Q4." },
+    { kind: "insert", afterBlock: "fx-note-00-p1", text: "Pages and copy follow ", link: "fx-note-03", tail: "." },
+  ];
+  const first = sentences(n)[0] || n.title;
+  const rel = tagRelated(n._id, 1)[0];
+  const changes = [{ kind: "insert", afterBlock: null, text: "In short: " + first.replace(/\.$/, "").toLowerCase() + "." }];
+  if (rel) changes.push({ kind: "insert", afterBlock: n.body.blocks[n.body.blocks.length - 1].id, text: "Related: ", link: rel, tail: "." });
+  return changes;
+}
+
+function startAIEdit(noteId, prompt) {
+  const n = byId[noteId];
+  const changes = proposeChanges(n).map((c, i) => ({ ...c, i, status: "pending", before: c.block && inlineText(n.body.blocks.find((b) => b.id === c.block).content) }));
+  S.ai = { noteId, prompt, changes, snapshot: JSON.stringify({ body: n.body, links: n.links }) };
+}
+
+function renderAIEdit(n, bar) {
+  const ai = S.ai; const pending = ai.changes.filter((c) => c.status === "pending").length;
+  const actions = pending
+    ? `<button class="acc" data-act="accall">Accept all</button><button class="rej" data-act="rejall">Reject all</button>`
+    : `<button class="btn sm" data-act="aiundo">Undo AI Edit <kbd>⌘Z</kbd></button><button class="btn sm primary" data-act="aidone">Done</button>`;
+  const strip = `<div class="aibar"><span>✨</span><b>AI Edit</b><span>“${esc(ai.prompt)}”</span><span class="grow"></span><span class="muted">Claude Sonnet · your login · ≈ $0.004</span></div>
+    <div class="aibar" style="background:var(--c-surface)"><b>${ai.changes.length} changes</b><span class="muted">${pending ? `${pending} to review` : "all reviewed"}</span><span class="grow"></span>${actions}</div>`;
+  const box = (c, inner) => `<div class="chg ${c.status === "pending" ? "pending" : "done"}"><div class="chg-h"><span class="num">${c.i + 1}</span>${c.kind === "replace" ? "Rewrite" : c.link ? "Add a link" : "Add a line"}<span class="acts">${c.status === "pending"
+    ? `<button class="acc" data-acc="${c.i}">✓ Accept</button><button class="rej" data-rej="${c.i}">✕ Reject</button>`
+    : `<span class="state-tag ${c.status === "accepted" ? "a" : "r"}">${c.status === "accepted" ? "Accepted" : "Rejected"}</span>`}</span></div>${inner}</div>`;
+  const insText = (c) => esc(c.text) + (c.link ? `<a class="wl prop" data-id="${c.link}">${esc(byId[c.link].title)}</a>` : "") + esc(c.tail || "");
+  const inserts = (after) => ai.changes.filter((c) => c.kind === "insert" && c.afterBlock === after)
+    .map((c) => box(c, `<p>${c.status === "pending" ? `<ins>${insText(c)}</ins>` : c.status === "rejected" ? `<del>${insText(c)}</del>` : insText(c)}</p>`)).join("");
+  let body = inserts(null);
+  for (const b of n.body.blocks) {
+    if (ai.changes.some((c) => c.createdId === b.id)) continue;
+    const c = ai.changes.find((c) => c.block === b.id);
+    body += c ? box(c, `<p>${c.status === "pending" ? diffHTML(c.before, c.after) : esc(c.status === "accepted" ? c.after : c.before)}</p>`) : blockHTML(b);
+    body += inserts(b.id);
+  }
+  $("#editor").innerHTML = bar + strip + `<div class="ed-scroll"><article class="doc"><h1 class="doc-title">${esc(n.title)}</h1>${metaHTML(n)}<div class="doc-body">${body}</div></article></div>`;
+}
+
+function resolveChange(i, accept) {
+  const c = S.ai.changes[i]; const n = byId[S.ai.noteId];
+  c.status = accept ? "accepted" : "rejected";
+  if (accept && c.kind === "replace") n.body.blocks.find((b) => b.id === c.block).content = [{ type: "text", value: c.after }];
+  if (accept && c.kind === "insert") {
+    const content = [{ type: "text", value: c.text }];
+    if (c.link) { content.push({ type: "wikilink", target: c.link, docId: c.link, children: [{ type: "text", value: byId[c.link].title }] }, { type: "text", value: c.tail }); n.links.push({ _ref: c.link, _key: c.link }); }
+    c.createdId = `${n._id}-ai${i}`;
+    const at = c.afterBlock ? n.body.blocks.findIndex((b) => b.id === c.afterBlock) + 1 : 0;
+    n.body.blocks.splice(at, 0, { id: c.createdId, type: "paragraph", content });
+  }
+  if (accept) touch(n);
+}
+
+function undoAI() {
+  const n = byId[S.ai.noteId]; Object.assign(n, JSON.parse(S.ai.snapshot)); S.ai = null;
+  refreshAll(); toast("AI Edit undone. The note is as it was.");
+}
+
+function makeConflict() {
+  const n = byId["fx-note-30"];
+  const phone = JSON.parse(JSON.stringify(n.body));
+  const block = (id) => phone.blocks.find((b) => b.id === id);
+  block("fx-note-30-p0").content = [{ type: "text", value: "Plant tulips and crocus bulbs in late October." }];
+  block("fx-note-30-p1").content = [{ type: "text", value: "Cover the roses before the first frost." }];
+  block("fx-note-30-t").items[1].checked = true;
+  return { noteId: n._id, mac: { label: "This Mac", keep: "this Mac’s", when: "Edited today 14:02, offline" }, phone: { label: "iPhone", keep: "the iPhone’s", when: "Edited today 14:05, offline", body: phone } };
+}
+
+function versionHTML(blocks, other) {
+  return blocks.map((b, i) => {
+    const o = other[i];
+    if (b.type === "paragraph") return `<p>` + wordDiff(inlineText(o.content), inlineText(b.content)).filter((s) => s.t !== "-").map((s) => (s.t === "+" ? `<span class="only">${esc(s.v)}</span>` : esc(s.v))).join("") + `</p>`;
+    if (b.task) return `<ul>` + b.items.map((it, j) => `<li class="tk${it.checked ? " done" : ""}${it.checked !== o.items[j].checked ? " diff" : ""}"><span class="cb"></span><span class="tt">${esc(inlineText(it.content))}</span></li>`).join("") + `</ul>`;
+    return blockHTML(b);
+  }).join("");
+}
+
+function renderConflict(n) {
+  const cf = S.conflict; const mac = n.body.blocks, phone = cf.phone.body.blocks;
+  const col = (v, blocks, other, key) => `<div class="cf-col"><div class="cf-head"><b>${v.label}</b><span>${v.when}</span></div><div class="cf-body"><h1>${esc(n.title)}</h1>${versionHTML(blocks, other)}</div><div class="cf-foot"><button class="btn" data-keep="${key}">Keep ${v.keep} version</button></div></div>`;
+  $("#editor").innerHTML = `<div class="bar ed-bar">${crumbHTML(n)}<div class="ed-actions"><span class="saved">2 versions</span></div></div>
+    <div class="cf-note">This note changed on two devices while offline. Nothing is lost: both versions stay until you choose. Differences are highlighted.</div>
+    <div class="ed-scroll"><div class="cf">${col(cf.mac, mac, phone, "mac")}${col(cf.phone, phone, mac, "phone")}<div class="cf-both"><button class="btn primary" data-keep="both">Keep both</button><span>Saves the iPhone version as a second note, linked to this one.</span></div></div></div>`;
+}
+
+function resolveConflict(which) {
+  const cf = S.conflict, n = byId[cf.noteId], phone = cf.phone.body;
+  if (which === "phone") n.body = phone;
+  if (which === "both") {
+    const id = "fx-note-30b";
+    const blocks = phone.blocks.map((b) => ({ ...b, id: b.id.replace(n._id, id) }));
+    blocks.push({ id: id + "-l", type: "paragraph", content: [{ type: "text", value: "Other version: " }, { type: "wikilink", target: n._id, docId: n._id, children: [{ type: "text", value: n.title }] }, { type: "text", value: "." }] });
+    const copy = { _type: "note", _id: id, title: n.title + " (iPhone)", notebook: n.notebook, tags: n.tags, body: { blocks }, links: [{ _ref: n._id, _key: n._id }] };
+    NOTES.push(copy); byId[id] = copy; touch(copy); computeMap();
+  }
+  touch(n); S.conflict = null;
+  render(true);
+  toast(which === "both" ? "Kept both. The iPhone version is a linked note." : `Kept ${cf[which].keep} version.`);
+}
+
+function renderRail(animate) {
+  $$("#railtabs button").forEach((b) => b.classList.toggle("on", b.dataset.rail === S.rail));
+  if (S.rail === "ask") return renderAsk();
+  if (S.rail === "cluster") return renderCluster();
+  renderLinks(animate);
+}
+
+function relRow(id, ctx) {
+  const m = byId[id];
+  return `<button class="rel-row" data-open="${id}"><span class="t">${nbDot(m.notebook._ref)}${esc(m.title)}</span>${ctx ? `<span class="c">${esc(ctx)}</span>` : ""}</button>`;
+}
+
+function renderLinks(animate) {
+  const n = byId[S.noteId];
+  const ins = backs(n._id), out = outs(n._id), rel = tagRelated(n._id, 4);
+  const proposing = S.ai?.noteId === n._id && S.ai.changes.some((c) => c.link && c.status === "pending");
+  const shared = (id) => "#" + byId[id].tags.filter((t) => n.tags.includes(t)).join(" #");
+  $("#rail").innerHTML = `<div class="m-graph-h">Connections<button data-act="openmap">Map</button></div>
+    <div class="graph"><svg id="lg" viewBox="0 0 ${LG.W} ${LG.H}" role="img" aria-label="Links of this note"></svg><div class="tip" id="tip" hidden></div>
+    <div class="legend"><span><i></i>link</span><span><i class="t"></i>same tag</span>${proposing ? `<span><i class="p"></i>proposed</span>` : ""}</div></div>
+    <div class="rel"><h4>Linked from · ${ins.length}</h4>${ins.map((id) => relRow(id, linkContext(id, n._id))).join("") || `<div class="rel-empty">No note links here yet.</div>`}</div>
+    <div class="rel"><h4>Links to · ${out.length}</h4>${out.map((id) => relRow(id)).join("") || `<div class="rel-empty">This note links nowhere yet.</div>`}</div>
+    ${rel.length ? `<div class="rel"><h4>Shares a tag</h4>${rel.map((id) => relRow(id, shared(id))).join("")}</div>` : ""}`;
+  const svg = $("#lg");
+  svg.onmouseover = (e) => { const g = e.target.closest(".g-node[data-gid]"); if (g) hoverGraph(g.dataset.gid); };
+  svg.onmouseout = (e) => { const g = e.target.closest(".g-node[data-gid]"); if (g && !g.contains(e.relatedTarget)) hoverGraph(null); };
+  renderLocalGraph(animate);
+}
+
+function renderCluster() {
+  const n = byId[S.noteId]; const b = MAP.boxes[n.notebook._ref];
+  const pad = 26, w = Math.max(b.w + pad * 2, 300), h = b.h + pad * 2;
+  const ids = new Set(b.notes.map((m) => m._id));
+  const inside = b.notes.reduce((s, m) => s + outs(m._id).filter((t) => ids.has(t)).length, 0);
+  const across = {};
+  for (const m of b.notes) for (const t of nbrs(m._id)) if (!ids.has(t)) { const o = byId[t].notebook._ref; across[o] = (across[o] || 0) + 1; }
+  const rows = Object.entries(across).sort((x, y) => y[1] - x[1]);
+  const max = Math.max(1, ...rows.map((r) => r[1]));
+  const bars = rows.map(([id, c]) => `<div class="cl-nb">${nbDot(id)}${esc(nbById[id].name)}<i style="width:${(c / max) * 120}px;background:${nbColor(id)}"></i><span class="n">${c}</span></div>`).join("");
+  $("#rail").innerHTML = `<div class="cl-h"><b>${nbDot(b.id)}${esc(nbPath(b.id).join(" › "))}</b>${b.notes.length} notes · ${inside} links inside</div>
+    <div class="graph"><svg viewBox="${b.x + b.w / 2 - w / 2} ${b.y - pad} ${w} ${h}">${mapSVG({ mode: "cluster", focus: b.id, sel: S.noteId, scale: 339 / w, prefix: "cl" })}</svg></div>
+    <div class="rel"><h4>Connects to</h4>${bars || `<div class="rel-empty">No links to other notebooks yet.</div>`}</div>
+    <div class="rail-foot"><button class="btn" data-act="openmap">${ICON.map}Open the full map <kbd>M</kbd></button></div>`;
+}
+
+const PRESET = {
+  carousel: { read: 6, cites: [["fx-note-02", "Three wireframe rounds. Round two dropped the carousel."], ["fx-note-10", "Decision: drop the carousel."]],
+    html: (c) => `<p>You dropped it. Round two of the Harbor wireframes removed the carousel ${c(1)}, and the week 41 sync logged it as a decision ${c(2)}.</p>` },
+  dentist: { read: 3, notFound: true, cites: [["fx-note-25", "Before the end of the month."]],
+    html: (c) => `<div class="nf"><b>Not in your notes.</b>No appointment date or time is written down. The closest note only says when to book ${c(1)}.</div>` },
+};
+const STOP = new Set("what when where which about with from that this have does did your there their they them would could should into over after before were been just also than then only some more most much many very tell know note notes give".split(" "));
+
+function answer(q) {
+  const ql = q.toLowerCase();
+  if (ql.includes("carousel")) return PRESET.carousel;
+  if (/dentist|appointment/.test(ql)) return PRESET.dentist;
+  const terms = (ql.match(/[\p{L}\d]{4,}/gu) || []).filter((t) => !STOP.has(t)).map((t) => (t.length > 5 ? t.slice(0, -2) : t));
+  const seen = new Set();
+  const top = NOTES.flatMap((n) => sentences(n).map((s) => ({ id: n._id, s, score: terms.filter((t) => s.toLowerCase().includes(t)).length })))
+    .filter((h) => h.score > 0).sort((a, b) => b.score - a.score)
+    .filter((h) => !seen.has(h.id) && seen.add(h.id)).slice(0, 3);
+  if (!top.length) return { read: NOTES.length, notFound: true, cites: [], html: () => `<div class="nf"><b>Not in your notes.</b>Nothing you have written mentions this. Ask won’t guess.</div>` };
+  return { read: NOTES.length, cites: top.map((h) => [h.id, h.s]), html: (c) => `<p>Here is what your notes say:</p>` + top.map((h, i) => `<p>“${esc(h.s)}” ${c(i + 1)}</p>`).join("") };
+}
+
+function answerHTML({ q, a }) {
+  const cite = (i, tag = "button") => { const [id, quote] = a.cites[i - 1]; return `<${tag} class="cite" data-open="${id}" data-quote="${esc(quote)}" title="${esc(byId[id].title)}">${i}</${tag}>`; };
+  const srcs = a.cites.map(([id, quote], i) => `<button class="src" data-open="${id}" data-quote="${esc(quote)}"><span class="t">${cite(i + 1, "span")}${nbDot(byId[id].notebook._ref)}${esc(byId[id].title)}</span><span class="qt">“${esc(quote)}”</span></button>`).join("");
+  const marks = Object.fromEntries(a.cites.map(([id], i) => [id, i + 1]));
+  const where = !a.notFound ?`<div class="ask-map"><span class="cap">Where this came from</span><svg viewBox="-10 -10 ${MAP.W + 20} ${MAP.H + 20}">${mapSVG({ mode: "ask", marks, scale: 290 / (MAP.W + 20), prefix: "ak" })}</svg></div>` : "";
+  return `<div class="q">${esc(q)}</div><div class="a">${a.html(cite)}${srcs ? `<div class="srcs">${srcs}</div>` : ""}${where}<div class="meta">${a.notFound ? "Checked" : "Read"} ${a.read} notes · Claude Sonnet · your login · ≈ $0.002</div></div>`;
+}
+
+function renderAsk() {
+  const head = `<div class="ask-head"><div><strong>✨ Ask your notes</strong><span class="muted">Answers only from your notes and cites each one. Never edits.</span></div><label class="switch"><input type="checkbox" data-act="aitoggle" ${S.aiOn ? "checked" : ""}>AI</label></div>`;
+  if (!S.aiOn) { $("#rail").innerHTML = `<div class="ask">${head}<div class="ai-off">AI is off. Nothing leaves this Mac.</div></div>`; return; }
+  const tries = ["What did we decide about the carousel?", "What are the three bets for Q4?", "When is my dentist appointment?"];
+  const sugg = S.ask.length ? "" : `<div class="sugg"><span class="muted">Try</span>${tries.map((t) => `<button class="chip" data-askq="${esc(t)}">${esc(t)}</button>`).join("")}</div>`;
+  $("#rail").innerHTML = `<div class="ask">${head}<div class="thread">${S.ask.map(answerHTML).join("")}${sugg}</div>
+    <div class="ask-in"><form data-form="ask"><input id="askq" placeholder="Ask about your notes…" autocomplete="off"><button class="btn primary">Ask</button></form><div class="fine">Note text is treated as data, never as instructions.</div></div></div>`;
+}
+
+function renderBoard() {
+  const lists = NOTES.flatMap((n) => n.body.blocks.filter((b) => b.task).map((b) => ({ n, b })));
+  const all = lists.flatMap((l) => l.b.items), open = all.filter((i) => !i.checked).length;
+  let h = `<div class="bar board-h"><b>Tasks</b><span class="muted">${open} open · ${all.length - open} done · from ${lists.length} checklists. Ticking here ticks the note.</span></div><div class="cols">`;
+  for (const nb of NB) {
+    const mine = lists.filter((l) => l.n.notebook._ref === nb._id).sort((x, y) => y.n._updated - x.n._updated);
+    if (!mine.length) continue;
+    const items = mine.flatMap((l) => l.b.items), done = items.filter((i) => i.checked).length;
+    h += `<div class="col"><div class="col-h">${nbDot(nb._id)}${esc(nb.name)}<span class="n">${items.length - done} open</span></div><div class="prog"><i style="width:${(done / items.length) * 100}%;background:${nbColor(nb._id)}"></i></div>`;
+    for (const { n, b } of mine) {
+      h += `<div class="card"><button class="card-t" data-open="${n._id}">${esc(n.title)}</button>` + b.items.map((it, i) => `<div class="tk${it.checked ? " done" : ""}"><span class="cb" role="checkbox" aria-checked="${!!it.checked}" data-tick="${n._id}|${b.id}|${i}"></span><span class="tt">${esc(inlineText(it.content))}</span><button class="go" data-open="${n._id}" data-line="${b.id}|${i}" title="Open at this line">↗ line</button></div>`).join("") + `</div>`;
+    }
+    h += `</div>`;
+  }
+  $("#board").innerHTML = h + `</div>`;
+}
+
+function fitVB(box) {
+  const svg = $("#msvg"); const W = svg.clientWidth, H = svg.clientHeight;
+  const room = S.mapSel && W > 900 ? W - 330 : W;
+  const b = box || { x: -30, y: -30, w: MAP.W + 60, h: MAP.H + 60 };
+  const k = Math.min(room / b.w, H / b.h, box ? 2.2 : 1.35);
+  S.vb = { x: b.x + b.w / 2 - room / k / 2, y: b.y + b.h / 2 - H / k / 2, w: W / k, h: H / k };
+}
+
+function renderMap() {
+  $("#mapov").classList.toggle("open", S.map);
+  if (!S.map) return;
+  const svg = $("#msvg"); if (!S.vb) fitVB();
+  svg.setAttribute("viewBox", `${S.vb.x} ${S.vb.y} ${S.vb.w} ${S.vb.h}`);
+  svg.innerHTML = mapSVG({ mode: "full", sel: S.mapSel, hov: S.mapHov, q: S.mapQ, scale: svg.clientWidth / S.vb.w, prefix: "fm" });
+  $("#mapstat").textContent = `${NOTES.length} notes · ${NB.length} notebooks · ${linkCount()} links`;
+  $("#mchips").innerHTML = NB.map((nb) => `<button class="mchip" data-zoomnb="${nb._id}">${nbDot(nb._id)}${esc(nb.name)}</button>`).join("");
+  renderMapCard();
+}
+
+function renderMapCard() {
+  const card = $("#mcard"), n = byId[S.mapSel];
+  card.hidden = !n; if (!n) return;
+  const ns = nbrs(n._id);
+  const chips = ns.map((id) => `<button data-mapsel="${id}">${nbDot(byId[id].notebook._ref)}${esc(byId[id].title)}</button>`).join("");
+  card.innerHTML = `<span class="nbline">${nbDot(n.notebook._ref)}${esc(nbPath(n.notebook._ref).join(" › "))} · ${fmtDate(n._updated)}</span><h3>${esc(n.title)}</h3><p>${esc(sentences(n).slice(0, 2).join(" ") || snippet(n))}</p>
+    <div class="stat"><span><b>${backs(n._id).length}</b>linked from</span><span><b>${outs(n._id).length}</b>links to</span></div>
+    ${ns.length ? `<div class="nbrs">${chips}</div>` : `<p class="muted">No links yet.</p>`}
+    <button class="btn primary" data-act="mapopen">Open note</button>`;
+}
+
+function openMap() { S.map = true; S.mapSel = S.noteId; S.vb = null; renderMap(); }
+function closeMap() { S.map = false; renderMap(); }
+
+function wireMap() {
+  const svg = $("#msvg"); let drag = null, moved = false, lastClick = 0;
+  const setVB = () => svg.setAttribute("viewBox", `${S.vb.x} ${S.vb.y} ${S.vb.w} ${S.vb.h}`);
+  svg.addEventListener("wheel", (e) => {
+    e.preventDefault(); const r = svg.getBoundingClientRect();
+    const k = Math.min(Math.max(S.vb.w * Math.exp(e.deltaY * 0.0016), 300), MAP.W * 3) / S.vb.w;
+    const wx = S.vb.x + (e.clientX - r.left) / r.width * S.vb.w, wy = S.vb.y + (e.clientY - r.top) / r.height * S.vb.h;
+    S.vb = { x: wx - (wx - S.vb.x) * k, y: wy - (wy - S.vb.y) * k, w: S.vb.w * k, h: S.vb.h * k };
+    renderMap();
+  }, { passive: false });
+  svg.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, vb: S.vb }; moved = false; });
+  addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) { moved = true; svg.classList.add("drag"); }
+    if (!moved) return;
+    const r = svg.getBoundingClientRect();
+    S.vb = { ...drag.vb, x: drag.vb.x - dx * drag.vb.w / r.width, y: drag.vb.y - dy * drag.vb.h / r.height }; setVB();
+  });
+  addEventListener("pointerup", () => { drag = null; svg.classList.remove("drag"); });
+  svg.addEventListener("pointerup", (e) => {
+    if (moved) return;
+    const id = e.target.closest("[data-mid]")?.dataset.mid || null;
+    const again = id && id === S.mapSel && e.timeStamp - lastClick < 450;
+    lastClick = e.timeStamp;
+    if (again) { closeMap(); return openNote(id); }
+    S.mapSel = id; renderMap();
+  });
+  svg.addEventListener("mouseover", (e) => { const id = e.target.closest("[data-mid]")?.dataset.mid || null; if (id !== S.mapHov) { S.mapHov = id; renderMap(); } });
+  svg.addEventListener("mouseleave", () => { S.mapHov = null; renderMap(); });
+  $("#mq").addEventListener("input", (e) => { S.mapQ = e.target.value; renderMap(); });
+}
+
+function renderMobile() {
+  const app = $("#app"), m = isMobile();
+  app.classList.toggle("m", m); app.dataset.mv = S.mv;
+  if (!m) return;
+  const nbName = S.nb === "all" ? "All notes" : nbById[S.nb].name;
+  const titles = { tasks: "Tasks", ask: "Ask", list: nbName };
+  $("#mhead").innerHTML = S.mv === "note"
+    ? `<button class="back" data-act="mback">${ICON.back}${esc(nbName)}</button><span class="mt"></span><button class="ic" data-act="aiedit" aria-label="AI Edit">✨</button><button class="ic" data-act="openmap" aria-label="Map">${ICON.map}</button>`
+    : `<span class="mt" style="text-align:left">${esc(titles[S.mv])}</span>`;
+  const tab = (k, ic, label) => `<button class="${S.mv === k || (k === "list" && S.mv === "note") ? "on" : ""}" data-mtab="${k}">${ic}${label}</button>`;
+  $("#tabbar").innerHTML = tab("list", ICON.notes, "Notes") + tab("tasks", ICON.tasks, "Tasks") + `<button data-act="openmap">${ICON.map}Map</button>` + tab("ask", ICON.ask, "Ask");
+}
+
+function render(forceEditor) {
+  const app = $("#app");
+  app.classList.toggle("v-tasks", S.view === "tasks");
+  app.classList.toggle("is-offline", S.offline);
+  renderMobile(); renderSidebar(); renderList();
+  if (S.view === "tasks") renderBoard(); else { renderEditor(forceEditor); renderRail(true); }
+  renderMap(); renderSwitcher();
+}
+function refreshAll() { renderEditor(true); renderRail(true); renderList(); renderSidebar(); }
+
+function openNote(id, opts = {}) {
+  S.noteId = id; S.view = "notes"; S.tipId = null;
+  if (!S.query && !S.visible.includes(id)) S.nb = byId[id].notebook._ref;
+  if (isMobile()) S.mv = "note";
+  render(true);
+  $(`.row[data-open="${id}"]`)?.scrollIntoView({ block: "nearest" });
+  if (opts.quote || opts.line) requestAnimationFrame(() => flashIn(opts));
+}
+
+function flashIn({ quote, line }) {
+  let el;
+  if (line) { const [bid, i] = line.split("|"); el = $(`#body [data-block="${bid}"] li[data-i="${i}"]`); }
+  else el = $$("#body > *").find((b) => b.textContent.includes(quote.slice(0, 24)));
+  if (!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  el.scrollIntoView({ block: "center" });
+}
+
+function setNb(nb) {
+  S.nb = nb; S.query = ""; $("#q").value = ""; S.view = "notes";
+  if (isMobile()) S.mv = "list"; else S.noteId = listNotes()[0]?._id || S.noteId;
+  render();
+}
+
+function move(d) {
+  const v = S.visible, i = v.indexOf(S.noteId);
+  const j = i < 0 ? 0 : Math.min(Math.max(i + d, 0), v.length - 1);
+  if (v[j] && v[j] !== S.noteId) openNote(v[j]);
+}
+
+function tick(nid, bid, i) {
+  const it = byId[nid].body.blocks.find((b) => b.id === bid).items[+i];
+  it.checked = !it.checked;
+  changed(byId[nid]);
+  return it.checked;
+}
+
+let toastT = 0;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem("c-map-theme", t); } catch (e) {} }
+const toggleTheme = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+
+const ACTIONS = {
+  tasks: () => { S.view = "tasks"; if (isMobile()) S.mv = "tasks"; render(); },
+  openmap: openMap,
+  closemap: closeMap,
+  mapopen: () => { const id = S.mapSel; closeMap(); openNote(id); },
+  zfit: () => { S.vb = null; renderMap(); },
+  theme: toggleTheme,
+  aiedit: () => { startAIEdit(S.noteId, "Tighten the summary and link related notes"); refreshAll(); },
+  accall: () => { S.ai.changes.filter((c) => c.status === "pending").forEach((c) => resolveChange(c.i, true)); refreshAll(); },
+  rejall: () => { S.ai.changes.filter((c) => c.status === "pending").forEach((c) => resolveChange(c.i, false)); refreshAll(); },
+  aiundo: undoAI,
+  aidone: () => { S.ai = null; refreshAll(); toast("AI Edit applied."); },
+  mback: () => { S.mv = "list"; render(); },
+  morelinks: () => $(".rel")?.scrollIntoView({ block: "start", behavior: "smooth" }),
+};
+
+document.addEventListener("click", (e) => {
+  const t = e.target, at = (sel) => t.closest(sel);
+  let el;
+  if ((el = at("[data-tick]"))) { const done = tick(...el.dataset.tick.split("|")); el.closest(".tk").classList.toggle("done", done); el.setAttribute("aria-checked", done); renderSidebar(); return; }
+  if ((el = at("#body .cb"))) { const li = el.closest("li"); li.classList.toggle("done", tick(S.noteId, li.parentElement.dataset.block, li.dataset.i)); return; }
+  if ((el = at("[data-state]"))) return applyState(+el.dataset.state);
+  if ((el = at("[data-acc]"))) { resolveChange(+el.dataset.acc, true); return refreshAll(); }
+  if ((el = at("[data-rej]"))) { resolveChange(+el.dataset.rej, false); return refreshAll(); }
+  if ((el = at("[data-keep]"))) return resolveConflict(el.dataset.keep);
+  if ((el = at("[data-askq]"))) { S.ask.push({ q: el.dataset.askq, a: answer(el.dataset.askq) }); return renderAsk(); }
+  if ((el = at("[data-zoomnb]"))) { const b = MAP.boxes[el.dataset.zoomnb]; fitVB({ x: b.x - 40, y: b.y - 40, w: b.w + 80, h: b.h + 80 }); return renderMap(); }
+  if ((el = at("[data-mapsel]"))) { S.mapSel = el.dataset.mapsel; return renderMap(); }
+  if ((el = at("[data-mtab]"))) {
+    S.mv = el.dataset.mtab; S.view = S.mv === "tasks" ? "tasks" : "notes";
+    S.rail = S.mv === "ask" ? "ask" : S.rail === "ask" ? "links" : S.rail;
+    return render();
+  }
+  if ((el = at("[data-rail]"))) { S.rail = el.dataset.rail; S.tipId = null; return renderRail(false); }
+  if ((el = at("[data-nb]"))) return setNb(el.dataset.nb);
+  if ((el = at("[data-open]")) && !at("#body")) { if (S.map) closeMap(); return openNote(el.dataset.open, { quote: el.dataset.quote, line: el.dataset.line }); }
+  if ((el = at("[data-act]")) && ACTIONS[el.dataset.act]) ACTIONS[el.dataset.act]();
+});
+
+document.addEventListener("change", (e) => { if (e.target.dataset.act === "aitoggle") { S.aiOn = e.target.checked; renderAsk(); } });
+
+document.addEventListener("mousedown", (e) => { const w = e.target.closest(".doc .wl"); if (w) { e.preventDefault(); openNote(w.dataset.id); } });
+
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("#askq").value.trim(); if (!q) return;
+  S.ask.push({ q, a: answer(q) }); renderAsk();
+  $("#askq").focus(); $("#rail").scrollTop = 1e6;
+});
+
+document.addEventListener("input", (e) => {
+  const id = e.target.id;
+  if (id === "q") {
+    S.query = e.target.value; renderList();
+    if (S.visible.length && !S.visible.includes(S.noteId)) { S.noteId = S.visible[0]; renderEditor(); renderRail(true); renderList(); }
+  }
+  if (id === "title") { byId[S.noteId].title = e.target.textContent; changed(byId[S.noteId]); }
+  if (id === "body") syncBody();
+});
+
+document.addEventListener("mouseover", (e) => { const w = e.target.closest(".wl[data-id], .rel-row"); if (w) hoverGraph(w.dataset.id || w.dataset.open); });
+document.addEventListener("mouseout", (e) => { const w = e.target.closest(".wl[data-id], .rel-row"); if (w && !w.contains(e.relatedTarget)) hoverGraph(null); });
+
+document.addEventListener("keydown", (e) => {
+  const t = e.target, typing = t.isContentEditable || /INPUT|TEXTAREA/.test(t.tagName);
+  if ((e.metaKey || e.ctrlKey) && e.key === "z" && S.ai && !typing) { e.preventDefault(); return undoAI(); }
+  if (e.key === "Escape") return S.map ? closeMap() : typing && t.blur();
+  if (t.id === "title" && e.key === "Enter") { e.preventDefault(); return $("#body").focus(); }
+  if (typing && !(t.id === "q" && /^(ArrowUp|ArrowDown)$/.test(e.key))) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^[1-9]$/.test(e.key)) return applyState(+e.key);
+  if (S.map) { if (e.key === "Enter" && S.mapSel) ACTIONS.mapopen(); return; }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); return move(e.key === "ArrowDown" ? 1 : -1); }
+  if (e.key === "Enter") { e.preventDefault(); return $("#body")?.focus(); }
+  if (e.key === "/") { e.preventDefault(); return $("#q").focus(); }
+  if (e.key === "m") return openMap();
+  if (e.key === "t") return toggleTheme();
+});
+
+addEventListener("resize", () => { renderMobile(); if (S.map) { S.vb = null; renderMap(); } });
+
+const STATES = ["Browse a notebook", "Note open with its link graph", "✨ Ask with citations", "AI Edit diff", "Tasks board", "Offline", "Conflict", "Mobile ≈390 px", "Full map"];
+const BASE = JSON.stringify(NOTES);
+const DEFAULTS = JSON.stringify(S);
+
+const SETUP = {
+  1: { nb: "fx-nb-projects", noteId: "fx-note-02", rail: "cluster" },
+  2: { nb: "fx-nb-projects", noteId: "fx-note-01", tipId: "fx-note-40" },
+  3: { nb: "fx-nb-meetings", noteId: "fx-note-10", rail: "ask", ask: [{ q: "What did we decide about the carousel?", a: PRESET.carousel }, { q: "When is my dentist appointment?", a: PRESET.dentist }] },
+  4: { nb: "fx-nb-projects", noteId: "fx-note-00" },
+  5: { view: "tasks" },
+  6: { nb: "fx-nb-inbox", noteId: "fx-note-24", offline: true, pending: 3 },
+  7: { nb: "fx-nb-home", noteId: "fx-note-30" },
+  8: { nb: "fx-nb-projects", noteId: "fx-note-01", mv: "note" },
+  9: { nb: "fx-nb-projects", noteId: "fx-note-00" },
+};
+
+function applyState(k) {
+  NOTES.length = 0;
+  for (const n of JSON.parse(BASE)) { n._updated = new Date(n._updated); NOTES.push(n); }
+  for (const key of Object.keys(byId)) delete byId[key];
+  for (const n of NOTES) byId[n._id] = n;
+  computeMap();
+  Object.assign(S, JSON.parse(DEFAULTS), SETUP[k], { stateN: k });
+  S.forced = k === 8 && !matchMedia("(max-width: 700px)").matches;
+  document.body.classList.toggle("frame", S.forced);
+  if (k === 4) startAIEdit("fx-note-00", "Tighten the summary and link the content plan");
+  if (k === 7) S.conflict = makeConflict();
+  $("#q").value = ""; $("#mq").value = ""; LG.pos = {};
+  $("#pending").textContent = S.pending ? `${S.pending} edits waiting` : "";
+  S.visible = listNotes().map((n) => n._id);
+  render(true);
+  if (k === 9) openMap();
+  $("#app").scrollTop = 0;
+}
+
+function renderSwitcher() {
+  $("#switcher").innerHTML = STATES.map((t, i) => `<button data-state="${i + 1}" class="${S.stateN === i + 1 ? "on" : ""}" title="${i + 1} · ${esc(t)}">${i + 1}</button>`).join("");
+}
+
+(function boot() {
+  const params = new URLSearchParams(location.search);
+  let theme = params.get("theme");
+  try { theme ||= localStorage.getItem("c-map-theme"); } catch (e) {}
+  document.documentElement.dataset.theme = theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  wireMap();
+  applyState(+params.get("s") || 2);
+})();
+
+</script>
+</body>
+</html>
