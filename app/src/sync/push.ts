@@ -8,6 +8,7 @@ import {refetch} from './check'
 
 const BATCH = 50
 const ROUNDS = 5
+const SENT = 8
 const STALE = new Set([404, 409, 412])
 
 type Planned = {e: Entry; m: object | null}
@@ -28,9 +29,9 @@ async function prepare(ids: string[]): Promise<Planned[]> {
   for (const id of ids) {
     const [e, local] = await Promise.all([outbox.get(id), notes.get(id)])
     if (!e) continue
-    const note = local && sign(stored(local), deviceId())
+    const note = local && sign({...stored(local), _typed: undefined}, deviceId())
     const m = mutationFor(e, note)
-    const sent = m && note && !e.delete ? {...e, pushed: note} : e
+    const sent = m && note && !e.delete ? {...e, pushed: note, sent: [...(e.sent ?? []), note].slice(-SENT)} : e
     if (sent !== e) void outbox.put(sent)
     plan.push({e: sent, m})
   }

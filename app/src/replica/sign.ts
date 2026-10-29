@@ -13,7 +13,7 @@ export function canon(v: unknown): string {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canon(o[k])}`).join(',')}}`
 }
 
-function digest(s: string): string {
+export function digest(s: string): string {
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193)
   return (h >>> 0).toString(36)

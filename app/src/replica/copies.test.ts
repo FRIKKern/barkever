@@ -53,21 +53,19 @@ test('signing names the writer, survives a Barkpark round trip, and any later ch
   assert.equal(writerOf(r0), undefined)
 })
 
-test('two writers typing in one block online keep every text pushed, and show one version per writer, its latest', () => {
+test('two writers typing in one block online: each typed from its own last text, so one copy stays, the other writer’s latest', () => {
   const w = world()
   const [A, B] = [w.device('A'), w.device('B')]
-  const pushed: string[] = []
+  const pushed: Record<string, string> = {}
   for (let k = 0; k < 12; k++) {
-    const me = k % 2 ? B : A
+    const [me, other] = k % 2 ? [B, A] : [A, B]
     me.typeBlock(`${me.id} typed ${k}`)
     me.pull()
     me.push()
-    pushed.push(`${me.id} typed ${k}`)
-    assert.equal(textA(w.server), pushed.at(-1))
-    for (const t of pushed) assert.ok(kept(w.server).includes(t), `round ${k}: ${t}`)
+    pushed[me.id] = `${me.id} typed ${k}`
+    assert.equal(textA(w.server), pushed[me.id])
+    if (pushed[other.id]) assert.deepEqual(copies(w.server), [[other.id, 'Plan', pushed[other.id]]], `round ${k}`)
   }
-  assert.equal(w.server.conflicts!.length, 11)
-  assert.deepEqual(shown(w.server), [['A', 'Plan', 'A typed 10'], ['B', 'Plan', 'B typed 9']])
 })
 
 test('one raw writer setting the title six times while I type it keeps all six, and shows its latest', () => {
@@ -129,7 +127,7 @@ test('a writer’s copy for the title survives that writer’s later clash in a 
   assert.deepEqual(copies(A.local), [['B', 'B title', 'one'], ['B', 'A title', 'B block']])
 })
 
-test('two tabs typing in one block keep each other tab text, and show one, the latest', () => {
+test('two tabs typing in one block: each tab typed from its own last text, so one copy stays, the other tab’s latest', () => {
   let replica: Note = sign(r0, 'D')
   let [one, two] = [r0.body!.blocks, r0.body!.blocks]
   const save = (shown: Block[], text: string, k: number) => {
@@ -142,8 +140,7 @@ test('two tabs typing in one block keep each other tab text, and show one, the l
     two = save(two, `tab two ${k}`, 2 * k + 1)
   }
   assert.equal(textA(replica), 'tab two 5')
-  for (let k = 0; k < 6; k++) assert.ok(kept(replica).includes(`tab one ${k}`), `tab one ${k}`)
-  assert.deepEqual(shown(replica), [['D~tab', 'Plan', 'tab one 5']])
+  assert.deepEqual(copies(replica), [['D~tab', 'Plan', 'tab one 5']])
 })
 
 test('catching up past a third writer’s title change keeps the first writer’s title copy', () => {
