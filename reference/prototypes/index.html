@@ -64,8 +64,8 @@ main.focus .card:not(.on) { display: none; }
 <script>
 const PROTOS = [
   { id: "a-quiet", name: "A · Quiet", idea: "Evernote three panes, calmer", score: 71 },
-  { id: "b-cards", name: "B · Cards", idea: "Every note shows its shape", score: 69, win: true },
-  { id: "c-map", name: "C · Map", idea: "Link graph rail + notebook map", score: 66 },
+  { id: "b-cards", name: "B · Cards", idea: "Every note shows its shape", score: 69 },
+  { id: "c-map", name: "C · Map", idea: "Link graph rail + notebook map", score: 66, win: true },
   { id: "d-lanes", name: "D · Lanes", idea: "Today / this week / later + project boards", score: 68 },
 ];
 const JOURNEYS = [
@@ -99,7 +99,7 @@ function render() {
     const shot = j.shots[p.id];
     const img = shot ? `<a href="${p.id}/${shot}.webp" target="_blank" rel="noopener"><img src="${p.id}/${shot}.webp" alt="${esc(p.name)}: ${esc(j.label)}" loading="lazy"></a>` : `<div class="none">No screenshot for this journey.</div>`;
     return `<section class="card ${p.win ? "win" : ""} ${st.focus === p.id ? "on" : ""}">
-      <div class="head"><b>${esc(p.name)}</b><span class="idea">${esc(p.idea)}</span><span class="badge">${p.win ? "provisional pick · " : ""}${p.score}/85</span><a href="${p.id}/index.html" target="_blank" rel="noopener">Open live ↗</a></div>
+      <div class="head"><b>${esc(p.name)}</b><span class="idea">${esc(p.idea)}</span><span class="badge">${p.win ? "owner pick · " : ""}${p.score}/85</span><a href="${p.id}/index.html" target="_blank" rel="noopener">Open live ↗</a></div>
       <div class="shot">${img}</div></section>`;
   }).join("") + (NOTES[j.key] ? `<div class="note" style="grid-column:1/-1">${esc(NOTES[j.key])}</div>` : "");
   try { localStorage.setItem("p2-judge", JSON.stringify(st)); } catch (e) {}

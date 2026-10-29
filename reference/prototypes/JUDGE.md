@@ -1,5 +1,7 @@
 # P2 judge
 
+**Owner picked C (linked map)** on 2026-10-29, overriding the pick below. See [decision 0016](../../docs/decisions/0016-design-c-linked-map.md).
+
 | Row | A quiet | B cards | C map | D lanes | Why low |
 |---|---|---|---|---|---|
 | §1 Picture first | 3 | 4 | 5 | 4 | A: text rows. B: overlay discounted |
