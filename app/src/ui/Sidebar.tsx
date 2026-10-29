@@ -1,7 +1,7 @@
 import {useEffect, useRef, type FormEvent} from 'react'
-import {useQuery} from '@tanstack/react-query'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
-import {stuckQuery} from '../lib/library'
+import {dismissDropped, droppedStarsQuery, stuckQuery} from '../lib/library'
 import {useUnsynced} from '../lib/saver'
 import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
@@ -37,6 +37,8 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
   }, [modal])
   const pending = useUnsynced()
   const stuck = useQuery(stuckQuery).data ?? []
+  const dropped = useQuery(droppedStarsQuery).data ?? []
+  const qc = useQueryClient()
   const {lib, shelf, prefs, links, perNotebook, tags} = w
   const count = (id: string) => shelf.scope(id).reduce((sum, nb) => sum + (perNotebook.get(nb) ?? 0), 0)
   const scoped = !s.q && (s.nb || s.tag)
@@ -84,6 +86,16 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         {shelf.roots.map((nb) => [nbItem(nb), ...shelf.children(nb.id).map((c) => nbItem(c, true))])}
         <div className="side-h">Shortcuts</div>
         {shortcuts.length ? shortcuts : <div className="side-none">Star a note to keep it here.</div>}
+        {dropped.map((x) => (
+          <div key={x.id} className="side-dropped" data-testid="star-dropped" role="status">
+            <span className="t">
+              Not {x.on ? 'starred' : 'unstarred'}: {links.byId.get(x.id)?.title || UNTITLED}, Barkpark refused it ({x.status})
+            </span>
+            <button className="icon-btn" onClick={() => dismissDropped(qc, x.id)} aria-label="Dismiss" data-testid="star-dropped-dismiss">
+              ×
+            </button>
+          </div>
+        ))}
         {recents.length > 0 && <div className="side-h">Recent</div>}
         {recents.map((id) => noteItem(id, 'clock', 'side-recent'))}
         <SideTags tags={tags} s={s} onPick={() => onPick()} />

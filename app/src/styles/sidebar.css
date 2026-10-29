@@ -6,6 +6,8 @@
 .side-scroll { flex: 1; overflow: auto; padding: var(--sp-1) var(--sp-2) var(--sp-3); }
 .side-h { font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--c-muted); padding: var(--sp-3) var(--sp-3) var(--sp-1); }
 .side-none { font-size: var(--fs-s); color: var(--c-muted); padding: var(--sp-1) var(--sp-3); }
+.side-dropped { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-1) 0; padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3); border-radius: var(--r-m); font-size: var(--fs-s); color: var(--c-warn-fg); background: var(--c-warn-bg); }
+.side-dropped .t { flex: 1; min-width: 0; }
 .si { display: flex; align-items: center; gap: var(--sp-2); width: 100%; height: var(--h-item); padding: 0 var(--sp-3); border-radius: var(--r-m); color: var(--c-text-2); text-align: left; white-space: nowrap; }
 .si:hover { background: var(--c-hover); }
 .si.on { background: var(--c-select); color: var(--c-text); font-weight: var(--fw-medium); }

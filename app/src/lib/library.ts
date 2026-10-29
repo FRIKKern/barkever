@@ -53,9 +53,13 @@ const STAR_RETRY_MAX_MS = 5 * 60_000
 let retries = 0
 let retry: ReturnType<typeof setTimeout> | undefined
 
-async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean}> {
+export type DroppedStar = {id: string; on: boolean; status: number}
+export const droppedStarsQuery = queryOptions({...local, queryKey: ['stars-dropped'], queryFn: (): DroppedStar[] => []})
+
+async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean; dropped: DroppedStar[]}> {
   let shortcuts: string[] | undefined
   let failed = false
+  const dropped: DroppedStar[] = []
   const tried = new Set<string>()
   for (;;) {
     const stars = await pendingStars()
@@ -66,7 +70,10 @@ async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean}> {
     try {
       const answer = await starFn({data: {id, on}})
       shortcuts = answer.shortcuts
-      if (answer.refused) console.warn(`stars: Barkpark refused ${on ? 'starring' : 'unstarring'} ${id} (${answer.refused}); dropped`)
+      if (answer.refused) {
+        dropped.push({id, on, status: answer.refused})
+        console.warn(`stars: Barkpark refused ${on ? 'starring' : 'unstarring'} ${id} (${answer.refused}); dropped`)
+      }
       await editStars((s) => s[id] === on && delete s[id])
     } catch (e) {
       failed = true
@@ -76,14 +83,18 @@ async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean}> {
   const d = await db()
   const cached = (await d.get('meta', 'prefs')) as Prefs | undefined
   if (shortcuts && cached) await d.put('meta', {...cached, shortcuts}, 'prefs')
-  return {shortcuts, failed}
+  return {shortcuts, failed, dropped}
 }
+
+const setDropped = (qc: QueryClient, edit: (d: DroppedStar[]) => DroppedStar[]) => qc.setQueryData<DroppedStar[]>(droppedStarsQuery.queryKey, (d) => edit(d ?? []))
+export const dismissDropped = (qc: QueryClient, id: string) => setDropped(qc, (d) => d.filter((x) => x.id !== id))
 
 async function sendStars(qc: QueryClient) {
   clearTimeout(retry)
   await db()
-  const {shortcuts, failed} = await navigator.locks.request(`${replicaKey()}-stars`, sendAll)
+  const {shortcuts, failed, dropped} = await navigator.locks.request(`${replicaKey()}-stars`, sendAll)
   if (shortcuts) setPrefs(qc, {shortcuts: withStars(shortcuts, await pendingStars())})
+  if (dropped.length) setDropped(qc, (d) => [...d.filter((x) => !dropped.some((y) => y.id === x.id)), ...dropped])
   retries = failed ? retries + 1 : 0
   if (failed) retry = setTimeout(() => void sendStars(qc).catch(keepLocal), Math.min(STAR_RETRY_MS * 2 ** (retries - 1), STAR_RETRY_MAX_MS))
 }
@@ -129,6 +140,7 @@ export function rememberRecent(qc: QueryClient, id: string) {
 export function star(qc: QueryClient, id: string, on: boolean) {
   const p = qc.getQueryData<Prefs>(prefsQuery.queryKey)
   if (p) setPrefs(qc, {shortcuts: withStars(p.shortcuts, {[id]: on})})
+  dismissDropped(qc, id)
   void editStars((s) => (s[id] = on))
     .then(() => sendStars(qc))
     .catch(keepLocal)
