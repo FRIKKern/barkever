@@ -1,0 +1,129 @@
+{
+ "n": 5000,
+ "bundleKB": {
+  "raw": 321.1,
+  "gzip": 94.2
+ },
+ "firstVisit": {
+  "firstList": 1968.0999999046326,
+  "firstListPaint": 1974.1999998092651,
+  "getAllMs": 1884.5,
+  "indexMs": 24.59999990463257,
+  "seedMs": 1627.0999999046326
+ },
+ "heapMB": 9,
+ "storageMB": 6,
+ "reload": {
+  "firstList": 193.5,
+  "firstListPaint": 198.1,
+  "getAllMs": 107.6,
+  "indexMs": 13.6
+ },
+ "restart": {
+  "firstList": 591.4,
+  "firstListPaint": 594,
+  "getAllMs": 269.8,
+  "indexMs": 15.7
+ },
+ "switchFirst": {
+  "commit": {
+   "n": 50,
+   "p50": 3.2,
+   "p95": 9.6,
+   "max": 18.3
+  },
+  "paint": {
+   "n": 50,
+   "p50": 12.3,
+   "p95": 20.4,
+   "max": 26.9
+  }
+ },
+ "switchCached": {
+  "commit": {
+   "n": 50,
+   "p50": 0.8,
+   "p95": 1.7,
+   "max": 2.4
+  },
+  "paint": {
+   "n": 50,
+   "p50": 2.4,
+   "p95": 15.9,
+   "max": 17.3
+  }
+ },
+ "search": {
+  "commit": {
+   "n": 20,
+   "p50": 5.2,
+   "p95": 31.5,
+   "max": 31.5
+  },
+  "paint": {
+   "n": 20,
+   "p50": 8.6,
+   "p95": 68.8,
+   "max": 68.8
+  },
+  "hits": {
+   "tulips": 50,
+   "harbor": 50,
+   "wire": 50,
+   "kari": 50,
+   "sourdough": 50,
+   "offline": 50,
+   "quarry naming": 50,
+   "weekly sync": 50,
+   "budget": 50,
+   "lofoten": 50,
+   "decision": 50,
+   "garden spring": 50,
+   "risk": 50,
+   "calm": 50,
+   "printer": 50,
+   "onboarding": 50,
+   "fish soup": 50,
+   "conference": 50,
+   "mobile first": 50,
+   "xyzzy": 0
+  }
+ },
+ "keystroke": {
+  "keys": 60,
+  "input": {
+   "n": 60,
+   "p50": 0.9,
+   "p95": 1.5,
+   "max": 3.4
+  },
+  "list": {
+   "n": 60,
+   "p50": 4.7,
+   "p95": 17.3,
+   "max": 22.2
+  },
+  "listPaint": {
+   "n": 60,
+   "p50": 19,
+   "p95": 31.9,
+   "max": 35.8
+  },
+  "idb": {
+   "n": 60,
+   "p50": 14.3,
+   "p95": 35.9,
+   "max": 57.7
+  },
+  "keydownOver16": [
+   24
+  ],
+  "keydownAt16": 11
+ },
+ "chrome": "Google Chrome 156.0.8078.48",
+ "loadAvg": [
+  33.6,
+  34.2
+ ],
+ "at": "2026-10-28T23:50:05.236Z"
+}

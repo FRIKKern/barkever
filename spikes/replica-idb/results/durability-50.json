@@ -1,0 +1,82 @@
+{
+ "n": 50,
+ "upload": {
+  "sent": 57,
+  "acked": 57,
+  "conflicts": 0,
+  "requests": 1,
+  "ms": 539.2000002861023,
+  "wallMs": 544
+ },
+ "whileOffline": {
+  "outbox": 3,
+  "sync": "Failed to fetch"
+ },
+ "afterReload": {
+  "outbox": 3,
+  "titles": {
+   "fx-note-29": true,
+   "fx-note-14": true,
+   "fx-note-27": true
+  },
+  "lastBody": true
+ },
+ "afterRestart": {
+  "outbox": 3,
+  "titles": {
+   "fx-note-29": true,
+   "fx-note-14": true,
+   "fx-note-27": true
+  },
+  "lastBody": true
+ },
+ "replay": {
+  "sent": 3,
+  "acked": 3,
+  "conflicts": 0,
+  "requests": 1,
+  "ms": 90.80000019073486,
+  "wallMs": 93,
+  "outboxAfter": 0
+ },
+ "onServer": {
+  "fx-note-29": true,
+  "fx-note-14": true,
+  "fx-note-27": true
+ },
+ "bulkReplay": {
+  "k": 50,
+  "sent": 50,
+  "acked": 50,
+  "conflicts": 0,
+  "requests": 2,
+  "ms": 556.0999999046326,
+  "wallMs": 559,
+  "outboxAfter": 0
+ },
+ "conflicts": {
+  "sync": {
+   "sent": 3,
+   "acked": 1,
+   "conflicts": 2,
+   "requests": 4,
+   "ms": 195.5,
+   "wallMs": 198
+  },
+  "otherField": {
+   "mineKept": true,
+   "theirsKept": true
+  },
+  "sameField": {
+   "serverKeptTheirs": true,
+   "outbox": 1,
+   "shown": true
+  }
+ },
+ "chrome": "Google Chrome 156.0.8078.48",
+ "loadAvg": [
+  25.2,
+  26.8
+ ],
+ "at": "2026-10-28T23:47:32.656Z"
+}

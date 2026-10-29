@@ -1,0 +1,22 @@
+{
+  "name": "spike-replica-idb",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "serve": "node server.mjs",
+    "measure": "vite build && node measure.mjs"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.104.1",
+    "@tanstack/react-virtual": "3.14.23",
+    "idb": "8.0.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.1.2",
+    "playwright-core": "1.64.1",
+    "vite": "8.3.2"
+  }
+}

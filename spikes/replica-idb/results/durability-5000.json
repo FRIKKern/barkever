@@ -1,0 +1,63 @@
+{
+ "n": 5000,
+ "upload": {
+  "sent": 5007,
+  "acked": 5007,
+  "conflicts": 0,
+  "requests": 51,
+  "ms": 32891.699999809265,
+  "wallMs": 32912
+ },
+ "whileOffline": {
+  "outbox": 3,
+  "sync": "Failed to fetch"
+ },
+ "afterReload": {
+  "outbox": 3,
+  "titles": {
+   "fx-gen-2985": true,
+   "fx-gen-1496": true,
+   "fx-gen-2711": true
+  },
+  "lastBody": true
+ },
+ "afterRestart": {
+  "outbox": 3,
+  "titles": {
+   "fx-gen-2985": true,
+   "fx-gen-1496": true,
+   "fx-gen-2711": true
+  },
+  "lastBody": true
+ },
+ "replay": {
+  "sent": 3,
+  "acked": 3,
+  "conflicts": 0,
+  "requests": 1,
+  "ms": 239.40000009536743,
+  "wallMs": 252,
+  "outboxAfter": 0
+ },
+ "onServer": {
+  "fx-gen-2985": true,
+  "fx-gen-1496": true,
+  "fx-gen-2711": true
+ },
+ "bulkReplay": {
+  "k": 500,
+  "sent": 500,
+  "acked": 500,
+  "conflicts": 0,
+  "requests": 20,
+  "ms": 5841.5,
+  "wallMs": 5865,
+  "outboxAfter": 0
+ },
+ "chrome": "Google Chrome 156.0.8078.48",
+ "loadAvg": [
+  26.8,
+  29.4
+ ],
+ "at": "2026-10-28T23:48:27.261Z"
+}

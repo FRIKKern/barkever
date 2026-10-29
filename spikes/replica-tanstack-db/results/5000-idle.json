@@ -1,0 +1,146 @@
+{
+ "set": "5000",
+ "mode": "idle",
+ "at": "2026-10-29T00:05:08.344Z",
+ "firstRun": {
+  "boot": 910,
+  "loaded": 1034,
+  "fetched": 2127,
+  "pulled": 5489,
+  "firstList": 5601,
+  "firstListFrame": 5626
+ },
+ "replica": {
+  "notes": 5000,
+  "storageMB": 6,
+  "heapMB": 42.6
+ },
+ "coldLoad": {
+  "firstListFrame": {
+   "n": 5,
+   "p50": 509,
+   "p95": 670,
+   "max": 670
+  },
+  "idbLoaded": {
+   "n": 5,
+   "p50": 432,
+   "p95": 570,
+   "max": 570
+  },
+  "runs": [
+   {
+    "boot": 126,
+    "loaded": 518,
+    "firstList": 598,
+    "firstListFrame": 615
+   },
+   {
+    "boot": 79,
+    "loaded": 363,
+    "firstList": 425,
+    "firstListFrame": 456
+   },
+   {
+    "boot": 80,
+    "loaded": 570,
+    "firstList": 653,
+    "firstListFrame": 670
+   },
+   {
+    "boot": 85,
+    "loaded": 346,
+    "firstList": 406,
+    "firstListFrame": 420
+   },
+   {
+    "boot": 80,
+    "loaded": 432,
+    "firstList": 496,
+    "firstListFrame": 509
+   }
+  ]
+ },
+ "switch": {
+  "n": 50,
+  "p50": 10,
+  "p95": 16.6,
+  "max": 101.3
+ },
+ "search": {
+  "n": 20,
+  "p50": 61.1,
+  "p95": 85.9,
+  "max": 85.9
+ },
+ "searchTyped": {
+  "n": 28,
+  "p50": 68.6,
+  "p95": 92.1,
+  "max": 104.7
+ },
+ "keystroke": {
+  "n": 130,
+  "p50": 2.8,
+  "p95": 5.3,
+  "max": 16.7,
+  "intact": true
+ },
+ "reloadPersistence": {
+  "edits": 5,
+  "outboxBefore": 5,
+  "outboxAfter": 5,
+  "visibleAtFirstList": 5,
+  "allVisibleMsAfterFirstList": 20,
+  "visibleAfter": 5,
+  "inNotesStore": 0
+ },
+ "crashWindow": {
+  "reloadRightAfterTyping": "kept",
+  "sigkillRightAfterTyping": "10/10 chars kept",
+  "outbox": 5
+ },
+ "replay": {
+  "entries": 5,
+  "ms": 594,
+  "conflicts412": 0,
+  "mutateCalls": 5,
+  "allOnServer": true,
+  "server": [
+   {
+    "id": "gen-note-2141",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "gen-note-0524",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "gen-note-0261",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "gen-note-2466",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "gen-note-3778",
+    "hasEdit": true,
+    "revMatches": true
+   }
+  ]
+ },
+ "conflict": {
+  "conflicts412": 1,
+  "serverTitle": "architecture launch 947",
+  "bodyHasMine": true
+ },
+ "bundle": {
+  "kbRaw": 547,
+  "kbGzip": 161
+ }
+}

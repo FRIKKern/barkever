@@ -9,6 +9,9 @@ note storage ── A note-type  ✅ won ──► decision 0013
 offline sync ── C sync-sse   ◐ fast, full docs, loses in-flight commits
              └─ D sync-pull  ◐ misses deletes, same in-flight loss
                     both ──► decision 0014: stream + manifest check, Barkpark fix upstream
+
+local replica ─ E replica-tanstack-db ✗ young library, merge not built
+              └ F replica-idb         ✅ won ──► decision 0015
 ```
 
 | Spike | Question | Verdict | Report |
@@ -17,5 +20,7 @@ offline sync ── C sync-sse   ◐ fast, full docs, loses in-flight commits
 | B | Notes as Barkpark Papers | Lost | [note-paper/REPORT.md](note-paper/REPORT.md) |
 | C | Catch-up via listen SSE + `Last-Event-ID` | Kept as the main path | [sync-sse/REPORT.md](sync-sse/REPORT.md) |
 | D | Catch-up via `_updatedAt` pull queries | Kept as the safety check | [sync-pull/REPORT.md](sync-pull/REPORT.md) |
+| E | Replica on TanStack DB + offline-transactions | Lost | [replica-tanstack-db/REPORT.md](replica-tanstack-db/REPORT.md) |
+| F | Replica on `idb` + TanStack Query + own outbox | Won | [replica-idb/REPORT.md](replica-idb/REPORT.md) |
 
 Spike code is evidence, not product code. Scripts read the token inside Node from `~/.config/barkpark/config.json` and never print it.

@@ -1,0 +1,54 @@
+[
+ {
+  "run": 0,
+  "firstBox": "#title",
+  "events": [
+   "keydown 48ms (handler 0ms)",
+   "input 48ms (handler 1ms)"
+  ]
+ },
+ {
+  "run": 0,
+  "firstBox": "#search",
+  "events": [
+   "keydown 64ms (handler 0ms)",
+   "input 64ms (handler 1ms)",
+   "keydown 16ms (handler 0ms)",
+   "input 16ms (handler 1ms)"
+  ]
+ },
+ {
+  "run": 1,
+  "firstBox": "#title",
+  "events": [
+   "keydown 72ms (handler 0ms)",
+   "input 72ms (handler 1ms)",
+   "keydown 16ms (handler 0ms)",
+   "input 16ms (handler 1ms)"
+  ]
+ },
+ {
+  "run": 1,
+  "firstBox": "#search",
+  "events": [
+   "keydown 56ms (handler 0ms)",
+   "input 56ms (handler 2ms)"
+  ]
+ },
+ {
+  "run": 2,
+  "firstBox": "#title",
+  "events": [
+   "keydown 64ms (handler 1ms)",
+   "input 64ms (handler 1ms)"
+  ]
+ },
+ {
+  "run": 2,
+  "firstBox": "#search",
+  "events": [
+   "keydown 64ms (handler 0ms)",
+   "input 56ms (handler 2ms)"
+  ]
+ }
+]

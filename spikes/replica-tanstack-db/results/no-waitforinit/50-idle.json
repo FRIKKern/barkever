@@ -1,0 +1,146 @@
+{
+ "set": "50",
+ "mode": "idle",
+ "at": "2026-10-28T23:56:10.974Z",
+ "firstRun": {
+  "boot": 498,
+  "loaded": 624,
+  "fetched": 2198,
+  "pulled": 2256,
+  "firstList": 2282,
+  "firstListFrame": 2315
+ },
+ "replica": {
+  "notes": 50,
+  "storageMB": 0.1,
+  "heapMB": 4.7
+ },
+ "coldLoad": {
+  "firstListFrame": {
+   "n": 5,
+   "p50": 513,
+   "p95": 910,
+   "max": 910
+  },
+  "idbLoaded": {
+   "n": 5,
+   "p50": 457,
+   "p95": 880,
+   "max": 880
+  },
+  "runs": [
+   {
+    "boot": 290,
+    "loaded": 441,
+    "firstList": 463,
+    "firstListFrame": 474
+   },
+   {
+    "boot": 326,
+    "loaded": 525,
+    "firstList": 543,
+    "firstListFrame": 674
+   },
+   {
+    "boot": 170,
+    "loaded": 880,
+    "firstList": 897,
+    "firstListFrame": 910
+   },
+   {
+    "boot": 131,
+    "loaded": 457,
+    "firstList": 486,
+    "firstListFrame": 513
+   },
+   {
+    "boot": 196,
+    "loaded": 285,
+    "firstList": 307,
+    "firstListFrame": 322
+   }
+  ]
+ },
+ "switch": {
+  "n": 50,
+  "p50": 8,
+  "p95": 16.2,
+  "max": 135.7
+ },
+ "search": {
+  "n": 20,
+  "p50": 7.2,
+  "p95": 17,
+  "max": 17
+ },
+ "searchTyped": {
+  "n": 28,
+  "p50": 3.2,
+  "p95": 11.5,
+  "max": 11.8
+ },
+ "keystroke": {
+  "n": 130,
+  "p50": 2.5,
+  "p95": 5.1,
+  "max": 13.7,
+  "intact": true
+ },
+ "reloadPersistence": {
+  "edits": 5,
+  "outboxBefore": 5,
+  "outboxAfter": 5,
+  "visibleAtFirstList": 5,
+  "allVisibleMsAfterFirstList": 41,
+  "visibleAfter": 5,
+  "inNotesStore": 0
+ },
+ "crashWindow": {
+  "reloadRightAfterTyping": "kept",
+  "sigkillRightAfterTyping": "4/10 chars kept",
+  "outbox": 5
+ },
+ "replay": {
+  "entries": 5,
+  "ms": 488,
+  "conflicts412": 0,
+  "mutateCalls": 5,
+  "allOnServer": true,
+  "server": [
+   {
+    "id": "fx-note-30",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "fx-note-31",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "fx-note-27",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "fx-note-49",
+    "hasEdit": true,
+    "revMatches": true
+   },
+   {
+    "id": "fx-note-29",
+    "hasEdit": true,
+    "revMatches": true
+   }
+  ]
+ },
+ "conflict": {
+  "conflicts412": 1,
+  "serverTitle": "Plan for the day",
+  "bodyHasMine": true
+ },
+ "bundle": {
+  "kbRaw": 547,
+  "kbGzip": 161
+ }
+}
