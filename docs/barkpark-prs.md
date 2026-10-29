@@ -8,7 +8,7 @@ builder ─► hostile self-check ─► open PR ─┬─► CI (≈25 min) ─
                                                          PASS + green CI ─► lead merges ─► deploy
 ```
 
-On 2026-10-29, 3 of 3 Barkpark PRs failed their first review (#24743, #24744, #24750). Each failure cost a full round: about 25 minutes of CI plus a re-review.
+On 2026-10-29, 3 of 3 Barkpark PRs failed their first review (#24743, #24744, #24750), and 4 fixes were half fixes that failed again in the next round. Every row below comes from `pace/misses.jsonl`.
 
 ## Hostile self-check (builder, before opening the PR)
 
@@ -16,13 +16,16 @@ Each row is a bug a reviewer found that the builder could have found first.
 
 | Try | Found in |
 |---|---|
+| **Fix the class, not the instance.** For each finding, list every other place with the same shape (routes, producers, row kinds, stores) and fix or test them all | #24743: F1, F3 and F2 each came back in the next round. #24744: the webhook fix covered the live send only |
 | Inputs at and over every limit: long keys and names, empty values, wrong types, bad slugs | #24750: a 201-character key gave a 500 instead of a 422 |
-| Another workspace, project, user, bound token or shared token | #24743: a bound token could delete other datasets |
-| Everything stored under the same name, after a delete and a recreate | #24743: webhooks came back alive |
-| Two writers at once, including the first write and a delete racing an update | #24750: a DELETE during a PATCH gave a bare 404 |
-| Every consumer of an event or payload you changed: webhooks, listen/SSE, Studio | #24744: `create` webhook subscribers broke |
+| Another workspace, project, user, bound token or shared token, **and global rows with no workspace** | #24743: a bound token deleted other datasets; global synonyms cascaded away |
+| Everything stored under the same name after a delete and a recreate: tables, **tokens, caches (ETS), files, other datasets that embed it** | #24743: webhooks, bound tokens and a cached config all came back |
+| Two writers at once, including the first write, a delete racing an update, and **side effects that fire before commit** | #24750: a DELETE during a PATCH gave a bare 404; #24743: revoke broadcasts before commit |
+| Every consumer of what you changed: **grep each stored field for its readers** (retry, sweeper, replay, analytics, Studio), not just the live fan-out | #24744: the stored event row fed retries and replays the old label |
+| **No fallbacks.** A default that covers a missing value hides the bug; remove it and run a mutant per producer | #24744: `details.id` fell back to the named id twice |
 | A mutant: remove your fix and confirm a test fails | all three reviews ran this check |
-| Docs claim only what a test proves | #24750: "replaying changes nothing" was too broad |
+| **Run locally every gate that passed on the previous head** (boundary, census, doc budgets, format, prod compile) | #24743: the Boundary gate turned red after the push |
+| Docs and the PR body claim only what a test or your own probe proves | #24750: "replaying changes nothing"; #24743: cited a probe nobody ran |
 
 Put the table in the PR body, with one line per row: what you tried and what happened.
 
@@ -31,4 +34,4 @@ Put the table in the PR body, with one line per row: what you tried and what hap
 - The reviewer starts when the PR opens, not when CI turns green.
 - The reviewer sends its fix list straight to the builder by agent name, and copies the lead on the verdict only.
 - The reviewer gives each finding a class and the earliest check that should have caught it. The lead logs it in `pace/misses.jsonl`.
-- The lead merges on PASS plus green required CI: `gh pr merge <n> -R FRIKKern/barkpark --squash` as FRIKKern.
+- The lead merges on PASS with `node scripts/merge-pr.mjs <n> <reviewed sha>`: it refuses a head the review did not see, waits for every check, and refuses any non-advisory fail.

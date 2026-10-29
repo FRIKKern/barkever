@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+
+const REPO = "FRIKKern/barkpark";
+const [pr, reviewed] = process.argv.slice(2);
+if (!/^\d+$/.test(pr ?? "") || !/^[0-9a-f]{7,40}$/.test(reviewed ?? "")) { console.error("usage: node scripts/merge-pr.mjs <barkpark PR number> <reviewed head sha>"); process.exit(2); }
+
+const env = { ...process.env, GH_TOKEN: execFileSync("gh", ["auth", "token", "-u", "FRIKKern"], { encoding: "utf8" }).trim() };
+const gh = (args) => execFileSync("gh", args, { env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const checks = () => {
+  try { return JSON.parse(gh(["pr", "checks", pr, "-R", REPO, "--json", "name,bucket"])); }
+  catch (e) { return e.stdout ? JSON.parse(e.stdout) : []; }
+};
+
+const head = gh(["pr", "view", pr, "-R", REPO, "--json", "headRefOid", "-q", ".headRefOid"]).trim();
+if (!head.startsWith(reviewed)) { console.error(`merge-pr: head is ${head.slice(0, 10)}, review passed ${reviewed}; review the new head first`); process.exit(1); }
+let list = checks();
+for (let waited = 0; !list.length || list.some((c) => c.bucket === "pending"); waited++) {
+  if (waited > 90) { console.error(`merge-pr: checks still pending after 90 min on ${head.slice(0, 10)}`); process.exit(1); }
+  await sleep(60_000);
+  list = checks();
+}
+const blocking = list.filter((c) => c.bucket === "fail" || c.bucket === "cancel").filter((c) => !/advisory/i.test(c.name));
+const tally = Object.entries(Object.groupBy(list, (c) => c.bucket)).map(([b, cs]) => `${cs.length} ${b}`).join(", ");
+if (blocking.length) { console.error(`merge-pr: not merged (${tally}); blocking: ${blocking.map((c) => c.name).join(", ")}`); process.exit(1); }
+if (gh(["pr", "view", pr, "-R", REPO, "--json", "headRefOid", "-q", ".headRefOid"]).trim() !== head) { console.error("merge-pr: head moved while waiting; run again"); process.exit(1); }
+gh(["pr", "merge", pr, "-R", REPO, "--squash", "--match-head-commit", head]);
+const merged = JSON.parse(gh(["pr", "view", pr, "-R", REPO, "--json", "state,mergeCommit"]));
+console.log(`merge-pr: #${pr} ${merged.state} as ${merged.mergeCommit?.oid?.slice(0, 10)} (${tally})`);
