@@ -22,6 +22,7 @@ Notes and projects for visual thinkers. Evernote's calm three panes, built on Ba
 | [docs/decisions/](docs/decisions/) | Why it's built this way |
 | [spikes/](spikes/) | Rival tests behind the unsure decisions |
 | [contracts/barkpark/](contracts/barkpark/) | Schemas, prefs keys, datasets |
+| [pace/](pace/) | Speed, compute and hygiene data; 6-hour reports |
 
 Plan: `/papers/barkever-plan` on guerrilla.barkpark.cloud. Work: `bp task get task-42e5633d742184c5`.
 
@@ -41,4 +42,6 @@ pnpm -r test      # unit tests
 pnpm e2e          # production build in Chrome: ≥ 50 notes
 pnpm e2e:mac      # the Mac app: sign-in, edit, offline relaunch, safeStorage
 npm run prepush   # all of the above + secret scan of Entire checkpoints
+node scripts/pace.mjs          # progress, machine load, hygiene since the last snapshot
+node scripts/heavy.mjs <cmd>   # run an e2e or suite in the shared 2-slot queue
 ```

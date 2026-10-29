@@ -11,6 +11,8 @@ why           ─► docs/decisions/NNNN-*.md (supersede, never edit)
 what "works"  ─► JOURNEYS.md (J01–J10)
 how good      ─► QUALITY.md
 code history  ─► Entire checkpoints (every commit carries its prompt + transcript)
+pace          ─► pace/ + /better-faster-stronger (bottlenecks, compute, hygiene)
+heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 2-slot queue)
 ```
 
 ## Loop
