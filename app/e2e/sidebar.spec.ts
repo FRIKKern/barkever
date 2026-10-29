@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test'
 import {userToken} from './account'
-import {readPrefs, writePrefs} from './fixtures-cleanup'
+import {prefIds, readPrefs, writePrefs} from './fixtures-cleanup'
 
 let kept: Awaited<ReturnType<typeof readPrefs>>
 test.beforeAll(async () => (kept = await readPrefs(userToken())))
@@ -39,6 +39,44 @@ test('a starred note sits in Shortcuts and an opened note in Recent, both kept i
   await page.getByTestId('star').click()
   await expect(shortcut).toHaveCount(wasStarred ? 1 : 0)
   await page.waitForTimeout(1_500)
+})
+
+test('a star set offline survives reconnect and reload; a star whose answer was lost replays to the same state', async ({page, context}) => {
+  await page.goto('/?n=fx-note-07')
+  await expect(page.getByTestId('title')).toHaveValue('Quarry rebrand: moodboard')
+  const star = page.getByTestId('star')
+  const shortcut = page.getByTestId('side-shortcut').filter({hasText: 'Quarry rebrand: moodboard'})
+  const onServer = async () => (await prefIds(userToken(), 'shortcuts')).includes('fx-note-07')
+  const on = (await star.getAttribute('aria-pressed')) !== 'true'
+
+  await context.setOffline(true)
+  await star.click()
+  await expect(shortcut).toHaveCount(on ? 1 : 0)
+  await page.waitForTimeout(500)
+  await context.setOffline(false)
+  await expect.poll(onServer).toBe(on)
+  await page.reload()
+  await expect(star).toHaveAttribute('aria-pressed', String(on))
+  await expect(shortcut).toHaveCount(on ? 1 : 0)
+
+  let lost = 0
+  let replayed = 0
+  await page.route('**/_serverFn/**', async (route) => {
+    const body = route.request().postData() ?? ''
+    if (!body.includes('fx-note-07') || !body.includes('"on"')) return route.continue()
+    if (lost) return replayed++, route.continue()
+    lost++
+    await route.fetch()
+    await route.abort()
+  })
+  await star.click()
+  await expect.poll(onServer).toBe(!on)
+  expect(lost).toBe(1)
+  await page.reload()
+  await expect(star).toHaveAttribute('aria-pressed', String(!on))
+  await expect(shortcut).toHaveCount(on ? 0 : 1)
+  await expect.poll(() => replayed).toBe(1)
+  expect(await onServer()).toBe(!on)
 })
 
 test('the theme toggle flips light and dark and remembers the pick', async ({page}) => {

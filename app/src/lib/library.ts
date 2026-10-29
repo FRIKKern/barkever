@@ -1,6 +1,6 @@
 import {queryOptions, type QueryClient} from '@tanstack/react-query'
 import {createServerFn} from '@tanstack/react-start'
-import {pushRecent, readPrefs, toggleShortcut} from '../server/prefs'
+import {addShortcut, pushRecent, readPrefs, removeShortcut} from '../server/prefs'
 import {db, type LocalNote} from '../replica/db'
 import {onChange} from '../replica/bus'
 import {replayJournal} from '../replica/local'
@@ -12,11 +12,12 @@ const fetchPrefs = createServerFn({method: 'GET'}).handler(() => readPrefs())
 const pushRecentFn = createServerFn({method: 'POST'})
   .validator((id: string) => id)
   .handler(({data}) => pushRecent(data))
-const toggleShortcutFn = createServerFn({method: 'POST'})
-  .validator((id: string) => id)
-  .handler(({data}) => toggleShortcut(data))
+const starFn = createServerFn({method: 'POST'})
+  .validator((d: {id: string; on: boolean}) => d)
+  .handler(({data}) => (data.on ? addShortcut : removeShortcut)(data.id))
 
 const local = {staleTime: Infinity, networkMode: 'always'} as const
+const keepLocal = () => undefined
 const otherTab = new Map<string, number>()
 const asNote = (d: LocalNote): Note => ({...toNote(d), gen: (d._gen ?? 0) + (otherTab.get(d._id) ?? 0)})
 
@@ -30,15 +31,46 @@ async function readLibrary(): Promise<Library> {
 export const libraryQuery = queryOptions({...local, queryKey: ['library'], queryFn: readLibrary})
 export const stuckQuery = queryOptions({...local, queryKey: ['stuck'], queryFn: async () => (await (await db()).getAll('outbox')).flatMap((e) => (e.failed ? [{id: e.id, why: e.failed.why}] : []))})
 
+type Stars = Record<string, boolean>
+const STARS = 'stars'
+
+const withStars = (list: string[], stars: Stars) => [...list.filter((x) => stars[x] !== false), ...Object.keys(stars).filter((x) => stars[x] && !list.includes(x))]
+const pendingStars = async () => ((await (await db()).get('meta', STARS)) as Stars | undefined) ?? {}
+
+async function editStars(edit: (s: Stars) => void) {
+  const tx = (await db()).transaction('meta', 'readwrite')
+  const stars = ((await tx.store.get(STARS)) as Stars | undefined) ?? {}
+  edit(stars)
+  await tx.store.put(stars, STARS)
+  await tx.done
+}
+
+async function sendAll(): Promise<string[] | undefined> {
+  let shortcuts: string[] | undefined
+  for (const [id, on] of Object.entries(await pendingStars())) {
+    shortcuts = await starFn({data: {id, on}})
+    await editStars((s) => s[id] === on && delete s[id])
+  }
+  const d = await db()
+  const cached = (await d.get('meta', 'prefs')) as Prefs | undefined
+  if (shortcuts && cached) await d.put('meta', {...cached, shortcuts}, 'prefs')
+  return shortcuts
+}
+
+let sending: Promise<string[] | undefined> = Promise.resolve(undefined)
+const sendStars = () => (sending = sending.then(sendAll, sendAll))
+
 async function loadPrefs(): Promise<Prefs> {
   const d = await db()
+  await sendStars().catch(keepLocal)
+  let prefs: Prefs
   try {
-    const prefs = await fetchPrefs()
+    prefs = await fetchPrefs()
     await d.put('meta', prefs, 'prefs')
-    return prefs
   } catch {
-    return ((await d.get('meta', 'prefs')) as Prefs | undefined) ?? {shortcuts: [], recents: []}
+    prefs = ((await d.get('meta', 'prefs')) as Prefs | undefined) ?? {shortcuts: [], recents: []}
   }
+  return {...prefs, shortcuts: withStars(prefs.shortcuts, await pendingStars())}
 }
 
 export const prefsQuery = queryOptions({queryKey: ['prefs'], staleTime: 30_000, networkMode: 'always', queryFn: loadPrefs})
@@ -57,7 +89,6 @@ export const followReplica = (qc: QueryClient) =>
     void refresh(qc, ids)
   })
 
-const keepLocal = () => undefined
 const setPrefs = (qc: QueryClient, patch: Partial<Prefs>) => qc.setQueryData<Prefs>(prefsQuery.queryKey, (p) => p && {...p, ...patch})
 
 export function rememberRecent(qc: QueryClient, id: string) {
@@ -67,8 +98,16 @@ export function rememberRecent(qc: QueryClient, id: string) {
   pushRecentFn({data: id}).then((recents) => setPrefs(qc, {recents}), keepLocal)
 }
 
-export function flipShortcut(qc: QueryClient, id: string) {
+export function star(qc: QueryClient, id: string, on: boolean) {
   const p = qc.getQueryData<Prefs>(prefsQuery.queryKey)
-  if (p) setPrefs(qc, {shortcuts: p.shortcuts.includes(id) ? p.shortcuts.filter((x) => x !== id) : [...p.shortcuts, id]})
-  toggleShortcutFn({data: id}).then((shortcuts) => setPrefs(qc, {shortcuts}), keepLocal)
+  if (p) setPrefs(qc, {shortcuts: withStars(p.shortcuts, {[id]: on})})
+  void editStars((s) => (s[id] = on))
+    .then(sendStars)
+    .then(async (sent) => sent && setPrefs(qc, {shortcuts: withStars(sent, await pendingStars())}), keepLocal)
+}
+
+export function sendStarsOnReconnect(qc: QueryClient) {
+  const send = () => void qc.invalidateQueries({queryKey: prefsQuery.queryKey})
+  addEventListener('online', send)
+  return () => removeEventListener('online', send)
 }

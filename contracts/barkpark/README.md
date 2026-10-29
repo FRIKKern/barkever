@@ -25,4 +25,6 @@ Per-user prefs (`/w/barkever/p/default/v1/prefs/<dataset>/<key>`, value is an ob
 | `barkever.shortcuts` | `{ "v": 1, "ids": ["<note or notebook id>"] }` |
 | `barkever.recents` | `{ "v": 1, "ids": ["<note id>", …] }`, newest first, max 20 |
 
+Writes are `PATCH {op, field: "ids", item, max?}`: `push_front` for recents, `add` / `remove` for shortcuts. Each op is idempotent, so a star queued offline (replica `meta` key `stars`) replays safely. A value made by PATCH has no `v`.
+
 Apply: `bp -w barkever -d <dataset> schema apply --file contracts/barkpark/<file>.json --yes`

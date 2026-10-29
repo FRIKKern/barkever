@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
-import {flipShortcut} from '../lib/library'
+import {star} from '../lib/library'
 import {linkCandidates, linkPreview, type Linker} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
@@ -76,7 +76,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
           <span className={`saved ${status}`} data-testid="save-status" aria-live="polite">
             {label}
           </span>
-          <button className="icon-btn" onClick={() => flipShortcut(qc, note.id)} aria-pressed={starred} title={starred ? 'Remove from Shortcuts' : 'Add to Shortcuts'} data-testid="star">
+          <button className="icon-btn" onClick={() => star(qc, note.id, !starred)} aria-pressed={starred} title={starred ? 'Remove from Shortcuts' : 'Add to Shortcuts'} data-testid="star">
             <Icon name="star" />
           </button>
           <button className="icon-btn" onClick={onRail} title="Connections" aria-label="Toggle connections">
