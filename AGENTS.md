@@ -15,15 +15,16 @@ milestones    ─► Entire project trails P0–P7, one per goal child (node scr
 how: Entire   ─► docs/entire.md
 pace          ─► pace/ + /better-faster-stronger (bottlenecks, compute, hygiene)
 heavy runs    ─► node scripts/heavy.mjs <e2e or suite>  (shared 3-slot queue)
+Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 ```
 
 ## Loop
 
 1. `bp task next <worker>` or claim the task you were given.
-2. Worktree for anything but `main`: `git worktree add ../barkever-wt/<name> -b <name>`. The main checkout never switches branches.
+2. Worktree for anything but `main`: `node scripts/worktree.mjs <name>` (installs, links the env). The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. Rebase onto `main`, `npm run prepush` (guard + checkpoint secret scan), push the branch, `entire trail link <milestone> --branch <name>`, evidence on the task (agents can't comment), then `git merge --ff-only` and push `main`. No squash (0026). Change URL on the task.
+5. `node scripts/land.mjs <name> [--trail <n>]`: rebase, check, queued prepush, push, trail link, fast-forward and push `main`. No squash. Evidence and change URL on the task (agents can't comment).
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
