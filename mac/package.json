@@ -1,0 +1,25 @@
+{
+  "name": "@barkever/mac",
+  "private": true,
+  "type": "module",
+  "productName": "Barkever",
+  "main": "src/main.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "pnpm --filter @barkever/app build && electron .",
+    "build": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/*.test.ts",
+    "e2e": "pnpm --filter @barkever/app build && playwright test -c e2e/playwright.config.ts"
+  },
+  "dependencies": {
+    "srvx": "0.11.22"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.5",
+    "electron": "44.5.1",
+    "typescript": "7.0.2"
+  }
+}

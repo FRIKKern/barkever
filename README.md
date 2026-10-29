@@ -30,6 +30,7 @@ Run the app (Node 22, pnpm). It reads `barkever/fixtures` with your `bp` login, 
 ```sh
 pnpm install
 pnpm dev        # http://localhost:3000 — lists the 50 fixture notes
+pnpm mac        # the Mac app: same build, its own server inside (decision 0020)
 ```
 
 ```sh
@@ -38,5 +39,6 @@ npm run seed      # 50 synthetic notes → barkever/fixtures (never production)
 pnpm -r build     # typecheck + production build
 pnpm -r test      # unit tests
 pnpm e2e          # production build in Chrome: ≥ 50 notes
+pnpm e2e:mac      # the Mac app: sign-in, edit, offline relaunch, safeStorage
 npm run prepush   # all of the above + secret scan of Entire checkpoints
 ```
