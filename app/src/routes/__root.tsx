@@ -1,7 +1,7 @@
 import {useEffect, type ReactNode} from 'react'
 import {useQuery, useQueryClient, type QueryClient} from '@tanstack/react-query'
 import {HeadContent, Outlet, Scripts, createRootRouteWithContext, redirect, useRouter} from '@tanstack/react-router'
-import {followReplica, sendStarsOnReconnect} from '../lib/library'
+import {followReplica, sendStarsWhenOnline} from '../lib/library'
 import {recheckOnReconnect, registerWorker} from '../lib/offline'
 import {openReplica} from '../lib/owner'
 import {startSync} from '../sync/engine'
@@ -34,7 +34,7 @@ function App() {
   useEffect(() => {
     const stop = followReplica(queryClient)
     const unwatch = recheckOnReconnect(queryClient, () => void router.invalidate())
-    const unstar = sendStarsOnReconnect(queryClient)
+    const unstar = sendStarsWhenOnline(queryClient)
     registerWorker()
     startSync()
     return () => (stop(), unwatch(), unstar())
