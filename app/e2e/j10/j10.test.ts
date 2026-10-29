@@ -3,7 +3,8 @@ import {same} from '../../src/replica/merge.ts'
 import {blockText, wikilinks} from '../../src/lib/model.ts'
 import type {Doc, NoteDoc as Note} from '../../src/replica/note.ts'
 import {act, open, readReplica, signIn} from './client.ts'
-import {drafts, fixtures, j10Dataset, serverBurst, snapshot} from './server.ts'
+import {fixtures} from '../seed.ts'
+import {drafts, j10Dataset, serverBurst, snapshot} from './server.ts'
 import {Writer, type Kind} from './writer.ts'
 
 const MINUTES = Number(process.env.J10_MINUTES ?? 60)

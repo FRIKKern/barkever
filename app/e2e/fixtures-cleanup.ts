@@ -1,7 +1,10 @@
 import {loadServerEnv} from '../scripts/local-env.ts'
 import {barkparkConfig} from '../src/server/config.ts'
+import {runName} from './run.ts'
 
-export const DATASET = 'fixtures'
+process.env.E2E_DATASET ||= runName('e2e')
+export const DATASET = process.env.E2E_DATASET
+if (!/^e2e-[\d-]+$/.test(DATASET)) throw new Error(`e2e only writes to an e2e-<stamp> dataset, not "${DATASET}"`)
 
 type Prefs = {shortcuts: string[]; recents: string[]}
 const PREF_KEYS = ['shortcuts', 'recents'] as const

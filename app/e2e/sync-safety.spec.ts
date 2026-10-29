@@ -197,21 +197,25 @@ test('an offline edit to a note deleted elsewhere is pushed at reconnect, before
   expect(errors).toEqual([])
 })
 
-test('Enter in the title before the editor has loaded moves the cursor into the body once it loads', async ({page}) => {
-  await page.route('**/editor-assets/**', async (r) => {
-    await new Promise((ok) => setTimeout(ok, 1500))
-    await r.continue()
+test.describe('with the editor held back at the network', () => {
+  test.use({serviceWorkers: 'block'})
+
+  test('Enter in the title before the editor has loaded moves the cursor into the body once it loads', async ({page}) => {
+    await page.route('**/editor-assets/**', async (r) => {
+      await new Promise((ok) => setTimeout(ok, 1500))
+      await r.continue()
+    })
+    await page.goto('/')
+    await expect(page.getByTestId('new-note')).toBeEnabled()
+    await page.keyboard.press('n')
+    await expect(page.getByTestId('title')).toBeFocused()
+    created.push(new URL(page.url()).searchParams.get('n')!)
+    await page.keyboard.type('Enter early')
+    await expect(canvas(page)).toHaveCount(0)
+    await page.keyboard.press('Enter')
+    await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached({timeout: 10_000})
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-testid=canvas]'))).toBe(true)
   })
-  await page.goto('/')
-  await expect(page.getByTestId('new-note')).toBeEnabled()
-  await page.keyboard.press('n')
-  await expect(page.getByTestId('title')).toBeFocused()
-  created.push(new URL(page.url()).searchParams.get('n')!)
-  await page.keyboard.type('Enter early')
-  await expect(canvas(page)).toHaveCount(0)
-  await page.keyboard.press('Enter')
-  await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached({timeout: 10_000})
-  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-testid=canvas]'))).toBe(true)
 })
 
 test('when no tab holds the sync lock, sync takes it back by itself and keeps saving', async ({page}) => {

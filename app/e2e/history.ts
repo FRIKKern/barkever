@@ -1,6 +1,4 @@
-import {readFileSync} from 'node:fs'
-import {cli} from './account.ts'
-import {fixtures} from './j10/server.ts'
+import {bp, fixtures, seed} from './seed.ts'
 
 export const HISTORY = process.env.HISTORY_DATASET || 'probe-history-20261029'
 export const HISTORY_EVENTS = Number(process.env.HISTORY_EVENTS || 20_000)
@@ -9,11 +7,6 @@ const ROUND = 200
 const MARK = 'probe-history-done'
 
 if (!/^probe-history-\d+$/.test(HISTORY)) throw new Error(`the history probe only writes to a probe-history-<stamp> dataset, not "${HISTORY}"`)
-
-function bp(path: string, init: RequestInit = {}): Promise<Response> {
-  const {server, token} = cli()
-  return fetch(`${server}/w/barkever/p/default${path}`, {...init, headers: {authorization: `Bearer ${token}`, 'content-type': 'application/json'}})
-}
 
 async function write(mutations: object[]) {
   const res = await bp(`/v1/data/mutate/${HISTORY}`, {method: 'POST', body: JSON.stringify({mutations})})
@@ -39,13 +32,13 @@ const round = (r: number) =>
     {delete: {id, type: 'note'}},
   ])
 
-export async function ensureHistory(): Promise<void> {
-  if (await done()) return
-  for (const type of ['notebook', 'note']) {
-    const res = await bp(`/v1/schemas/${HISTORY}`, {method: 'POST', body: readFileSync(new URL(`../../contracts/barkpark/${type}.json`, import.meta.url))})
-    if (!res.ok) throw new Error(`schema ${type} ${res.status}`)
+export async function ensureHistory(note: string): Promise<void> {
+  if (!(await done())) {
+    await seed(HISTORY)
+    for (let r = 0; r < HISTORY_EVENTS / ROUND; r++) await write(round(r))
+    await write([{createOrReplace: {_id: MARK, _type: 'notebook', name: 'History probe'}}])
   }
-  await write(fixtures().flatMap((d) => [{createOrReplace: d}, {publish: {id: d._id, type: d._type}}]))
-  for (let r = 0; r < HISTORY_EVENTS / ROUND; r++) await write(round(r))
-  await write([{createOrReplace: {_id: MARK, _type: 'notebook', name: 'History probe'}}])
+  await write([{createOrReplace: {...fixtures().find((d) => d._id === 'fx-note-01')!, _id: note}}])
 }
+
+export const dropNote = (note: string) => write([{delete: {id: note, type: 'note'}}])

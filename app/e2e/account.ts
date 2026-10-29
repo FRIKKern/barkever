@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url'
 import {loadEnv} from 'vite'
 import type {BrowserContextOptions} from '@playwright/test'
 import {unseal} from '../src/server/seal.ts'
+import {DATASET} from './fixtures-cleanup.ts'
 
 const local = loadEnv('', fileURLToPath(new URL('..', import.meta.url)), 'BARKEVER_E2E_')
 const email = process.env.BARKEVER_E2E_EMAIL || local.BARKEVER_E2E_EMAIL
@@ -14,7 +15,7 @@ export const ACCOUNT = {email, password}
 
 process.env.BARKEVER_SESSION_SECRET ??= randomBytes(32).toString('base64url')
 export const SECRET = process.env.BARKEVER_SESSION_SECRET
-export const SESSION_FILE = fileURLToPath(new URL('.auth/session.json', import.meta.url))
+export const SESSION_FILE = fileURLToPath(new URL(`.auth/${DATASET}.json`, import.meta.url))
 
 type Kept = Exclude<BrowserContextOptions['storageState'], string | undefined>
 

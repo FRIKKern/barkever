@@ -4,7 +4,8 @@
 workspace barkever ─ project default ─┬─ production   real notes
                                       ├─ fixtures     50 synthetic notes (npm run seed)
                                       ├─ spike-*      spike evidence, never read by the app
-                                      ├─ j10-<stamp>  one per J10 run (pnpm --filter @barkever/app j10), left for inspection
+                                      ├─ e2e-<stamp>  one per e2e run (app and mac), seeded with the fixtures, dropped after a pass once Barkpark can
+                                      ├─ j10-<stamp>  one per J10 run (pnpm --filter @barkever/app j10), dropped after a pass once Barkpark can
                                       └─ probe-history-<stamp>  20,000+ events of history, made once (~100 s) by app/e2e/history.ts, reused by reload-history.spec.ts
 ```
 

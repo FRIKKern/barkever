@@ -1,22 +1,14 @@
-import {readFileSync} from 'node:fs'
-import {cli} from '../account.ts'
+import {bp} from '../seed.ts'
 import type {Block} from '../../src/lib/model.ts'
 import {fromServer, type Doc, type NoteDoc as Note} from '../../src/replica/note.ts'
 import type {Draft, Made, Op, Writer} from './writer.ts'
 
 type Page = {result: {documents: Record<string, unknown>[]; hasMore: boolean}}
 
-const repo = (path: string) => new URL(`../../../${path}`, import.meta.url)
-
 export function j10Dataset(): string {
   const name = process.env.J10_DATASET ?? ''
-  if (!/^j10-\d+$/.test(name)) throw new Error(`J10 only writes to a j10-<stamp> dataset, not "${name}"`)
+  if (!/^j10-[\d-]+$/.test(name)) throw new Error(`J10 only writes to a j10-<stamp> dataset, not "${name}"`)
   return name
-}
-
-function bp(path: string, init: RequestInit = {}): Promise<Response> {
-  const {server, token} = cli()
-  return fetch(`${server}/w/barkever/p/default${path}`, {...init, headers: {authorization: `Bearer ${token}`, 'content-type': 'application/json'}})
 }
 
 async function write(mutations: object[]) {
@@ -34,19 +26,6 @@ async function readAll(type: string): Promise<Record<string, unknown>[]> {
     more = page.result.hasMore && page.result.documents.length > 0
   }
   return docs
-}
-
-export function fixtures(): Doc[] {
-  return readFileSync(repo('fixtures/notes.ndjson'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
-}
-
-export async function createDataset() {
-  const name = j10Dataset()
-  for (const type of ['notebook', 'note']) {
-    const res = await bp(`/v1/schemas/${name}`, {method: 'POST', body: readFileSync(repo(`contracts/barkpark/${type}.json`))})
-    if (!res.ok) throw new Error(`schema ${type} ${res.status}`)
-  }
-  await write(fixtures().flatMap((d) => [{createOrReplace: d}, {publish: {id: d._id, type: d._type}}]))
 }
 
 export async function snapshot(): Promise<Map<string, Doc>> {

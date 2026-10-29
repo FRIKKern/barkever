@@ -1,18 +1,22 @@
 import {expect, test, type Page} from '@playwright/test'
 import {ORIGIN, build, serve, stop} from './own-server'
-import {HISTORY, HISTORY_EVENTS, ensureHistory, noteText} from './history'
+import {DATASET} from './fixtures-cleanup'
+import {HISTORY, HISTORY_EVENTS, dropNote, ensureHistory, noteText} from './history'
 
 test.describe.configure({mode: 'serial', timeout: 300_000})
 
+const NOTE = `probe-${DATASET}`
+
 test.beforeAll(async () => {
   test.setTimeout(300_000)
-  await ensureHistory()
+  await ensureHistory(NOTE)
   build('history')
   await serve('history', {dataset: HISTORY})
 })
-test.afterAll(stop)
-
-const NOTE = 'fx-note-01'
+test.afterAll(async () => {
+  await stop()
+  await dropNote(NOTE)
+})
 const BUDGET_MS = 1000
 
 const canvas = (page: Page) => page.getByTestId('canvas')
