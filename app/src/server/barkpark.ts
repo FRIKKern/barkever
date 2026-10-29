@@ -1,17 +1,8 @@
 import '@tanstack/react-start/server-only'
+import {barkparkConfig} from './config'
 import {sessionToken, sharedToken} from './session'
 
-function env(key: string): string {
-  const v = process.env[key]
-  if (!v) throw new Error(`missing ${key} (see app/.env.example)`)
-  return v
-}
-
-const config = () => ({
-  origin: env('BARKPARK_URL'),
-  base: `${env('BARKPARK_URL')}/w/${process.env.BARKPARK_WORKSPACE || 'barkever'}/p/${process.env.BARKPARK_PROJECT || 'default'}`,
-  dataset: process.env.BARKPARK_DATASET || 'fixtures',
-})
+const config = () => barkparkConfig()
 
 export const dataset = () => config().dataset
 export const origin = () => config().origin
@@ -23,7 +14,7 @@ export class BarkparkError extends Error {
 }
 
 function token(): string {
-  const t = sessionToken() ?? (sharedToken() ? env('BARKPARK_TOKEN') : undefined)
+  const t = sessionToken() ?? (sharedToken() ? config().token() : undefined)
   if (!t) throw new BarkparkError(401, 'not signed in')
   return t
 }

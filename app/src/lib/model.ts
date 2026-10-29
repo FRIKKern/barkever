@@ -42,4 +42,8 @@ export function snippet(n: Note): string {
   return b ? blockText(b) : 'No text yet'
 }
 
+const TEXT_BLOCKS = new Set(['paragraph', 'heading', 'list', 'blockquote'])
+
+export const isBlank = (n: Note) => !n.title.trim() && n.blocks.every((b) => TEXT_BLOCKS.has(b.type) && !blockText(b).trim())
+
 export const emptyParagraph = (id: string): Block => ({id, type: 'paragraph', content: []})

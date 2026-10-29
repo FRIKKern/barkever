@@ -1,4 +1,13 @@
 import {expect, test} from '@playwright/test'
+import {userToken} from './account'
+import {readPrefs, writePrefs} from './fixtures-cleanup'
+
+let kept: Awaited<ReturnType<typeof readPrefs>>
+test.beforeAll(async () => (kept = await readPrefs(userToken())))
+test.afterAll(async () => {
+  await writePrefs(userToken(), kept)
+  expect(await readPrefs(userToken())).toEqual(kept)
+})
 
 test('offline shows one quiet line and the sync dot; back online clears both', async ({page, context}) => {
   await page.goto('/?n=fx-note-01')

@@ -17,4 +17,11 @@ export const SESSION_FILE = fileURLToPath(new URL('.auth/session.json', import.m
 
 export const sessionToken = (cookie: string) => unseal<{token: string}>(cookie, SECRET)?.token
 
+export function userToken(): string {
+  const {cookies} = JSON.parse(readFileSync(SESSION_FILE, 'utf8')) as {cookies: {name: string; value: string}[]}
+  const token = sessionToken(cookies.find((c) => c.name === 'bk_session')?.value ?? '')
+  if (!token) throw new Error('no signed-in session in e2e/.auth')
+  return token
+}
+
 export const cli = () => JSON.parse(readFileSync(`${homedir()}/.config/barkpark/config.json`, 'utf8')) as {server: string; token: string}

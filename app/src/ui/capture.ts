@@ -1,25 +1,31 @@
 import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
 import {refresh} from '../lib/library'
-import {createNote} from '../replica/local'
-import type {Search} from '../lib/scope'
+import {isBlank} from '../lib/model'
+import {toNote} from '../lib/note-docs'
+import {landing, type Search} from '../lib/scope'
+import {db} from '../replica/db'
+import {createNote, deleteNote} from '../replica/local'
 import type {World} from './world'
 
-export function targetNotebook({shelf, lib}: World, s: Search): string | null {
-  if (s.nb && shelf.byId.has(s.nb)) return s.nb
-  return lib.notebooks.find((nb) => nb.name.toLowerCase() === 'inbox')?.id ?? shelf.roots[0]?.id ?? null
+const fresh = new Set<string>()
+
+export async function dropIfBlank(id: string) {
+  if (!fresh.delete(id)) return
+  const doc = await (await db()).get('notes', id)
+  if (doc && isBlank(toNote(doc))) await deleteNote(id)
 }
 
 export function useCapture(w: World, s: Search) {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const notebook = targetNotebook(w, s)
-  if (!notebook) return null
+  const spot = landing(s, w.shelf)
+  if (!spot) return null
   return () => {
     const id = `note-${crypto.randomUUID()}`
-    const blockId = `${id}-p0`
-    void createNote({id, notebook, blockId})
+    fresh.add(id)
+    void createNote({id, notebook: spot.notebook, tags: spot.tags, blockId: `${id}-p0`})
       .then(() => refresh(qc, [id]))
-      .then(() => navigate({to: '/', search: {nb: s.nb, tag: s.tag, n: id}}))
+      .then(() => navigate({to: '/', search: {...spot.search, n: id}}))
   }
 }

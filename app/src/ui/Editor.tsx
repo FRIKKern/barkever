@@ -14,9 +14,9 @@ import type {World} from './world'
 
 const LABEL = {saved: 'Saved', saving: 'Saving…', here: 'Offline · saved on this device'}
 
-type Props = {w: World; s: Search; note: Note; online: boolean; onRail: () => void}
+type Props = {w: World; s: Search; note: Note; online: boolean; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
 
-export function Editor({w, s, note, online, onRail}: Props) {
+export function Editor({w, s, note, online, focusTitle, onBack, onEscape, onRail}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
@@ -30,8 +30,8 @@ export function Editor({w, s, note, online, onRail}: Props) {
   }, [note.gen])
 
   useEffect(() => {
-    if (!note.title) titleRef.current?.focus()
-  }, [])
+    if (focusTitle || !note.title) titleRef.current?.focus()
+  }, [focusTitle])
 
   const onTitle = (v: string) => {
     const value = v.replace(/\n/g, ' ')
@@ -51,9 +51,9 @@ export function Editor({w, s, note, online, onRail}: Props) {
   const outs = w.links.outs(note.id).length
 
   return (
-    <main className="editor" aria-label="Note" data-note-id={note.id}>
+    <main className="editor" aria-label="Note" data-note-id={note.id} onKeyDown={(e) => e.key === 'Escape' && !e.defaultPrevented && (e.preventDefault(), onEscape())}>
       <div className="mhead">
-        <Link className="back" to="/" search={{...s, n: undefined}}>
+        <Link className="back" to="/" search={{...s, n: undefined}} replace onClick={(e) => (e.preventDefault(), onBack())}>
           <Icon name="back" />
           {scopeName(s, w.shelf)}
         </Link>

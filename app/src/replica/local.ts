@@ -78,9 +78,9 @@ export function replayJournal() {
   return replaying
 }
 
-export const createNote = ({id, notebook, blockId}: {id: string; notebook: string; blockId: string}) =>
+export const createNote = ({id, notebook, blockId, tags = []}: {id: string; notebook: string; blockId: string; tags?: string[]}) =>
   write(id, () => ({
-    note: {_id: id, _type: 'note', title: '', notebook: {_type: 'reference', _ref: notebook}, tags: [], links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()},
+    note: {_id: id, _type: 'note', title: '', notebook: {_type: 'reference', _ref: notebook}, tags, links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()},
     entry: bump(id, null, undefined),
   }))
 

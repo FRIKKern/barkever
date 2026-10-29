@@ -2,7 +2,7 @@ import {readdirSync} from 'node:fs'
 import {fileURLToPath} from 'node:url'
 import {expect, test, type BrowserContext, type Page} from '@playwright/test'
 import {ACCOUNT, cli, sessionToken} from './account'
-import {DATASET} from './fixtures-cleanup'
+import {prefIds as ids} from './fixtures-cleanup'
 
 const CLIENT = fileURLToPath(new URL('../dist/client/', import.meta.url))
 const servedJs = () => (readdirSync(CLIENT, {recursive: true}) as string[]).filter((f) => f.endsWith('.js')).map((f) => `/${f}`)
@@ -77,11 +77,7 @@ test.describe('signed out', () => {
 
 test('P3f: prefs read and write as the signed-in user, not as the CLI token', async ({page, context}) => {
   const token = sessionToken((await session(context))!.value)!
-  const {server, token: owner} = cli()
-  const ids = async (who: string, key: string): Promise<string[]> => {
-    const res = await fetch(`${server}/w/barkever/p/default/v1/prefs/${DATASET}/barkever.${key}`, {headers: {authorization: `Bearer ${who}`}})
-    return ((await res.json()) as {value?: {ids?: string[]} | null}).value?.ids ?? []
-  }
+  const owner = cli().token
   const ownerPrefs = () => Promise.all([ids(owner, 'shortcuts'), ids(owner, 'recents')])
   const ownerBefore = await ownerPrefs()
 

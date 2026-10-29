@@ -34,3 +34,4 @@
 svg.hov .g-edge:not(.on), svg.hov .g-node:not(.on) { opacity: .28; }
 svg.hov .g-edge.on { stroke: var(--c-accent); }
 .g-node.on .b { stroke: var(--c-accent); stroke-width: 2.5; }
+.g-node:focus-visible { outline: none; }

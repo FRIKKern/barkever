@@ -1,8 +1,9 @@
-import {forwardRef, useEffect, useState, type ReactNode} from 'react'
+import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type KeyboardEvent, type ReactNode} from 'react'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {blockText, snippet, UNTITLED, type Note} from '../lib/model'
 import {scopeName, terms, type Search} from '../lib/scope'
 import {when} from '../lib/when'
+import {useLeave} from './history'
 import {Icon} from './icons'
 import type {World} from './world'
 
@@ -16,10 +17,49 @@ function highlight(text: string, words: string[]): ReactNode {
 
 const hitLine = (n: Note, words: string[]) => (words.length ? n.blocks.map(blockText).find((t) => words.some((w) => t.toLowerCase().includes(w))) : undefined)
 
-type Props = {w: World; s: Search; notes: Note[]; onMenu: () => void; onNew: (() => void) | null}
+const STEP: Record<string, 'nextElementSibling' | 'previousElementSibling'> = {ArrowDown: 'nextElementSibling', ArrowUp: 'previousElementSibling'}
 
-export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w, s, notes, onMenu, onNew}, searchRef) {
+const focusLost = () => {
+  const a = document.activeElement
+  return !a || a === document.body || !a.checkVisibility()
+}
+
+export type ListHandle = {search: () => void; menu: () => void; row: (id: string) => boolean}
+type Props = {w: World; s: Search; notes: Note[]; onMenu: () => void; onNew: (() => void) | null; onOpen: (id: string) => void}
+
+export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, notes, onMenu, onNew, onOpen}, handle) {
   const navigate = useNavigate()
+  const searchRef = useRef<HTMLInputElement>(null)
+  const menuRef = useRef<HTMLButtonElement>(null)
+  const rowsRef = useRef<HTMLDivElement>(null)
+  const [cursor, setCursor] = useState(s.n)
+  const active = notes.some((n) => n.id === cursor) ? cursor : notes[0]?.id
+  const rowEl = (id?: string) => (id ? rowsRef.current?.querySelector<HTMLElement>(`[data-note-id="${CSS.escape(id)}"]`) : null)
+
+  useImperativeHandle(handle, () => ({
+    search: () => searchRef.current?.focus(),
+    menu: () => menuRef.current?.focus(),
+    row: (id) => {
+      const el = rowEl(id) ?? rowEl(active)
+      if (!el?.checkVisibility()) return false
+      el.focus()
+      return true
+    },
+  }))
+
+  useEffect(() => {
+    if (!s.n) return
+    setCursor(s.n)
+    rowEl(s.n)?.scrollIntoView({block: 'nearest'})
+  }, [s.n])
+  useLeave(s.n, (left) => !s.n && focusLost() && rowEl(left)?.focus())
+
+  const onKeys = (e: KeyboardEvent<HTMLDivElement>) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-note-id]')
+    const step = STEP[e.key]
+    if (row && step) (e.preventDefault(), (row[step] as HTMLElement | null)?.focus())
+    else if (row && e.key === 'Enter') onOpen(row.dataset.noteId!)
+  }
   const [q, setQ] = useState(s.q ?? '')
   useEffect(() => setQ(s.q ?? ''), [s.q])
   const words = terms(s.q)
@@ -31,7 +71,7 @@ export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w
   return (
     <section className="list" aria-label="Notes">
       <div className="mhead">
-        <button className="icon-btn" onClick={onMenu} aria-label="Notebooks">
+        <button ref={menuRef} className="icon-btn" onClick={onMenu} aria-label="Notebooks" aria-haspopup="dialog">
           <Icon name="menu" />
         </button>
         <span className="mt">{scopeName(s, w.shelf)}</span>
@@ -48,12 +88,13 @@ export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w
             placeholder="Search notes"
             autoComplete="off"
             spellCheck={false}
+            aria-label="Search notes"
             value={q}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
             data-testid="search"
           />
-          <kbd>/</kbd>
+          <kbd aria-hidden>/</kbd>
         </label>
       </div>
       <div className="list-h" data-testid="list-head">
@@ -64,13 +105,13 @@ export const NoteList = forwardRef<HTMLInputElement, Props>(function NoteList({w
         </span>
         <span className="sort">Recent ↓</span>
       </div>
-      <div className="rows" role="listbox" aria-label="Notes">
+      <div className="rows" role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys}>
         {notes.length === 0 && <div className="empty">{words.length ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
         {notes.map((n) => {
           const d = w.links.degree(n.id)
           const nb = w.shelf.byId.get(n.notebook ?? '')
           return (
-            <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} data-testid="note-row" data-note-id={n.id}>
+            <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} tabIndex={n.id === active ? 0 : -1} onFocus={() => setCursor(n.id)} data-testid="note-row" data-note-id={n.id}>
               <div className="row-top">
                 <span className={`row-title${n.title ? '' : ' untitled'}`} data-testid="note-title">
                   {highlight(n.title || UNTITLED, words)}

@@ -10,3 +10,4 @@
 .rail { grid-column: 4; background: var(--c-rail); border-left: 1px solid var(--c-border); }
 .bar { height: var(--h-bar); flex: none; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); border-bottom: 1px solid var(--c-border); }
 .mhead { display: none; }
+.behind { display: contents; }

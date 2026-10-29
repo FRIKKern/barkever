@@ -16,6 +16,8 @@ export function toCss({light, dark, ...scales}: Tokens): string {
 
 export const tokenCss = toCss(tokens as Tokens)
 
+export const sizePx = (k: keyof typeof tokens.size) => parseFloat(tokens.size[k])
+
 export const NOTEBOOK_COLOURS = Object.keys(tokens.light).filter((k) => k.startsWith('nb-')).length
 
 export const THEME_KEY = 'barkever.theme'

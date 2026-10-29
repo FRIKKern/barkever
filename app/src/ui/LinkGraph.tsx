@@ -1,14 +1,15 @@
-import {useMemo, useRef, useState} from 'react'
+import {useMemo, useRef, useState, type KeyboardEvent} from 'react'
 import {useNavigate} from '@tanstack/react-router'
 import {edgePath, GRAPH, layoutGraph, wrapLabel} from '../lib/graph-layout'
 import {snippet, UNTITLED, type Note} from '../lib/model'
 import type {Search} from '../lib/scope'
+import {sizePx} from '../styles/tokens'
 import type {World} from './world'
 
 type Tip = {id: string; left: number; top: number}
 type Props = {w: World; note: Note; hover: string | null; onHover: (id: string | null) => void}
 
-const TIP_W = 220
+const TIP_W = sizePx('w-tip')
 
 export function LinkGraph({w, note, hover, onHover}: Props) {
   const navigate = useNavigate()
@@ -25,11 +26,21 @@ export function LinkGraph({w, note, hover, onHover}: Props) {
     if (id !== note.id) setTip({id, left: Math.min(Math.max(dot.left - box.left - TIP_W / 2 + dot.width / 2, 8), box.width - TIP_W - 8), top: dot.bottom - box.top + 34})
   }
   const leave = () => (onHover(null), setTip(null))
+  const open = (id: string) => (leave(), navigate({to: '/', search: (prev: Search) => ({...prev, n: id})}))
+  const button = (id: string, label: string) => ({
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': label,
+    onFocus: (e: {currentTarget: SVGGElement}) => enter(id, e.currentTarget),
+    onBlur: leave,
+    onClick: () => open(id),
+    onKeyDown: (e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), open(id)),
+  })
   const tipNote = tip && w.links.byId.get(tip.id)
 
   return (
     <div className="graph" ref={wrap}>
-      <svg className={hover ? 'hov' : ''} viewBox={`0 0 ${GRAPH.W} ${GRAPH.H}`} role="img" aria-label="Links of this note" data-testid="link-graph">
+      <svg className={hover ? 'hov' : ''} viewBox={`0 0 ${GRAPH.W} ${GRAPH.H}`} role="group" aria-label="Links of this note" data-testid="link-graph">
         <defs>
           <marker id="lg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path className="g-arrow" d="M0 .5 7.5 4 0 7.5z" />
@@ -62,7 +73,7 @@ export function LinkGraph({w, note, hover, onHover}: Props) {
               data-testid={n.kind === 'center' ? 'graph-center' : n.id ? 'graph-node' : undefined}
               onMouseEnter={n.id ? (e) => enter(n.id!, e.currentTarget) : undefined}
               onMouseLeave={n.id ? leave : undefined}
-              onClick={n.id && n.kind !== 'center' ? () => (leave(), navigate({to: '/', search: (prev: Search) => ({...prev, n: n.id!})})) : undefined}
+              {...(n.id && n.kind !== 'center' ? button(n.id, m?.title || UNTITLED) : {})}
             >
               {n.kind === 'center' && <circle className="halo" r={n.r + 7} />}
               <circle r={n.r + 7} fill="transparent" />

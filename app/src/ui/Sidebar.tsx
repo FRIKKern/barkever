@@ -1,4 +1,4 @@
-import type {FormEvent} from 'react'
+import {useEffect, useRef, type FormEvent} from 'react'
 import {useQuery} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
 import {pendingQuery} from '../lib/library'
@@ -20,9 +20,13 @@ function signOut(e: FormEvent<HTMLFormElement>, pending: number) {
 }
 const RECENT_SHOWN = 5
 
-type Props = {w: World; s: Search; online: boolean; onNew: (() => void) | null; onPick: () => void}
+type Props = {w: World; s: Search; online: boolean; modal: boolean; onNew: (() => void) | null; onPick: () => void}
 
-export function Sidebar({w, s, online, onNew, onPick}: Props) {
+export function Sidebar({w, s, online, modal, onNew, onPick}: Props) {
+  const self = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
+  }, [modal])
   const pending = useQuery(pendingQuery).data?.size ?? 0
   const {lib, shelf, prefs, links} = w
   const count = (id: string) => lib.notes.filter((n) => n.notebook && shelf.scope(id).includes(n.notebook)).length
@@ -52,7 +56,7 @@ export function Sidebar({w, s, online, onNew, onPick}: Props) {
   const recents = prefs.recents.filter((id) => links.byId.has(id)).slice(0, RECENT_SHOWN)
 
   return (
-    <aside className="sidebar" aria-label="Notebooks">
+    <aside ref={self} className="sidebar" aria-label="Notebooks" role={modal ? 'dialog' : undefined} aria-modal={modal || undefined}>
       <div className="bar">
         <div className="brand">
           <Icon name="brand" />

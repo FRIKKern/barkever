@@ -6,8 +6,8 @@ import {indexLinks} from './links.ts'
 import {GRAPH, layoutGraph, wrapLabel} from './graph-layout.ts'
 import {layoutMap} from './mini-map.ts'
 import {shelve} from './notebooks.ts'
-import {parseSearch, visibleNotes} from './scope.ts'
-import type {Library, Note} from './model.ts'
+import {landing, parseSearch, visibleNotes} from './scope.ts'
+import {isBlank, type Library, type Note} from './model.ts'
 
 const docs = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 const lib: Library = {
@@ -83,4 +83,26 @@ test('notebook scope includes its stack; colours are stable tokens', () => {
 
 test('search params keep only non-empty strings', () => {
   assert.deepEqual(parseSearch({nb: 'x', n: '', q: 3, tag: undefined}), {nb: 'x', tag: undefined, q: undefined, n: undefined})
+})
+
+test('a new note lands where you are and stays in the list it was made from', () => {
+  const shelf = shelve(lib.notebooks)
+  assert.deepEqual(landing({nb: 'fx-nb-projects', q: 'x'}, shelf), {notebook: 'fx-nb-projects', tags: [], search: {nb: 'fx-nb-projects', tag: undefined}})
+  assert.deepEqual(landing({tag: 'harbor'}, shelf), {notebook: 'fx-nb-inbox', tags: ['harbor'], search: {nb: undefined, tag: 'harbor'}})
+  assert.deepEqual(landing({nb: 'fx-nb-gone'}, shelf), {notebook: 'fx-nb-inbox', tags: [], search: {nb: 'fx-nb-inbox', tag: undefined}})
+  assert.equal(landing({}, shelve([])), null)
+  for (const s of [{tag: 'harbor'}, {nb: 'fx-nb-gone'}, {nb: 'fx-nb-work'}]) {
+    const l = landing(s, shelf)!
+    const made = note('new', [], {notebook: l.notebook, tags: l.tags})
+    assert.ok(visibleNotes([made], l.search, shelf).length === 1, JSON.stringify(s))
+  }
+})
+
+test('a note is blank only with no title and no text, image or other content in the body', () => {
+  const p = (text: string) => ({id: 'p', type: 'paragraph', content: text ? [{type: 'text', value: text}] : []})
+  assert.equal(isBlank(note('x', [], {title: '', blocks: [p('')]})), true)
+  assert.equal(isBlank(note('x', [], {title: ' ', blocks: [p(' '), {id: 'l', type: 'list', items: [[]]}]})), true)
+  assert.equal(isBlank(note('x', [], {title: 'Hi', blocks: [p('')]})), false)
+  assert.equal(isBlank(note('x', [], {title: '', blocks: [p('words')]})), false)
+  assert.equal(isBlank(note('x', [], {title: '', blocks: [{id: 'i', type: 'image'}]})), false)
 })

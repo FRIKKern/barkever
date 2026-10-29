@@ -21,6 +21,15 @@ export function visibleNotes(notes: Note[], s: Search, shelf: Shelf): Note[] {
   return notes.filter(inScope).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
 }
 
+export type Landing = {notebook: string; tags: string[]; search: Search}
+
+export function landing(s: Search, shelf: Shelf): Landing | null {
+  const here = s.nb && shelf.byId.has(s.nb) ? s.nb : undefined
+  const notebook = here ?? [...shelf.byId.values()].find((nb) => nb.name.toLowerCase() === 'inbox')?.id ?? shelf.roots[0]?.id
+  if (!notebook) return null
+  return {notebook, tags: s.tag ? [s.tag] : [], search: {nb: s.nb && notebook, tag: s.tag}}
+}
+
 export function scopeName(s: Search, shelf: Shelf): string {
   if (terms(s.q).length) return 'Search'
   if (s.nb) return shelf.byId.get(s.nb)?.name ?? 'Notebook'

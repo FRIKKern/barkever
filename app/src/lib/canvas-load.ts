@@ -32,5 +32,3 @@ export function loadCanvas(): Promise<void> {
   })
   return loading
 }
-
-export const contractVersion = () => (customElements.get('bp-paper-editor') as {CONTRACT_VERSION?: string} | undefined)?.CONTRACT_VERSION ?? null
