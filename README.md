@@ -38,7 +38,8 @@ pnpm mac        # the Mac app: same build, its own server inside (decision 0020)
 npm run check     # repo guard: doc sizes, pictures, images, deps, secrets, Barkpark boundary
 npm run seed      # 50 synthetic notes → barkever/fixtures (never production)
 pnpm -r build     # typecheck + production build
-pnpm -r test      # unit tests
+pnpm -r test      # unit tests, chaos bot included (2,000 seeds)
+npm run chaos     # chaos bot, 50,000 seeds: lost text, echo copies, convergence (QUALITY.md §4)
 pnpm e2e          # production build in Chrome: ≥ 50 notes
 pnpm e2e:mac      # the Mac app: sign-in, edit, offline relaunch, safeStorage
 npm run prepush   # all of the above + secret scan of Entire checkpoints

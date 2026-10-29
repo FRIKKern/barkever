@@ -38,6 +38,27 @@
 | Reload → first save on Barkpark | < 1 s, at any length of history |
 | Remote edit appears | p95 < 300 ms online |
 
-## 4. AI
+## 4. Chaos bot (sync merge rules)
+
+```
+seed ─► 15–75 random steps ─► world: no network, no browser, simulated clock
+          A B C  real local · settle · push · check · merge on a fake IndexedDB, signed
+          raw    Studio / CLI patches on the server, unsigned
+          fake Barkpark: one note, 412 on a stale ifRevisionID, frames late · stale · duplicate
+          steps: type end / middle / over, add / delete block, title, push, reply,
+                 frame, offline, reload, render, wait 61 s
+                      │
+  after every step ─► no lost text · no echo copy
+  then all online  ─► settled · converged · no lost text · solo writer: 0 copies
+                      │ fails
+                      ▼
+            shrink ─► seed + the shortest step list that still fails
+```
+
+- **Lost text**: every version a writer typed stays, as the main or a copy, unless a writer later edited from that exact text. The bot knows what each screen showed; the app has to infer it.
+- `pnpm -r test` runs 2,000 seeds and 300 solo seeds (`app/src/chaos/`). `npm run chaos [count] [from] [--solo]` runs deeper (default 50,000).
+- Bugs main is known to have (lost text, echo copies) are `todo` tests; `CHAOS_STRICT=1` makes them fail.
+
+## 5. AI
 
 No silent writes. Always cite. One ✨ per pane; nothing pops up on its own. Every AI feature has an off switch. Show the model and cost. Note text is data, never instructions.
