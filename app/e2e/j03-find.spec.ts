@@ -13,7 +13,8 @@ test.beforeAll(async () => {
 test.afterAll(stop)
 
 const BUDGET_MS = 150
-const QUERIES = ['harbor', 'sitemap', 'sourdough', 'hydration', 'hyrdation', 'wierframes', 'garlik', 'carousel', 'lighthouse risk', 'quarry', 'bulk-alpha', 'brai', 'tarn', 'stone greys', 'xyzzy', 'calm navigation', 'weekly', 'dentist', 'packing', 'harbor sitemap']
+const OPEN_QUERIES = ['a', 'st', 'e', 'harbor', 'sitemap', 'wierframes', 'stone', 'tarn']
+const QUERIES = ['a', 'st', 'harbor', 'sitemap', 'sourdough', 'hydration', 'hyrdation', 'wierframes', 'garlik', 'carousel', 'lighthouse risk', 'quarry', 'bulk-alpha', 'brai', 'tarn', 'stone greys', 'xyzzy', 'calm navigation', 'weekly', 'dentist', 'packing', 'harbor sitemap']
 
 const search = (page: Page) => page.getByTestId('search')
 const rows = (page: Page) => page.getByTestId('note-row')
@@ -95,18 +96,33 @@ test('J03 find: words in the title or only in the body, typos too, ranked in the
   expect(errors).toEqual([])
 })
 
-test(`J03 speed: first results in under ${BUDGET_MS} ms at ${FIND_NOTES} notes, measured in the page`, async ({page}) => {
-  await synced(page)
+async function timed(page: Page, queries: string[], what: string) {
   await firstResults(page, 'warm')
   const ms: Record<string, number> = {}
-  for (const q of QUERIES) {
+  for (const q of queries) {
     await firstResults(page, '')
     ms[q] = Math.round(await firstResults(page, q))
   }
   const sorted = Object.values(ms).sort((a, b) => a - b)
   const at = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]
-  const line = `search first results at ${FIND_NOTES} notes: p50 ${at(0.5)} ms, p95 ${at(0.95)} ms, max ${sorted.at(-1)} ms (${QUERIES.length} queries) · ${Object.entries(ms).map(([q, t]) => `${q} ${t}`).join(' · ')}`
+  const line = `search first results at ${FIND_NOTES} notes, ${what}: p50 ${at(0.5)} ms, p95 ${at(0.95)} ms, max ${sorted.at(-1)} ms (${queries.length} queries) · ${Object.entries(ms).map(([q, t]) => `${q} ${t}`).join(' · ')}`
   console.log(line)
   test.info().annotations.push({type: 'J03 timing', description: line})
-  expect(at(0.95)).toBeLessThan(BUDGET_MS)
+  return at(0.95)
+}
+
+test(`J03 speed: first results in under ${BUDGET_MS} ms at ${FIND_NOTES} notes, measured in the page`, async ({page}) => {
+  await synced(page)
+  expect(await timed(page, QUERIES, 'no note open')).toBeLessThan(BUDGET_MS)
+})
+
+test(`J03 speed with a note open: the list stays a window, the open note stays pinned, first results in under ${BUDGET_MS} ms`, async ({page}) => {
+  await synced(page)
+  await page.goto(`${ORIGIN}/?n=fx-note-03`)
+  await expect(page.getByTestId('title')).toHaveValue('Harbor redesign: content plan')
+  expect(await timed(page, OPEN_QUERIES, 'note open')).toBeLessThan(BUDGET_MS)
+  await firstResults(page, 'a')
+  const open = page.locator('[data-testid="note-row"][data-note-id="fx-note-03"]')
+  await expect(open).toHaveAttribute('aria-selected', 'true')
+  expect(await rows(page).count()).toBeLessThanOrEqual(101)
 })

@@ -69,7 +69,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
   useEffect(() => setQ(s.q ?? ''), [s.q])
   const searching = !!s.q?.trim()
   const scopeDot = !searching && s.nb
-  const shown = useShown(notes, s, rowsRef)
+  const {shown, more} = useShown(notes, s, rowsRef)
   const re = useMemo(() => marker(words), [words])
   const setQuery = (v: string) => {
     setQ(v)
@@ -114,7 +114,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
       </div>
       <div className="rows" role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys}>
         {notes.length === 0 && <div className="empty">{searching ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
-        {notes.slice(0, shown).map((n) => {
+        {shown.map((n) => {
           const d = w.links.degree(n.id)
           const nb = w.shelf.byId.get(n.notebook ?? '')
           return (
@@ -139,23 +139,25 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
             </Link>
           )
         })}
-        {shown < notes.length && <div className="more" data-more />}
+        {more && <div className="more" data-more />}
       </div>
     </section>
   )
 })
 
-function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | null>): number {
+function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | null>): {shown: Note[]; more: boolean} {
   const [pages, setPages] = useState(1)
   useEffect(() => setPages(1), [s.q, s.nb, s.tag])
-  const open = s.n ? notes.findIndex((n) => n.id === s.n) + 1 : 0
-  const shown = Math.max(pages * PAGE, open)
+  const count = pages * PAGE
+  const more = count < notes.length
   useEffect(() => {
-    const more = rows.current?.querySelector('[data-more]')
-    if (!more) return
+    const end = rows.current?.querySelector('[data-more]')
+    if (!end) return
     const seen = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setPages((p) => p + 1), {root: rows.current, rootMargin: '600px'})
-    seen.observe(more)
+    seen.observe(end)
     return () => seen.disconnect()
-  }, [shown, notes])
-  return shown
+  }, [count, notes])
+  const first = notes.slice(0, count)
+  const open = s.n && !first.some((n) => n.id === s.n) ? notes.find((n) => n.id === s.n) : undefined
+  return {shown: open ? [...first, open] : first, more}
 }
