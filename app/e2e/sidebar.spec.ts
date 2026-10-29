@@ -304,6 +304,20 @@ test('a star that fails for a while (signed out, then a 503 twice) stays queued 
   await expect(star).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('a star that keeps failing never holds back another one', async ({page}) => {
+  await unstarOnServer('fx-note-07', 'fx-note-02')
+  await openNote(page, 'fx-note-07')
+  await page.route('**/_serverFn/**', (route) => (starCall(route.request().postData() ?? '', 'fx-note-07') ? route.fulfill({status: 503, body: 'unavailable'}) : route.continue()))
+  await pendingStars(page, {'fx-note-07': true, 'fx-note-02': true})
+  await page.reload()
+  await expect.poll(() => starredOnServer('fx-note-02')).toBe(true)
+  await expect.poll(() => pendingStars(page)).toEqual({'fx-note-07': true})
+  expect(await starredOnServer('fx-note-07')).toBe(false)
+  await page.unrouteAll({behavior: 'wait'})
+  await expect.poll(() => starredOnServer('fx-note-07'), {timeout: 15_000}).toBe(true)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+})
+
 test('a star acked while the prefs read is in flight still shows once the read lands', async ({page}) => {
   await unstarOnServer('fx-note-07')
   await openNote(page, 'fx-note-07')
