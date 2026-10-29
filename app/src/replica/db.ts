@@ -3,7 +3,7 @@ import type {NoteDoc, NotebookDoc, Row} from './note'
 
 export type LocalNote = NoteDoc & {_gen?: number}
 export type Failure = {n: number; retryAt: number; why: string}
-export type Entry = {id: string; base: NoteDoc | null; v: number; at: number; delete?: true; pushed?: NoteDoc; sent?: NoteDoc[]; failed?: Failure}
+export type Entry = {id: string; base: NoteDoc | null; v: number; at: number; delete?: true; sent?: NoteDoc[]; failed?: Failure}
 
 interface Replica extends DBSchema {
   notes: {key: string; value: LocalNote}

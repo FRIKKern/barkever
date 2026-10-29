@@ -25,15 +25,15 @@ function Column({v, testId, children}: {v: Version; testId: string; children?: R
   )
 }
 
-function Copy({c, noteId}: {c: Conflict; noteId: string}) {
+function Copy({c, note}: {c: Conflict; note: Note}) {
   const v = {label: `${yours(c.by) ? 'Your version' : 'Other version'} · ${when(c.at)}`, title: c.title, blocks: c.body?.blocks ?? [], clash: new Set(c.clash)}
   return (
     <Column v={v} testId="conflict-other">
       <div className="kb-acts">
-        <button className="kb-act" onClick={() => void keepVersion(noteId, c._key)} data-testid="keep-version">
+        <button className="kb-act" onClick={() => void keepVersion(note.id, c._key, {title: note.title, body: {blocks: note.blocks}})} data-testid="keep-version">
           Keep this
         </button>
-        <button className="kb-act" onClick={() => void dismissVersion(noteId, c._key)} data-testid="dismiss-version">
+        <button className="kb-act" onClick={() => void dismissVersion(note.id, c._key)} data-testid="dismiss-version">
           Dismiss
         </button>
       </div>
@@ -54,12 +54,12 @@ export function ConflictView({note}: {note: Note}) {
         <Column v={mine} testId="conflict-mine" />
         {lanes.map(({latest, earlier}) => (
           <div className="kb-lane" key={latest._key} data-testid="conflict-lane">
-            <Copy c={latest} noteId={note.id} />
+            <Copy c={latest} note={note} />
             {earlier.length > 0 && (
               <details className="kb-earlier">
                 <summary>{earlier.length} earlier</summary>
                 {earlier.map((c) => (
-                  <Copy key={c._key} c={c} noteId={note.id} />
+                  <Copy key={c._key} c={c} note={note} />
                 ))}
               </details>
             )}

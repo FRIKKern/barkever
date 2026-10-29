@@ -1,5 +1,5 @@
 import type {Block} from '../lib/model.ts'
-import {collapse, linksFor} from './merge.ts'
+import {collapse, mergeLocal} from './merge.ts'
 import type {NoteDoc} from './note.ts'
 
 function adopt(main: Block[], copy: Block[], ids: Set<string>): Block[] {
@@ -15,11 +15,11 @@ function adopt(main: Block[], copy: Block[], ids: Set<string>): Block[] {
 
 export const dismiss = (n: NoteDoc, key: string): NoteDoc => ({...n, conflicts: (n.conflicts ?? []).filter((c) => c._key !== key)})
 
-export function keep(n: NoteDoc, key: string): NoteDoc {
+export function keep(n: NoteDoc, key: string, shown: Pick<NoteDoc, 'title' | 'body'>, at: string, local: string, me: string, server: NoteDoc | null = null): NoteDoc {
   const c = n.conflicts?.find((x) => x._key === key)
   if (!c) return n
   const ids = new Set(c.clash.filter((p) => p.startsWith('body:')).map((p) => p.slice(5)))
-  const blocks = adopt(n.body?.blocks ?? [], c.body?.blocks ?? [], ids)
-  const out: NoteDoc = {...n, title: c.clash.includes('title') ? c.title : n.title, body: {...n.body, blocks}, links: linksFor(blocks, n.links)}
-  return {...out, conflicts: collapse(dismiss(n, key).conflicts!, out)}
+  const blocks = adopt(shown.body?.blocks ?? [], c.body?.blocks ?? [], ids)
+  const out = mergeLocal(n, shown, {title: c.clash.includes('title') ? c.title : shown.title, body: {...shown.body, blocks}}, at, local, me, server)
+  return {...out, conflicts: collapse(dismiss(out, key).conflicts ?? [], out)}
 }

@@ -130,3 +130,28 @@ test('bug 6: a later revision that leaves my block alone keeps the earlier copy'
   assert.deepEqual(second.conflicts?.map((c) => rev(c._key)), ['R1'])
   assert.deepEqual(texts(second), ['a:one [A1]', 'b:two [S2]'])
 })
+
+test('a block I made in a push whose reply was lost, then deleted, stays deleted after another writer builds on that push', () => {
+  const r1 = note('r1', 'T', [p('a', 'one')])
+  const s1 = note('r1', 'T', [p('a', 'one'), p('n', 'new')], {by: ME})
+  const mine = note('r1', 'T', [p('a', 'one')], {by: ME})
+  const r3 = note('r3', 'T2', [p('a', 'one'), p('n', 'new')], {by: 'B'})
+  assert.deepEqual(texts(reconcile(baseFor(r1, [s1], r3), mine, r3, AT, ME)), ['a:one'])
+})
+
+test('the same, after a retry sent the note again: every unacked push counts', () => {
+  const r1 = note('r1', 'T', [p('a', 'one')])
+  const s1 = note('r1', 'T', [p('a', 'one'), p('n', 'new')], {by: ME})
+  const s2 = note('r1', 'T', [p('a', 'one')], {by: ME})
+  const r3 = note('r3', 'T2', [p('a', 'one'), p('n', 'new')], {by: 'B'})
+  assert.deepEqual(texts(reconcile(baseFor(r1, [s1, s2], r3), s2, r3, AT, ME)), ['a:one'])
+})
+
+test('a copy I dismissed after a push whose reply was lost stays dismissed', () => {
+  const c = {_key: 'k~1', by: 'C', at: AT, title: 'T', body: {blocks: [p('a', 'theirs')]}, clash: ['body:a']}
+  const r1 = note('r1', 'T', [p('a', 'one')])
+  const s1 = note('r1', 'T', [p('a', 'one')], {by: ME, conflicts: [c]})
+  const mine = note('r1', 'T', [p('a', 'one')], {by: ME, conflicts: []})
+  const r3 = note('r3', 'T2', [p('a', 'one')], {by: 'B', conflicts: [c]})
+  assert.deepEqual(reconcile(baseFor(r1, [s1], r3), mine, r3, AT, ME)?.conflicts ?? [], [])
+})

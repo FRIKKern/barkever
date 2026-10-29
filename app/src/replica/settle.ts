@@ -41,17 +41,17 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
       return
     }
     const moved = !note || !sameContent(note, next)
-    void notes.put({...next, _typed: note?._typed, _gen: (note?._gen ?? 0) + (moved ? 1 : 0)})
+    void notes.put({...next, _gen: (note?._gen ?? 0) + (moved ? 1 : 0)})
     void rows.put(toRow(next))
   }
-  const base = entry ? baseFor(entry.base, entry.sent ?? (entry.pushed ? [entry.pushed] : []), theirs) : null
+  const base = entry ? baseFor(entry.base, entry.sent ?? [], theirs) : null
   const merged = entry ? reconcile(base, note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
   const settled = !entry || (merged && theirs ? sameContent(merged, theirs) : merged === theirs)
   if (settled) {
     if (entry) void outbox.delete(id)
     show(theirs)
   } else {
-    void outbox.put({...entry, base: theirs, ...(theirs && base === theirs && {pushed: undefined, sent: undefined}), delete: merged ? undefined : true})
+    void outbox.put({...entry, base: theirs, ...(theirs && base === theirs && {sent: undefined}), delete: merged ? undefined : true})
     show(merged && {...merged, _id: id, _type: 'note', _rev: theirs?._rev})
   }
   if (touchedByOthers(theirs, deviceId())) void tx.objectStore('meta').delete(madeKey(id))
@@ -74,11 +74,11 @@ export async function ack(sent: Entry, doc: NoteDoc | null): Promise<void> {
   const [notes, rows, outbox] = [tx.objectStore('notes'), tx.objectStore('rows'), tx.objectStore('outbox')]
   const [note, entry] = await Promise.all([notes.get(sent.id), outbox.get(sent.id)])
   if (!entry || entry.base?._rev !== sent.base?._rev) return tx.done
-  if (entry.v !== sent.v) void outbox.put({...entry, base: doc, pushed: undefined, sent: undefined, failed: undefined})
+  if (entry.v !== sent.v) void outbox.put({...entry, base: doc, sent: undefined, failed: undefined})
   else {
     void outbox.delete(sent.id)
     if (doc) {
-      void notes.put({...doc, _typed: note?._typed, _gen: note?._gen} satisfies LocalNote)
+      void notes.put({...doc, _gen: note?._gen} satisfies LocalNote)
       void rows.put(toRow(doc))
     }
   }

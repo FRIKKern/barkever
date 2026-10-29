@@ -1,4 +1,4 @@
-import './hooks.ts'
+import {freeze} from './hooks.ts'
 import {newDevice, use, type Device} from './fake-db.ts'
 import {answer, type Remote} from './fake-remote.ts'
 import {barkpark} from './server.ts'
@@ -372,16 +372,7 @@ export function world(setup: Setup) {
       return server.doc
     },
     async run(steps: Step[]): Promise<Failure | undefined> {
-      const Real = Date
-      globalThis.Date = class extends Real {
-        constructor(...a: unknown[]) {
-          super(...((a.length ? a : [EPOCH + clock]) as [number]))
-        }
-        static now = () => EPOCH + clock
-      } as DateConstructor
-      const uuid = crypto.randomUUID
-      let made = 0
-      crypto.randomUUID = () => `00000000-0000-4000-8000-${(++made).toString(16).padStart(12, '0')}`
+      const thaw = freeze(() => EPOCH + clock)
       try {
         for (const [i, s] of steps.entries()) {
           at = i
@@ -391,8 +382,7 @@ export function world(setup: Setup) {
         }
         return await finish()
       } finally {
-        globalThis.Date = Real
-        crypto.randomUUID = uuid
+        thaw()
       }
     },
   }

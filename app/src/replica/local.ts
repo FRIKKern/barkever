@@ -57,7 +57,7 @@ export const editTitle = (id: string, shown: string, title: string) => journaled
 
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 
-export const keepVersion = (id: string, key: string) => edit(id, (n) => keep(n, key), true)
+export const keepVersion = (id: string, key: string, shown: Pick<NoteDoc, 'title' | 'body'>) => edit(id, (n, server) => keep(n, key, shown, now(), `local-${crypto.randomUUID()}`, deviceId(), server), true)
 
 export const dismissVersion = (id: string, key: string) => edit(id, (n) => dismiss(n, key))
 
@@ -90,7 +90,7 @@ export async function createNote({id, notebook, blockId, tags = []}: {id: string
 export async function deleteNote(id: string) {
   await write(id, (note, entry) => {
     if (!note) return null
-    if (!note._rev && !entry?.pushed) return {note: null, entry: null}
+    if (!note._rev && !entry?.sent?.length) return {note: null, entry: null}
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
   await unmark(id)

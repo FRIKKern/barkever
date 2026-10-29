@@ -1,6 +1,6 @@
 import {db, deviceId, stored, type Entry} from '../replica/db'
 import {ack, fail} from '../replica/settle'
-import {same} from '../replica/merge'
+import {same, sameContent} from '../replica/merge'
 import {sign} from '../replica/sign'
 import {content, fromServer, NOTE_FIELDS, type NoteDoc} from '../replica/note'
 import {pushMutations} from './remote'
@@ -13,8 +13,10 @@ const STALE = new Set([404, 409, 412])
 
 type Planned = {e: Entry; m: object | null}
 
+export const remember = (sent: NoteDoc[], note: NoteDoc) => (sent.some((x) => sameContent(x, note)) ? sent : [...sent, note].slice(-SENT))
+
 export function mutationFor(e: Entry, note: NoteDoc | undefined): object | null {
-  if (e.delete) return e.base || e.pushed ? {delete: {id: e.id, type: 'note', force: true, ...(e.base && {ifRevisionID: e.base._rev})}} : null
+  if (e.delete) return e.base || e.sent?.length ? {delete: {id: e.id, type: 'note', force: true, ...(e.base && {ifRevisionID: e.base._rev})}} : null
   if (!note) return null
   if (!e.base) return {create: {...content(note), _id: e.id, _type: 'note'}}
   const base = e.base
@@ -31,7 +33,7 @@ async function prepare(ids: string[]): Promise<Planned[]> {
     if (!e) continue
     const note = local && sign(stored(local), deviceId())
     const m = mutationFor(e, note)
-    const sent = m && note && !e.delete ? {...e, pushed: note, sent: [...(e.sent ?? []), note].slice(-SENT)} : e
+    const sent = m && note && !e.delete ? {...e, sent: remember(e.sent ?? [], note)} : e
     if (sent !== e) void outbox.put(sent)
     plan.push({e: sent, m})
   }
