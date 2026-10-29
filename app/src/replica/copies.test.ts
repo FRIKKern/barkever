@@ -4,7 +4,7 @@ import {mergeLocal, mergeNote} from './merge.ts'
 import {sign, UNSIGNED, writerOf} from './sign.ts'
 import {blockText, type Block} from '../lib/model.ts'
 import {groups} from '../lib/versions.ts'
-import type {NoteDoc as Note} from './note.ts'
+import {NOTE_FIELDS, type NoteDoc as Note} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
 const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
@@ -53,6 +53,18 @@ test('signing names the writer, survives a Barkpark round trip, and any later ch
   assert.equal(writerOf(r0), undefined)
 })
 
+test('a copy goes only once this device typed from every one of its clashing texts, and that list never leaves the device', () => {
+  const B = sign({...r0, _rev: 'r1', title: 'B title', ...blocksWith(r0, 'B one')}, 'B')
+  const mine = mergeNote(r0, {...r0, title: 'A title', ...blocksWith(r0, 'A one')}, B, AT, 'A')
+  assert.deepEqual(copies(mine), [['B', 'B title', 'B one']])
+  const title = mergeLocal(mine, {title: 'B title'}, {title: 'B title, mine'}, AT, 'local-1', 'A', B)
+  assert.deepEqual(copies(title), [['B', 'B title', 'B one'], ['A~tab', 'A title', 'A one']])
+  const block = mergeLocal(title, blocksWith(title, 'B one'), blocksWith(title, 'B one, mine'), AT, 'local-2', 'A', B)
+  assert.deepEqual(copies(block).map(([by]) => by), ['A~tab', 'A~tab'])
+  assert.equal(block._typed?.length, 2)
+  assert.ok(!(NOTE_FIELDS as readonly string[]).includes('_typed'))
+})
+
 test('two writers typing in one block online: each typed from its own last text, so one copy stays, the other writer’s latest', () => {
   const w = world()
   const [A, B] = [w.device('A'), w.device('B')]
@@ -68,7 +80,7 @@ test('two writers typing in one block online: each typed from its own last text,
   }
 })
 
-test('one raw writer setting the title six times while I type it keeps all six, and shows its latest', () => {
+test('review 3b: one raw writer setting the title six times while I type it keeps all six, shows its latest and folds the five earlier', () => {
   const w = world()
   const D = w.device('D')
   for (let i = 1; i <= 6; i++) {
@@ -80,6 +92,9 @@ test('one raw writer setting the title six times while I type it keeps all six, 
     assert.deepEqual(shown(w.server), [[UNSIGNED, `Server title ${i}`, 'one']], `round ${i}`)
   }
   assert.deepEqual(copies(w.server).map(([, t]) => t), [1, 2, 3, 4, 5, 6].map((i) => `Server title ${i}`))
+  const [only, ...more] = groups(w.server.conflicts!)
+  assert.equal(more.length, 0)
+  assert.deepEqual([only.latest.title, only.earlier.map((c) => c.title)], ['Server title 6', [5, 4, 3, 2, 1].map((i) => `Server title ${i}`)])
 })
 
 test('a title typed over a remote title the box never showed names the remote writer, and its next title folds the first', () => {
