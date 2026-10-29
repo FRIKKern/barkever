@@ -2,7 +2,7 @@ import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
 import {loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
-import type {Candidate} from '../lib/link-pick'
+import type {Linker} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import {markDirty, markSaved} from '../lib/saver'
 import {editBody} from '../replica/local'
@@ -10,20 +10,20 @@ import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
 export type BodyHandle = {focus: () => void}
-type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; pick: (query: string) => Candidate[]}
+type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker}
 
 const FLUSH_MS = 40
 const WORDS = JSON.stringify({'Link to page': 'Link to note', 'No matching pages': 'No matching notes'})
 
-export function BodyCanvas({note, s, handle, pick}: Props) {
+export function BodyCanvas({note, s, handle, linker}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<CanvasElement | null>(null)
   const latest = useRef(note)
   latest.current = note
-  const picker = useRef(pick)
-  picker.current = pick
+  const links = useRef(linker)
+  links.current = linker
   const wantFocus = useRef(false)
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
@@ -78,7 +78,8 @@ export function BodyCanvas({note, s, handle, pick}: Props) {
         const el = document.createElement('bp-paper-canvas') as CanvasElement
         el.acknowledgedSaves = true
         el.blocks = latest.current.blocks
-        el.wikilinkSource = (q) => picker.current(q)
+        el.wikilinkSource = (q) => links.current.pick(q)
+        el.linkPreviewSource = ({kind, docId, target}) => (kind === 'wikilink' ? links.current.preview(docId || target || '') : null)
         el.setAttribute('editable', 'true')
         el.setAttribute('mention-trigger', 'off')
         el.setAttribute('data-strings', WORDS)

@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {linkCandidates, PICKS} from './link-pick.ts'
+import {linkCandidates, linkPreview, PICKS} from './link-pick.ts'
 import type {Note} from './model.ts'
 
 const note = (id: string, title: string, updatedAt: string, notebook: string | null = 'nb-work'): Note => ({id, title, notebook, tags: [], blocks: [], links: [], updatedAt, rev: '', conflicts: [], gen: 0})
@@ -41,4 +41,13 @@ test(`at most ${PICKS} candidates`, () => {
   const got = linkCandidates(many, 'x', 'note', () => '')
   assert.equal(got.length, PICKS)
   assert.equal(got[0].id, 'n29')
+})
+
+test('a link preview names the note, its first line and its notebook; a note not on this device has none', () => {
+  const byId = new Map(notes.map((n) => [n.id, n]))
+  const named = (id: string | null) => (id ? names[id] : '')
+  const withText = {...notes[0], blocks: [{id: 'b', type: 'paragraph', content: [{type: 'text', value: 'Goals for the site.'}]}]}
+  assert.deepEqual(linkPreview(new Map([['kick', withText]]), 'kick', named), {title: 'Harbor redesign: kickoff', excerpt: 'Goals for the site.', subtitle: 'Projects'})
+  assert.deepEqual(linkPreview(new Map([['e', note('e', '', '2026-10-06', null)]]), 'e', named), {title: 'Untitled', excerpt: 'No text yet', subtitle: ''})
+  assert.equal(linkPreview(byId, 'gone', named), null)
 })
