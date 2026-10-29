@@ -2,12 +2,11 @@ import {execFileSync} from 'node:child_process'
 import {fileURLToPath} from 'node:url'
 import {cli} from './account.ts'
 import {bulkNotes} from './bulk.ts'
+import {DATASET} from './fixtures-cleanup.ts'
 
 const SEED = fileURLToPath(new URL('../../scripts/seed-fixtures.mjs', import.meta.url))
 const FIXTURE_NOTES = 50
 const BATCH = 100
-
-const stamp = () => new Date().toISOString().replace(/\D/g, '').slice(0, 14)
 
 export const probeName = (env: string | undefined, fallback: string) => {
   const name = env || fallback
@@ -15,7 +14,7 @@ export const probeName = (env: string | undefined, fallback: string) => {
   return name
 }
 
-export const ORGANIZE = probeName(process.env.P3G_DATASET, `probe-p3g-${stamp()}`)
+export const ORGANIZE = probeName(process.env.P3G_DATASET, DATASET.replace(/^e2e-/, 'probe-p3g-'))
 export const FIND = probeName(process.env.P3G_FIND_DATASET, 'probe-p3g-5k-20261029')
 export const FIND_NOTES = 5000
 

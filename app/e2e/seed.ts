@@ -24,9 +24,15 @@ export async function seed(dataset: string) {
   if (!res.ok) throw new Error(`Barkpark mutate ${res.status}`)
 }
 
-export async function drop(dataset: string) {
-  const {server, token} = cli()
-  const res = await fetch(`${server}/api/workspaces/barkever/projects/default/datasets/${dataset}`, {method: 'DELETE', headers: {authorization: `Bearer ${token}`}})
-  if (res.status === 404) return console.log(`kept ${dataset}: Barkpark has no dataset delete yet`)
-  if (!res.ok) throw new Error(`deleting ${dataset}: Barkpark ${res.status}`)
+const THROWAWAY = /^(e2e|j10|probe-p3[gh])-\d{14}(-\d+)?$/
+export const throwaway = (dataset: string) => THROWAWAY.test(dataset)
+export const ownRun = (dataset: string) => throwaway(dataset) && dataset.endsWith(`-${process.pid}`)
+
+export async function drop(dataset: string): Promise<string> {
+  if (!throwaway(dataset)) throw new Error(`only throwaway run datasets get deleted, not "${dataset}"`)
+  const res = await bp(`/v1/datasets/${dataset}`, {method: 'DELETE'})
+  if (res.status === 404) return `${dataset} was already gone`
+  if (!res.ok) return `kept ${dataset}: Barkpark ${res.status} ${(await res.text()).slice(0, 400)}`
+  const {documents} = (await res.json()) as {documents: number}
+  return `dropped ${dataset} (${documents} documents)`
 }
