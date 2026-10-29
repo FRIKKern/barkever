@@ -29,7 +29,7 @@ async function prepare(ids: string[]): Promise<Planned[]> {
   for (const id of ids) {
     const [e, local] = await Promise.all([outbox.get(id), notes.get(id)])
     if (!e) continue
-    const note = local && sign({...stored(local), _typed: undefined}, deviceId())
+    const note = local && sign(stored(local), deviceId())
     const m = mutationFor(e, note)
     const sent = m && note && !e.delete ? {...e, pushed: note, sent: [...(e.sent ?? []), note].slice(-SENT)} : e
     if (sent !== e) void outbox.put(sent)

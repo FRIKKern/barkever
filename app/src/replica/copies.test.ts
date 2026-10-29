@@ -4,7 +4,7 @@ import {mergeLocal, mergeNote} from './merge.ts'
 import {sign, UNSIGNED, writerOf} from './sign.ts'
 import {blockText, type Block} from '../lib/model.ts'
 import {groups} from '../lib/versions.ts'
-import {NOTE_FIELDS, type NoteDoc as Note} from './note.ts'
+import type {NoteDoc as Note} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
 const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
@@ -53,7 +53,7 @@ test('signing names the writer, survives a Barkpark round trip, and any later ch
   assert.equal(writerOf(r0), undefined)
 })
 
-test('a copy goes only once this device typed from every one of its clashing texts, and that list never leaves the device', () => {
+test('a copy goes only once this device typed from every one of its clashing texts, and it keeps a list of what it typed from', () => {
   const B = sign({...r0, _rev: 'r1', title: 'B title', ...blocksWith(r0, 'B one')}, 'B')
   const mine = mergeNote(r0, {...r0, title: 'A title', ...blocksWith(r0, 'A one')}, B, AT, 'A')
   assert.deepEqual(copies(mine), [['B', 'B title', 'B one']])
@@ -62,7 +62,6 @@ test('a copy goes only once this device typed from every one of its clashing tex
   const block = mergeLocal(title, blocksWith(title, 'B one'), blocksWith(title, 'B one, mine'), AT, 'local-2', 'A', B)
   assert.deepEqual(copies(block).map(([by]) => by), ['A~tab', 'A~tab'])
   assert.equal(block._typed?.length, 2)
-  assert.ok(!(NOTE_FIELDS as readonly string[]).includes('_typed'))
 })
 
 test('two writers typing in one block online: each typed from its own last text, so one copy stays, the other writer’s latest', () => {
