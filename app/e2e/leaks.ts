@@ -2,6 +2,7 @@ import {readdirSync, readFileSync} from 'node:fs'
 import {extname, join, relative} from 'node:path'
 import type {Page, Request, Response} from '@playwright/test'
 import {loadServerEnv} from '../scripts/local-env.ts'
+import {untilWelcome} from './event-stream'
 import {DATASET} from './fixtures-cleanup'
 import {APP, buildDir} from './run'
 
@@ -41,19 +42,6 @@ export async function servedFiles(page: Page) {
 
 const path = (url: string) => new URL(url).pathname
 
-async function untilWelcome(url: string, cookie: string): Promise<string> {
-  const res = await fetch(url, {headers: {cookie: `bk_session=${cookie}`}, signal: AbortSignal.timeout(10_000)})
-  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader()
-  let text = ''
-  while (!text.includes('event: welcome')) {
-    const {done, value} = await reader.read()
-    if (done) throw new Error(`the stream ended after ${text.length} characters without a welcome`)
-    text += value
-  }
-  await reader.cancel()
-  return text
-}
-
 export async function capture(page: Page, cookie: () => Promise<string | undefined>) {
   const seen: Promise<Seen>[] = []
   const unreadable: string[] = []
@@ -73,7 +61,7 @@ export async function capture(page: Page, cookie: () => Promise<string | undefin
   page.on('response', (r: Response) => {
     const where = `${r.status()} ${path(r.url())}`
     seen.push(Promise.resolve({where: `${where} headers`, text: JSON.stringify(r.headers())}))
-    if (r.request().redirectedTo() || routed.has(r.request())) return
+    if ((r.status() >= 300 && r.status() < 400) || routed.has(r.request())) return
     if (!r.headers()['content-type']?.startsWith('text/event-stream')) body(where, r.text())
     else {
       streams++
