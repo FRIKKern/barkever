@@ -8,11 +8,11 @@ const RENAMED = 'Tide gauge: autumn check'
 const SOURCE = 'Pier walk: what to check'
 const CRANE = 'Harbour crane: load test'
 const SPOTS = [
-  ['inside the picked link', 'then the rest.', 'end', ' then the rest.'.length + 1],
-  ['right after the picked link', 'then the rest.', 'end', ' then the rest.'.length],
-  ['just left of the picked link', 'then the rest.', 'start', 'First '.length],
-  ['right after the typed link', 'again here.', 'end', ' again here.'.length],
-  ['line start, before the typed link', 'again here.', 'start', 0],
+  ['inside the picked link', 'then the rest.', 'end', ' then the rest.'.length + 1, 0, 'inside'],
+  ['right after the picked link', 'then the rest.', 'end', ' then the rest.'.length, 0, 'end'],
+  ['just left of the picked link', 'then the rest.', 'start', 'First '.length, 0, 'start'],
+  ['right after the typed link', 'again here.', 'end', ' again here.'.length, 1, 'end'],
+  ['line start, before the typed link', 'again here.', 'start', 0, 1, 'start'],
 ] as const
 const BESIDE = SPOTS.slice(1)
 const HUMAN_KEY_MS = 30
@@ -50,6 +50,17 @@ async function newNote(page: Page, title: string) {
   return opened(page)!
 }
 
+const caretBy = (page: Page, n: number) =>
+  page.evaluate((n) => {
+    const host = document.querySelector('bp-paper-canvas [contenteditable="true"]') as HTMLElement & {editor: {view: {posAtDOM(node: Node, offset: number): number}}}
+    const {view} = host.editor
+    const words = document.createTreeWalker(host.querySelectorAll('[data-wikilink]')[n], NodeFilter.SHOW_TEXT).nextNode()!
+    const [start, end] = [view.posAtDOM(words, 0), view.posAtDOM(words, words.textContent!.length)]
+    const r = getSelection()!.getRangeAt(0)
+    const at = view.posAtDOM(r.startContainer, r.startOffset)
+    return at === start ? 'start' : at === end ? 'end' : at > start && at < end ? 'inside' : `at ${at}, link ${start}-${end}`
+  }, n)
+
 async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: number) {
   const line = page.getByTestId('canvas').locator('p', {hasText: text})
   const box = (await line.boundingBox())!
@@ -59,8 +70,9 @@ async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: n
 }
 
 async function followFromEverySpot(page: Page, spots: typeof BESIDE | typeof SPOTS, from: string, to: string, when: string) {
-  for (const [spot, text, edge, steps] of spots) {
+  for (const [spot, text, edge, steps, link, side] of spots) {
     await caretAt(page, text, edge, steps)
+    expect(await caretBy(page, link), `caret ${spot}, ${when}`).toBe(side)
     await page.keyboard.press('ControlOrMeta+Enter')
     await expect.poll(() => opened(page), {message: `Mod+Enter ${spot}, ${when}`}).toBe(to)
     await page.goBack()
