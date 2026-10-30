@@ -59,3 +59,23 @@ test('Markdown source mode opened with the keyboard: typing and back to what it 
   await expect(source(page)).toHaveCount(0)
   await expect(status(page)).toHaveText('Saved')
 })
+
+for (const door of ['another note', 'a reload'] as const)
+  test(`what I type in Markdown source mode is stored when I leave it by opening ${door} straight after`, async ({page}) => {
+    const id = await newNote(page, `Source leave ${Date.now()}`, 'Base.')
+    await canvas(page).locator('[contenteditable="true"] > [data-bp-id]').first().click()
+    await page.keyboard.press(toggle)
+    await expect(source(page)).toBeFocused()
+    await toEnd(page)
+    await page.keyboard.type(' Kept.')
+    if (door === 'a reload') {
+      await page.reload()
+      await expect(canvas(page)).toContainText('Base. Kept.', {timeout: 15_000})
+    } else {
+      await page.locator(`[data-testid="note-row"]:not([data-note-id="${id}"])`).first().click()
+      await expect(page).not.toHaveURL(new RegExp(`n=${id}`))
+    }
+    await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+    await synced(page)
+    expect(everything(await serverNote(id))).toContain('Base. Kept.')
+  })
