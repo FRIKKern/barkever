@@ -70,7 +70,7 @@ function fallbacks(s) {
     if (!l || !r) continue;
     const [a, b] = [s.slice(l.from, l.to), s.slice(r.from, r.to)];
     const other = op === "||" ? "??" : "||";
-    if (op === "||" || !EMPTY.has(b)) out.push({ label: `\`${op}\` → \`${other}\` in \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${a} ${other} ${b})`) });
+    out.push({ label: `\`${op}\` → \`${other}\` in \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${a} ${other} ${b})`), likely: op === "??" && EMPTY.has(b) });
     out.push({ label: `swap \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${b} ${op} ${a})`) });
     out.push({ label: `drop \`${op} ${b}\``, line: splice(s, l.from, r.to, a) });
   }
@@ -163,7 +163,7 @@ export async function mutate(rows, cmd, { timeout = 600_000 } = {}) {
       try {
         writeFileSync(path, [...lines.slice(0, n - 1), m.line, ...lines.slice(n)].join("\n"));
         const { code, signal, out } = await runOnce(cmd, timeout);
-        const why = code === 0 ? "survived" : signal === "SIGKILL" ? "killed (timeout)" : /SyntaxError|TS1\d{3}/.test(out) && !killers(out).length ? "killed (does not parse)" : "killed";
+        const why = code === 0 ? (m.likely ? "survived, likely equivalent" : "survived") : signal === "SIGKILL" ? "killed (timeout)" : /SyntaxError|TS1\d{3}/.test(out) && !killers(out).length ? "killed (does not parse)" : "killed";
         results.push({ where, label: m.label, why, by: killers(out).slice(0, 2).join("; ") });
         console.error(`${why.padEnd(24)} ${where} ${m.label}`);
       } finally {

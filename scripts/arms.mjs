@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 const args = process.argv.slice(2);
 const runAt = args.indexOf("--run");
 const cmd = runAt < 0 ? null : args[runAt + 1];
-if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>"]'); process.exit(2); }
+if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>" [--strict]]'); process.exit(2); }
+const strict = args.includes("--strict");
 const base = args.find((a, i) => !a.startsWith("--") && i !== runAt + 1) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
@@ -50,9 +51,11 @@ async function runMutants() {
   if (dirty) { console.error(`arms --run: commit first, these files have changes:\n${dirty}`); process.exit(2); }
   const results = await mutate(targets, cmd);
   const short = (w) => w.slice(top.length + 1);
-  console.log(`| where | mutant | result | killed by |\n|---|---|---|---|`);
-  for (const r of results) console.log(`| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | ${r.why} | ${r.by.replaceAll("|", "\\|")} |`);
-  const survived = results.filter((r) => r.why === "survived");
-  console.log(`\nmutants: ${results.length} run, ${results.length - survived.length} killed, ${survived.length} survived (${targets.length} arm rows in TS/JS)`);
+  const table = (rs) => rs.map((r) => `| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | ${r.why} | ${r.by.replaceAll("|", "\\|")} |`).join("\n");
+  const likely = results.filter((r) => r.why === "survived, likely equivalent");
+  const survived = results.filter((r) => r.why === "survived" || (strict && likely.includes(r)));
+  console.log(`| where | mutant | result | killed by |\n|---|---|---|---|\n${table(results.filter((r) => !likely.includes(r)))}`);
+  if (likely.length) console.log(`\nLikely equivalent: \`?? []\` or \`?? {}\` → \`||\` differs only when the value is '', 0 or false. ${strict ? "Counted (--strict)." : "Not counted; --strict counts them."}\n\n| where | mutant | result |\n|---|---|---|\n${likely.map((r) => `| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | survived |`).join("\n")}`);
+  console.log(`\nmutants: ${results.length} run, ${results.length - survived.length - (strict ? 0 : likely.length)} killed, ${survived.length} survived${strict ? "" : `, ${likely.length} likely equivalent`} (${targets.length} arm rows in TS/JS)`);
   process.exit(survived.length ? 1 : 0);
 }

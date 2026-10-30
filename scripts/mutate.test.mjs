@@ -17,15 +17,19 @@ test("a fallback gets ?? for ||, its operands swapped, and its fallback dropped,
     "  return c.map((x) => x.value || inline(x.children ?? [], title)).join('')",
   ]);
   assert.ok(lines(s).includes("  return c.map((x) => x.value || (inline(x.children ?? [], title) || x.text)).join('')"));
-  assert.ok(!lines(s).includes("  return c.map((x) => x.value || x.text || inline((x.children || []), title)).join('')"));
+  assert.ok(lines(s).includes("  return c.map((x) => x.value || x.text || inline((x.children || []), title)).join('')"));
 });
 
 test("operands keep calls, optional chains, strings and negation whole", () => {
   assert.deepEqual(lines("const a = !f(x, y)?.z ?? 'a b'").slice(0, 2), ["const a = (!f(x, y)?.z || 'a b')", "const a = ('a b' ?? !f(x, y)?.z)"]);
 });
 
-test("?? [] and ?? {} get no || mutant, since no array or object is falsy; swap and drop stay", () => {
-  assert.deepEqual(mutantsOf("f(x.items ?? [], y ?? {})").map((m) => m.label), ["swap `x.items ?? []`", "drop `?? []`", "swap `y ?? {}`", "drop `?? {}`"]);
+test("?? [] and ?? {} → || is marked likely equivalent, since it differs only on '', 0 or false", () => {
+  assert.deepEqual(mutantsOf("f(x.items ?? [], y ?? {}, z ?? 'n')").filter((m) => m.label.startsWith("`??`")).map((m) => [m.label, m.likely]), [
+    ["`??` → `||` in `x.items ?? []`", true],
+    ["`??` → `||` in `y ?? {}`", true],
+    ["`??` → `||` in `z ?? 'n'`", false],
+  ]);
 });
 
 test("a comparison's label names its operands, so two on one line differ", () => {
@@ -79,4 +83,11 @@ test("Ctrl-C mid-run stops the command and restores the file", async () => {
   const [code] = await once(runner, "exit");
   assert.equal(code, 130);
   assert.equal(readFileSync(file, "utf8"), "export const x = a === b\n");
+});
+
+test("a surviving ?? [] → || is reported as likely equivalent, the rest as survived", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const file = join(dir, "f.mjs");
+  writeFileSync(file, "export const all = (a) => a ?? []\n");
+  assert.deepEqual((await mutate([{ where: `${file}:1` }], "true")).map((r) => r.why), ["survived, likely equivalent", "survived", "survived"]);
 });
