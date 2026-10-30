@@ -14,7 +14,7 @@ export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (
 
 export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : contentOf(it))
 
-export const nestedOf = (it: Item): Block[] => (typeof it === 'object' && !Array.isArray(it) ? it.children ?? [] : [])
+export const nestedOf = (it: Item): Block[] => (it as {children?: Block[]}).children ?? []
 
 export type Title = (id?: string) => string | undefined
 
