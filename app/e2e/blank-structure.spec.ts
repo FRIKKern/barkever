@@ -2,7 +2,7 @@ import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes, serverNoteIds} from './fixtures-cleanup'
 import {serverNote, status, synced} from './devices'
 
-test.describe.configure({mode: 'serial', timeout: 180_000})
+test.describe.configure({timeout: 180_000})
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
 
