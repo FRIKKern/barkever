@@ -423,11 +423,37 @@ test('an outbox read that lands after a newer one never leaves Saving stuck', as
 test('typing that changes nothing settles back on Saved', async ({page}) => {
   const errors = errorsOf(page)
   await twoBlockNote(page, `No net change ${Date.now()}`)
-  await typeAtEnd(page, 'x')
-  await page.keyboard.press('Backspace')
+  const typed = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-testid=canvas] [contenteditable="true"]')!
+    const before = el.textContent
+    document.execCommand('insertText', false, 'x')
+    const mid = el.textContent
+    document.execCommand('delete')
+    return mid !== before && el.textContent === before
+  })
+  expect(typed, 'x went in and came out in one task').toBe(true)
   await expect(status(page)).toHaveText('Saved', {timeout: 3000})
   await page.waitForTimeout(1000)
   await expect(status(page)).toHaveText('Saved')
+  expect(errors).toEqual([])
+})
+
+test('an open dead-key composition never shows Saved, and a cancelled one settles back on Saved', async ({page}) => {
+  const errors = errorsOf(page)
+  await twoBlockNote(page, `Dead key ${Date.now()}`)
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Input.imeSetComposition', {text: '´', selectionStart: 1, selectionEnd: 1})
+  await expect(canvas(page)).toContainText('Theirs.´')
+  await page.waitForTimeout(800)
+  await expect(status(page)).not.toHaveText('Saved')
+  await cdp.send('Input.insertText', {text: 'é'})
+  await expect(canvas(page)).toContainText('Theirs.é')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await cdp.send('Input.imeSetComposition', {text: '´', selectionStart: 1, selectionEnd: 1})
+  await expect(canvas(page)).toContainText('Theirs.é´')
+  await cdp.send('Input.imeSetComposition', {text: '', selectionStart: 0, selectionEnd: 0})
+  await expect(canvas(page)).not.toContainText('´')
+  await expect(status(page)).toHaveText('Saved', {timeout: 3000})
   expect(errors).toEqual([])
 })
 
@@ -441,9 +467,12 @@ const truthProbe = (page: Page, id: string, text: string) =>
       const read = <T,>(store: string) => new Promise<T>((ok) => (db.transaction(store).objectStore(store).get(id).onsuccess = (e) => ok((e.target as IDBRequest<T>).result)))
       const check = (what: string, needsPush: boolean) => {
         const at = Math.round(performance.now())
+        const shown = document.querySelector('[data-testid=canvas]')?.textContent ?? ''
+        let typed = text
+        while (typed && !shown.includes(typed)) typed = typed.slice(0, -1)
         const [note, entry] = [read<{body?: unknown}>('notes'), read<unknown>('outbox')]
         void Promise.all([note, entry]).then(([n, e]) => {
-          if (!JSON.stringify(n?.body ?? '').includes(text)) w.lies!.push(`${what} at ${at} ms before "${text}" was stored`)
+          if (!JSON.stringify(n?.body ?? '').includes(typed)) w.lies!.push(`${what} at ${at} ms before "${typed}", on screen, was stored`)
           else if (needsPush && e !== undefined) w.lies!.push(`${what} at ${at} ms while the note still waits in the outbox`)
         })
       }

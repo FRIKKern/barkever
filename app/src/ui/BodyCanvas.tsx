@@ -34,6 +34,7 @@ export function BodyCanvas({note, s, handle}: Props) {
   useEffect(() => {
     let gone = false
     let flushing: ReturnType<typeof setTimeout> | undefined
+    let composing = false
     const onOps = (e: Event) => {
       const el = e.currentTarget as CanvasElement
       const {seq} = (e as CustomEvent<CanvasOps>).detail
@@ -53,8 +54,12 @@ export function BodyCanvas({note, s, handle}: Props) {
         flushing = undefined
         const upTo = savePoint(id, 'body')
         flush()
-        markSaved(id, 'body', upTo)
+        if (!composing) markSaved(id, 'body', upTo)
       }, FLUSH_MS)
+    }
+    const onCompose = (e: Event) => {
+      composing = e.type === 'compositionstart'
+      if (!composing) onInput()
     }
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
     const onOpen = (e: Event) => {
@@ -80,6 +85,8 @@ export function BodyCanvas({note, s, handle}: Props) {
         el.addEventListener('bp-canvas-open-link', onOpen)
         el.addEventListener('click', onClick)
         el.addEventListener('input', onInput)
+        el.addEventListener('compositionstart', onCompose)
+        el.addEventListener('compositionend', onCompose)
         el.dataset.testid = 'canvas'
         host.current.append(el)
         canvas.current = el
