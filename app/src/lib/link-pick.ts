@@ -12,8 +12,9 @@ export const PICKS = 8
 export function linkCandidates(notes: Note[], from: string, query: string, notebook: Named): Candidate[] {
   const ts = terms(query)
   const q = ts.join(' ')
+  const exact = query.trim().toLowerCase()
   const title = (n: Note) => n.title.toLowerCase()
-  const rank = (n: Note) => (title(n) === q ? 0 : title(n).startsWith(q) ? 1 : 2)
+  const rank = (n: Note) => (title(n) === exact ? 0 : title(n).startsWith(q) ? 1 : 2)
   return notes
     .filter((n) => n.id !== from && n.title.trim() && ts.every((t) => title(n).includes(t)))
     .sort((a, b) => rank(a) - rank(b) || newest(a, b))

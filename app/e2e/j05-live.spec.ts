@@ -41,11 +41,12 @@ async function newNote(page: Page, title: string) {
   return opened(page)!
 }
 
-async function leftOf(page: Page, text: string, steps: number) {
+async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: number) {
   const line = page.getByTestId('canvas').locator('p', {hasText: text})
   const box = (await line.boundingBox())!
   await line.click({position: {x: box.width - 2, y: box.height / 2}})
-  for (let i = 0; i < steps; i++) await page.keyboard.press('ArrowLeft')
+  if (edge === 'start') await page.keyboard.press('ControlOrMeta+ArrowLeft')
+  for (let i = 0; i < steps; i++) await page.keyboard.press(edge === 'start' ? 'ArrowRight' : 'ArrowLeft')
 }
 
 async function followFrom(page: Page, from: string, to: string) {
@@ -55,7 +56,7 @@ async function followFrom(page: Page, from: string, to: string) {
   await expect.poll(() => opened(page)).toBe(from)
 }
 
-test('J05 live titles: a typed [[Title]] links, a rename repaints every link without writing the linking note, Mod+Enter inside or beside a link follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
+test('J05 live titles: a typed [[Title]] links, a rename repaints every link without writing the linking note, Mod+Enter inside a link or on either side of it, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
   const context = await browser.newContext({storageState: test.info().project.use.storageState, colorScheme: 'dark'})
   const [page, other] = [await context.newPage(), await context.newPage()]
   const errors: string[] = []
@@ -72,14 +73,20 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   await page.keyboard.press('Enter')
   await page.keyboard.type('then the rest.')
   await page.keyboard.press('Enter')
-  await page.keyboard.type(`Again [[${TARGET.toUpperCase()}]] here.`)
+  await page.keyboard.type(`[[${TARGET.toUpperCase()}]] again here.`)
   await expect(links(page)).toHaveCount(2)
   await expect.poll(() => shown(page)).toEqual([TARGET, TARGET])
   await synced(page)
   await expect.poll(async () => JSON.stringify((await onServer(source))?.links), {timeout: 30_000}).toContain(target)
   const stored = JSON.stringify((await onServer(source))?.body)
-  await leftOf(page, 'then the rest.', ' then the rest.'.length + 1)
+  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length + 1)
   expect(await caretLink(page)).not.toBeNull()
+  await followFrom(page, source, target)
+  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length)
+  expect(await caretLink(page)).toBeNull()
+  await followFrom(page, source, target)
+  await caretAt(page, 'then the rest.', 'start', 'First '.length)
+  expect(await caretLink(page)).toBeNull()
   await followFrom(page, source, target)
 
   await other.goto(`/?n=${target}`)
@@ -91,7 +98,10 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
   await page.screenshot({path: test.info().outputPath('j05-live-title-dark-1440.png')})
 
-  await leftOf(page, 'then the rest.', ' then the rest.'.length)
+  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length)
+  expect(await caretLink(page)).toBeNull()
+  await followFrom(page, source, target)
+  await caretAt(page, 'again here.', 'start', 0)
   expect(await caretLink(page)).toBeNull()
   await followFrom(page, source, target)
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])

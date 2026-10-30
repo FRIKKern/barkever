@@ -57,6 +57,10 @@ test('a title typed whole ranks first, ahead of newer titles that start with it'
   const got = linkCandidates([note('exact', 'Kickoff', '2026-09-01'), ...many], 'x', 'kickoff', () => '')
   assert.equal(got[0].id, 'exact')
   assert.equal(got.length, PICKS)
+  for (const title of ['Tide  gauge', '#1 plan']) {
+    const newer = Array.from({length: 12}, (_, i) => note(`n${i}`, `${title} ${i}`, `2026-10-${String(i + 10).padStart(2, '0')}`))
+    assert.equal(linkCandidates([note('exact', title, '2026-09-01'), ...newer], 'x', title, () => '')[0].id, 'exact', title)
+  }
 })
 
 test('a link resolves to the note title, Untitled when blank, and missing when the note is gone', () => {
