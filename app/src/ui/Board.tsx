@@ -43,7 +43,7 @@ export const Board = forwardRef<BoardHandle, Props>(function Board({w, onMenu}, 
                   </Link>
                   {card.tasks.map((t, i) => (
                     <Link key={i} className={`tk${t.done ? ' done' : ''}${t.depth ? ' sub' : ''}`} to="/" search={{n: card.note, line: t.line}} title="Open at this line" data-testid="task">
-                      <span className="cb" aria-hidden />
+                      <span className="cb" role="img" aria-label={t.done ? 'done' : 'to do'} />
                       <span className="tt">{t.text}</span>
                       <span className="go" aria-hidden>
                         ↗ line

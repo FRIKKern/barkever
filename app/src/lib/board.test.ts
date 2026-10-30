@@ -18,7 +18,7 @@ const nb = (id: string, parent: string | null = null): Notebook => ({id, name: i
 const note = (id: string, blocks: Block[], extra: Partial<Note> = {}): Note => ({id, title: id, notebook: 'a', tags: [], blocks, links: [], updatedAt: '2026-10-01T00:00:00Z', rev: '', conflicts: [], gen: 0, ...extra})
 const text = (value: string) => [{type: 'text', value}]
 const checklist = (id: string, items: Item[]): Block => ({id, type: 'list', task: true, items})
-const spot = (line: string) => line.replace(/:[0-9a-z]+$/, '')
+const spot = (line: string) => line.replace(/:[0-9a-z]+:\d+$/, '')
 const lines = (b: ReturnType<typeof board>) => b.columns.flatMap((c) => c.cards.flatMap((card) => card.tasks.map((t) => `${card.note} ${spot(t.line)} ${t.depth} ${t.done ? 'x' : 'o'} ${t.text}`)))
 
 test('the fixtures: 14 checklists, 28 open and 14 done, one column per notebook in sidebar order', () => {
@@ -40,15 +40,20 @@ test('the fixtures: 14 checklists, 28 open and 14 done, one column per notebook 
       ['fx-note-00-t:3', false, 'Share the timeline'],
     ],
   )
-  assert.equal(kickoff.tasks[3].line, `fx-note-00-t:3:${textSum({text: 'Share the timeline'})}`)
+  assert.equal(kickoff.tasks[3].line, `fx-note-00-t:3:${textSum({text: 'Share the timeline'})}:0`)
 })
 
-test('a line key names the block, the item and a sum of its stored words, and reads back exactly', () => {
+test('a line key names the block, the item, a sum of its stored words and which twin it is, and reads back exactly', () => {
   const sum = textSum({text: 'Share the timeline'})
   assert.match(sum, /^[0-9a-z]{1,7}$/)
-  assert.deepEqual(lineOf(lineKey('fx-note-00-t', 3, {text: 'Share the timeline'})), {block: 'fx-note-00-t', item: 3, sum})
-  assert.deepEqual(lineOf('a:b:12:x9'), {block: 'a:b', item: 12, sum: 'x9'})
-  for (const bad of [undefined, '', 'abc', 'b:1', ':1:a', 'b::a', 'b:1:', 'b:-1:a', 'b:1.5:a', 'b: 1:a', 'b:1234567:a', 'b:1:ABC', 'b:1:12345678', 'b:1:a b']) assert.equal(lineOf(bad), undefined, String(bad))
+  assert.deepEqual(lineOf(lineKey('fx-note-00-t', 3, {text: 'Share the timeline'}, 2)), {block: 'fx-note-00-t', item: 3, sum, nth: 2})
+  assert.deepEqual(lineOf('a:b:12:x9:0'), {block: 'a:b', item: 12, sum: 'x9', nth: 0})
+  assert.deepEqual(lineOf('b:999999:zzzzzzz:999999'), {block: 'b', item: 999999, sum: 'zzzzzzz', nth: 999999})
+  const long = Array.from({length: 200}, (_, i) => textSum({text: `line ${i}`}))
+  assert.ok(long.some((x) => x.length === 7))
+  for (const x of long) assert.equal(lineOf(`b:0:${x}:0`)?.sum, x)
+  const bad = [undefined, '', 'abc', 'b:1:a', ':1:a:0', 'b::a:0', 'b:1::0', 'b:1:a:', 'b:-1:a:0', 'b:1.5:a:0', 'b: 1:a:0', 'b:1234567:a:0', 'b:1:ABC:0', 'b:1:12345678:0', 'b:1:a b:0', 'b:1:a:-1', 'b:1:a:1234567', 'b:1:a:x']
+  for (const x of bad) assert.equal(lineOf(x), undefined, String(x))
 })
 
 test('the sum reads stored words only: a tick, a renamed link target or a new item shape keep it; new words change it', () => {
@@ -59,30 +64,68 @@ test('the sum reads stored words only: a tick, a renamed link target or a new it
   assert.equal(textSum({text: 'Ask kari'}), base)
   const b = board([note('n', [checklist('c', [{content: [...text('Ask '), link]}])])], shelve([nb('a')]), () => 'Kari Eksempel')
   assert.equal(b.columns[0].cards[0].tasks[0].text, 'Ask Kari Eksempel')
-  assert.equal(b.columns[0].cards[0].tasks[0].line, `c:0:${base}`)
+  assert.equal(b.columns[0].cards[0].tasks[0].line, `c:0:${base}:0`)
   assert.notEqual(textSum({text: 'Ask Kari'}), base)
   assert.notEqual(textSum({text: 'Ask kari '}), base)
 })
 
-test('a stale line finds its words: added or removed lines above, a twin nearest the old place, another checklist; else it is gone', () => {
-  const key = lineKey('c', 1, {text: 'Buy stamps'})
-  const at = (blocks: Block[]) => findLine(blocks, key)
-  assert.deepEqual(at([checklist('c', [{text: 'Weigh'}, {text: 'Buy stamps'}])]), {block: 'c', item: 1})
-  assert.deepEqual(at([checklist('c', [{text: 'New'}, {text: 'Weigh'}, {text: 'Buy stamps'}])]), {block: 'c', item: 2})
-  assert.deepEqual(at([checklist('c', [{text: 'Buy stamps'}])]), {block: 'c', item: 0})
-  assert.deepEqual(at([checklist('c', [{text: 'Buy stamps'}, {text: 'x'}, {text: 'y'}, {text: 'Buy stamps'}])]), {block: 'c', item: 0})
-  assert.deepEqual(at([checklist('c', [{text: 'x'}, {text: 'y'}, {text: 'Buy stamps'}, {text: 'Buy stamps'}])]), {block: 'c', item: 2})
+test('a stale line finds its words: lines added or removed above, its own twin, the nearest twin when that twin is gone, another checklist; else it is gone', () => {
+  const at = (blocks: Block[], item = 1, nth = 0) => findLine(blocks, lineKey('c', item, {text: 'Buy stamps'}, nth))
+  const c = (...words: string[]) => [checklist('c', words.map((text) => ({text})))]
+  assert.deepEqual(at(c('Weigh', 'Buy stamps')), {block: 'c', item: 1})
+  assert.deepEqual(at(c('New', 'Weigh', 'Buy stamps')), {block: 'c', item: 2})
+  assert.deepEqual(at(c('Buy stamps')), {block: 'c', item: 0})
+  assert.deepEqual(at(c('New', 'Alpha', 'Buy stamps', 'Buy stamps', 'Omega'), 2, 1), {block: 'c', item: 3})
+  assert.deepEqual(at(c('New', 'Buy stamps', 'Buy stamps'), 1, 1), {block: 'c', item: 2})
+  assert.deepEqual(at(c('Buy stamps', 'Buy stamps'), 1, 0), {block: 'c', item: 0})
+  assert.deepEqual(at(c('Buy stamps', 'x', 'y', 'z', 'Buy stamps'), 3, 2), {block: 'c', item: 4})
+  assert.deepEqual(at(c('x', 'Buy stamps', 'y', 'z', 'Buy stamps'), 1, 2), {block: 'c', item: 1})
+  assert.deepEqual(at(c('Buy stamps'), 1, 1), {block: 'c', item: 0})
   assert.deepEqual(at([checklist('d', [{text: 'other'}]), checklist('e', [{text: 'x'}, {text: 'Buy stamps', checked: true}])]), {block: 'e', item: 1})
-  assert.deepEqual(at([checklist('c', [{text: 'Buy stamps'}, {text: 'Buy stamps'}])]), {block: 'c', item: 1})
   assert.deepEqual(at([checklist('d', [{text: 'x'}, {text: 'Buy stamps'}]), checklist('c', [{text: 'Buy stamps'}])]), {block: 'c', item: 0})
+  assert.deepEqual(at([checklist('d', [{text: 'x'}, {text: 'x'}, {text: 'Buy stamps'}]), checklist('c', [{text: 'Buy stamps'}, {text: 'y'}, {text: 'Buy stamps'}])], 2, 0), {block: 'c', item: 0})
   assert.deepEqual(at([checklist('d', [{text: 'other'}]), checklist('e', [{text: 'Buy stamps'}, {text: 'x'}, {text: 'Buy stamps'}])]), {block: 'e', item: 0})
   assert.equal(at([{id: 'c', type: 'list', task: true}]), 'gone')
-  assert.equal(at([checklist('c', [{text: 'Weigh'}, {text: 'Buy stamp'}])]), 'gone')
-  assert.equal(at([checklist('c', [])]), 'gone')
+  assert.equal(at(c('Weigh', 'Buy stamp')), 'gone')
+  assert.equal(at(c()), 'gone')
   assert.equal(at([{id: 'c', type: 'list', items: [text('Buy stamps')]}, {id: 'p', type: 'paragraph', content: text('Buy stamps')}]), 'gone')
   assert.equal(at([]), 'gone')
-  assert.equal(findLine([checklist('c', [{text: 'Buy stamps'}])], undefined), undefined)
-  assert.equal(findLine([checklist('c', [{text: 'Buy stamps'}])], 'c:0'), undefined)
+  assert.equal(findLine(c('Buy stamps'), undefined), undefined)
+  assert.equal(findLine(c('Buy stamps'), 'c:0'), undefined)
+})
+
+test('twins get their own keys in order, so each card row opens its own twin', () => {
+  const b = board([note('n', [checklist('c', [{text: 'Twin'}, {text: 'Alpha'}, {text: 'Twin'}, {text: 'Twin', checked: true}])])], shelve([nb('a')]), () => undefined)
+  const keys = b.columns[0].cards[0].tasks.map((t) => t.line)
+  assert.deepEqual(keys.map((k) => lineOf(k)!.nth), [0, 0, 1, 2])
+  const moved = [checklist('c', [{text: 'New'}, {text: 'Twin'}, {text: 'Alpha'}, {text: 'Twin'}, {text: 'Twin'}])]
+  assert.deepEqual(keys.map((k) => findLine(moved, k)), [{block: 'c', item: 1}, {block: 'c', item: 2}, {block: 'c', item: 3}, {block: 'c', item: 4}])
+})
+
+test('the board reuses the cards of an unchanged note and rebuilds a changed note or a renamed link target', () => {
+  const link = {type: 'wikilink', docId: 'kari', target: 'kari', children: text('kari')}
+  const same = note('same', [checklist('s', [{content: [...text('Ask '), link]}])])
+  const other = note('other', [checklist('o', [{text: 'Pack'}])])
+  const first = board([same, other], shelve([nb('a')]), () => 'Kari')
+  const card = (b: ReturnType<typeof board>, id: string) => b.columns.flatMap((c) => c.cards).find((x) => x.note === id)!
+  const again = board([same, {...other, blocks: [checklist('o', [{text: 'Pack'}, {text: 'Seal'}])]}], shelve([nb('a')]), () => 'Kari')
+  assert.equal(card(again, 'same'), card(first, 'same'))
+  assert.deepEqual(card(again, 'other').tasks.map((t) => t.text), ['Pack', 'Seal'])
+  const renamed = board([same, other], shelve([nb('a')]), (id) => (id === 'kari' ? 'Kari Nordmann' : undefined))
+  assert.deepEqual(card(renamed, 'same').tasks.map((t) => t.text), ['Ask Kari Nordmann'])
+})
+
+test('a save at 5000 notes with 30 lines each rebuilds the board in under 16 ms', () => {
+  const notes = Array.from({length: 5000}, (_, i) => note(`n${i}`, [checklist(`c${i}`, Array.from({length: 30}, (_, j) => ({text: `line ${j} of ${i}`, checked: j % 3 === 0})))], {notebook: `nb${i % 7}`}))
+  const shelf = shelve(Array.from({length: 7}, (_, i) => nb(`nb${i}`)))
+  board(notes, shelf, () => undefined)
+  const saved = notes.map((n, i) => (i === 42 ? {...n, blocks: [checklist('c42', [{text: 'changed'}])]} : n))
+  const runs = Array.from({length: 5}, () => {
+    const t = performance.now()
+    board(saved, shelf, () => undefined)
+    return performance.now() - t
+  }).sort((a, b) => a - b)
+  assert.ok(runs[2] < 16, `median ${runs[2].toFixed(1)} ms`)
 })
 
 test('every item shape counts: inline arrays, content and plain text; a blank line is no task but keeps its place', () => {

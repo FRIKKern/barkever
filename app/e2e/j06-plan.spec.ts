@@ -5,7 +5,7 @@ import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 test.describe.configure({mode: 'serial', timeout: 120_000})
 
 const KICKOFF = 'fx-note-00'
-const KICKOFF_LINE = lineKey('fx-note-00-t', 3, {text: 'Share the timeline'})
+const KICKOFF_LINE = lineKey('fx-note-00-t', 3, {text: 'Share the timeline'}, 0)
 const TITLE = 'Post office run'
 const TASK = 'Buy stamps'
 const SUB = 'Ask for a receipt'
@@ -120,13 +120,14 @@ test('J06 plan: checklist lines are cards on the Tasks board; a card opens its n
   await expect(inbox.getByTestId('task-card').filter({hasText: TITLE}).getByTestId('task')).toHaveText([new RegExp(TASK), new RegExp(SUB)])
   await expect(task(page, SUB)).toHaveClass(/\bsub\b/)
   await expect(task(page, TASK)).not.toHaveClass(/\bsub\b/)
+  await expect(task(page, TASK)).toHaveAccessibleName(`to do ${TASK}`)
   const parentLine = new URL(await task(page, TASK).getAttribute('href') ?? '', 'http://x').searchParams.get('line')
   expect(new URL(await task(page, SUB).getAttribute('href') ?? '', 'http://x').searchParams.get('line')).toBe(parentLine)
 
   await task(page, TASK).click()
   expect(opened(page)).toBe(id)
   const line = search(page).line
-  expect(line).toMatch(/.:0:[0-9a-z]+$/)
+  expect(line).toMatch(/.:0:[0-9a-z]+:0$/)
   made = {id, line}
   await atLine(page, line)
   await page.screenshot({path: test.info().outputPath('j06-at-line-dark-1440.png')})
@@ -138,6 +139,7 @@ test('J06 plan: checklist lines are cards on the Tasks board; a card opens its n
   await page.getByTestId('side-tasks').click()
   await tallied(page, {open: before.open + 1, done: before.done + 1, lists: before.lists + 1})
   await expect(task(page, TASK)).toHaveClass(/\bdone\b/)
+  await expect(task(page, TASK)).toHaveAccessibleName(`done ${TASK}`)
   await page.getByTestId('task-card').filter({hasText: TITLE}).getByRole('link', {name: TITLE}).click()
   expect(search(page)).toEqual({n: id})
   await page.goBack()
@@ -198,7 +200,7 @@ test.describe('with the editor blocked', () => {
   })
 })
 
-test('J06 remote: a line added above moves the mark with its line; a checklist deleted while the board is open takes its card, and its old link says the line is gone', async ({page}) => {
+test('J06 remote: a line added above moves the mark with its own line, twins too; a checklist deleted while the board is open takes its card, and its old link says the line is gone', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
@@ -208,28 +210,29 @@ test('J06 remote: a line added above moves the mark with its line; a checklist d
   const item = (value: string) => ({content: [{type: 'text', value}], checked: false})
   const body = (items?: ReturnType<typeof item>[]) => ({blocks: [{id: `${id}-p0`, type: 'paragraph', content: [{type: 'text', value: 'Ship it Friday.'}]}, ...(items ? [{id: block, type: 'list', task: true, items}] : [])]})
   const write = async (mutations: unknown[]) => expect((await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations})})).ok).toBe(true)
-  await write([{createOrReplace: {_id: id, _type: 'note', title: REMOTE, notebook: {_type: 'reference', _ref: 'fx-nb-inbox'}, tags: [], links: [], body: body([item('Pack the box'), item('Print the label')])}}, {publish: {id, type: 'note'}}])
+  await write([{createOrReplace: {_id: id, _type: 'note', title: REMOTE, notebook: {_type: 'reference', _ref: 'fx-nb-inbox'}, tags: [], links: [], body: body([item('Print the label'), item('Pack the box'), item('Print the label')])}}, {publish: {id, type: 'note'}}])
 
   await page.goto('/?view=tasks')
-  await expect(task(page, 'Print the label')).toBeVisible({timeout: 30_000})
-  const old = await linkOf(task(page, 'Print the label'))
-  expect(spotOf(old)).toMatchObject({block, item: 1})
-  await task(page, 'Print the label').click()
+  await expect(task(page, 'Print the label')).toHaveCount(2, {timeout: 30_000})
+  const twin = task(page, 'Print the label').nth(1)
+  const old = await linkOf(twin)
+  expect(spotOf(old)).toMatchObject({block, item: 2, nth: 1})
+  await twin.click()
   await atLine(page, old)
   await expect(page.locator('body')).toBeVisible()
 
-  await write([{patch: {id, type: 'note', set: {body: body([item('Find the address'), item('Pack the box'), item('Print the label')])}}}])
-  await expect(page.getByTestId('canvas').locator('[data-type="taskList"] li p')).toHaveText(['Find the address', 'Pack the box', 'Print the label'], {timeout: 15_000})
+  await write([{patch: {id, type: 'note', set: {body: body([item('Find the address'), item('Print the label'), item('Pack the box'), item('Print the label')])}}}])
+  await expect(page.getByTestId('canvas').locator('[data-type="taskList"] li p')).toHaveText(['Find the address', 'Print the label', 'Pack the box', 'Print the label'], {timeout: 15_000})
   expect(search(page).line).toBe(old)
-  await atLine(page, {block, item: 2})
+  await atLine(page, {block, item: 3})
   await expect(lineAt(page, old)).not.toHaveCSS('background-color', await markColour(page))
 
   await page.goBack()
-  await expect(page.getByTestId('task-card').filter({hasText: REMOTE}).getByTestId('task')).toHaveText([/Find the address/, /Pack the box/, /Print the label/])
+  await expect(page.getByTestId('task-card').filter({hasText: REMOTE}).getByTestId('task')).toHaveText([/Find the address/, /Print the label/, /Pack the box/, /Print the label/])
   const before = await tally(page)
   await write([{patch: {id, type: 'note', set: {body: body()}}}])
   await expect(page.getByTestId('task-card').filter({hasText: REMOTE})).toHaveCount(0, {timeout: 15_000})
-  await tallied(page, {open: before.open - 3, done: before.done, lists: before.lists - 1})
+  await tallied(page, {open: before.open - 4, done: before.done, lists: before.lists - 1})
 
   await page.goto(`/?n=${id}&line=${encodeURIComponent(old)}`)
   await expect(page.getByTestId('title')).toHaveValue(REMOTE, {timeout: 30_000})
@@ -243,7 +246,7 @@ test('J06 on a phone, offline: the board stacks its columns, a line opens marked
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
   await page.setViewportSize({width: 390, height: 844})
-  await page.goto(`/?n=${KICKOFF}&line=nowhere:0:abc`)
+  await page.goto(`/?n=${KICKOFF}&line=nowhere:0:abc:0`)
   await expect(page.getByTestId('canvas')).toBeVisible({timeout: 30_000})
   await expect(page.getByTestId('title')).toHaveValue('Harbor redesign: kickoff')
   await expect(page.getByTestId('line-gone')).toBeVisible()
@@ -256,6 +259,7 @@ test('J06 on a phone, offline: the board stacks its columns, a line opens marked
   const [a, b] = await page.getByTestId('board-column').evaluateAll((cols) => cols.slice(0, 2).map((c) => c.getBoundingClientRect()))
   expect(b.top).toBeGreaterThan(a.bottom - 1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await expect(task(page, 'Share the timeline').locator('.go')).toBeHidden()
   await page.screenshot({path: test.info().outputPath('j06-board-dark-390.png'), fullPage: true})
 
   await context.setOffline(true)

@@ -17,11 +17,11 @@ export function textSum(it: Item): string {
   return (h >>> 0).toString(36)
 }
 
-export const lineKey = (block: string, item: number, it: Item) => `${block}:${item}:${textSum(it)}`
+export const lineKey = (block: string, item: number, it: Item, nth: number) => `${block}:${item}:${textSum(it)}:${nth}`
 
-export function lineOf(line?: string): (Spot & {sum: string}) | undefined {
-  const m = line?.match(/^(.+):(\d{1,6}):([0-9a-z]{1,7})$/)
-  return m ? {block: m[1], item: Number(m[2]), sum: m[3]} : undefined
+export function lineOf(line?: string): (Spot & {sum: string; nth: number}) | undefined {
+  const m = line?.match(/^(.+):(\d{1,6}):([0-9a-z]{1,7}):(\d{1,6})$/)
+  return m ? {block: m[1], item: Number(m[2]), sum: m[3], nth: Number(m[4])} : undefined
 }
 
 const isChecklist = (b: Block) => b.type === 'list' && b.task === true
@@ -32,7 +32,8 @@ export function findLine(blocks: Block[], line?: string): Spot | 'gone' | undefi
   const lists = blocks.filter(isChecklist)
   const hits = (b: Block) => (b.items ?? []).flatMap((it, i) => (textSum(it) === at.sum ? [i] : []))
   const own = lists.find((b) => b.id === at.block)
-  const near = own && hits(own).sort((x, y) => Math.abs(x - at.item) - Math.abs(y - at.item))[0]
+  const twins = own ? hits(own) : []
+  const near = at.nth < twins.length ? twins[at.nth] : twins.sort((x, y) => Math.abs(x - at.item) - Math.abs(y - at.item))[0]
   if (near !== undefined) return {block: at.block, item: near}
   const moved = lists.find((b) => hits(b).length)
   return moved ? {block: moved.id, item: hits(moved)[0]} : 'gone'
@@ -49,11 +50,35 @@ function tasksIn(items: Item[], line: (i: number) => string, depth: number, titl
   })
 }
 
+function keysOf(block: string, items: Item[]): string[] {
+  const sums = items.map(textSum)
+  return items.map((it, i) => lineKey(block, i, it, sums.slice(0, i).filter((s) => s === sums[i]).length))
+}
+
 function cardsOf(n: Note, title: Title): Card[] {
   return n.blocks
     .filter(isChecklist)
-    .map((b) => ({note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b.items ?? [], (i) => lineKey(b.id, i, b.items![i]), 0, title)}))
+    .map((b) => {
+      const keys = keysOf(b.id, b.items ?? [])
+      return {note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b.items ?? [], (i) => keys[i], 0, title)}
+    })
     .filter((c) => c.tasks.length)
+}
+
+type Planned = {cards: Card[]; titles: [string | undefined, string | undefined][]}
+const planned = new WeakMap<Note, Planned>()
+
+function plan(n: Note, title: Title): Card[] {
+  const hit = planned.get(n)
+  if (hit && hit.titles.every(([id, t]) => title(id) === t)) return hit.cards
+  const titles: Planned['titles'] = []
+  const cards = cardsOf(n, (id) => {
+    const t = title(id)
+    titles.push([id, t])
+    return t
+  })
+  planned.set(n, {cards, titles})
+  return cards
 }
 
 const count = (cards: Card[], state: boolean) => cards.reduce((sum, c) => sum + c.tasks.filter((t) => t.done === state).length, 0)
@@ -61,10 +86,12 @@ const count = (cards: Card[], state: boolean) => cards.reduce((sum, c) => sum + 
 export function board(notes: Note[], shelf: Shelf, title: Title): Board {
   const rank = new Map(shelf.roots.flatMap((nb) => [nb, ...shelf.children(nb.id)]).map((nb, i) => [nb.id, i]))
   const byNotebook = new Map<string | null, Card[]>()
-  const planned = notes.map((n) => ({n, cards: cardsOf(n, title)})).filter((x) => x.cards.length)
-  for (const {n, cards} of planned.sort((a, b) => newest(a.n, b.n))) {
+  const withCards = notes.map((n) => ({n, cards: plan(n, title)})).filter((x) => x.cards.length)
+  for (const {n, cards} of withCards.sort((a, b) => newest(a.n, b.n))) {
     const home = n.notebook && shelf.byId.has(n.notebook) ? n.notebook : null
-    byNotebook.set(home, [...(byNotebook.get(home) ?? []), ...cards])
+    const column = byNotebook.get(home)
+    if (column) column.push(...cards)
+    else byNotebook.set(home, [...cards])
   }
   const at = (id: string | null) => (id === null ? rank.size + 1 : rank.get(id) ?? rank.size)
   const columns = [...byNotebook]

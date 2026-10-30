@@ -27,5 +27,5 @@
   .board-h b { display: none; }
   .cols { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; }
   .tk { padding: var(--sp-1) 0; }
-  .tk .go { position: static; margin-left: auto; opacity: 1; }
+  .tk .go { display: none; }
 }
