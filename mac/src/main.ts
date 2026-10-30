@@ -1,6 +1,9 @@
-import {app, BrowserWindow, dialog, safeStorage, shell, utilityProcess, type UtilityProcess} from 'electron'
+import {app, BrowserWindow, dialog, ipcMain, safeStorage, shell, utilityProcess, type UtilityProcess} from 'electron'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
+import {budget, DAILY_TOKENS} from './ai/budget.ts'
+import {childEnv} from './ai/provider.ts'
+import {askHandler, installed} from './ai/serve.ts'
 import {installMenu} from './menu.ts'
 import {HOST, installPort} from './port.ts'
 import {serverEnv} from './server-env.ts'
@@ -10,6 +13,7 @@ import {openVault} from './vault.ts'
 
 const DIST = fileURLToPath(new URL('../../app/dist', import.meta.url))
 const SERVER = fileURLToPath(new URL('./server.ts', import.meta.url))
+const PRELOAD = fileURLToPath(new URL('./preload.cjs', import.meta.url))
 
 if (process.env.BARKEVER_USER_DATA) app.setPath('userData', process.env.BARKEVER_USER_DATA)
 
@@ -24,7 +28,7 @@ function startServer(port: number, env: Record<string, string>): Promise<Utility
 const web = (url: string) => /^https?:/.test(url)
 
 function open(origin: string) {
-  const win = new BrowserWindow({width: 1280, height: 820, minWidth: 640, minHeight: 480, title: 'Barkever', show: false})
+  const win = new BrowserWindow({width: 1280, height: 820, minWidth: 640, minHeight: 480, title: 'Barkever', show: false, webPreferences: {preload: PRELOAD}})
   win.once('ready-to-show', () => win.show())
   win.webContents.setWindowOpenHandler(({url}) => (web(url) && void shell.openExternal(url), {action: 'deny'}))
   win.webContents.on('will-navigate', (e, url) => {
@@ -45,7 +49,12 @@ async function start() {
   const origin = `http://${HOST}:${port}`
   const server = await startServer(port, serverEnv(process.env, vault.secret, knownPath(home)))
   app.on('will-quit', () => server.kill())
-  void loginShellPath().then((path) => path && server.postMessage({path: mergePath(path, knownPath(home))}))
+  const shellPath = loginShellPath()
+  void shellPath.then((path) => path && server.postMessage({path: mergePath(path, knownPath(home))}))
+  let tools = knownPath(home)
+  void shellPath.then((path) => (tools = mergePath(tools, path)))
+  const spend = budget(join(data, 'ai-budget.json'), DAILY_TOKENS)
+  ipcMain.handle('barkever:ask', askHandler(origin, () => ({providers: installed(tools), budget: spend, env: childEnv(process.env, tools)})))
   await keepSession(origin, vault)
   open(origin)
   app.on('activate', () => BrowserWindow.getAllWindows().length || open(origin))

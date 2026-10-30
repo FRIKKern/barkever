@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+const {readFileSync, writeFileSync} = require('node:fs')
+const {hangs, record, refusal, reply} = require('./answer.cjs')
+
+const args = process.argv.slice(2)
+const joined = args.join(' ')
+const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
+const need = ['exec --json', '--sandbox read-only', '--ignore-user-config', '--ignore-rules', '--ephemeral', '--output-schema schema.json', '--output-last-message answer.json']
+const flags = [...need.map((n) => ({name: `missing ${n}`, ok: joined.includes(n)})), ...['shell_tool', 'unified_exec', 'apps', 'plugins', 'multi_agent', 'hooks'].map((f) => ({name: `${f} is on`, ok: joined.includes(`--disable ${f}`)}))]
+const system = JSON.parse(args.find((a) => a.startsWith('developer_instructions=')).slice('developer_instructions='.length))
+const prompt = readFileSync(0, 'utf8')
+record('codex', {args, system, prompt})
+if (hangs('codex')) return
+const wrong = refusal('codex', flags, ['schema.json'])
+out({type: 'thread.started', thread_id: 'fake'})
+if (wrong) {
+  out({type: 'turn.failed', error: {message: wrong}})
+  process.exit(1)
+}
+JSON.parse(readFileSync('schema.json', 'utf8'))
+writeFileSync('answer.json', JSON.stringify(reply('codex', prompt)))
+out({type: 'turn.completed', usage: {input_tokens: 700, cached_input_tokens: 100, output_tokens: 50}})

@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+const {createInterface} = require('node:readline')
+const {hangs, record, refusal, reply} = require('./answer.cjs')
+
+const args = process.argv.slice(2)
+const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
+const after = (flag) => args[args.indexOf(flag) + 1]
+const flags = [
+  {name: 'settings are read', ok: args.includes('--setting-sources=')},
+  {name: 'MCP config is not strict', ok: args.includes('--strict-mcp-config') && !args.includes('--mcp-config')},
+  {name: 'tools are on', ok: args.includes('--tools') && after('--tools') === ''},
+  {name: 'no JSON schema', ok: args.includes('--json-schema')},
+]
+let system = ''
+
+createInterface({input: process.stdin}).on('line', (line) => {
+  const m = JSON.parse(line)
+  if (m.type === 'control_request') {
+    system = [m.request.systemPrompt].flat().join('')
+    return out({type: 'control_response', response: {subtype: 'success', request_id: m.request_id, response: {}}})
+  }
+  if (m.type !== 'user') return
+  const prompt = m.message.content.map((c) => c.text).join('')
+  record('claude', {args, system, prompt})
+  if (hangs('claude')) return
+  const wrong = refusal('claude', flags)
+  const base = {session_id: 's', uuid: 'u', duration_ms: 1, duration_api_ms: 1, num_turns: 1}
+  if (wrong) {
+    out({...base, type: 'result', subtype: 'error_during_execution', is_error: true, errors: [wrong], total_cost_usd: 0, usage: {}})
+    process.exit(1)
+  }
+  out({type: 'system', subtype: 'init', model: 'fake-sonnet', session_id: 's', uuid: 'u', tools: [], mcp_servers: []})
+  const usage = {input_tokens: 900, output_tokens: 100, cache_creation_input_tokens: 0, cache_read_input_tokens: 0}
+  out({...base, type: 'result', subtype: 'success', is_error: false, result: '', structured_output: reply('claude', prompt), total_cost_usd: 0.002, usage})
+  process.exit(0)
+})
