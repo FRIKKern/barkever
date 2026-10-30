@@ -34,18 +34,15 @@ export function BodyCanvas({note, s, handle}: Props) {
   useEffect(() => {
     let gone = false
     let flushing: ReturnType<typeof setTimeout> | undefined
-    let saving = 0
     const onOps = (e: Event) => {
       const el = e.currentTarget as CanvasElement
       const {seq} = (e as CustomEvent<CanvasOps>).detail
       const requestId = `local-${seq}`
       const base = structuredClone(el.blocks)
       const upTo = savePoint(id, 'body')
-      saving++
       el.identifyOpsRequest(seq, requestId)
       el.acknowledgeOps(seq, true)
       void editBody(id, base, structuredClone(el.blocks)).then((saved) => {
-        saving--
         markSaved(id, 'body', upTo)
         if (saved) el.applyServerBlocks(saved, {mode: 'own', requestId})
       })
@@ -56,7 +53,7 @@ export function BodyCanvas({note, s, handle}: Props) {
         flushing = undefined
         const upTo = savePoint(id, 'body')
         flush()
-        if (!saving && !canvas.current?.hasPendingChanges()) markSaved(id, 'body', upTo)
+        markSaved(id, 'body', upTo)
       }, FLUSH_MS)
     }
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})

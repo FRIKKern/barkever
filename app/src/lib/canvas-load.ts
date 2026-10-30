@@ -11,7 +11,6 @@ export type CanvasElement = HTMLElement & {
   identifyOpsRequest(seq: number, requestId: string): void
   applyServerBlocks(blocks: Block[], o?: {mode: 'own'; requestId: string}): void
   flushPendingChanges(): boolean
-  hasPendingChanges(): boolean
   acknowledgeOps(seq: number, ok: boolean): void
 }
 
