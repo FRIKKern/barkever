@@ -27,6 +27,6 @@ Per-user prefs (`/w/barkever/p/default/v1/prefs/<dataset>/<key>`, value is an ob
 
 Writes are `PATCH {op, field: "ids", item, max?}`: `push_front` for recents, `add` / `remove` for shortcuts. Each op is idempotent, so a star queued offline (replica `meta` key `stars`) replays safely. Values written whole before PATCH also carry `"v": 1`; readers ignore it. Barkpark refuses a value over 16 KB with 422: the star is dropped and the sidebar shows what Barkpark holds.
 
-Leftover run datasets older than 2 hours: `node --experimental-strip-types app/e2e/sweep.ts` lists them, `--yes` deletes them. It only matches `e2e-`, `j10-`, `probe-p3g-` and `probe-p3h-` followed by a 14-digit stamp.
+Leftover run datasets older than 2 hours: `node --experimental-strip-types app/e2e/sweep.ts` lists them, `--yes` deletes them. It only matches `e2e-`, `j10-`, `probe-p3g-` and `probe-p3h-` followed by a 14-digit stamp. It deletes one at a time: a `202` means Barkpark is still deleting, so the same `DELETE` goes again every 2 s until `200` or `404` (cap 10 min), and the sweep stops at the first dataset that is not gone.
 
 Apply: `bp -w barkever -d <dataset> schema apply --file contracts/barkpark/<file>.json --yes`
