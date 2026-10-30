@@ -20,7 +20,7 @@ for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
 }
 
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
-step("rebase onto main", "git", ["rebase", "-q", "main"], dir);
+step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir);
 step("npm run check", "npm", ["run", "check"], dir);
 const changed = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
 const textOnly = changed.length > 0 && changed.every((f) => /^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$/.test(f));
