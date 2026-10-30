@@ -37,7 +37,8 @@ test.describe('signed out', () => {
     expect(cookie?.sameSite).toBe('Lax')
     const token = sessionToken(cookie!.value)
     expect(typeof token === 'string' && token.length > 0, 'the cookie unseals only with the server secret').toBe(true)
-    const needles = [{name: 'session token', value: token!}, {name: 'bp CLI token', value: cli().token}, ...serverSecrets()]
+    const secrets = serverSecrets()
+    const needles = [{name: 'session token', value: token!}, {name: 'bp CLI token', value: cli().token}, ...secrets.needles]
     expect(needles.map(({name}) => name)).toEqual(expect.arrayContaining(['BARKEVER_SESSION_SECRET', 'BARKPARK_TOKEN']))
 
     const pageCookie = await page.evaluate(() => document.cookie)
@@ -58,7 +59,7 @@ test.describe('signed out', () => {
     ]
     expect(hits).toEqual([])
     console.log(
-      `P3f: searched ${served.files.length} served files (${served.built} built, ${served.editor} editor), ${seen.length} responses and headers, ${streams} event stream(s) up to welcome, the page and document.cookie for ${needles.length} secrets (${needles.map(({name}) => name).join(', ')}) and the bp token shape: 0 hits`,
+      `P3f: searched ${served.files.length} served files (${served.built} built, ${served.editor} editor), ${seen.length} responses and headers, ${streams} event stream(s) up to welcome, the page and document.cookie for ${needles.length} secrets (${needles.map(({name}) => name).join(', ')}) and the bp token shape: 0 hits; under 16 characters, not searched: ${secrets.short.join(', ') || 'none'}`,
     )
 
     await page.getByTestId('sign-out').click()
