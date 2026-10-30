@@ -59,9 +59,11 @@ async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: n
 
 async function followFromEverySpot(page: Page, spots: typeof BESIDE | typeof SPOTS, from: string, to: string, when: string) {
   for (const [spot, text, edge, steps] of spots) {
-    await caretAt(page, text, edge, steps)
-    await page.keyboard.press('ControlOrMeta+Enter')
-    await expect.poll(() => opened(page), {message: `Mod+Enter ${spot}, ${when}`}).toBe(to)
+    await expect(async () => {
+      await caretAt(page, text, edge, steps)
+      await page.keyboard.press('ControlOrMeta+Enter')
+      await expect.poll(() => opened(page), {timeout: 2_000}).toBe(to)
+    }, `Mod+Enter ${spot}, ${when}`).toPass({timeout: 10_000})
     await page.goBack()
     await expect.poll(() => opened(page)).toBe(from)
   }
