@@ -24,7 +24,8 @@ for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
 const touched = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
 const isText = (files) => files.length > 0 && files.every((f) => /^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$/.test(f));
 const head = git(["rev-parse", branch], dir);
-if (!isText(touched) && !(reviewed && reviewed.length >= 7 && head.startsWith(reviewed))) {
+const samePatch = (sha) => { try { const patch = git(["diff", `main...${branch}`], dir); return patch !== "" && git(["diff", `main...${sha}`], dir) === patch; } catch { return false; } };
+if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(reviewed) || samePatch(reviewed)))) {
   console.error(`land: ${branch} is at ${head.slice(0, 10)}; pass --reviewed <the sha the reviewer passed>. A head that moved after review needs a delta review first`);
   process.exit(1);
 }
