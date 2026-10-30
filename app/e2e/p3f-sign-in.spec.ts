@@ -1,10 +1,11 @@
 import {readdirSync} from 'node:fs'
-import {fileURLToPath} from 'node:url'
+import {join} from 'node:path'
 import {expect, test, type BrowserContext, type Page} from '@playwright/test'
 import {ACCOUNT, cli, sessionToken} from './account'
-import {prefIds as ids} from './fixtures-cleanup'
+import {DATASET, prefIds as ids} from './fixtures-cleanup'
+import {APP, buildDir} from './run'
 
-const CLIENT = fileURLToPath(new URL('../dist/client/', import.meta.url))
+const CLIENT = join(APP, buildDir(DATASET, 'app'), 'client')
 const servedJs = () => (readdirSync(CLIENT, {recursive: true}) as string[]).filter((f) => f.endsWith('.js')).map((f) => `/${f}`)
 
 const session = async (context: BrowserContext) => (await context.cookies()).find((c) => c.name === 'bk_session')
@@ -48,7 +49,13 @@ test.describe('signed out', () => {
     expect(pageCookie.includes('bk_session')).toBe(false)
     const assets = servedJs()
     expect(assets.length).toBeGreaterThan(0)
-    const served = await Promise.all(assets.map(async (p) => ({p, text: await (await page.request.get(p)).text()})))
+    const served = await Promise.all(
+      assets.map(async (p) => {
+        const res = await page.request.get(p)
+        return {p, status: res.status(), type: res.headers()['content-type'] ?? '', text: await res.text()}
+      }),
+    )
+    expect(served.filter(({status, type}) => status !== 200 || !type.includes('javascript')).map(({p, status, type}) => `${p} ${status} ${type}`)).toEqual([])
     const hits = [
       ...leaks('cookie value', cookie!.value),
       ...leaks('document.cookie', pageCookie),
