@@ -17,8 +17,8 @@
 .blocks li > ul, .blocks li > ol { margin: 0; }
 .blocks ul.tasks li > ul, .blocks ul.tasks li > ol { flex-basis: 100%; margin-left: calc(var(--sp-4) + var(--sp-2)); }
 .blocks .cb { flex: none; width: var(--sp-4); height: var(--sp-4); margin-top: var(--sp-1); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
-.blocks li.done .cb { background: var(--c-accent); border-color: var(--c-accent); }
-.blocks li.done .li-t { color: var(--c-muted); text-decoration: line-through; }
+.blocks li.done > .cb { background: var(--c-accent); border-color: var(--c-accent); }
+.blocks li.done > .li-t { color: var(--c-muted); text-decoration: line-through; }
 .wl { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); white-space: nowrap; }
 .wl::before { content: "↗ "; font-size: .8em; opacity: .7; }
 .wl:hover { background: var(--c-accent); color: var(--c-on-accent); }

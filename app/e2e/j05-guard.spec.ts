@@ -45,7 +45,7 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
     {id: 'pe', type: 'paragraph', content: [{type: 'text', value: '', text: 'Empty value'}]},
     {id: 'pv', type: 'paragraph', content: [{type: 'text', value: 'Value', text: 'Text'}]},
     {id: 'ls', type: 'list', items: ['String item', {content: [text('Top')], children: [{id: 'c', type: 'list', items: [[text('Nested item')]]}]}]},
-    {id: 'lt', type: 'list', task: true, items: ['Open task', {content: [text('Done task')], checked: true, children: [{id: 'c2', type: 'list', items: [[text('Sub task')]]}]}]},
+    {id: 'lt', type: 'list', task: true, items: ['Open task', {content: [text('Done task')], checked: true, children: [{id: 'c2', type: 'list', task: true, items: ['Sub task']}]}]},
   ]
   const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: {_id: SHAPES, _type: 'note', title: 'Old shapes', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}}]})})
   expect(res.status).toBe(200)
@@ -60,6 +60,9 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   await expect(body.locator('li.done')).toHaveText('Done taskSub task')
   const [task, sub] = await Promise.all([body.locator('li.done .li-t'), body.getByText('Sub task')].map((l) => l.boundingBox()))
   expect(sub!.y, 'a nested item sits under its task, not beside it').toBeGreaterThan(task!.y + task!.height - 1)
+  const open = await body.locator('li:not(.done) > .cb').first().evaluate((e) => getComputedStyle(e).backgroundColor)
+  await expect(body.locator('li.done li .li-t'), 'an open sub-task under a done task is not struck through').toHaveCSS('text-decoration-line', 'none')
+  await expect(body.locator('li.done li .cb'), 'an open sub-task under a done task has an open box').toHaveCSS('background-color', open)
   await expect(body.locator('a.wl')).toHaveAttribute('href', /n=fx-note-01/)
   await page.screenshot({path: test.info().outputPath('j05-guard-shapes-dark-1440.png')})
   await page.setViewportSize({width: 390, height: 844})

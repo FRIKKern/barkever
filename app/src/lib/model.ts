@@ -16,6 +16,8 @@ export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{t
 
 export const nestedOf = (it: Item): Block[] => (it as {children?: Block[]}).children ?? []
 
+export const leafText = (x: Inline): string | undefined => x.value || x.text
+
 export type Title = (id?: string) => string | undefined
 
 export const titleIn =
@@ -28,7 +30,7 @@ export const titleIn =
 const stored: Title = () => undefined
 
 function inline(c: Inline[], title: Title): string {
-  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : x.value || x.text || inline(x.children ?? [], title))).join('')
+  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : leafText(x) || inline(x.children ?? [], title))).join('')
 }
 
 export function linkWords(x: Inline, title: Title): string {
