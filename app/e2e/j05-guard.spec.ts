@@ -38,6 +38,7 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
     {id: 'h1', type: 'heading', level: 2, text: '', content: [{type: 'strong', children: [text('Saved empty, then bold')]}]},
     {id: 'h0', type: 'heading', level: 3},
     {id: 'h4', type: 'heading', level: 3, text: '', content: [text('Third level')]},
+    {id: 'h5', type: 'heading', level: 3, text: 'Third, text only'},
     {id: 'p0', type: 'paragraph'},
     {id: 'p', type: 'paragraph', content: [text('See '), {type: 'wikilink', target: 'Old name', docId: 'fx-note-01', children: [text('Old name')]}, text(' and '), {type: 'strong'}, {type: 'strong', children: [text('bold')]}, text('.')]},
     {id: 'pt', type: 'paragraph', text: 'Plain paragraph'},
@@ -54,11 +55,11 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   await page.goto(`/?n=${SHAPES}`)
   const body = page.getByTestId('body')
   await expect(body.locator('h2')).toHaveText(['Old heading', 'Saved empty, then bold'], {timeout: 30_000})
-  await expect(body.locator('h3')).toHaveText(['', 'Third level'])
+  await expect(body.locator('h3')).toHaveText(['', 'Third level', 'Third, text only'])
   await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf', 'Empty value', 'Value'])
   await expect(body.locator('li')).toHaveText(['String item', 'TopNested item', 'Nested item', 'Open task', 'Done taskSub task', 'Sub task'])
   await expect(body.locator('li.done')).toHaveText('Done taskSub task')
-  const [task, sub] = await Promise.all([body.locator('li.done .li-t'), body.getByText('Sub task')].map((l) => l.boundingBox()))
+  const [task, sub] = await Promise.all([body.locator('li.done > .li-t'), body.getByText('Sub task')].map((l) => l.boundingBox()))
   expect(sub!.y, 'a nested item sits under its task, not beside it').toBeGreaterThan(task!.y + task!.height - 1)
   const open = await body.locator('li:not(.done) > .cb').first().evaluate((e) => getComputedStyle(e).backgroundColor)
   await expect(body.locator('li.done li .li-t'), 'an open sub-task under a done task is not struck through').toHaveCSS('text-decoration-line', 'none')
