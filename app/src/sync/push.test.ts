@@ -88,4 +88,5 @@ test('a field the note no longer has is unset at Barkpark, not left behind', () 
   const m = mutationFor({id: 'n1', base, v: 1, at: 0}, note('r1', 'T', [], 'dev-me')) as {patch: {set: object; unset?: string[]}}
   assert.deepEqual([m.patch.unset, 'notebook' in m.patch.set], [['notebook'], false])
   assert.ok(!('unset' in (mutationFor({id: 'n1', base, v: 1, at: 0}, {...base, title: 'U'}) as {patch: object}).patch))
+  assert.equal(mutationFor({id: 'n1', base, v: 1, at: 0}, base), null)
 })
