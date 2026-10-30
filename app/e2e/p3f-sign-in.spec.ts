@@ -52,7 +52,7 @@ test.describe('signed out', () => {
     const served = await Promise.all(
       assets.map(async (p) => {
         const res = await page.request.get(p)
-        return {p, status: res.status(), type: res.headers()['content-type'] ?? '', text: await res.text()}
+        return {p, status: res.status(), type: String(res.headers()['content-type']), text: await res.text()}
       }),
     )
     expect(served.filter(({status, type}) => status !== 200 || !type.includes('javascript')).map(({p, status, type}) => `${p} ${status} ${type}`)).toEqual([])
