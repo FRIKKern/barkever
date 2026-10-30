@@ -132,6 +132,11 @@ const neverArrived: Pin = {
   ],
 }
 
+const healed: Pin = {
+  setup: {writers: 2, raw: true, blocks: 1, solo: false},
+  steps: [[0, 'drop', 0.565, 0.789], [2, 'raw', 0.083, 0.442], [2, 'raw', 0.039, 0.594], [0, 'frame', 0.832, 0.091], [0, 'net', 0.238, 0.931]],
+}
+
 test('seed 40: a writer’s losing block survives that writer clashing again with text it adopted from the main', async () => {
   const r = await pinned(signed, 40)
   assert.equal(r.failure, undefined, r.failure && report(r))
@@ -184,5 +189,10 @@ test('seed 139464: a later push still carrying a copy key an earlier push made p
 
 test('my first push carrying a new copy never reaches the server, the next lands with its reply lost, and my next push is refused: no copy of my own tags comes back', async () => {
   const r = await pinned(neverArrived, 1)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('seed 4523: a flaky spell still running at the end heals with the network, so a writer that lost its catch-up still settles', async () => {
+  const r = await pinned(healed, 4523)
   assert.equal(r.failure, undefined, r.failure && report(r))
 })
