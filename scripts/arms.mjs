@@ -32,4 +32,4 @@ const rank = (r) => ["fallback", "guard"].indexOf(r.arm) >>> 0;
 console.log(`| where | arm | code | mutant | test that fails |\n|---|---|---|---|---|`);
 for (const r of rows.sort((a, b) => rank(a) - rank(b))) console.log(`| ${r.where} | ${r.arm} | \`${r.src.replaceAll("|", "\\|")}\` | | |`);
 const count = (arm) => rows.filter((r) => r.arm === arm).length;
-console.log(`\narms: ${rows.length} new (${count("fallback")} fallback, ${count("guard")} guard). Each row needs a mutant and the named test that kills it; a fallback with no killing test gets cut.`);
+console.log(`\narms: ${rows.length} new (${count("fallback")} fallback, ${count("guard")} guard). Each row needs a mutant and the named test that kills it; a guard also needs boundary mutants (a neighbour value, off by one, a flipped sign); a fallback with no killing test gets cut.`);
