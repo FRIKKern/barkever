@@ -1,6 +1,11 @@
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 
-const base = process.argv[2] ?? "main";
+const args = process.argv.slice(2);
+const runAt = args.indexOf("--run");
+const cmd = runAt < 0 ? null : args[runAt + 1];
+if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>"]'); process.exit(2); }
+const base = args.find((a, i) => !a.startsWith("--") && i !== runAt + 1) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
 
@@ -28,8 +33,26 @@ for (const text of diff.split("\n")) {
   }
 }
 
+if (cmd) await runMutants();
+
 const rank = (r) => ["fallback", "guard"].indexOf(r.arm) >>> 0;
 console.log(`| where | arm | code | mutant | test that fails |\n|---|---|---|---|---|`);
 for (const r of rows.sort((a, b) => rank(a) - rank(b))) console.log(`| ${r.where} | ${r.arm} | \`${r.src.replaceAll("|", "\\|")}\` | | |`);
 const count = (arm) => rows.filter((r) => r.arm === arm).length;
 console.log(`\narms: ${rows.length} new (${count("fallback")} fallback, ${count("guard")} guard). Each row needs a mutant and the named test that kills it; a guard also needs boundary mutants (a neighbour value, off by one, a flipped sign); a fallback with no killing test gets cut.`);
+
+async function runMutants() {
+  const { mutate } = await import("./mutate.mjs");
+  const top = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+  const targets = rows.filter((r) => /\.(tsx?|mjs|js)$/.test(r.where.split(":")[0])).map((r) => ({ where: resolve(top, r.where) }));
+  const files = [...new Set(targets.map((t) => t.where.slice(0, t.where.lastIndexOf(":"))))];
+  const dirty = files.length && execFileSync("git", ["status", "--porcelain", "--", ...files], { encoding: "utf8", cwd: top }).trim();
+  if (dirty) { console.error(`arms --run: commit first, these files have changes:\n${dirty}`); process.exit(2); }
+  const results = await mutate(targets, cmd);
+  const short = (w) => w.slice(top.length + 1);
+  console.log(`| where | mutant | result | killed by |\n|---|---|---|---|`);
+  for (const r of results) console.log(`| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | ${r.why} | ${r.by.replaceAll("|", "\\|")} |`);
+  const survived = results.filter((r) => r.why === "survived");
+  console.log(`\nmutants: ${results.length} run, ${results.length - survived.length} killed, ${survived.length} survived (${targets.length} arm rows in TS/JS)`);
+  process.exit(survived.length ? 1 : 0);
+}
