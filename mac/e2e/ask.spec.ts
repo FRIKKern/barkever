@@ -13,7 +13,7 @@ const ask = async (page: Page, question: string) => {
 test('J07 in the Mac app: the bridge runs fake claude, falls back to fake codex, cites, counts the budget, sends nothing without a match', async ({}, info) => {
   const fake = fakeBin()
   const data = mkdtempSync(join(tmpdir(), 'barkever-mac-e2e-'))
-  const run = await launchPlain(data, 'mock', {PATH: `${fake.dir}:${process.env.PATH}`, ANTHROPIC_API_KEY: 'e2e-not-a-key', OPENAI_API_KEY: 'e2e-not-a-key', CLAUDECODE: '1'})
+  const run = await launchPlain(data, 'mock', {PATH: `${fake.dir}:${process.env.PATH}`, CODEX_HOME: join(fake.home, '.codex'), ANTHROPIC_API_KEY: 'e2e-not-a-key', OPENAI_API_KEY: 'e2e-not-a-key', CLAUDECODE: '1'})
   const {page} = run
   await signIn(page)
   await page.emulateMedia({colorScheme: 'dark'})

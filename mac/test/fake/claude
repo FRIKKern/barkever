@@ -30,7 +30,7 @@ createInterface({input: process.stdin}).on('line', (line) => {
     out({...base(), type: 'result', subtype: 'success', is_error: true, result: 'Claude AI usage limit reached', total_cost_usd: 0, usage: {}})
     process.exit(1)
   }
-  const wrong = refusal('claude', flags)
+  const wrong = refusal('claude', args, flags)
   if (wrong) {
     out({...base(), type: 'result', subtype: 'error_during_execution', is_error: true, errors: [wrong], total_cost_usd: 0, usage: {}})
     process.exit(1)

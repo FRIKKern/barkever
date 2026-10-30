@@ -4,7 +4,8 @@ Accepted 2026-10-30. Supersedes the codex line of [0007](0007-ai-on-subscription
 
 ```
 Electron main ─► claude (Agent SDK)  settingSources [] · --strict-mcp-config · --tools ""
-              └► codex exec --json   --ignore-user-config --ignore-rules --ephemeral
+              └► codex exec --json   HOME = CODEX_HOME = fresh empty folder, auth.json linked in
+                                     --ignore-user-config --ignore-rules --ephemeral
                                      --sandbox read-only -c web_search="disabled" -c approval_policy="never"
                                      --disable <14 tools>   (MinMacs' flags, Sources/Core/Review/MMModel.m)
 ```
@@ -13,6 +14,6 @@ Electron main ─► claude (Agent SDK)  settingSources [] · --strict-mcp-confi
 
 **Why.** The Codex SDK 0.155 only passes `--config k=v`. It cannot ignore the user's config.toml or rules, so their MCP servers would load. That breaks 0007's strict MCP.
 
-**Limit.** `--ignore-user-config` skips config.toml only. A probe against a local fake model server (no model call) showed `$CODEX_HOME/AGENTS.md` still sent as user instructions; no `-c` key dropped it. A fresh CODEX_HOME would need a copy of auth.json, which a token refresh could strand. The same probe showed one tool left, `request_user_input`. Fake codex reads AGENTS.md too, and a test names the limit.
+**Own home.** `--ignore-user-config` skips config.toml only. So each call sets HOME and CODEX_HOME to a fresh empty folder that holds one link, to the owner's `auth.json`. A `codex debug prompt-input` probe (no model call) with a marker at every door of a synthetic home: the owner’s home sent AGENTS.override.md (AGENTS.md when there is none), config.toml’s instructions, `~/.codex/skills` and `~/.agents/skills`; a fresh HOME and CODEX_HOME sent none. `codex login` writes through the link, so a refreshed token should reach the owner's file; a refresh needs a real call, so that part is unproved. Codex's own bundled skills and one tool, `request_user_input`, remain.
 
 **Instead of.** The Codex SDK with config overrides.

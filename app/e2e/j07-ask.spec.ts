@@ -94,7 +94,7 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-answer').last()).toHaveText('Not in your notes.No date is written down.Checked 2 notes · fake-sonnet · your login · ≈ $0.001')
 
-  const turns = await page.getByTestId('ask-answer').count()
+  const turns = await page.locator('.q').count()
   await page.getByLabel('Ask about your notes').fill('   ')
   await page.keyboard.press('Enter')
   await expect(page.locator('.q')).toHaveCount(turns)
