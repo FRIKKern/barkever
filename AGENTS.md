@@ -35,13 +35,13 @@ bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► un
    └── close with evidence ◄── push (npm run prepush) ◄── Trail link + ff main ◄──┘
 ```
 
-Owner-only choices (a design pick) get a provisional pick from an independent judge, flagged for the owner. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
+Owner-only choices get a provisional pick from an independent judge, flagged for the owner. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
 
 ## Rules
 
 - **Picture first.** Docs, Papers, Trails and task closes open with a diagram, a table or a screenshot.
 - **Unrun means unrun.** Never report a check you didn't run.
-- **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming the reviewer and sha.
+- **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming reviewer and sha.
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
 - **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. No CI. Be brave; other agents review after.
 - **Unsure? Test, don't guess.** Rival spikes in `spikes/<name>/`, one agent per direction, same tests; the winner becomes a decision linking the loser's report.
