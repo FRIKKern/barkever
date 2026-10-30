@@ -2,6 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {baseFor, reconcile} from './merge.ts'
 import {blockText, type Block, type Conflict} from '../lib/model.ts'
+import {sign} from './sign.ts'
 import type {NoteDoc as Note} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
@@ -60,4 +61,37 @@ test('a push whose reply was lost and that left no copy still proves it landed w
   const mine = note('r1', 'T0 R1', [])
   const out = merged(base, [lost], mine, note('r3', 'R2', [], {by: 'dev-me.abc'}))
   assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.title)], ['T0 R1', ['R2']])
+})
+
+test('a Studio edit keeps the last Barkever signature, so a push signed like the base proves nothing: my title back to the signed one survives', () => {
+  const signed = sign(note('r0', 'Plan', []), ME).by
+  const base = note('r1', 'Plan v2', [], {by: signed})
+  const refused = sign(note('r1', 'Plan', []), ME)
+  const out = merged(base, [refused], refused, note('r2', 'Plan v3', [], {by: signed}))
+  for (const title of ['Plan', 'Plan v3']) assert.ok(everything(out).includes(title), JSON.stringify(everything(out)))
+})
+
+test('the block order comes from the push that proved it landed, not from a later refused one: a reorder made on the server after it survives', () => {
+  const made = copy('local-1~a', {title: 'Old'}, ['title'])
+  const [a, b, c] = [p('a', 'A'), p('b', 'B'), p('c', 'C')]
+  const base = note('r1', 'T', [a, b, c])
+  const landed = note('r1', 'T', [c, a, b], {conflicts: [made]})
+  const refused = note('r1', 'T', [a, b, c])
+  const out = merged(base, [landed, refused], landed, note('r3', 'T', [a, c, b], {conflicts: [made]}))
+  assert.deepEqual(out?.body?.blocks.map((x) => x.id), ['a', 'c', 'b'])
+})
+
+test('a copy key the base already held proves nothing: it was on the server before my push', () => {
+  const held = copy('local-1~a', {title: 'Old'}, ['title'])
+  const base = note('r1', 'T', [], {conflicts: [held]})
+  const refused = note('r1', 'X', [], {conflicts: [held]})
+  const out = merged(base, [refused], refused, note('r2', 'Z', [], {conflicts: [held]}))
+  for (const title of ['X', 'Z']) assert.ok(everything(out).includes(title), JSON.stringify(everything(out)))
+})
+
+test('a new copy key that never reached the server proves nothing', () => {
+  const base = note('r1', 'T', [])
+  const refused = note('r1', 'X', [], {conflicts: [copy('local-2~a', {title: 'Old'}, ['title'])]})
+  const out = merged(base, [refused], refused, note('r2', 'Z', []))
+  for (const title of ['X', 'Z']) assert.ok(everything(out).includes(title), JSON.stringify(everything(out)))
 })

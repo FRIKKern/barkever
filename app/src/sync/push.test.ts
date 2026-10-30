@@ -97,3 +97,10 @@ test('after a push whose reply was lost, going back to the base value still push
   const m = mutationFor({id: 'n1', base, v: 2, at: 0, sent: [lost]}, note('r1', 'T0 B1', [], 'dev-me')) as {patch: {set: {title?: string}; ifRevisionID: string}}
   assert.deepEqual([m.patch.set.title, m.patch.ifRevisionID], ['T0 B1', 'r1'])
 })
+
+test('two pushes whose replies were lost, the last one back to the base: the field still pushes, because the first may have landed', () => {
+  const base = note('r1', 'T0 B1', [])
+  const [first, back] = [note('r1', 'A1', [], 'dev-me'), note('r1', 'T0 B1', [], 'dev-me')]
+  const m = mutationFor({id: 'n1', base, v: 3, at: 0, sent: [first, back]}, note('r1', 'T0 B1', [], 'dev-me')) as {patch: {set: {title?: string}}}
+  assert.equal(m.patch.set.title, 'T0 B1')
+})
