@@ -28,7 +28,7 @@ const tallied = (page: Page, t: {open: number; done: number; lists: number}) => 
 
 const lineAt = (page: Page, line: string, live = true) => {
   const at = line.lastIndexOf(':')
-  return page.getByTestId(live ? 'canvas' : 'body').locator(`[data-bp-id="${line.slice(0, at)}"] > li:nth-child(${Number(line.slice(at + 1)) + 1})`).filter({visible: true})
+  return (live ? page.getByTestId('canvas') : page.getByTestId('body').locator('.blocks')).locator(`[data-bp-id="${line.slice(0, at)}"] > li:nth-child(${Number(line.slice(at + 1)) + 1})`).filter({visible: true})
 }
 
 const markColour = (page: Page) =>
@@ -194,7 +194,7 @@ test('J06 on a phone, offline: the board stacks its columns, a line opens marked
   await expect(page.getByTestId('offline')).toBeVisible({timeout: 15_000})
   await task(page, 'Share the timeline').click()
   expect(search(page)).toEqual({n: KICKOFF, line: KICKOFF_LINE})
-  await atLine(page, KICKOFF_LINE, false)
+  await atLine(page, KICKOFF_LINE)
   await page.screenshot({path: test.info().outputPath('j06-at-line-dark-390.png')})
 
   const back = page.locator('.editor .mhead .back')
