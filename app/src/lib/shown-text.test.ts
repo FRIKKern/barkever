@@ -46,6 +46,7 @@ test('a target deleted and recreated under a new id does not take over the old l
 
 test('an aliased link keeps its words, like the canvas', () => {
   assert.equal(linkWords({...link('Tide gauge: spring check', 'Tide gauge: spring check', 'g'), alias: 'Tide gauge: spring check'}, title), 'Tide gauge: spring check')
+  assert.equal(linkWords({...link('Tide gauge: spring check', 'Tide gauge: spring check', 'g'), alias: null} as unknown as Inline, title), 'Tide gauge: autumn check')
 })
 
 test('a link is missing when its id names no note, or it has no id', () => {

@@ -1,6 +1,8 @@
-# 0028 Search matches a link's stored words; views show the current title
+# 0029 Search matches a link's stored words; views show the current title
 
 Accepted 2026-10-30. Lead's call.
+
+**Rule.** Search matches a link's stored words and shows the linked note's live title.
 
 ```
 stored body ──► blockText ──► search index, hit-line match, merge, ConflictView, chaos truth
