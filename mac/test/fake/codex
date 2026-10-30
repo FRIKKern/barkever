@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-const {readFileSync, writeFileSync} = require('node:fs')
+const {readdirSync, readFileSync, writeFileSync} = require('node:fs')
+const {join, relative} = require('node:path')
 const {behavior, hangs, record, refusal, reply} = require('./answer.cjs')
 
 const args = process.argv.slice(2)
@@ -22,7 +23,8 @@ const need = [
 const flags = [...need.map((n) => ({name: `missing ${n}`, ok: ` ${joined} `.includes(` ${n} `)})), {name: 'prompt not read from stdin', ok: args.at(-1) === '-'}]
 const system = JSON.parse(args.find((a) => a.startsWith('developer_instructions=')).slice('developer_instructions='.length))
 const prompt = readFileSync(0, 'utf8')
-record('codex', {args, system, prompt})
+const links = readdirSync(process.env.HOME, {recursive: true, withFileTypes: true}).filter((d) => d.isSymbolicLink()).map((d) => relative(process.env.HOME, join(d.parentPath, d.name)))
+record('codex', {args, system, prompt, links})
 if (hangs('codex')) return
 const wrong = refusal('codex', args, flags, ['schema.json'])
 out({type: 'thread.started', thread_id: 'fake'})

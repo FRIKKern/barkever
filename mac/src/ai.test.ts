@@ -236,6 +236,7 @@ test('no user config reaches either CLI: the owner home has a marker at every do
   assert.equal(c.home, fake.home)
   assert.notEqual(x.home, fake.home)
   assert.equal(x.codexHome, join(x.home, '.codex'))
+  assert.deepEqual(x.links, ['.codex/auth.json'])
   assert.equal(existsSync(x.home), false)
   assert.equal(existsSync(join(fake.home, '.codex', 'auth.json')), true)
 })

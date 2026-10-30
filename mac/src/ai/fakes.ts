@@ -23,7 +23,7 @@ const DOORS = [
   '.codex/agents/marker.toml',
 ]
 
-export type FakeCall = {cli: string; pid: number; cwd: string; env: string[]; home: string; codexHome?: string; args: string[]; system: string; prompt: string}
+export type FakeCall = {cli: string; pid: number; cwd: string; env: string[]; home: string; codexHome?: string; links?: string[]; args: string[]; system: string; prompt: string}
 export type Behavior = 'answer' | 'fail' | 'hang' | 'quiet' | 'limit' | 'no-turn' | {reply: unknown}
 
 export function ownerHome() {
