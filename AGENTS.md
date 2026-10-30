@@ -41,10 +41,10 @@ Owner-only choices (a design pick) get a provisional pick from an independent ju
 
 - **Picture first.** Docs, Papers, Trails and task closes open with a diagram, a table or a screenshot.
 - **Unrun means unrun.** Never report a check you didn't run.
-- **Nobody signs off their own journey.**
+- **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming the reviewer and sha.
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
 - **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. No CI. Be brave; other agents review after.
-- **Unsure? Test, don't guess.** Rival spikes: one agent per direction, same tests, same report table, code in `spikes/<name>/`. The winner becomes a decision that links the loser's report.
+- **Unsure? Test, don't guess.** Rival spikes in `spikes/<name>/`, one agent per direction, same tests; the winner becomes a decision linking the loser's report.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
 - **guerrilla is shared** by every run and agent. A live probe is one timed call: no loops, no deletes or bulk writes without the lead.
