@@ -38,12 +38,12 @@ test('a block id my push holds proves nothing: a block deleted on the server can
   assert.ok(everything(merged(base, [refused], refused, theirs)).includes('S0 C1'))
 })
 
-test('two unacked pushes carry the same new copy, so one landed, but which one is unknown: a part they disagree on keeps its base', () => {
+test('two unacked pushes carry the same new copy, so one landed, but which one is unknown: a part they disagree on keeps its base, so the server value survives too', () => {
   const made = copy('local-1~a', {title: 'Old'}, ['title'])
   const base = note('r1', 'T', [])
   const [first, second] = [note('r1', 'X', [], {conflicts: [made]}), note('r1', 'Y', [], {conflicts: [made]})]
   const theirs = note('r2', 'Z', [], {conflicts: [made]})
-  for (const mine of [first, second]) assert.ok(everything(merged(base, [first, second], mine, theirs)).includes(mine.title!), mine.title)
+  for (const mine of [first, second]) for (const title of [mine.title!, 'Z']) assert.ok(everything(merged(base, [first, second], mine, theirs)).includes(title), `${mine.title} keeps ${title}`)
 })
 
 test('only the push that proves it landed counts: an earlier refused push of mine never turns a later edit on top of the landed one into a copy', () => {
