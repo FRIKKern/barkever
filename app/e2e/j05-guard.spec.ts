@@ -42,6 +42,8 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
     {id: 'p', type: 'paragraph', content: [text('See '), {type: 'wikilink', target: 'Old name', docId: 'fx-note-01', children: [text('Old name')]}, text(' and '), {type: 'strong'}, {type: 'strong', children: [text('bold')]}, text('.')]},
     {id: 'pt', type: 'paragraph', text: 'Plain paragraph'},
     {id: 'pl', type: 'paragraph', content: [{type: 'text', text: 'Legacy leaf'}]},
+    {id: 'pe', type: 'paragraph', content: [{type: 'text', value: '', text: 'Empty value'}]},
+    {id: 'pv', type: 'paragraph', content: [{type: 'text', value: 'Value', text: 'Text'}]},
     {id: 'ls', type: 'list', items: ['String item', {content: [text('Top')], children: [{id: 'c', type: 'list', items: [[text('Nested item')]]}]}]},
     {id: 'lt', type: 'list', task: true, items: ['Open task', {content: [text('Done task')], checked: true, children: [{id: 'c2', type: 'list', items: [[text('Sub task')]]}]}]},
   ]
@@ -53,7 +55,7 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   const body = page.getByTestId('body')
   await expect(body.locator('h2')).toHaveText(['Old heading', 'Saved empty, then bold'], {timeout: 30_000})
   await expect(body.locator('h3')).toHaveText(['', 'Third level'])
-  await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf'])
+  await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf', 'Empty value', 'Value'])
   await expect(body.locator('li')).toHaveText(['String item', 'TopNested item', 'Nested item', 'Open task', 'Done taskSub task', 'Sub task'])
   await expect(body.locator('li.done')).toHaveText('Done taskSub task')
   const [task, sub] = await Promise.all([body.locator('li.done .li-t'), body.getByText('Sub task')].map((l) => l.boundingBox()))

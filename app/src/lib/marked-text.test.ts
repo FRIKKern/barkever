@@ -52,9 +52,11 @@ test('words come from content when it holds any, else from text, like the canvas
     {id: 'p', type: 'paragraph', text: 'Buy chain'},
     {id: 'q', type: 'paragraph', content: [{type: 'text', text: 'Legacy leaf'}]},
     {id: 'l', type: 'list', items: [{text: 'Item text'}, {content: [], text: 'Empty content'}, {content: [text('Content')], text: 'ignored'}]},
+    {id: 'e', type: 'paragraph', content: [{type: 'text', value: '', text: 'Empty value'}]},
+    {id: 'v', type: 'paragraph', content: [{type: 'text', value: 'Value', text: 'Text'}]},
   ]
-  assert.deepEqual(shapes.map(blockText), ['Buy rope', 'New', 'Kept', 'Buy chain', 'Legacy leaf', 'Item text · Empty content · Content'])
-  for (const b of [once, shapes[3], shapes[4]]) assert.equal(isBlank(note('x', '', [b])), false, b.id)
+  assert.deepEqual(shapes.map(blockText), ['Buy rope', 'New', 'Kept', 'Buy chain', 'Legacy leaf', 'Item text · Empty content · Content', 'Empty value', 'Value'])
+  for (const b of [once, shapes[3], shapes[4], shapes[6]]) assert.equal(isBlank(note('x', '', [b])), false, b.id)
 })
 
 test('a mark around a link still shows the linked note\'s current title', () => {
