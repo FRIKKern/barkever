@@ -8,10 +8,11 @@ import {startSync} from '../sync/engine'
 import appCss from '../styles/app.css?url'
 import {themeBoot, tokenCss} from '../styles/tokens'
 import {meQuery} from '../lib/session'
+import {needsSignIn} from '../lib/sign-in-gate'
 
 export const Route = createRootRouteWithContext<{queryClient: QueryClient}>()({
   beforeLoad: async ({context, location}) => {
-    if (location.pathname === '/sign-in') return
+    if (!needsSignIn(location.pathname)) return
     if (!(await context.queryClient.ensureQueryData(meQuery))) throw redirect({to: '/sign-in', search: {redirect: location.href}})
   },
   head: () => ({
