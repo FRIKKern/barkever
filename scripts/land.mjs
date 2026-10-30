@@ -22,7 +22,9 @@ for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
 }
 
 const touched = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
-const isText = (files) => files.length > 0 && files.every((f) => /^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$/.test(f));
+const only = (pattern) => (files) => files.length > 0 && files.every((f) => pattern.test(f));
+const isText = only(/^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$/);
+const noAppEffect = only(/^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$|^scripts\/(arms|hygiene|machine|milestones|pace)\.mjs$/);
 const head = git(["rev-parse", branch], dir);
 const samePatch = (sha) => { try { const patch = git(["diff", `main...${branch}`], dir); return patch !== "" && git(["diff", `main...${sha}`], dir) === patch; } catch { return false; } };
 if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(reviewed) || samePatch(reviewed)))) {
@@ -33,7 +35,7 @@ if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(r
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir);
 step("npm run check", "npm", ["run", "check"], dir);
-if (isText(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("text-only change: checkpoint secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
+if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: checkpoint secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
 else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
 step("push the branch", "git", ["push", "-q", "origin", branch], dir);
 if (trail) step(`link to trail ${trail}`, "entire", ["trail", "link", trail, "--branch", branch], dir);
