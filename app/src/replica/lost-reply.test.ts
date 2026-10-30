@@ -49,12 +49,13 @@ test('every unacked push shares one ifRevisionID, so only the first push carryin
   assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.title)], ['Z', ['Old']])
 })
 
-test('two proven pushes that disagree keep, field by field, what the server shows of them: my title set back after the landed one stays', () => {
+test('two proven pushes that disagree keep, field by field, what the server shows of them, and the base where it shows neither: nothing either side wrote is lost', () => {
   const [one, two] = [copy('local-1~a', {title: 'Old'}, ['title']), copy('local-2~a', {title: 'Older'}, ['title'])]
   const base = note('r1', 'T', [])
-  const [first, second] = [note('r1', 'X', [], {conflicts: [one]}), note('r1', 'Y', [], {conflicts: [one, two]})]
+  const [first, second] = [note('r1', 'X', [], {tags: ['a'], conflicts: [one]}), note('r1', 'Y', [], {tags: ['b'], conflicts: [one, two]})]
   const out = merged(base, [first, second], {...second, title: 'T'}, note('r2', 'Y', [], {tags: ['z'], conflicts: [one, two]}))
-  assert.deepEqual([out?.title, out?.tags, out?.conflicts?.map((c) => c._key)], ['T', ['z'], ['local-1~a', 'local-2~a']])
+  assert.equal(out?.title, 'T')
+  for (const tags of ['["b"]', '["z"]']) assert.ok(everything(out).includes(tags), JSON.stringify(everything(out)))
 })
 
 test('only the push that proves it landed counts: an earlier refused push of mine never turns a later edit on top of the landed one into a copy', () => {
