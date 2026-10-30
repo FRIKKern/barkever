@@ -102,3 +102,14 @@ test('a copy is judged only on the parts it holds: an old title+tags copy keeps 
   const kept = keep(main, 'k1', main, AT, 'local-k', 'A')
   assert.deepEqual([kept.title, kept.tags, kept.conflicts], ['Theirs', ['keep-me'], []])
 })
+
+test('two copies that hold the same parts with the same text are one, whatever unheld part one of them lists', () => {
+  const [x, y] = [copy('k1', '1', {title: 'Theirs'}, ['title', 'tags']), copy('k2', '2', {title: 'Theirs'}, ['title'])]
+  assert.deepEqual(collapse([x, y], {...r0, title: 'Mine'}).map((c) => c._key), ['k1'])
+})
+
+test('an old copy whose held text is text I typed over goes, even though it lists a part it never stored', () => {
+  const a = mergeLocal(r0, {title: 'Plan'}, {title: 'Mine'}, AT, 'local-1', 'A', r0)
+  const theirs = {...r0, _rev: 'r1', conflicts: [copy('k1', '1', {title: 'Plan'}, ['title', 'tags'])]}
+  assert.deepEqual(mergeNote(r0, a, theirs, AT, 'A').conflicts, [])
+})
