@@ -37,6 +37,12 @@ test('own words, a deleted target and a link without an id keep their stored wor
   assert.equal(linkContext([list], 'b', title), 'Ask Untitled · two')
 })
 
+test('a target deleted and recreated under a new id does not take over the old link', () => {
+  const again = note('g2', 'Tide gauge: spring check')
+  const after = titleIn(new Map([blank, source, {...again, title: 'Tide gauge: winter check'}].map((n) => [n.id, n])))
+  assert.equal(snippet(source, after), 'First Tide gauge: spring check then the rest.')
+})
+
 test('blockText still reads the stored words, for search, merge and the conflict view', () => {
   assert.deepEqual([p1, p2, list].map(blockText), ['First Tide gauge: spring check then the rest.', 'Own words: the gauge, gone: Old buoy, no id: Plain', 'Ask b · two'])
 })
