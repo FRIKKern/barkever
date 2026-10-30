@@ -1,6 +1,6 @@
 import {expect, test, type APIRequestContext} from '@playwright/test'
 
-const MISSING = ['/assets/missing-0000.js', '/assets/deep/missing-0000.css']
+const MISSING = ['/assets/missing-0000.js', '/assets/deep/missing-0000.css', '/Assets/missing-0000.js', '/ASSETS/missing-0000.css']
 
 const answer = async (request: APIRequestContext, path: string, method: 'get' | 'head' = 'get') => {
   const res = await request[method](path, {maxRedirects: 0})
