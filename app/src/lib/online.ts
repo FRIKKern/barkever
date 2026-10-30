@@ -2,16 +2,40 @@ import {useSyncExternalStore} from 'react'
 
 export type Reach = 'online' | 'offline' | 'unreachable'
 
-let answered = true
-const listeners = new Set<() => void>()
+export const ANSWERED = 'barkpark-answered'
 
-export function reached(ok: boolean) {
-  if (ok === answered) return
-  answered = ok
-  listeners.forEach((l) => l())
+let answered = true
+let answers = 0
+const listeners = new Set<() => void>()
+let tabs: BroadcastChannel | undefined
+
+function hear(ok: boolean) {
+  if (ok !== answered) {
+    answered = ok
+    listeners.forEach((l) => l())
+  }
+  if (!ok) return
+  answers++
+  dispatchEvent(new Event(ANSWERED))
 }
 
+function otherTabs() {
+  if (!tabs) {
+    tabs = new BroadcastChannel('barkever-reach')
+    tabs.onmessage = (e: MessageEvent<boolean>) => hear(e.data)
+  }
+  return tabs
+}
+
+export function reached(ok: boolean) {
+  hear(ok)
+  otherTabs().postMessage(ok)
+}
+
+export const answersHeard = () => (otherTabs(), answers)
+
 const subscribe = (l: () => void) => {
+  otherTabs()
   window.addEventListener('online', l)
   window.addEventListener('offline', l)
   listeners.add(l)

@@ -1,9 +1,10 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
 import {useNavigate} from '@tanstack/react-router'
-import {linkAtCaret, loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {linkAtCaret, loadCanvas, Outdated, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
+import {ANSWERED, answersHeard} from '../lib/online'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {Search} from '../lib/scope'
@@ -103,7 +104,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       const to = linkAtCaret(e.currentTarget as CanvasElement)
       if (live(to)) (e.preventDefault(), go(to))
     }
-    const mount = () => loadCanvas().then(
+    const mount = (heard: number) => loadCanvas().then(
       () => {
         if (gone || !host.current) return
         const el = document.createElement('bp-paper-canvas') as CanvasElement
@@ -133,15 +134,19 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       (e: Error) => {
         if (gone) return
         setState({live: false, blocked: e.message})
-        addEventListener('online', mount, {once: true})
+        if (e instanceof Outdated) return
+        if (answersHeard() > heard) load()
+        else addEventListener(ANSWERED, load, {once: true})
       },
     )
-    mount()
+    const load = () => mount(answersHeard())
+    load()
     addEventListener('pagehide', flush)
     return () => {
       gone = true
       clearTimeout(flushing)
       removeEventListener('pagehide', flush)
+      removeEventListener(ANSWERED, load)
       flush()
       canvas.current?.remove()
       canvas.current = null

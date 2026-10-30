@@ -46,7 +46,7 @@ export function linkAtCaret(el: CanvasElement): string | null {
 
 let loading: Promise<void> | null = null
 
-class Outdated extends Error {}
+export class Outdated extends Error {}
 
 const CANVAS_CONTRACT = '1.20.0'
 
@@ -59,7 +59,7 @@ export function atLeast(version: string | undefined, want: string): boolean {
 async function canvasFiles(): Promise<CanvasFiles> {
   const res = await fetch('/editor-files').catch(() => undefined)
   if (res?.ok) return res.json()
-  throw new Error(res ? `Barkpark ${res.status}` : 'offline, and it is not on this device yet')
+  throw new Error(res ? `Barkpark ${res.status}` : `${navigator.onLine ? 'can’t reach Barkpark' : 'offline'}, and it is not on this device yet`)
 }
 
 export function loadCanvas(): Promise<void> {
