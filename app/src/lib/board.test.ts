@@ -79,7 +79,7 @@ test('a stale line finds its words: lines added or removed above, its own twin, 
   assert.deepEqual(at(c('New', 'Buy stamps', 'Buy stamps'), 1, 1), {block: 'c', item: 2})
   assert.deepEqual(at(c('Buy stamps', 'Buy stamps'), 1, 0), {block: 'c', item: 0})
   assert.deepEqual(at(c('Buy stamps', 'x', 'y', 'z', 'Buy stamps'), 3, 2), {block: 'c', item: 4})
-  assert.deepEqual(at(c('x', 'Buy stamps', 'y', 'z', 'Buy stamps'), 1, 2), {block: 'c', item: 1})
+  assert.deepEqual(at(c('x', 'Buy stamps', 'y', 'z', 'Buy stamps'), 2, 2), {block: 'c', item: 1})
   assert.deepEqual(at(c('Buy stamps'), 1, 1), {block: 'c', item: 0})
   assert.deepEqual(at([checklist('d', [{text: 'other'}]), checklist('e', [{text: 'x'}, {text: 'Buy stamps', checked: true}])]), {block: 'e', item: 1})
   assert.deepEqual(at([checklist('d', [{text: 'x'}, {text: 'Buy stamps'}]), checklist('c', [{text: 'Buy stamps'}])]), {block: 'c', item: 0})
