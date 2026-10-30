@@ -130,7 +130,7 @@ export function baseFor(base: NoteDoc | null, sent: NoteDoc[], theirs: NoteDoc |
   if (sent.some((x) => sameContent(x, theirs))) return theirs
   if (!base) return base
   const [was, now] = [made(base), made(theirs)]
-  const proven = sent.filter((x) => [...made(x)].some((p) => !was.has(p) && now.has(p)))
+  const proven = sent.filter((x) => (!!x.by && x.by === theirs.by) || [...made(x)].some((p) => !was.has(p) && now.has(p)))
   const pushes = proven.length ? proven : sent
   const byId = (n: NoteDoc) => new Map((n.body?.blocks ?? []).map((x) => [x.id, x]))
   const [B, T, S] = [byId(base), byId(theirs), pushes.map(byId)]

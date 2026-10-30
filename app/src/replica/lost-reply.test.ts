@@ -53,3 +53,11 @@ test('only the push that proves it landed counts: an earlier refused push of min
   const out = merged(base, [refused, landed], landed, note('r2', 'Z', [], {conflicts: [made]}))
   assert.deepEqual([out?.title, out?.conflicts?.map((c) => c._key)], ['Z', ['local-1~a']])
 })
+
+test('a push whose reply was lost and that left no copy still proves it landed while the server carries its signature: Studio edits do not re-sign', () => {
+  const base = note('r1', 'T0 R1', [])
+  const lost = note('r1', 'A1', [], {by: 'dev-me.abc'})
+  const mine = note('r1', 'T0 R1', [])
+  const out = merged(base, [lost], mine, note('r3', 'R2', [], {by: 'dev-me.abc'}))
+  assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.title)], ['T0 R1', ['R2']])
+})
