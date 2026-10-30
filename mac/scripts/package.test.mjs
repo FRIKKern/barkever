@@ -6,36 +6,60 @@ import {test} from 'node:test'
 import {bareImports, bundlePackages} from './bundle-imports.mjs'
 import {installedClosure} from './installed.mjs'
 import {signedBy} from './signature.mjs'
-import {NOTARY_PROFILE, signing} from './signing.mjs'
+import {developerIds, NOTARY_PROFILE, signing} from './signing.mjs'
 
 const fake = 'Not-a-real-identity (TEAM000000)'
+const other = 'Someone Else (TEAM111111)'
+const hash = (c) => c.repeat(40)
+const found = (...lines) => `${lines.map((l, i) => `  ${i + 1}) ${l}`).join('\n')}\n     ${lines.length} valid identities found\n`
 
-test('no CSC_NAME signs ad hoc with the hardened runtime and never notarizes, whatever notary settings are around', () => {
+test('developer ids are the Developer ID Application identities in find-identity output, once per certificate', () => {
+  const out = found(`${hash('A')} "Screenscribe Dev"`, `${hash('B')} "Developer ID Application: ${fake}"`, `${hash('C')} "Apple Development: ${other}"`, `${hash('B')} "Developer ID Application: ${fake}"`)
+  assert.deepEqual(developerIds(out), [fake])
+  assert.deepEqual(developerIds(found(`${hash('A')} "Screenscribe Dev"`)), [])
+  assert.deepEqual(developerIds(found(`${hash('B')} "Developer ID Application: ${fake}"`, `${hash('D')} "Developer ID Application: ${other}"`)), [fake, other])
+})
+
+test('no Developer ID and no CSC_NAME signs ad hoc with the hardened runtime and never notarizes, whatever notary settings are around', () => {
   for (const env of [{}, {APPLE_API_KEY: 'k', APPLE_API_KEY_ID: 'i', APPLE_API_ISSUER: 's'}, {APPLE_KEYCHAIN_PROFILE: NOTARY_PROFILE}]) {
-    const sign = signing(env)
+    const sign = signing(env, [])
     assert.deepEqual(sign.mac, {identity: '-', hardenedRuntime: true, notarize: false})
     assert.deepEqual(sign.env, {CSC_IDENTITY_AUTO_DISCOVERY: 'false'})
     assert.match(sign.says, /ad hoc/)
   }
 })
 
-test('CSC_NAME with no API key signs with it and notarizes through the barkever-notary keychain profile', () => {
-  const sign = signing({CSC_NAME: fake})
+test('the one Developer ID in the keychain signs with no env vars and notarizes through the barkever-notary keychain profile', () => {
+  const sign = signing({}, [fake])
   assert.deepEqual(sign.mac, {identity: fake, hardenedRuntime: true, notarize: true})
   assert.deepEqual(sign.env, {APPLE_KEYCHAIN_PROFILE: 'barkever-notary'})
-  assert.match(sign.says, /keychain profile barkever-notary/)
+  assert.equal(sign.says, `Signing with Developer ID ${fake} from the keychain; notarizing with keychain profile barkever-notary.`)
+})
+
+test('two Developer IDs and no CSC_NAME refuse and name both; CSC_NAME picks one', () => {
+  assert.throws(() => signing({}, [fake, other]), new RegExp(`2 Developer ID Application identities.*${fake.replace(/[()]/g, '\\$&')} \\| ${other.replace(/[()]/g, '\\$&')}`))
+  const sign = signing({CSC_NAME: other}, [fake, other])
+  assert.equal(sign.mac.identity, other)
+  assert.match(sign.says, /from CSC_NAME/)
+})
+
+test('CSC_NAME signs with that name even when the keychain lists no Developer ID', () => {
+  const sign = signing({CSC_NAME: fake}, [])
+  assert.deepEqual(sign.mac, {identity: fake, hardenedRuntime: true, notarize: true})
+  assert.deepEqual(sign.env, {APPLE_KEYCHAIN_PROFILE: 'barkever-notary'})
 })
 
 test('any APPLE_API_* variable means the API key path, so a partial key fails in electron-builder instead of falling back to the profile', () => {
   for (const name of ['APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER']) {
-    const sign = signing({CSC_NAME: fake, [name]: 'x'})
+    const sign = signing({[name]: 'x'}, [fake])
+    assert.deepEqual(sign.mac, {identity: fake, hardenedRuntime: true, notarize: true})
     assert.deepEqual(sign.env, {})
     assert.match(sign.says, /APPLE_API_\* key/)
   }
 })
 
 test('what signing prints names the identity and the notary path, never a key value', () => {
-  const says = signing({CSC_NAME: fake, APPLE_API_KEY: '/keys/AuthKey_SECRET.p8', APPLE_API_KEY_ID: 'KEYID123', APPLE_API_ISSUER: 'issuer-uuid'}).says
+  const says = signing({APPLE_API_KEY: '/keys/AuthKey_SECRET.p8', APPLE_API_KEY_ID: 'KEYID123', APPLE_API_ISSUER: 'issuer-uuid'}, [fake]).says
   for (const secret of ['AuthKey_SECRET', 'KEYID123', 'issuer-uuid']) assert.ok(!says.includes(secret))
 })
 

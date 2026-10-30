@@ -6,7 +6,7 @@ import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {bundlePackages} from './bundle-imports.mjs'
 import {installedClosure} from './installed.mjs'
-import {signing} from './signing.mjs'
+import {developerIds, signing} from './signing.mjs'
 
 if (process.platform !== 'darwin') {
   console.error('build.mjs builds the macOS app; run it on a Mac.')
@@ -20,7 +20,7 @@ const OUT = join(MAC, 'dist')
 const json = (file) => JSON.parse(readFileSync(file, 'utf8'))
 const run = (cmd, args, env = {}) => execFileSync(cmd, args, {cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'], env: {...process.env, ...env}})
 
-const sign = signing(process.env)
+const sign = signing(process.env, developerIds(execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], {encoding: 'utf8'})))
 console.log(sign.says)
 
 run('pnpm', ['--filter', '@barkever/app', 'build'])
