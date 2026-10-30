@@ -424,17 +424,73 @@ test('an outbox read that lands after a newer one never leaves Saving stuck', as
 test('typing that changes nothing settles back on Saved', async ({page}) => {
   const errors = errorsOf(page)
   await twoBlockNote(page, `No net change ${Date.now()}`)
-  await typeAtEnd(page, 'x')
-  await page.keyboard.press('Backspace')
+  const typed = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-testid=canvas] [contenteditable="true"]')!
+    const before = el.textContent
+    document.execCommand('insertText', false, 'x')
+    const mid = el.textContent
+    document.execCommand('delete')
+    return mid !== before && el.textContent === before
+  })
+  expect(typed, 'x went in and came out in one task').toBe(true)
   await expect(status(page)).toHaveText('Saved', {timeout: 3000})
   await page.waitForTimeout(1000)
   await expect(status(page)).toHaveText('Saved')
   expect(errors).toEqual([])
 })
 
-const truthProbe = (page: Page, id: string, text: string) =>
+test('an open dead-key composition never shows Saved, and a cancelled one settles back on Saved', async ({page}) => {
+  const errors = errorsOf(page)
+  await twoBlockNote(page, `Dead key ${Date.now()}`)
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Input.imeSetComposition', {text: '´', selectionStart: 1, selectionEnd: 1})
+  await expect(canvas(page)).toContainText('Theirs.´')
+  await page.waitForTimeout(800)
+  await expect(status(page)).not.toHaveText('Saved')
+  await cdp.send('Input.insertText', {text: 'é'})
+  await expect(canvas(page)).toContainText('Theirs.é')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await cdp.send('Input.imeSetComposition', {text: '´', selectionStart: 1, selectionEnd: 1})
+  await expect(canvas(page)).toContainText('Theirs.é´')
+  await cdp.send('Input.imeSetComposition', {text: '', selectionStart: 0, selectionEnd: 0})
+  await expect(canvas(page)).not.toContainText('´')
+  await expect(status(page)).toHaveText('Saved', {timeout: 3000})
+  expect(errors).toEqual([])
+})
+
+test('a composition that ends with no input event after it stores its text before Saved, and never leaves Saving stuck', async ({page}) => {
+  const errors = errorsOf(page)
+  await watchSaved(page)
+  await twoBlockNote(page, `Composition end alone ${Date.now()}`)
+  const compose = (text: string) =>
+    page.evaluate((text) => {
+      const w = window as Watched
+      if (text) w.mustStore = text
+      const el = document.querySelector<HTMLElement>('[data-testid=canvas] [contenteditable="true"]')!
+      el.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true, data: ''}))
+      if (text) document.execCommand('insertText', false, text)
+      else el.dispatchEvent(new InputEvent('input', {bubbles: true, isComposing: true, inputType: 'insertCompositionText', data: ''}))
+    }, text)
+  const end = (data: string) => page.evaluate((data) => document.querySelector<HTMLElement>('[data-testid=canvas] [contenteditable="true"]')!.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true, data})), data)
+  await compose('é')
+  await page.waitForTimeout(800)
+  await expect(status(page)).not.toHaveText('Saved')
+  await end('é')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await expect(canvas(page)).toContainText('Theirs.é')
+  await compose('')
+  await page.waitForTimeout(800)
+  await expect(status(page)).not.toHaveText('Saved')
+  await end('')
+  await expect(status(page)).toHaveText('Saved', {timeout: 3000})
+  await page.waitForTimeout(500)
+  expect(await lies(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
+const truthProbe = (page: Page, id: string, base: string) =>
   page.evaluate(
-    async ([id, text]) => {
+    async ([id, base]) => {
       const w = window as Window & {lies?: string[]}
       w.lies = []
       const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
@@ -442,9 +498,11 @@ const truthProbe = (page: Page, id: string, text: string) =>
       const read = <T,>(store: string) => new Promise<T>((ok) => (db.transaction(store).objectStore(store).get(id).onsuccess = (e) => ok((e.target as IDBRequest<T>).result)))
       const check = (what: string, needsPush: boolean) => {
         const at = Math.round(performance.now())
+        const shown = (document.querySelector('[data-testid=canvas] [contenteditable="true"]')?.textContent ?? '').replace(/\u00a0/g, ' ')
+        const typed = shown.slice(shown.lastIndexOf(base))
         const [note, entry] = [read<{body?: unknown}>('notes'), read<unknown>('outbox')]
         void Promise.all([note, entry]).then(([n, e]) => {
-          if (!JSON.stringify(n?.body ?? '').includes(text)) w.lies!.push(`${what} at ${at} ms before "${text}" was stored`)
+          if (!JSON.stringify(n?.body ?? '').includes(typed)) w.lies!.push(`${what} at ${at} ms before "${typed}", on screen, was stored`)
           else if (needsPush && e !== undefined) w.lies!.push(`${what} at ${at} ms while the note still waits in the outbox`)
         })
       }
@@ -457,7 +515,7 @@ const truthProbe = (page: Page, id: string, text: string) =>
         }
       }).observe(document, {subtree: true, childList: true, characterData: true})
     },
-    [id, text],
+    [id, base],
   )
 
 test('typed offline and back online within 50 ms: neither Saved nor Synced shows before the edit is stored and sent', async ({page, context}) => {
@@ -468,7 +526,7 @@ test('typed offline and back online within 50 ms: neither Saved nor Synced shows
   await page.keyboard.type('Base.')
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
   await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
-  await truthProbe(page, id, 'Typed offline.')
+  await truthProbe(page, id, 'Base.')
   await context.setOffline(true)
   await page.keyboard.type(' Typed offline.')
   await context.setOffline(false)
