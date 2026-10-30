@@ -18,7 +18,7 @@ const rows = []
 const said = (cmd, args) => spawnSync(cmd, args, {encoding: 'utf8', env: {...process.env, TMPDIR: '/tmp/'}})
 const sh = (cmd, args) => {
   const r = said(cmd, args)
-  if (r.status !== 0) throw new Error(`${cmd} ${args[0]} failed: ${(r.stderr || r.stdout).trim()}`)
+  if (r.status !== 0) throw new Error(`${cmd} ${args[0]} failed: ${(r.stderr + r.stdout).trim()}`)
   return r.stdout + r.stderr
 }
 const mounted = () => said('hdiutil', ['info']).stdout.includes(mount)
