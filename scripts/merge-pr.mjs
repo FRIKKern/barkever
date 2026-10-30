@@ -30,6 +30,12 @@ const missing = required.filter((name) => !list.some((c) => c.name === name && c
 const blocking = [...list.filter((c) => c.bucket === "fail" || c.bucket === "cancel").filter((c) => !/advisory/i.test(c.name) && !knownRed.includes(c.name)),...missing.map((name) => ({ name: `${name} (required, not passed)` }))];
 const tally = Object.entries(Object.groupBy(list, (c) => c.bucket)).map(([b, cs]) => `${cs.length} ${b}`).join(", ");
 if (blocking.length) { console.error(`merge-pr: not merged (${tally}); blocking: ${blocking.map((c) => c.name).join(", ")}`); process.exit(1); }
+const prepushRunning = () => execFileSync("ps", ["-axo", "command"], { encoding: "utf8" }).split("\n").some((c) => /^node \S*heavy\.mjs npm run prepush/.test(c));
+for (let waited = 0; prepushRunning(); waited++) {
+  if (waited === 0) console.error("merge-pr: a Barkever prepush is running against guerrilla; waiting so the deploy can't land mid-run");
+  if (waited > 30) { console.error("merge-pr: prepush still running after 30 min"); process.exit(1); }
+  await sleep(60_000);
+}
 if (gh(["pr", "view", pr, "-R", REPO, "--json", "headRefOid", "-q", ".headRefOid"]).trim() !== head) { console.error("merge-pr: head moved while waiting; run again"); process.exit(1); }
 gh(["pr", "merge", pr, "-R", REPO, "--squash", "--match-head-commit", head]);
 const merged = JSON.parse(gh(["pr", "view", pr, "-R", REPO, "--json", "state,mergeCommit"]));
