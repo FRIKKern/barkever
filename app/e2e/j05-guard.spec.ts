@@ -6,7 +6,7 @@ import {fixtures} from './seed'
 const SHAPES = `note-shapes-${Date.now()}`
 test.afterAll(() => deleteNotes([SHAPES]))
 
-test('an editor older than contract 1.17.0 is refused once per page: the note reads only, and switching notes adds no editor files', async ({page}) => {
+test('an editor older than contract 1.20.0 is refused once per page: the note reads only, and switching notes adds no editor files', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
@@ -14,7 +14,7 @@ test('an editor older than contract 1.17.0 is refused once per page: the note re
   await page.goto('/')
   const rows = page.getByTestId('note-row')
   await expect(rows.first()).toBeVisible({timeout: 30_000})
-  const refused = page.getByText('Barkpark serves editor 1.16.0; Barkever needs 1.17.0 or newer')
+  const refused = page.getByText('Barkpark serves editor 1.19.0; Barkever needs 1.20.0 or newer')
   for (let i = 0; i < 4; i++) {
     await rows.nth(i).click()
     await expect(refused).toBeVisible()
