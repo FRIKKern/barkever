@@ -98,6 +98,7 @@ test('the signature reader tells ad hoc, Developer ID and the runtime flag apart
   assert.deepEqual(signedBy('CodeDirectory v=20500 flags=0x2(adhoc) hashes=9+7'), {runtime: false, developerId: false, label: 'signed ad hoc'})
   assert.deepEqual(signedBy(`CodeDirectory v=20500 flags=0x10000(runtime) hashes=9+7\nAuthority=Developer ID Application: ${fake}\nAuthority=Developer ID Certification Authority`), {runtime: true, developerId: true, label: `Developer ID Application: ${fake}`})
   assert.deepEqual(signedBy('code object is not signed at all'), {runtime: false, developerId: false, label: 'unsigned'})
+  assert.deepEqual(signedBy(`flags=0x10000(runtime)\nAuthority=Apple Development: ${fake}\nAuthority=Apple Worldwide Developer Relations Certification Authority`), {runtime: true, developerId: false, label: `Apple Development: ${fake}`})
 })
 
 test('bundle imports keep bare package names and drop relative, absolute, node: and non-package strings', () => {
