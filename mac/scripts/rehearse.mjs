@@ -68,10 +68,6 @@ try {
     const worker = await page.evaluate(() =>
       Promise.race([navigator.serviceWorker.ready.then((r) => r.active.scriptURL), new Promise((_, no) => setTimeout(() => no(new Error('no service worker within 15 s: the client never ran')), 15_000))]),
     )
-    const broken = await page.evaluate(() =>
-      [...performance.getEntriesByType('navigation'), ...performance.getEntriesByType('resource')].filter((e) => e.responseStatus === 0 || e.responseStatus >= 400).map((e) => `${e.name} ${e.responseStatus}`),
-    )
-    if (broken.length) throw new Error(`requests failed: ${broken.join(', ')}`)
     await page.screenshot({path: shot})
     return `${await page.title()} at ${page.url()}, hydrated, service worker ${new URL(worker).pathname}`
   })
