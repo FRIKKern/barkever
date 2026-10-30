@@ -65,8 +65,11 @@ export function world(setup: Setup) {
       new Promise<T>((resolve, reject) => {
         if (!w.connected) return reject(OFFLINE)
         if (w.call) throw new Error('chaos: two calls in flight')
-        const value = now()
-        w.call = {label: label(value), go: () => resolve(value), fail: () => reject(OFFLINE)}
+        const flaky = w.flaky
+        w.flaky = Math.max(0, flaky - 1)
+        const value = flaky === 2 ? undefined : now()
+        const lost = flaky === 2 ? 'nothing: the request never reached the server' : `${label(value as T)}${flaky ? ', reply lost' : ''}`
+        w.call = {label: lost, go: () => (flaky ? reject(OFFLINE) : resolve(value as T)), fail: () => reject(OFFLINE)}
         say(w, `sends ${w.call.label}`)
         w.parked?.()
       })
@@ -207,6 +210,10 @@ export function world(setup: Setup) {
         return startJob(w)
       case 'reply':
         return reply(w)
+      case 'drop':
+        w.flaky = 2
+        say(w, 'hits a flaky network: its next request never arrives, the reply to the one after is lost')
+        return true
       case 'wait':
         clock += 61_000
         writers.forEach(persist)
@@ -231,6 +238,7 @@ export function world(setup: Setup) {
   async function finish(): Promise<Failure | undefined> {
     at = Infinity
     for (const w of writers) {
+      w.flaky = 0
       if (!w.online) {
         w.online = true
         say(w, 'comes online')

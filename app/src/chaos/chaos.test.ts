@@ -123,6 +123,15 @@ const laterCarrier: Pin = {
   ],
 }
 
+const neverArrived: Pin = {
+  setup: {writers: 2, raw: false, blocks: 1, solo: false},
+  steps: [
+    [1, 'type', 0.01, 0.9], [1, 'job', 0.5, 0.5], [0, 'frame', 0, 0.9], [0, 'job', 0.5, 0.5], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [0, 'type', 0.01, 0.9],
+    [0, 'drop', 0.5, 0.5], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [0, 'organize', 0.1, 0.1], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [1, 'frame', 0, 0.9],
+    [1, 'frame', 0, 0.9], [1, 'render', 0.5, 0.5], [1, 'type', 0.01, 0.9], [1, 'reply', 0.5, 0.5], [0, 'organize', 0.1, 0.1], [0, 'job', 0.5, 0.5],
+  ],
+}
+
 test('seed 40: a writer’s losing block survives that writer clashing again with text it adopted from the main', async () => {
   const r = await pinned(signed, 40)
   assert.equal(r.failure, undefined, r.failure && report(r))
@@ -170,5 +179,10 @@ test('seed 107159: two unacked pushes that disagree but carry one new copy key n
 
 test('seed 139464: a later push still carrying a copy key an earlier push made proves nothing, so a kept text survives', async () => {
   const r = await pinned(laterCarrier, 139464)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('my first push carrying a new copy never reaches the server, the next lands with its reply lost, and my next push is refused: no copy of my own tags comes back', async () => {
+  const r = await pinned(neverArrived, 1)
   assert.equal(r.failure, undefined, r.failure && report(r))
 })

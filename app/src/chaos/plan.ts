@@ -1,4 +1,4 @@
-export type Kind = 'type' | 'revert' | 'add' | 'delete' | 'organize' | 'keep' | 'render' | 'net' | 'reload' | 'frame' | 'job' | 'reply' | 'wait' | 'raw'
+export type Kind = 'type' | 'revert' | 'add' | 'delete' | 'organize' | 'keep' | 'render' | 'net' | 'reload' | 'frame' | 'job' | 'reply' | 'drop' | 'wait' | 'raw'
 export type Step = {w: number; k: Kind; a: number; b: number}
 export type Setup = {writers: number; raw: boolean; blocks: number; solo: boolean}
 export type Plan = {seed: number; setup: Setup; steps: Step[]}
@@ -27,6 +27,7 @@ const WRITER: [Kind, number][] = [
   ['frame', 18],
   ['job', 15],
   ['reply', 15],
+  ['drop', 5],
   ['wait', 2],
 ]
 const QUIET = new Set<Kind>(['type', 'revert', 'add', 'delete', 'organize', 'keep'])

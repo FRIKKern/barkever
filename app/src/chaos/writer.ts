@@ -24,6 +24,7 @@ export type Writer = {
   parked?: () => void
   typed: number
   wrote: Map<string, string[]>
+  flaky: number
 }
 
-export const writer = (id: string): Writer => ({id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: [], tags: [], notebook: null}, inbox: [], jobs: [], typed: 0, wrote: new Map()})
+export const writer = (id: string): Writer => ({id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: [], tags: [], notebook: null}, inbox: [], jobs: [], typed: 0, wrote: new Map(), flaky: 0})
