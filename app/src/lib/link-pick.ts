@@ -12,7 +12,7 @@ export const PICKS = 8
 export function linkCandidates(notes: Note[], from: string, query: string, notebook: Named): Candidate[] {
   const ts = terms(query)
   const q = ts.join(' ')
-  const exact = query.trim().toLowerCase()
+  const exact = query.toLowerCase()
   const title = (n: Note) => n.title.toLowerCase()
   const rank = (n: Note) => (title(n) === exact ? 0 : title(n).startsWith(q) ? 1 : 2)
   return notes

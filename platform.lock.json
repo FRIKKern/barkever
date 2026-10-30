@@ -2,10 +2,10 @@
   "barkpark": {
     "server": "https://guerrilla.barkpark.cloud",
     "workspace": "barkever",
-    "observedVersion": "0.2.30.29",
-    "observedCommit": "0a02feca5b1b577713ba6554d4127e7db0a55919",
+    "observedVersion": "0.2.30.30",
+    "observedCommit": "bfd8eaa96dd204ebb6ba219f2b4d74af720468f9",
     "observedAt": "2026-10-30",
-    "canvasContract": "1.17.0",
+    "canvasContract": "1.18.0",
     "sdk": null
   },
   "status": "deployment-verified",
@@ -15,7 +15,7 @@
     { "name": "mutate with ifRevisionID, stale rev → 412", "verified": true, "evidence": "spikes/note-type/out/01-create-and-conflict.txt:230,244" },
     { "name": "bp-paper-canvas edits a note body (editor: blocks)", "verified": true, "evidence": "spikes/note-type/05-canvas.mjs, out/05-canvas.txt" },
     { "name": "canvas 1.17: wikilinkResolve paints live titles, refreshWikilinks, data-missing, typed [[Title]] links, Mod+Enter left to the host", "verified": true, "evidence": "app/e2e/j05-live.spec.ts, app/e2e/j05-link.spec.ts; loadCanvas refuses a contract older than 1.17.0" },
-    { "name": "canvas links a pasted [[Title]]", "verified": false, "evidence": "1.17.0 keeps a paste as text (Barkpark __wikilink_input_keys_mounted.test.mjs:163); 1.18.0 (#24796) is in review" },
+    { "name": "canvas 1.18: a pasted [[Exact title]] links, as plain text and as Markdown; an unknown title stays text", "verified": true, "evidence": "app/e2e/j05-live.spec.ts 'J05 paste'; Barkever still accepts any contract from 1.17.0 up" },
     { "name": "backlinks from links[] reference field on drafts", "verified": true, "evidence": "spikes/note-type/out/02-links-search.txt:62; fixtures: fx-note-00 has 4" },
     { "name": "backlinks from body wikilinks on drafts", "verified": false, "evidence": "spikes/note-type/out/02-links-search.txt:51 — only after publish; mirrored into links[] (decision 0013)" },
     { "name": "search by body word", "verified": true, "evidence": "fixtures search 'tulips' → 1 hit; drafts need perspective=drafts" },

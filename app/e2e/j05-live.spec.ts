@@ -6,6 +6,15 @@ test.describe.configure({mode: 'serial', timeout: 150_000})
 const TARGET = 'Tide gauge: spring check'
 const RENAMED = 'Tide gauge: autumn check'
 const SOURCE = 'Pier walk: what to check'
+const CRANE = 'Harbour crane: load test'
+const SPOTS = [
+  ['inside the picked link', 'then the rest.', 'end', ' then the rest.'.length + 1],
+  ['right after the picked link', 'then the rest.', 'end', ' then the rest.'.length],
+  ['just left of the picked link', 'then the rest.', 'start', 'First '.length],
+  ['right after the typed link', 'again here.', 'end', ' again here.'.length],
+  ['line start, before the typed link', 'again here.', 'start', 0],
+] as const
+const BESIDE = SPOTS.slice(1)
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
 
@@ -15,7 +24,6 @@ const opened = (page: Page) => new URL(page.url()).searchParams.get('n')
 const links = (page: Page) => page.getByTestId('canvas').locator('[data-wikilink]')
 const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 30_000})
 const shown = (page: Page) => links(page).evaluateAll((els) => els.map((e) => (e as HTMLElement).innerText))
-const caretLink = (page: Page) => page.evaluate(() => (document.querySelector('bp-paper-canvas') as unknown as {state(): {wikilink: unknown}}).state().wikilink)
 
 async function onServer(id: string): Promise<Stored | undefined> {
   const res = await barkpark(`/v1/data/query/${DATASET}/note?perspective=drafts&limit=2&filter[_id][in]=${id},drafts.${id}`)
@@ -49,14 +57,22 @@ async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: n
   for (let i = 0; i < steps; i++) await page.keyboard.press(edge === 'start' ? 'ArrowRight' : 'ArrowLeft')
 }
 
-async function followFrom(page: Page, from: string, to: string) {
-  await page.keyboard.press('ControlOrMeta+Enter')
-  await expect.poll(() => opened(page)).toBe(to)
-  await page.goBack()
-  await expect.poll(() => opened(page)).toBe(from)
+async function followFromEverySpot(page: Page, spots: typeof BESIDE | typeof SPOTS, from: string, to: string, when: string) {
+  for (const [spot, text, edge, steps] of spots) {
+    await caretAt(page, text, edge, steps)
+    await page.keyboard.press('ControlOrMeta+Enter')
+    await expect.poll(() => opened(page), {message: `Mod+Enter ${spot}, ${when}`}).toBe(to)
+    await page.goBack()
+    await expect.poll(() => opened(page)).toBe(from)
+  }
 }
 
-test('J05 live titles: a typed [[Title]] links, a rename repaints every link without writing the linking note, Mod+Enter inside a link or on either side of it, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
+async function paste(page: Page, text: string) {
+  await page.evaluate((t) => navigator.clipboard.writeText(t), text)
+  await page.keyboard.press('ControlOrMeta+v')
+}
+
+test('J05 live titles: a typed [[Title]] links, a rename repaints every link without writing the linking note, Mod+Enter inside or on either side of a picked or typed link, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
   const context = await browser.newContext({storageState: test.info().project.use.storageState, colorScheme: 'dark'})
   const [page, other] = [await context.newPage(), await context.newPage()]
   const errors: string[] = []
@@ -79,15 +95,7 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   await synced(page)
   await expect.poll(async () => JSON.stringify((await onServer(source))?.links), {timeout: 30_000}).toContain(target)
   const stored = JSON.stringify((await onServer(source))?.body)
-  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length + 1)
-  expect(await caretLink(page)).not.toBeNull()
-  await followFrom(page, source, target)
-  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length)
-  expect(await caretLink(page)).toBeNull()
-  await followFrom(page, source, target)
-  await caretAt(page, 'then the rest.', 'start', 'First '.length)
-  expect(await caretLink(page)).toBeNull()
-  await followFrom(page, source, target)
+  await followFromEverySpot(page, SPOTS, source, target, 'before a rename')
 
   await other.goto(`/?n=${target}`)
   await expect(other.getByTestId('title')).toHaveValue(TARGET, {timeout: 30_000})
@@ -98,12 +106,7 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
   await page.screenshot({path: test.info().outputPath('j05-live-title-dark-1440.png')})
 
-  await caretAt(page, 'then the rest.', 'end', ' then the rest.'.length)
-  expect(await caretLink(page)).toBeNull()
-  await followFrom(page, source, target)
-  await caretAt(page, 'again here.', 'start', 0)
-  expect(await caretLink(page)).toBeNull()
-  await followFrom(page, source, target)
+  await followFromEverySpot(page, BESIDE, source, target, 'after a rename, where a painted link never holds the caret')
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])
 
   const before = (await onServer(target))!
@@ -124,6 +127,36 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
   await page.screenshot({path: test.info().outputPath('j05-live-title-dark-390.png')})
+  expect(errors).toEqual([])
+  await context.close()
+})
+
+test('J05 paste: a pasted [[Exact title]] links to that note, as plain text and as Markdown; an unknown title stays text', async ({browser}) => {
+  const context = await browser.newContext({storageState: test.info().project.use.storageState, colorScheme: 'dark', permissions: ['clipboard-read', 'clipboard-write']})
+  const page = await context.newPage()
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto('/')
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 30_000})
+
+  const crane = await newNote(page, CRANE)
+  await page.keyboard.type('Check the hook first.')
+  await synced(page)
+  const source = await newNote(page, 'Crane day: pasted links')
+  await page.keyboard.type('Plain ')
+  await paste(page, `[[${CRANE}]]`)
+  await page.keyboard.type(' done.')
+  await page.keyboard.press('Enter')
+  await paste(page, `[[No note has this title]]`)
+  await page.keyboard.press('Enter')
+  await paste(page, `- Markdown [[${CRANE}]] item\n- second item`)
+  await expect(links(page)).toHaveCount(2)
+  expect(await links(page).evaluateAll((els) => els.map((e) => e.getAttribute('docid')))).toEqual([crane, crane])
+  await expect(page.getByTestId('canvas').locator('li', {hasText: 'Markdown'}).locator('[data-wikilink]')).toHaveCount(1)
+  await expect(page.getByTestId('canvas')).toContainText('[[No note has this title]]')
+  await synced(page)
+  await expect.poll(async () => JSON.stringify((await onServer(source))?.links), {timeout: 30_000}).toContain(crane)
+  await page.screenshot({path: test.info().outputPath('j05-paste-dark-1440.png')})
   expect(errors).toEqual([])
   await context.close()
 })

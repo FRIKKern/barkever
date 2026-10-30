@@ -45,6 +45,8 @@ export function linkAtCaret(el: CanvasElement): string | null {
 
 let loading: Promise<void> | null = null
 
+class Outdated extends Error {}
+
 export const CANVAS_CONTRACT = '1.17.0'
 
 export function atLeast(version: string | undefined, want: string): boolean {
@@ -67,9 +69,9 @@ export function loadCanvas(): Promise<void> {
     await new Promise((ok, no) => add(Object.assign(document.createElement('script'), {src: files.script, onload: ok, onerror: () => no(new Error('the editor script did not load'))})))
     await customElements.whenDefined('bp-paper-canvas')
     const version = (customElements.get('bp-paper-editor') as {CONTRACT_VERSION?: string} | undefined)?.CONTRACT_VERSION
-    if (!atLeast(version, CANVAS_CONTRACT)) throw new Error(`Barkpark serves editor ${version ?? 'of unknown version'}; Barkever needs ${CANVAS_CONTRACT} or newer`)
+    if (!atLeast(version, CANVAS_CONTRACT)) throw new Outdated(`Barkpark serves editor ${version ?? 'of unknown version'}; Barkever needs ${CANVAS_CONTRACT} or newer`)
   })().catch((e) => {
-    loading = null
+    if (!(e instanceof Outdated)) loading = null
     throw e
   })
   return loading
