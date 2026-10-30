@@ -14,11 +14,15 @@ export function partsOf(n: Held): [string, string][] {
 
 export function truth() {
   const versions = new Map<string, Version>()
-  const retired = new Set<string>()
+  const retired = new Map<string, Set<string>>()
   let last: {holders: unknown[]; size: number; out: Version[]} | undefined
   return {
     wrote: (v: Version) => void versions.set(key(v.part, v.text), v),
-    editedFrom: (part: string, text: string) => void retired.add(key(part, text)),
+    editedFrom: (part: string, text: string, by: string) => void retired.set(key(part, text), new Set([...(retired.get(key(part, text)) ?? []), by])),
+    revived(part: string, text: string, by: string, over: string) {
+      const others = [...(retired.get(key(part, text)) ?? [])].filter((b) => b !== by)
+      if (!others.length || others.includes(versions.get(key(part, over))?.by ?? '')) retired.delete(key(part, text))
+    },
     author: (part: string, text: string) => versions.get(key(part, text))?.by,
     lost(holders: (NoteDoc | null | undefined)[]): Version[] {
       const size = versions.size + retired.size

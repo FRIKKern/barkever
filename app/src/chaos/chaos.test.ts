@@ -81,6 +81,23 @@ const narrow: Pin = {
   ],
 }
 
+const setBack: Pin = {
+  setup: {writers: 2, raw: false, blocks: 1, solo: false},
+  steps: [
+    [0, 'organize', 0.687, 0.222], [1, 'net', 0.575, 0.845], [0, 'add', 0.216, 0.153], [1, 'type', 0.802, 0.591], [1, 'net', 0.332, 0.976], [0, 'job', 0.559, 0.229], [1, 'type', 0.651, 0.686],
+    [1, 'job', 0.757, 0.702], [1, 'frame', 0.573, 0.383], [0, 'delete', 0.059, 0.323], [1, 'reply', 0.303, 0.09], [1, 'add', 0.644, 0.921], [0, 'type', 0.59, 0.847], [1, 'type', 0.465, 0.984],
+    [1, 'reply', 0.277, 0.271], [1, 'revert', 0.651, 0.115], [0, 'frame', 0.358, 0.451], [0, 'frame', 0.511, 0.701], [1, 'reply', 0.33, 0.779], [1, 'type', 0.99, 0.665],
+  ],
+}
+
+const oldSignature: Pin = {
+  setup: {writers: 2, raw: true, blocks: 1, solo: false},
+  steps: [
+    [0, 'type', 0.01, 0.9], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [2, 'raw', 0.01, 0.9], [0, 'frame', 0.0, 0.9], [0, 'frame', 0.0, 0.9], [0, 'render', 0.5, 0.5], [0, 'job', 0.5, 0.5],
+    [0, 'reply', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [0, 'revert', 0.01, 0.0], [2, 'raw', 0.01, 0.9], [0, 'job', 0.5, 0.5], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5], [0, 'job', 0.5, 0.5], [0, 'reply', 0.5, 0.5],
+  ],
+}
+
 test('seed 40: a writer’s losing block survives that writer clashing again with text it adopted from the main', async () => {
   const r = await pinned(signed, 40)
   assert.equal(r.failure, undefined, r.failure && report(r))
@@ -103,5 +120,15 @@ test('seed 2337: two devices that clash with one revision on different parts kee
 
 test('seed 7424: one device dropping its narrow copy of a revision leaves the other device’s wider copy alone', async () => {
   const r = await pinned(narrow, 7424)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('seed 327: a block set back to text its writer had typed over keeps its copy when another writer overwrites it', async () => {
+  const r = await pinned(setBack, 327)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('a title set back to my signed one after a raw write, then refused by a second raw write that keeps my old signature, survives', async () => {
+  const r = await pinned(oldSignature, 1)
   assert.equal(r.failure, undefined, r.failure && report(r))
 })

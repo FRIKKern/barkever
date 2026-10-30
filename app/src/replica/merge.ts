@@ -115,7 +115,8 @@ export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partia
   const base = {...note, ...shown}
   const typed = {...note, ...after}
   const from = partsOf(shown).filter((p) => carried(p) && moved(base, typed)(p)).map((p) => mark(base, p))
-  if (from.length) typed._typed = [...new Set([...(note._typed ?? []), ...from])].slice(-TYPED)
+  const now = new Set(partsOf(after).filter(carried).map((p) => mark(typed, p)))
+  if (from.length) typed._typed = [...new Set([...(note._typed ?? []), ...from])].filter((m) => !now.has(m)).slice(-TYPED)
   const under = [...partsOf(shown), ...partsOf(note)].filter(moved(base, note))
   const other = server && under.every((p) => !moved(server, note)(p)) ? (writerOf(server) ?? UNSIGNED) : me
   return mergeNote(base, typed, note, at, me, key, other === me ? `${me}~tab` : other)

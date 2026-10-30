@@ -171,29 +171,33 @@ export function world(setup: Setup) {
     return true
   }
 
-  async function type(w: Writer, a: number, b: number, k: 'type' | 'add' | 'delete') {
+  const wrote = (w: Writer, part: string, text: string, over = '') => (t.wrote({part, text, by: w.id, step: at}), t.revived(part, text, w.id, over), void w.wrote.set(part, [...(w.wrote.get(part) ?? []), text]))
+
+  async function type(w: Writer, a: number, b: number, k: 'type' | 'revert' | 'add' | 'delete') {
     const blocks = w.view.blocks
+    const shown = {title: w.view.title, body: {blocks}}
+    const back = (p: string) => (w.wrote.get(p) ?? []).filter((x) => x !== textOf(shown, p))
     const token = `${w.id}${++w.typed}`
     let after = blocks
     if (k === 'add') {
       const id = `${w.id.toLowerCase()}${w.typed}`
       after = [...blocks]
       after.splice(Math.floor(a * (blocks.length + 1)), 0, para(id, token))
-      t.wrote({part: `body:${id}`, text: token, by: w.id, step: at})
+      wrote(w, `body:${id}`, token)
       say(w, `adds block ${id} "${token}"`)
     } else {
-      const parts = ['title', ...blocks.map((x) => `body:${x.id}`)]
+      const parts = ['title', ...blocks.map((x) => `body:${x.id}`)].filter((p) => k !== 'revert' || back(p).length)
       const part = k === 'delete' ? parts[1 + Math.floor(a * (parts.length - 1))] : parts[Math.floor(a * parts.length)]
       if (!part) return false
-      const old = textOf({title: w.view.title, body: {blocks}}, part)
-      t.editedFrom(part, old)
+      const old = textOf(shown, part)
+      t.editedFrom(part, old, w.id)
       if (k === 'delete') {
         after = blocks.filter((x) => `body:${x.id}` !== part)
         say(w, `deletes block ${part.slice(5)} "${old}"`)
       } else {
-        const next = edited(old, token, b, (a * 7919) % 1)
-        t.wrote({part, text: next, by: w.id, step: at})
-        say(w, `${modeName(b)} ${placeOf(part)}: "${old}" → "${next}"`)
+        const next = k === 'revert' ? back(part).at(-1 - Math.floor(b * b * back(part).length))! : edited(old, token, b, (a * 7919) % 1)
+        wrote(w, part, next, old)
+        say(w, `${k === 'revert' ? 'sets back' : modeName(b)} ${placeOf(part)}: "${old}" → "${next}"`)
         if (part === 'title') {
           w.view.title = next
           await as(w, () => editTitle(ID, old, next))
@@ -212,14 +216,14 @@ export function world(setup: Setup) {
     const token = `${w.id}${++w.typed}`
     if (a < 0.5) {
       const [old, next] = [w.view.tags, retagged(w.view.tags, token, b)]
-      t.editedFrom('tags', JSON.stringify(old))
+      t.editedFrom('tags', JSON.stringify(old), w.id)
       t.wrote({part: 'tags', text: JSON.stringify(next), by: w.id, step: at})
       say(w, `sets tags ${JSON.stringify(old)} → ${JSON.stringify(next)}`)
       w.view.tags = next
       await as(w, () => retag(ID, old, next))
     } else {
       const [old, next] = [w.view.notebook, `nb-${token}`]
-      t.editedFrom('notebook', old ?? '')
+      t.editedFrom('notebook', old ?? '', w.id)
       t.wrote({part: 'notebook', text: next, by: w.id, step: at})
       say(w, `moves the note from notebook ${old} to ${next}`)
       w.view.notebook = next
@@ -236,7 +240,7 @@ export function world(setup: Setup) {
     const shown = {title: w.view.title, body: {blocks: w.view.blocks}}
     const copied = new Map(partsOf(c))
     for (const p of replacedBy(c)) {
-      t.editedFrom(p, textOf(p === 'tags' || p === 'notebook' ? n : shown, p))
+      t.editedFrom(p, textOf(p === 'tags' || p === 'notebook' ? n : shown, p), w.id)
       if (copied.has(p)) t.wrote({part: p, text: copied.get(p)!, by: `${w.id} (kept)`, step: at})
     }
     say(w, `keeps copy ${c._key} by ${c.by} (${c.clash.join(',')})`)
@@ -260,7 +264,7 @@ export function world(setup: Setup) {
     }
     const [part, old] = parts[i]
     const next = rawNext(part, old, token, a, b)
-    t.editedFrom(part, old)
+    t.editedFrom(part, old, 'raw')
     t.wrote({part, text: next, by: 'raw', step: at})
     say('raw', `${rawVerb(part, b)} on the server: "${old}" → "${next}"`)
     server.raw(rawWrite(part, next))
@@ -272,6 +276,7 @@ export function world(setup: Setup) {
     const w = writers[s.w]
     switch (s.k) {
       case 'type':
+      case 'revert':
       case 'add':
       case 'delete':
         return type(w, s.a, s.b, s.k)

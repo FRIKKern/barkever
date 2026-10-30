@@ -298,3 +298,18 @@ test('titles: two offline hours keep the first losing title, and two raw writers
   assert.deepEqual(keptTitles(m2), [[UNSIGNED, 'Studio edit'], [UNSIGNED, 'CLI edit']])
   assert.deepEqual(groups(m2.conflicts!).map((g) => g.latest.title), ['CLI edit'])
 })
+
+test('a title set back to one I typed over is mine again: when another writer overwrites it, its copy stays with me', () => {
+  const w = world()
+  const [a, b] = [w.device('A'), w.device('B')]
+  b.typeTitle('B1')
+  b.push()
+  b.typeTitle('B2')
+  b.typeTitle('B1')
+  b.push()
+  a.typeTitle('A1')
+  a.pull()
+  a.push()
+  b.pull()
+  assert.deepEqual([b.local.title, (b.local.conflicts ?? []).map((c) => c.title)], ['A1', ['B1']])
+})
