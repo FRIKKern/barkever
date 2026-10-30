@@ -1,14 +1,21 @@
 import {expect, test, type Page} from '@playwright/test'
-import {deleteNotes} from './fixtures-cleanup'
+import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {created, device, errorsOf, newNote, serverNote, synced} from './devices'
 
 test.afterAll(() => deleteNotes(created))
 
 const tags = (page: Page) => page.getByTestId('note-tag')
+type Organized = {tags?: string[]; notebook?: {_ref: string} | null; conflicts?: Organized[]}
+const organized = async (id: string) => (await serverNote(id)) as Organized | undefined
 const tagSets = async (id: string) => {
-  const n = (await serverNote(id)) as {tags?: string[]; conflicts?: {tags?: string[]}[]} | undefined
+  const n = await organized(id)
   return [n?.tags, ...(n?.conflicts ?? []).map((c) => c.tags)].map((t) => (t ?? []).join(',')).sort()
 }
+const notebooks = async (id: string) => {
+  const n = await organized(id)
+  return [n?.notebook === undefined ? 'main: none' : `main: ${n.notebook?._ref}`, ...(n?.conflicts ?? []).map((c) => `copy: ${c.notebook === null ? 'none' : c.notebook?._ref}`)]
+}
+const pick = (page: Page) => page.getByTestId('notebook-pick')
 
 async function addTag(page: Page, tag: string) {
   await page.getByTestId('tag-add').fill(tag)
@@ -16,8 +23,8 @@ async function addTag(page: Page, tag: string) {
   await expect(tags(page).filter({hasText: tag})).toHaveCount(1)
 }
 
-test('two devices tag a note differently offline: both tag sets reach Barkpark and every device, and Keep this picks one', async ({browser, baseURL}) => {
-  test.setTimeout(120_000)
+test('two devices tag or move a note differently offline: both tags and notebooks reach Barkpark, a Studio unfile is kept as a version, and Keep this picks each', async ({browser, baseURL}) => {
+  test.setTimeout(180_000)
   const a = await device(browser, baseURL!)
   const b = await device(browser, baseURL!)
   const errors = [...errorsOf(a), ...errorsOf(b)]
@@ -47,6 +54,34 @@ test('two devices tag a note differently offline: both tag sets reach Barkpark a
   await expect(view).toHaveCount(0)
   await expect.poll(() => tagSets(id), {timeout: 15_000}).toEqual([ta])
   await expect(tags(a)).toHaveText([new RegExp(`#${ta}`)], {timeout: 15_000})
+
+  await Promise.all([a, b].map((p) => p.context().setOffline(true)))
+  await pick(a).selectOption('fx-nb-home')
+  await pick(b).selectOption('fx-nb-work')
+  await a.context().setOffline(false)
+  await synced(a)
+  await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-home'])
+  await b.context().setOffline(false)
+  await synced(b)
+  await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-work', 'copy: fx-nb-home'])
+  await view.locator('summary').first().click()
+  await view.getByTestId('keep-version').click()
+  await expect(pick(b)).toHaveValue('fx-nb-home')
+  await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-home'])
+  await expect(pick(a)).toHaveValue('fx-nb-home', {timeout: 15_000})
+
+  await a.context().setOffline(true)
+  await pick(a).selectOption('fx-nb-travel')
+  const studio = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', unset: ['notebook']}}]})})
+  expect(studio.ok).toBe(true)
+  await a.context().setOffline(false)
+  await synced(a)
+  await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-travel', 'copy: none'])
+  const onA = a.getByTestId('conflict')
+  await onA.locator('summary').first().click()
+  await onA.getByTestId('keep-version').click()
+  await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: none'])
+  await expect(pick(b)).toHaveValue('', {timeout: 15_000})
   expect(errors).toEqual([])
   await Promise.all([a.context().close(), b.context().close()])
 })

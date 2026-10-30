@@ -77,3 +77,21 @@ test('a notebook copy holds no tags, so Keep this on it leaves the tags typed si
   const retagged = {...merged, tags: ['since']}
   assert.deepEqual([keep(retagged, c._key, retagged, AT, 'local-k', 'A')].map((n) => [n.notebook?._ref, n.tags]), [['work', ['since']]])
 })
+
+test('Keep this on a copy stored before copies held tags or notebook leaves both alone', () => {
+  const main = {...r0, tags: ['keep-me'], conflicts: [copy('k1', '1', {}, ['tags']), copy('k2', '2', {}, ['notebook'])]}
+  const tagged = keep(main, 'k1', main, AT, 'local-k', 'A')
+  const moved = keep(tagged, 'k2', tagged, AT, 'local-k2', 'A')
+  assert.deepEqual([tagged.tags, tagged.notebook, moved.tags, moved.notebook, moved.conflicts], [['keep-me'], nb('inbox'), ['keep-me'], nb('inbox'), []])
+})
+
+test('one writer takes the note out of every notebook while another moves it: the copy keeps "no notebook" through JSON, and Keep this unfiles the note', () => {
+  const {notebook: _, ...unfiled} = r0
+  const r1 = {...sign(unfiled, 'B'), _rev: 'r1'}
+  const a = mergeLocal(r0, {notebook: nb('inbox')}, {notebook: nb('home')}, AT, 'local-1', 'A', r0)
+  const merged = JSON.parse(JSON.stringify(mergeNote(r0, a, r1, AT, 'A'))) as Note
+  assert.deepEqual([merged.notebook?._ref, merged.conflicts?.map((c) => [c.clash, c.notebook])], ['home', [[['notebook'], null]]])
+  const kept = keep(merged, merged.conflicts![0]._key, merged, AT, 'local-k', 'A')
+  assert.deepEqual([kept.notebook, kept.conflicts], [undefined, []])
+  assert.deepEqual(collapse(merged.conflicts!, kept), [])
+})

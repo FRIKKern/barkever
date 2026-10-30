@@ -82,3 +82,10 @@ test('a note deleted after a create whose reply was lost is deleted on Barkpark 
   await push()
   assert.ok(sent(seen).includes('"delete"'), `no delete reached Barkpark: ${sent(seen)}`)
 })
+
+test('a field the note no longer has is unset at Barkpark, not left behind', () => {
+  const base = {...note('r1', 'T', []), notebook: {_type: 'reference', _ref: 'nb1'}}
+  const m = mutationFor({id: 'n1', base, v: 1, at: 0}, note('r1', 'T', [], 'dev-me')) as {patch: {set: object; unset?: string[]}}
+  assert.deepEqual([m.patch.unset, 'notebook' in m.patch.set], [['notebook'], false])
+  assert.ok(!('unset' in (mutationFor({id: 'n1', base, v: 1, at: 0}, {...base, title: 'U'}) as {patch: object}).patch))
+})

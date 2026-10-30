@@ -1,11 +1,11 @@
 import {blockText} from '../lib/model.ts'
-import type {NoteDoc} from '../replica/note.ts'
+import type {NoteDoc, Ref} from '../replica/note.ts'
 
 export type Version = {part: string; text: string; by: string; step: number}
 
 const key = (part: string, text: string) => `${part}\n${text}`
 
-export type Held = Pick<NoteDoc, 'title' | 'body' | 'tags' | 'notebook'>
+export type Held = Pick<NoteDoc, 'title' | 'body' | 'tags'> & {notebook?: Ref | null}
 
 export function partsOf(n: Held): [string, string][] {
   const organized: [string, string][] = [...(n.tags ? [['tags', JSON.stringify(n.tags)] as [string, string]] : []), ...(n.notebook ? [['notebook', n.notebook._ref] as [string, string]] : [])]

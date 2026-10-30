@@ -3,7 +3,9 @@ import type {NoteDoc} from '../replica/note.ts'
 import type {Pushed, ServerDoc} from '../server/sync.ts'
 import type {Frame} from '../sync/stream.ts'
 
-type Patch = {patch?: {id: string; set: Record<string, unknown>; ifRevisionID?: string}}
+type Patch = {patch?: {id: string; set: Record<string, unknown>; unset?: string[]; ifRevisionID?: string}}
+
+const without = (d: ServerDoc, keys: string[]) => Object.fromEntries(Object.entries(d).filter(([k]) => !keys.includes(k))) as ServerDoc
 
 export function barkpark(first: NoteDoc, onFrame: (f: Frame) => void) {
   let doc = frozen({...first, _rev: 'r0'}) as ServerDoc
@@ -35,7 +37,7 @@ export function barkpark(first: NoteDoc, onFrame: (f: Frame) => void) {
       const ms = JSON.parse(JSON.stringify(mutations)) as Patch[]
       if (ms.some((m) => !m.patch)) return {status: 400, docs: [], error: 'chaos: only patches'}
       if (ms.some((m) => m.patch!.ifRevisionID !== undefined && m.patch!.ifRevisionID !== doc._rev)) return {status: 412, docs: [], error: 'revision mismatch'}
-      return {status: 200, docs: ms.map((m) => commit({...doc, ...(m.patch!.set as ServerDoc)}, who))}
+      return {status: 200, docs: ms.map((m) => commit(without({...doc, ...(m.patch!.set as ServerDoc)}, m.patch!.unset ?? []), who))}
     },
     raw: (change: (d: NoteDoc) => NoteDoc) => commit(change(doc as unknown as NoteDoc) as unknown as ServerDoc, 'raw'),
   }
