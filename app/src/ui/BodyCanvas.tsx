@@ -1,7 +1,7 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
 import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
-import {lineOf} from '../lib/board'
+import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Note} from '../lib/model'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
@@ -21,6 +21,8 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const canvas = useRef<CanvasElement | null>(null)
   const latest = useRef(note)
   latest.current = note
+  const line = useRef(s.line)
+  line.current = s.line
   const links = useRef(linker)
   links.current = linker
   const wantFocus = useRef(false)
@@ -44,6 +46,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       const el = e.currentTarget as CanvasElement
       const {seq} = (e as CustomEvent<CanvasOps>).detail
       const requestId = `local-${seq}`
+      if (line.current) navigate({to: '/', search: (prev: Search) => ({...prev, line: undefined}), replace: true})
       const base = structuredClone(el.blocks)
       const upTo = savePoint(id, 'body')
       el.identifyOpsRequest(seq, requestId)
@@ -130,24 +133,31 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
     canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 
-  const at = lineOf(s.line)
+  const spot = findLine(note.blocks, s.line)
 
   const targets = JSON.stringify(wikilinks(note.blocks).map((t) => [t, linker.resolve(t)]))
   useEffect(() => canvas.current?.refreshWikilinks(), [targets])
 
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">
-      {at && <LineMark at={at} host={host} surface={state.live ? 'bp-paper-canvas' : state.blocked ? '.blocks' : undefined} />}
+      {spot === 'gone' && (
+        <div className="canvas-note" data-testid="line-gone">
+          That line has moved or been deleted.
+        </div>
+      )}
+      {spot && spot !== 'gone' && <LineMark spot={spot} line={s.line!} host={host} surface={state.live ? 'bp-paper-canvas' : state.blocked ? '.blocks' : undefined} />}
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
       <Blocks blocks={note.blocks} s={s} title={linker.title} />
     </div>
   )
 }
 
-function LineMark({at, host, surface}: {at: {block: string; item: number}; host: RefObject<HTMLDivElement | null>; surface?: string}) {
-  const mark = `[data-bp-id="${CSS.escape(at.block)}"] > li:nth-child(${at.item + 1})`
+function LineMark({spot, line, host, surface}: {spot: Spot; line: string; host: RefObject<HTMLDivElement | null>; surface?: string}) {
+  const mark = `[data-bp-id="${CSS.escape(spot.block)}"] > li:nth-child(${spot.item + 1})`
+  const latest = useRef(mark)
+  latest.current = mark
   useEffect(() => {
-    if (surface) host.current!.querySelector(`${surface} ${mark}`)?.scrollIntoView({block: 'center'})
-  }, [mark, surface])
+    if (surface) host.current!.querySelector(`${surface} ${latest.current}`)?.scrollIntoView({block: 'center'})
+  }, [line, surface])
   return <style>{`.doc-body ${mark} { background: var(--c-mark); border-radius: var(--r-s); }`}</style>
 }

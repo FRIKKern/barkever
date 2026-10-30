@@ -1,4 +1,4 @@
-import {itemText, nestedOf, UNTITLED, type Block, type Item, type Note, type Title} from './model.ts'
+import {inlineText, itemContent, itemText, nestedOf, UNTITLED, type Block, type Item, type Note, type Title} from './model.ts'
 import type {Shelf} from './notebooks.ts'
 import {newest} from './search.ts'
 
@@ -9,14 +9,34 @@ export type Board = {columns: Column[]; open: number; done: number; lists: numbe
 
 export const summary = (b: Board) => (b.lists ? `${b.open} open · ${b.done} done · from ${b.lists} checklist${b.lists === 1 ? '' : 's'}` : 'No checklists yet. Start a line in a note with [ ] and a space.')
 
-export const lineKey = (block: string, item: number) => `${block}:${item}`
+export type Spot = {block: string; item: number}
 
-export function lineOf(line?: string): {block: string; item: number} | undefined {
-  const m = line?.match(/^(.+):(\d{1,6})$/)
-  return m ? {block: m[1], item: Number(m[2])} : undefined
+export function textSum(it: Item): string {
+  let h = 0x811c9dc5
+  for (const c of inlineText(itemContent(it))) h = Math.imul(h ^ c.codePointAt(0)!, 0x01000193)
+  return (h >>> 0).toString(36)
+}
+
+export const lineKey = (block: string, item: number, it: Item) => `${block}:${item}:${textSum(it)}`
+
+export function lineOf(line?: string): (Spot & {sum: string}) | undefined {
+  const m = line?.match(/^(.+):(\d{1,6}):([0-9a-z]{1,7})$/)
+  return m ? {block: m[1], item: Number(m[2]), sum: m[3]} : undefined
 }
 
 const isChecklist = (b: Block) => b.type === 'list' && b.task === true
+
+export function findLine(blocks: Block[], line?: string): Spot | 'gone' | undefined {
+  const at = lineOf(line)
+  if (!at) return
+  const lists = blocks.filter(isChecklist)
+  const hits = (b: Block) => (b.items ?? []).flatMap((it, i) => (textSum(it) === at.sum ? [i] : []))
+  const own = lists.find((b) => b.id === at.block)
+  const near = own && hits(own).sort((x, y) => Math.abs(x - at.item) - Math.abs(y - at.item))[0]
+  if (near !== undefined) return {block: at.block, item: near}
+  const moved = lists.find((b) => hits(b).length)
+  return moved ? {block: moved.id, item: hits(moved)[0]} : 'gone'
+}
 
 const done = (it: Item) => typeof it === 'object' && !Array.isArray(it) && it.checked === true
 
@@ -32,7 +52,7 @@ function tasksIn(items: Item[], line: (i: number) => string, depth: number, titl
 function cardsOf(n: Note, title: Title): Card[] {
   return n.blocks
     .filter(isChecklist)
-    .map((b) => ({note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b.items ?? [], (i) => lineKey(b.id, i), 0, title)}))
+    .map((b) => ({note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b.items ?? [], (i) => lineKey(b.id, i, b.items![i]), 0, title)}))
     .filter((c) => c.tasks.length)
 }
 
