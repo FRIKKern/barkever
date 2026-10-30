@@ -91,3 +91,27 @@ test("a surviving ?? [] → || is reported as likely equivalent, the rest as sur
   writeFileSync(file, "export const all = (a) => a ?? []\n");
   assert.deepEqual((await mutate([{ where: `${file}:1` }], "true")).map((r) => r.why), ["survived, likely equivalent", "survived", "survived"]);
 });
+
+test("operators inside a string are text, not code", () => assert.deepEqual(lines("log(`a || b`, 'c === d', \"e ?? []\")"), []));
+
+test("an operand can be a string at the very start of the line, and an optional chain on the right", () => {
+  assert.ok(lines("'a' || b").includes("(b || 'a')"));
+  assert.ok(lines("a ?? b?.c").includes("(b?.c ?? a)"));
+});
+
+test("a fallback with no left side, no right side, or an unclosed right side gets no mutant", () => {
+  for (const s of ["|| b", "a ||", "a || f(", "a || )"]) assert.deepEqual(lines(s).filter((l) => !l.includes("===")), [], s);
+});
+
+test("an unclosed call or quote gets no predicate mutant", () => {
+  assert.deepEqual(lines("xs.filter((x) => x.ok"), []);
+  assert.deepEqual(mutantsOf("xs.some((x) => x === 'a)").filter((m) => m.label.includes("predicate")), []);
+});
+
+test("a predicate that is already true gets no mutant", () => assert.deepEqual(lines("xs.some(() => true)"), []));
+
+test("a startsWith label reads as one call", () => assert.deepEqual(mutantsOf("k.startsWith(p)").map((m) => m.label), ["`.startsWith(` → `.includes(` in `k.startsWith(p)`"]));
+
+test("killers keeps a name with a colon inside it, and drops a header ending in one", () => {
+  assert.deepEqual(killers("✖ failing tests:\n✖ base: a carrier lands\n"), ["base: a carrier lands"]);
+});

@@ -58,11 +58,28 @@ function closing(s, open) {
 }
 
 const EMPTY = new Set(["[]", "{}"]);
+function strings(s) {
+  const inside = new Set();
+  for (let i = 0; i < s.length; i++) {
+    if (!QUOTE.includes(s[i])) continue;
+    const end = skipQuote(s, i, 1);
+    if (end < 0) break;
+    for (let j = i; j <= end; j++) inside.add(j);
+    i = end;
+  }
+  return inside;
+}
+
+const code = (s, re) => {
+  const inside = strings(s);
+  return [...s.matchAll(re)].filter((m) => !inside.has(m.index));
+};
+
 const splice = (s, from, to, text) => s.slice(0, from) + text + s.slice(to);
 
 function fallbacks(s) {
   const out = [];
-  for (const m of s.matchAll(/\|\||\?\?/g)) {
+  for (const m of code(s, /\|\||\?\?/g)) {
     if (s[m.index + 2] === "=") continue;
     const op = m[0];
     const l = leftOperand(s, m.index);
@@ -85,19 +102,20 @@ const SWAPS = [
 
 function around(s, m) {
   const l = leftOperand(s, m.index);
+  if (m[0].endsWith("(")) return s.slice(l ? l.from : m.index, closing(s, m.index + m[0].length - 1) + 1 || undefined);
   const r = rightOperand(s, m.index + m[0].length);
-  return [l && s.slice(l.from, l.to), m[0].trim(), r && s.slice(r.from, r.to)].filter(Boolean).join(m[0].startsWith(".") ? "" : " ");
+  return [l && s.slice(l.from, l.to), m[0].trim(), r && s.slice(r.from, r.to)].filter(Boolean).join(" ");
 }
 
 function swaps(s) {
   return SWAPS.flatMap(([re, to]) =>
-    [...s.matchAll(re)].map((m) => ({ label: `\`${m[0].trim()}\` → \`${to[m[0]].trim()}\` in \`${around(s, m)}\``, line: splice(s, m.index, m.index + m[0].length, to[m[0]]) })),
+    code(s, re).map((m) => ({ label: `\`${m[0].trim()}\` → \`${to[m[0]].trim()}\` in \`${around(s, m)}\``, line: splice(s, m.index, m.index + m[0].length, to[m[0]]) })),
   );
 }
 
 function predicates(s) {
   const out = [];
-  for (const m of s.matchAll(/\.(filter|find|findIndex|some|every)\(/g)) {
+  for (const m of code(s, /\.(filter|find|findIndex|some|every)\(/g)) {
     const open = m.index + m[0].length - 1;
     const close = closing(s, open);
     if (close < 0) continue;
