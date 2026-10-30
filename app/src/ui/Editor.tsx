@@ -4,7 +4,7 @@ import {Link, useNavigate} from '@tanstack/react-router'
 import {flipShortcut} from '../lib/library'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
-import {markDirty, markSaved, useSaveStatus} from '../lib/saver'
+import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
@@ -14,7 +14,7 @@ import {Icon} from './icons'
 import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
-const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device'}
+const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device'}
 
 type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
 
@@ -25,7 +25,6 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
   const status = useSaveStatus(note.id, reach)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const body = useRef<BodyHandle>(null)
-  const writing = useRef(0)
   const keys = useRef(0)
 
   const adopt = () => {
@@ -42,10 +41,10 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
     const value = v.replace(/\n/g, ' ')
     const shown = title
     setTitle(value)
-    markDirty(note.id)
+    markDirty(note.id, 'title')
+    const upTo = savePoint(note.id, 'title')
     keys.current++
-    writing.current++
-    void editTitle(note.id, shown, value).then(() => --writing.current || markSaved(qc, note.id))
+    void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', upTo))
   }
 
   const label = LABEL[status]

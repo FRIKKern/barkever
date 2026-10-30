@@ -28,7 +28,6 @@ async function readLibrary(): Promise<Library> {
 }
 
 export const libraryQuery = queryOptions({...local, queryKey: ['library'], queryFn: readLibrary})
-export const pendingQuery = queryOptions({...local, queryKey: ['pending'], queryFn: async () => new Set(await (await db()).getAllKeys('outbox'))})
 export const stuckQuery = queryOptions({...local, queryKey: ['stuck'], queryFn: async () => (await (await db()).getAll('outbox')).flatMap((e) => (e.failed ? [{id: e.id, why: e.failed.why}] : []))})
 
 async function loadPrefs(): Promise<Prefs> {
@@ -49,7 +48,6 @@ export async function refresh(qc: QueryClient, ids: string[]) {
   const [docs, notebooks] = await Promise.all([Promise.all(ids.map((id) => d.get('notes', id))), d.getAll('notebooks')])
   const fresh = docs.filter((x): x is LocalNote => !!x).map(asNote)
   qc.setQueryData<Library>(libraryQuery.queryKey, (lib) => lib && {notes: [...fresh, ...lib.notes.filter((n) => !ids.includes(n.id))], notebooks: notebooks.map(toNotebook)})
-  void qc.invalidateQueries({queryKey: pendingQuery.queryKey})
   void qc.invalidateQueries({queryKey: stuckQuery.queryKey})
 }
 

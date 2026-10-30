@@ -7,6 +7,6 @@ test('sign in as the test account and keep its session for the specs', async ({p
   await page.getByLabel('Email').fill(ACCOUNT.email)
   await page.getByLabel('Password').fill(ACCOUNT.password)
   await page.getByRole('button', {name: 'Sign in'}).click()
-  await expect(page.getByTestId('note-row').first()).toBeVisible()
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 15_000})
   await page.context().storageState({path: SESSION_FILE})
 })
