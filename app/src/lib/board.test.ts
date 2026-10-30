@@ -150,8 +150,8 @@ test('a nested checklist line shows under its parent and opens at the parent lin
   assert.deepEqual(lines(b), ['n c:0 0 o top', 'n c:1 0 o parent', 'n c:1 1 x deep', 'n c:1 1 o deeper'])
 })
 
-test('plain lists, empty checklists and other blocks make no card', () => {
-  const b = board([note('n', [{id: 'l', type: 'list', items: [text('bullet')]}, checklist('e', []), checklist('blank', [{text: ' '}]), {id: 'p', type: 'paragraph', content: text('[ ] not a task')}])], shelve([nb('a')]), () => undefined)
+test('plain lists, empty checklists, a checklist with no items and other blocks make no card', () => {
+  const b = board([note('n', [{id: 'l', type: 'list', items: [text('bullet')]}, checklist('e', []), {id: 'none', type: 'list', task: true}, checklist('blank', [{text: ' '}]), {id: 'p', type: 'paragraph', content: text('[ ] not a task')}])], shelve([nb('a')]), () => undefined)
   assert.deepEqual(b, {columns: [], open: 0, done: 0, lists: 0})
   assert.equal(summary(b), 'No checklists yet. Start a line in a note with [ ] and a space.')
 })
