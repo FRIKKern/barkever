@@ -95,3 +95,10 @@ test('one writer takes the note out of every notebook while another moves it: th
   assert.deepEqual([kept.notebook, kept.conflicts], [undefined, []])
   assert.deepEqual(collapse(merged.conflicts!, kept), [])
 })
+
+test('a copy is judged only on the parts it holds: an old title+tags copy keeps for its title, Keep adopts only the title, and an old copy that holds nothing goes', () => {
+  const main = {...r0, title: 'Mine', tags: ['keep-me'], conflicts: [copy('k1', '1', {title: 'Theirs'}, ['title', 'tags']), copy('k2', '2', {}, ['tags'])]}
+  assert.deepEqual(collapse(main.conflicts, main).map((c) => c._key), ['k1'])
+  const kept = keep(main, 'k1', main, AT, 'local-k', 'A')
+  assert.deepEqual([kept.title, kept.tags, kept.conflicts], ['Theirs', ['keep-me'], []])
+})
