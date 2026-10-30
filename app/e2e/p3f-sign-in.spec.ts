@@ -1,12 +1,7 @@
-import {readdirSync} from 'node:fs'
-import {join} from 'node:path'
 import {expect, test, type BrowserContext, type Page} from '@playwright/test'
 import {ACCOUNT, cli, sessionToken} from './account'
-import {DATASET, prefIds as ids} from './fixtures-cleanup'
-import {APP, buildDir} from './run'
-
-const CLIENT = join(APP, buildDir(DATASET, 'app'), 'client')
-const servedJs = () => (readdirSync(CLIENT, {recursive: true}) as string[]).filter((f) => f.endsWith('.js')).map((f) => `/${f}`)
+import {prefIds as ids} from './fixtures-cleanup'
+import {capture, exactLeaks, leaks, servedFiles, serverSecrets} from './leaks'
 
 const session = async (context: BrowserContext) => (await context.cookies()).find((c) => c.name === 'bk_session')
 
@@ -20,8 +15,7 @@ test.describe('signed out', () => {
   test.use({storageState: {cookies: [], origins: []}})
 
   test('P3f: sign in lists your notes at the URL you wanted, no token reaches the page, sign out ends the session', async ({page, context, browser, baseURL}) => {
-    const received: Promise<string>[] = []
-    page.on('response', (r) => received.push(r.headers()['content-type']?.startsWith('text/event-stream') ? Promise.resolve('') : r.text().catch(() => '')))
+    const received = await capture(page, async () => (await session(context))?.value)
 
     await page.goto('/?n=fx-note-01')
     await expect(page).toHaveURL(/\/sign-in\?redirect=%2F%3Fn%3Dfx-note-01$/)
@@ -42,30 +36,28 @@ test.describe('signed out', () => {
     expect(cookie?.sameSite).toBe('Lax')
     const token = sessionToken(cookie!.value)
     expect(typeof token === 'string' && token.length > 0, 'the cookie unseals only with the server secret').toBe(true)
-    const tokens = [token!, cli().token]
-    const leaks = (what: string, text: string) => (tokens.some((t) => text.includes(t)) ? [what] : [])
+    const needles = [{name: 'session token', value: token!}, {name: 'bp CLI token', value: cli().token}, ...serverSecrets()]
+    expect(needles.map(({name}) => name)).toEqual(expect.arrayContaining(['BARKEVER_SESSION_SECRET', 'BARKPARK_TOKEN']))
 
     const pageCookie = await page.evaluate(() => document.cookie)
     expect(pageCookie.includes('bk_session')).toBe(false)
-    const assets = servedJs()
-    expect(assets.length).toBeGreaterThan(0)
-    const served = await Promise.all(
-      assets.map(async (p) => {
-        const res = await page.request.get(p)
-        return {p, status: res.status(), type: String(res.headers()['content-type']), text: await res.text()}
-      }),
-    )
-    expect(served.filter(({status, type}) => status !== 200 || !type.includes('javascript')).map(({p, status, type}) => `${p} ${status} ${type}`)).toEqual([])
+    const served = await servedFiles(page)
+    expect(served.built).toBeGreaterThan(0)
+    expect(served.files.filter(({want, status, type}) => !want || status !== 200 || !type.includes(want)).map(({p, status, type, want}) => `${p} ${status} ${type} (want ${want})`)).toEqual([])
+    const {seen, unreadable, streams} = await received()
+    expect(unreadable).toEqual([])
     const hits = [
-      ...leaks('cookie value', cookie!.value),
-      ...leaks('document.cookie', pageCookie),
-      ...leaks('rendered page', await page.content()),
-      ...leaks('server-rendered html', await (await page.request.get('/?n=fx-note-01')).text()),
-      ...served.flatMap(({p, text}) => leaks(p, text)),
-      ...(await Promise.all(received)).flatMap((text, i) => leaks(`response ${i}`, text)),
+      ...exactLeaks(needles, 'cookie value', cookie!.value),
+      ...leaks(needles, 'document.cookie', pageCookie),
+      ...leaks(needles, 'rendered page', await page.content()),
+      ...leaks(needles, 'server-rendered html', await (await page.request.get('/?n=fx-note-01')).text()),
+      ...served.files.flatMap(({p, text}) => leaks(needles, p, text)),
+      ...seen.flatMap(({where, text}) => leaks(needles, where, text)),
     ]
     expect(hits).toEqual([])
-    console.log(`P3f: searched ${served.length} served JS assets, ${received.length} responses, the page and document.cookie for 2 tokens: 0 hits`)
+    console.log(
+      `P3f: searched ${served.files.length} served files (${served.built} built, ${served.editor} editor), ${seen.length} responses and headers, ${streams} event stream(s) up to welcome, the page and document.cookie for ${needles.length} secrets (${needles.map(({name}) => name).join(', ')}) and the bp token shape: 0 hits`,
+    )
 
     await page.getByTestId('sign-out').click()
     await expect(page).toHaveURL(/\/sign-in/)
