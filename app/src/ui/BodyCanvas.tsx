@@ -135,7 +135,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
-      <Blocks blocks={note.blocks} s={s} />
+      <Blocks blocks={note.blocks} s={s} title={linker.title} />
     </div>
   )
 }

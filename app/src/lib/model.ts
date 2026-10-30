@@ -1,4 +1,4 @@
-export type Inline = {type: string; value?: string; docId?: string; target?: string; children?: Inline[]}
+export type Inline = {type: string; value?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
 export type Item = Inline[] | {content?: Inline[]; checked?: boolean}
 export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; caption?: string}
 
@@ -12,10 +12,10 @@ export const UNTITLED = 'Untitled'
 
 export const itemContent = (it: Item): Inline[] => (Array.isArray(it) ? it : it.content ?? [])
 
-export type Title = (id: string) => string | undefined
+export type Title = (id?: string) => string | undefined
 
 export const titleIn =
-  (byId: Map<string, Note>): Title =>
+  (byId: ReadonlyMap<string | undefined, Note>): Title =>
   (id) => {
     const n = byId.get(id)
     return n && (n.title || UNTITLED)
@@ -24,13 +24,15 @@ export const titleIn =
 const stored: Title = () => undefined
 
 function inline(c: Inline[], title: Title): string {
-  return c.map((x) => (x.type === 'text' ? x.value ?? '' : x.type === 'wikilink' ? linkWords(x, title) : '')).join('')
+  return c.map((x) => (x.type === 'text' ? x.value : x.type === 'wikilink' ? linkWords(x, title) : '')).join('')
 }
 
-function linkWords(x: Inline, title: Title): string {
+export function linkWords(x: Inline, title: Title): string {
   const words = inline(x.children ?? [], title)
-  return (x.docId && words === x.target && title(x.docId)) || words
+  return (x.alias == null && words === x.target && title(x.docId)) || words
 }
+
+export const linkMissing = (x: Inline, title: Title): boolean => !title(x.docId)
 
 export const inlineText = (c: Inline[] = []): string => inline(c, stored)
 
@@ -62,7 +64,7 @@ export function snippet(n: Note, title: Title): string {
 }
 
 export function hitLine(n: Note, words: string[], title: Title): string | undefined {
-  const b = words.length ? n.blocks.find((b) => words.some((w) => blockText(b).toLowerCase().includes(w))) : undefined
+  const b = n.blocks.find((b) => words.some((w) => blockText(b).toLowerCase().includes(w)))
   return b && shownText(b, title)
 }
 

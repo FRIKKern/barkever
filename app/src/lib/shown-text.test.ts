@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {blockText, hitLine, linkContext, snippet, titleIn, type Block, type Inline, type Note} from './model.ts'
+import {blockText, hitLine, linkContext, linkMissing, linkWords, snippet, titleIn, type Block, type Inline, type Note} from './model.ts'
 import {linkPreview} from './link-pick.ts'
 
 const note = (id: string, title: string, blocks: Block[] = []): Note => ({id, title, notebook: null, tags: [], blocks, links: [], updatedAt: '2026-10-30', rev: 'r', conflicts: [], gen: 0})
@@ -30,6 +30,7 @@ test('a painted link shows its target\'s current title in every plain-text view'
 test('a hit line is found by the stored words, and shows the current title', () => {
   assert.equal(hitLine(source, ['spring'], title), 'Check Tide gauge: autumn check')
   assert.equal(hitLine(source, ['autumn'], title), undefined)
+  assert.equal(hitLine(source, [], title), undefined)
 })
 
 test('own words, a deleted target and a link without an id keep their stored words; a blank title reads Untitled', () => {
@@ -41,6 +42,21 @@ test('a target deleted and recreated under a new id does not take over the old l
   const again = note('g2', 'Tide gauge: spring check')
   const after = titleIn(new Map([blank, source, {...again, title: 'Tide gauge: winter check'}].map((n) => [n.id, n])))
   assert.equal(snippet(source, after), 'First Tide gauge: spring check then the rest.')
+})
+
+test('an aliased link keeps its words, like the canvas', () => {
+  assert.equal(linkWords({...link('Tide gauge: spring check', 'Tide gauge: spring check', 'g'), alias: 'Tide gauge: spring check'}, title), 'Tide gauge: spring check')
+})
+
+test('a link is missing when its id names no note, or it has no id', () => {
+  assert.deepEqual([link('x', 'x', 'g'), link('x', 'x', 'gone'), link('x', 'x')].map((x) => linkMissing(x, title)), [false, true, true])
+})
+
+test('old and empty shapes read as their words or nothing', () => {
+  const bare: Inline = {type: 'wikilink', docId: 'g'}
+  const blocks: Block[] = [{id: 'h', type: 'heading', text: 'Stored heading', content: [text('ignored')]}, {id: 'l', type: 'list'}, {id: 'p', type: 'paragraph'}, para('q', text('Ask '), bare, {type: 'text'}, text('.'))]
+  assert.deepEqual(blocks.map((b) => blockText(b)), ['Stored heading', '', '', 'Ask .'])
+  assert.equal(linkContext(blocks, 'nowhere', title), '')
 })
 
 test('blockText still reads the stored words, for search, merge and the conflict view', () => {

@@ -1,10 +1,10 @@
-import {snippet, titleIn, UNTITLED, type Note} from './model.ts'
+import {snippet, titleIn, UNTITLED, type Note, type Title} from './model.ts'
 import {newest, terms} from './search.ts'
 
 export type Candidate = {title: string; id: string; type: string}
 export type Preview = {title: string; excerpt: string; subtitle: string; missing?: true}
 export type Resolved = {title: string} | {missing: true}
-export type Linker = {pick: (query: string) => Candidate[]; preview: (id: string) => Preview; resolve: (id: string) => Resolved}
+export type Linker = {pick: (query: string) => Candidate[]; preview: (id: string) => Preview; resolve: (id: string) => Resolved; title: Title}
 type Named = (id: string | null) => string
 
 export const PICKS = 8

@@ -1,5 +1,6 @@
 import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
+import {oldEditor} from './old-editor'
 
 test.describe.configure({mode: 'serial', timeout: 150_000})
 
@@ -85,7 +86,7 @@ async function paste(page: Page, text: string) {
   await page.keyboard.press('ControlOrMeta+v')
 }
 
-test('J05 live titles: a typed [[Title]] links, a rename repaints every link, the list line, search line, backlink line and graph tip without writing the linking note, Mod+Enter inside or on either side of a picked or typed link, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
+test('J05 live titles: a typed [[Title]] links, a rename repaints every link, the list line, search line, backlink line and graph tip, link card and read-only body without writing the linking note, Mod+Enter inside or on either side of a picked or typed link, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
   const context = await browser.newContext({storageState: test.info().project.use.storageState, colorScheme: 'dark'})
   const [page, other] = [await context.newPage(), await context.newPage()]
   const errors: string[] = []
@@ -131,6 +132,30 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link, th
   await expect.poll(() => opened(page)).toBe(source)
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
 
+  await other.getByTestId('canvas').locator('p', {hasText: 'low water'}).click({position: {x: 10, y: 10}})
+  await other.keyboard.press('End')
+  await other.keyboard.type(' See [[Pier wa')
+  await expect(other.locator('.bp-wikilink-item').first()).toContainText(SOURCE)
+  await other.keyboard.press('Enter')
+  await links(other).first().hover()
+  await expect(other.locator('.bp-link-preview__excerpt')).toHaveText(line)
+  await other.screenshot({path: test.info().outputPath('j05-live-card-title-dark-1440.png'), animations: 'disabled'})
+  const wide = other.viewportSize()!
+  await other.mouse.move(0, 0)
+  await other.setViewportSize({width: 390, height: 844})
+  await expect(other.getByTestId('linked-from').filter({hasText: SOURCE})).toContainText(line)
+  await other.screenshot({path: test.info().outputPath('j05-live-plain-title-dark-390.png'), animations: 'disabled'})
+  await other.setViewportSize(wide)
+  expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
+
+  const reader = await context.newPage()
+  reader.on('pageerror', (e) => errors.push(e.message))
+  await reader.addInitScript(oldEditor)
+  await reader.goto(`/?n=${source}`)
+  const read = reader.getByTestId('body').locator('.wl')
+  await expect(read).toHaveText([RENAMED, RENAMED], {timeout: 30_000})
+  await expect(read.first()).toHaveAttribute('href', new RegExp(`n=${target}`))
+
   await followFromEverySpot(page, BESIDE, source, target, 'after a rename, where a painted link never holds the caret')
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])
 
@@ -146,10 +171,18 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link, th
   await page.mouse.move(0, 0)
   await page.setViewportSize({width: 390, height: 844})
   await page.screenshot({path: test.info().outputPath('j05-live-missing-dark-390.png')})
+  await expect(reader.getByTestId('body').locator('.wl.missing')).toHaveText([TARGET, TARGET])
+  await expect(reader.getByTestId('body').locator('a.wl')).toHaveCount(0)
+  await expect(reader.getByTestId('body').locator('.wl.missing').first()).toHaveCSS('text-decoration-line', 'line-through')
+  await reader.screenshot({path: test.info().outputPath('j05-live-read-only-missing-dark-1440.png')})
+  await reader.setViewportSize({width: 390, height: 844})
+  await reader.screenshot({path: test.info().outputPath('j05-live-read-only-missing-dark-390.png')})
 
   await recreate(before)
   await expect(links(page).first()).not.toHaveAttribute('data-missing', {timeout: 20_000})
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])
+  await expect(read).toHaveText([RENAMED, RENAMED])
+  await expect(reader.getByTestId('body').locator('.wl.missing')).toHaveCount(0)
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
   await page.screenshot({path: test.info().outputPath('j05-live-title-dark-390.png')})
   expect(errors).toEqual([])

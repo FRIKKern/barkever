@@ -56,7 +56,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
   const ins = w.links.backs(note.id).length
   const outs = w.links.outs(note.id).length
   const named = (id: string | null) => w.shelf.path(id).join(' › ')
-  const linker: Linker = {pick: (q) => linkCandidates(w.lib.notes, note.id, q, named), preview: (id) => linkPreview(w.links.byId, id, named), resolve: (id) => linkTitle(w.links.byId, id)}
+  const linker: Linker = {pick: (q) => linkCandidates(w.lib.notes, note.id, q, named), preview: (id) => linkPreview(w.links.byId, id, named), resolve: (id) => linkTitle(w.links.byId, id), title: w.links.title}
 
   return (
     <main className="editor" aria-label="Note" data-note-id={note.id} onKeyDown={(e) => e.key === 'Escape' && !e.defaultPrevented && (e.preventDefault(), onEscape())}>

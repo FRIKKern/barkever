@@ -1,16 +1,11 @@
 import {expect, test} from '@playwright/test'
+import {oldEditor} from './old-editor'
 
 test('an editor older than contract 1.17.0 is refused once per page: the note reads only, and switching notes adds no editor files', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
-  await page.addInitScript(() => {
-    const define = customElements.define.bind(customElements)
-    customElements.define = (name, ctor, options) => {
-      if (name === 'bp-paper-editor') Object.defineProperty(ctor, 'CONTRACT_VERSION', {value: '1.16.0'})
-      define(name, ctor, options)
-    }
-  })
+  await page.addInitScript(oldEditor)
   await page.goto('/')
   const rows = page.getByTestId('note-row')
   await expect(rows.first()).toBeVisible({timeout: 30_000})
