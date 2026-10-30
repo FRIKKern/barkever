@@ -24,7 +24,7 @@ export const titleIn =
 const stored: Title = () => undefined
 
 function inline(c: Inline[], title: Title): string {
-  return c.map((x) => (x.type === 'text' ? x.value : x.type === 'wikilink' ? linkWords(x, title) : '')).join('')
+  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : x.value ?? inline(x.children ?? [], title))).join('')
 }
 
 export function linkWords(x: Inline, title: Title): string {

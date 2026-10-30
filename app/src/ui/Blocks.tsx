@@ -6,9 +6,7 @@ type At = {s: Search; title: Title}
 
 function Inlines({c, at}: {c: Inline[]; at: At}) {
   return c.map((x, i) =>
-    x.type === 'text' ? (
-      x.value
-    ) : x.type === 'wikilink' ? (
+    x.type === 'wikilink' ? (
       linkMissing(x, at.title) ? (
         <span key={i} className="wl missing">
           {linkWords(x, at.title)}
@@ -19,7 +17,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
         </Link>
       )
     ) : (
-      <Inlines key={i} c={x.children ?? []} at={at} />
+      x.value ?? <Inlines key={i} c={x.children ?? []} at={at} />
     ),
   )
 }
