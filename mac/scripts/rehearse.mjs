@@ -21,6 +21,7 @@ const sh = (cmd, args) => {
   if (r.status !== 0) throw new Error(`${cmd} ${args[0]} failed: ${(r.stderr || r.stdout).trim()}`)
   return r.stdout + r.stderr
 }
+const mounted = () => said('hdiutil', ['info']).stdout.includes(mount)
 const step = async (name, fn) => {
   const started = Date.now()
   const detail = await fn()
@@ -76,9 +77,9 @@ try {
   rows.push(['failed', 'FAIL', '', e.message.split('\n')[0]])
 } finally {
   if (child?.exitCode === null) child.kill('SIGKILL')
-  if (existsSync(join(mount, 'Barkever.app'))) said('hdiutil', ['detach', mount, '-force'])
-  rmSync(home, {recursive: true, force: true})
-  const left = [existsSync(home) && home, said('hdiutil', ['info']).stdout.includes(mount) && mount].filter(Boolean)
+  if (mounted()) said('hdiutil', ['detach', mount, '-force'])
+  if (!mounted()) rmSync(home, {recursive: true, force: true})
+  const left = [mounted() && mount, existsSync(home) && home].filter(Boolean)
   rows.push(['clean up', left.length ? 'FAIL' : 'pass', '', left.length ? `left behind: ${left.join(', ')}` : 'temp folder gone, DMG detached'])
 }
 
