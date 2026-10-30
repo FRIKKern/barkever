@@ -16,7 +16,7 @@ type Seen = {where: string; text: string}
 
 export function serverSecrets(): Needle[] {
   const sources = (readdirSync(SERVER, {recursive: true}) as string[]).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).map((f) => readFileSync(join(SERVER, f), 'utf8'))
-  const names = [...new Set(sources.flatMap((s) => s.match(SECRET_NAME) ?? []))].sort()
+  const names = [...new Set(sources.flatMap((s) => [...s.matchAll(SECRET_NAME)].map(([name]) => name)))].sort()
   const env = {...process.env}
   loadServerEnv('production', true, env)
   return names.flatMap((name) => (env[name] ? [{name, value: env[name]}] : []))
@@ -73,7 +73,7 @@ export async function capture(page: Page, cookie: () => Promise<string | undefin
   page.on('response', (r: Response) => {
     const where = `${r.status()} ${path(r.url())}`
     seen.push(Promise.resolve({where: `${where} headers`, text: JSON.stringify(r.headers())}))
-    if ((r.status() >= 300 && r.status() < 400) || routed.has(r.request())) return
+    if (r.request().redirectedTo() || routed.has(r.request())) return
     if (!r.headers()['content-type']?.startsWith('text/event-stream')) body(where, r.text())
     else {
       streams++
