@@ -47,3 +47,18 @@ test('catch-up weighs every push since the last ack: a block made in an earlier 
   const n = d.stores.notes.get('n1') as Note
   assert.deepEqual([n.title, n.body?.blocks.map(blockText)], ['T2', ['one']])
 })
+
+test('a push that landed under newer typing is forgotten with its base: catch-up and ack both clear sent', async () => {
+  const d = newDevice(ME)
+  use(d)
+  const landed = note('r1', 'T', ME, [p('a', 'one')])
+  d.stores.notes.set('n1', note('r1', 'T', ME, [p('a', 'one more')]))
+  d.stores.outbox.set('n1', {id: 'n1', base: note('r0', 'T'), v: 2, at: 0, sent: [landed]})
+  await settle('note', 'n1', {...landed, _rev: 'r2'}, () => 'apply')
+  const caught = d.stores.outbox.get('n1') as {base: Note; sent?: Note[]}
+  assert.deepEqual([caught.base._rev, caught.sent], ['r2', undefined])
+  d.stores.outbox.set('n1', {...caught, v: 3, sent: [note('r2', 'T', ME, [p('a', 'one more')])]})
+  await ack({id: 'n1', base: caught.base, v: 2, at: 0}, note('r3', 'T', ME, [p('a', 'one more')]))
+  const acked = d.stores.outbox.get('n1') as {base: Note; sent?: Note[]}
+  assert.deepEqual([acked.base._rev, acked.sent], ['r3', undefined])
+})

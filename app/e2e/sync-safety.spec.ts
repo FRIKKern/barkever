@@ -231,9 +231,9 @@ test('a remote writer setting the title six times while I type it shows one vers
   expect(note.title).toMatch(/xyz$/)
   const copies = note.conflicts ?? []
   test.info().annotations.push({type: 'copies', description: `stored ${copies.length}, shown ${groups(copies).length}, ${JSON.stringify(note).length} bytes`})
+  expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
   expect(groups(copies).length, `one shown version for one remote writer: ${JSON.stringify(copies.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
   expect(groups(copies)[0]?.latest.title, 'the shown version is the remote writer’s latest').toBe('Remote title 6')
-  expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
   expect(errors).toEqual([])
   await a.context().close()
 })

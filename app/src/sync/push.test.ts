@@ -8,6 +8,7 @@ import {newDevice, use} from '../chaos/fake-db.ts'
 import {answer} from '../chaos/fake-remote.ts'
 
 const {mutationFor, push, remember} = await import('./push.ts')
+const {deleteNote} = await import('../replica/local.ts')
 
 const AT = '2026-10-29T12:00:00.000Z'
 const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
@@ -57,4 +58,27 @@ test('a note Barkpark refuses as too large to index keeps its text and its outbo
   const again = d.stores.outbox.get('n1') as typeof entry
   assert.deepEqual([again.failed.n, again.sent?.length], [2, 1])
   assert.deepEqual((d.stores.notes.get('n1') as NoteDoc).body?.blocks.map(blockText), ['every version kept'])
+})
+
+test('a note deleted after a create whose reply was lost is deleted on Barkpark too', async () => {
+  const d = newDevice('dev-me')
+  use(d)
+  d.stores.notes.set('n1', {_id: 'n1', _type: 'note', title: 'Made offline', tags: [], links: [], body: {blocks: [p('a', 'secret plan')]}})
+  d.stores.outbox.set('n1', {id: 'n1', base: null, v: 1, at: 0})
+  const seen: unknown[] = []
+  const remote = (mutate: (ms: unknown[]) => Promise<{status: number; docs: null[]}>) => answer({mutate, docs: async () => [], manifest: async () => ({note: [], notebook: []})})
+  remote(async (ms) => {
+    seen.push(...ms)
+    throw new Error('reply lost after Barkpark stored the create')
+  })
+  await assert.rejects(push())
+  assert.ok(sent(seen).includes('"create"'))
+  await deleteNote('n1')
+  seen.length = 0
+  remote(async (ms) => {
+    seen.push(...ms)
+    return {status: 200, docs: ms.map(() => null)}
+  })
+  await push()
+  assert.ok(sent(seen).includes('"delete"'), `no delete reached Barkpark: ${sent(seen)}`)
 })
