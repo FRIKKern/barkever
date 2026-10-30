@@ -171,7 +171,7 @@ export function world(setup: Setup) {
     return true
   }
 
-  const wrote = (w: Writer, part: string, text: string, over = '') => (t.wrote({part, text, by: w.id, step: at}), t.revived(part, text, w.id, over), void w.wrote.set(part, [...(w.wrote.get(part) ?? []), text]))
+  const wrote = (w: Writer, part: string, text: string, over: string) => (t.wrote({part, text, by: w.id, step: at}), t.revived(part, text, w.id, over), void w.wrote.set(part, [...(w.wrote.get(part) ?? []), text]))
 
   async function type(w: Writer, a: number, b: number, k: 'type' | 'revert' | 'add' | 'delete') {
     const blocks = w.view.blocks
@@ -183,7 +183,7 @@ export function world(setup: Setup) {
       const id = `${w.id.toLowerCase()}${w.typed}`
       after = [...blocks]
       after.splice(Math.floor(a * (blocks.length + 1)), 0, para(id, token))
-      wrote(w, `body:${id}`, token)
+      wrote(w, `body:${id}`, token, '')
       say(w, `adds block ${id} "${token}"`)
     } else {
       const parts = ['title', ...blocks.map((x) => `body:${x.id}`)].filter((p) => k !== 'revert' || back(p).length)
