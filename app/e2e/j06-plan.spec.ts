@@ -121,6 +121,8 @@ test('J06 plan: checklist lines are cards on the Tasks board; a card opens its n
   await expect(task(page, SUB)).toHaveClass(/\bsub\b/)
   await expect(task(page, TASK)).not.toHaveClass(/\bsub\b/)
   await expect(task(page, TASK)).toHaveAccessibleName(`to do ${TASK}`)
+  await expect(page.locator('.cols').getByRole('checkbox')).toHaveCount(0)
+  expect(await page.locator('.cols .cb').evaluateAll((boxes) => boxes.filter((b) => (b as HTMLElement).tabIndex >= 0).length)).toBe(0)
   const parentLine = new URL(await task(page, TASK).getAttribute('href') ?? '', 'http://x').searchParams.get('line')
   expect(new URL(await task(page, SUB).getAttribute('href') ?? '', 'http://x').searchParams.get('line')).toBe(parentLine)
 

@@ -115,17 +115,22 @@ test('the board reuses the cards of an unchanged note and rebuilds a changed not
   assert.deepEqual(card(renamed, 'same').tasks.map((t) => t.text), ['Ask Kari Nordmann'])
 })
 
-test('a save at 5000 notes with 30 lines each rebuilds the board in under 16 ms', () => {
+test('a save at 5000 notes with 30 lines each reuses every other note and costs under a quarter of a cold build', () => {
   const notes = Array.from({length: 5000}, (_, i) => note(`n${i}`, [checklist(`c${i}`, Array.from({length: 30}, (_, j) => ({text: `line ${j} of ${i}`, checked: j % 3 === 0})))], {notebook: `nb${i % 7}`}))
   const shelf = shelve(Array.from({length: 7}, (_, i) => nb(`nb${i}`)))
-  board(notes, shelf, () => undefined)
+  const t0 = performance.now()
+  const cold = board(notes, shelf, () => undefined)
+  const coldMs = performance.now() - t0
   const saved = notes.map((n, i) => (i === 42 ? {...n, blocks: [checklist('c42', [{text: 'changed'}])]} : n))
   const runs = Array.from({length: 5}, () => {
     const t = performance.now()
     board(saved, shelf, () => undefined)
     return performance.now() - t
   }).sort((a, b) => a - b)
-  assert.ok(runs[2] < 16, `median ${runs[2].toFixed(1)} ms`)
+  const before = new Map(cold.columns.flatMap((c) => c.cards).map((c) => [c.note, c]))
+  const after = board(saved, shelf, () => undefined).columns.flatMap((c) => c.cards)
+  assert.deepEqual(after.filter((c) => c !== before.get(c.note)).map((c) => c.note), ['n42'])
+  assert.ok(runs[2] < coldMs / 4, `median ${runs[2].toFixed(1)} ms, cold ${coldMs.toFixed(1)} ms`)
 })
 
 test('every item shape counts: inline arrays, content and plain text; a blank line is no task but keeps its place', () => {
