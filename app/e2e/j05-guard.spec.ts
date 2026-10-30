@@ -56,6 +56,8 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf'])
   await expect(body.locator('li')).toHaveText(['String item', 'TopNested item', 'Nested item', 'Open task', 'Done taskSub task', 'Sub task'])
   await expect(body.locator('li.done')).toHaveText('Done taskSub task')
+  const [task, sub] = await Promise.all([body.locator('li.done .li-t'), body.getByText('Sub task')].map((l) => l.boundingBox()))
+  expect(sub!.y, 'a nested item sits under its task, not beside it').toBeGreaterThan(task!.y + task!.height - 1)
   await expect(body.locator('a.wl')).toHaveAttribute('href', /n=fx-note-01/)
   await page.screenshot({path: test.info().outputPath('j05-guard-shapes-dark-1440.png')})
   await page.setViewportSize({width: 390, height: 844})
