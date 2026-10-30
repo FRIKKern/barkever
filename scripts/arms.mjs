@@ -2,10 +2,11 @@ import { execFileSync } from "node:child_process";
 
 const base = process.argv[2] ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
-const isTest = /(^|\/)(e2e|test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
+const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
 
 const rules = [
   { arm: "fallback", re: /\?\?|\|\|(?!=)|\b_\s*->|\btrue\s*->|\bdefault:|catch\s*(\(\w*\))?\s*\{\s*\}/ },
+  { arm: "guard", re: /\.(filter|find|findIndex|some|every)\(|\bEnum\.(filter|reject|find)\b|\bwhere:/ },
   { arm: "branch", re: /\bif\s*\(|\bif\s+[^(]|\belse\b|\bcond\b|\bcase\b|\bwhen\b|\?[^.?:]+:|->\s*$/ },
   { arm: "error path", re: /\bcatch\b|\brescue\b|\.catch\(|\{:error\b|throw\b|panic\(/ },
 ];
@@ -27,7 +28,8 @@ for (const text of diff.split("\n")) {
   }
 }
 
+const rank = (r) => ["fallback", "guard"].indexOf(r.arm) >>> 0;
 console.log(`| where | arm | code | mutant | test that fails |\n|---|---|---|---|---|`);
-for (const r of rows.sort((a, b) => (b.arm === "fallback") - (a.arm === "fallback"))) console.log(`| ${r.where} | ${r.arm} | \`${r.src.replaceAll("|", "\\|")}\` | | |`);
-const fallbacks = rows.filter((r) => r.arm === "fallback").length;
-console.log(`\narms: ${rows.length} new (${fallbacks} fallback). Each row needs a mutant and the named test that kills it; a fallback with no killing test gets cut.`);
+for (const r of rows.sort((a, b) => rank(a) - rank(b))) console.log(`| ${r.where} | ${r.arm} | \`${r.src.replaceAll("|", "\\|")}\` | | |`);
+const count = (arm) => rows.filter((r) => r.arm === arm).length;
+console.log(`\narms: ${rows.length} new (${count("fallback")} fallback, ${count("guard")} guard). Each row needs a mutant and the named test that kills it; a fallback with no killing test gets cut.`);
