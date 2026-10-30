@@ -1,6 +1,6 @@
 import noteSchema from '../../../contracts/barkpark/note.json' with {type: 'json'}
 import type {Block} from './model'
-import type {Candidate, Preview} from './link-pick'
+import type {Candidate, Preview, Resolved} from './link-pick'
 import type {CanvasFiles} from '../server/canvas'
 
 export const vocabulary = JSON.stringify(noteSchema.fields.find((f) => f.name === 'body')!.blocks)
@@ -11,6 +11,9 @@ export type CanvasElement = HTMLElement & {
   acknowledgedSaves: boolean
   wikilinkSource: (query: string) => Candidate[]
   linkPreviewSource: (link: {kind: string; docId: string | null; target: string | null}) => Preview | null
+  wikilinkResolve: (docId: string) => Resolved
+  refreshWikilinks(): void
+  state(): {wikilink: {docId: string | null; target: string | null} | null}
   identifyOpsRequest(seq: number, requestId: string): void
   applyServerBlocks(blocks: Block[], o?: {mode: 'own'; requestId: string}): void
   flushPendingChanges(): boolean
@@ -26,6 +29,19 @@ export function readTyping(el: CanvasElement) {
 }
 
 const add = <T extends HTMLElement>(el: T) => (document.head.append(el), el)
+
+const linkOf = (n: Node | null | undefined) => (n instanceof Element && n.matches('[data-wikilink]') ? n.getAttribute('docid') || n.getAttribute('target') : null)
+
+export function linkAtCaret(el: CanvasElement): string | null {
+  const inside = el.state().wikilink
+  if (inside) return inside.docId || inside.target
+  const sel = getSelection()
+  const r = sel?.rangeCount ? sel.getRangeAt(0) : null
+  if (!r?.collapsed || !el.contains(r.startContainer)) return null
+  const {startContainer: at, startOffset: i} = r
+  if (at.nodeType !== Node.TEXT_NODE) return linkOf(at.childNodes[i - 1]) ?? linkOf(at.childNodes[i])
+  return (i === 0 ? linkOf(at.previousSibling) : null) ?? (i === at.textContent!.length ? linkOf(at.nextSibling) : null)
+}
 
 let loading: Promise<void> | null = null
 

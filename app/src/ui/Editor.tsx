@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {star} from '../lib/library'
-import {linkCandidates, linkPreview, type Linker} from '../lib/link-pick'
+import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
@@ -56,7 +56,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
   const ins = w.links.backs(note.id).length
   const outs = w.links.outs(note.id).length
   const named = (id: string | null) => w.shelf.path(id).join(' › ')
-  const linker: Linker = {pick: (q) => linkCandidates(w.lib.notes, note.id, q, named), preview: (id) => linkPreview(w.links.byId, id, named), gone: (id) => !w.links.byId.has(id)}
+  const linker: Linker = {pick: (q) => linkCandidates(w.lib.notes, note.id, q, named), preview: (id) => linkPreview(w.links.byId, id, named), resolve: (id) => linkTitle(w.links.byId, id)}
 
   return (
     <main className="editor" aria-label="Note" data-note-id={note.id} onKeyDown={(e) => e.key === 'Escape' && !e.defaultPrevented && (e.preventDefault(), onEscape())}>

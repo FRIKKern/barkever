@@ -149,7 +149,7 @@ test('J05 offline, on a phone: a link made offline shows its backlink at once, a
   expect(errors).toEqual([])
 })
 
-test('J05 delete: a link to a deleted note reads as dead, its card says so, and it goes nowhere', async ({page}) => {
+test('J05 delete: a link to a deleted note reads as dead, its card says so and has no Open, and it goes nowhere', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
@@ -161,20 +161,16 @@ test('J05 delete: a link to a deleted note reads as dead, its card says so, and 
   await expect.poll(() => opened(page)).toBeNull()
 
   await page.goto(`/?n=${source}`)
+  await expect(link(page)).toHaveAttribute('data-missing')
   await expect(link(page)).toHaveCSS('text-decoration-line', 'line-through')
   await expect(to(page)).toHaveCount(0)
   await link(page).hover()
   await expect(page.locator('.bp-link-preview__title')).toHaveText('Deleted note')
   await page.screenshot({path: test.info().outputPath('j05-dead-link-dark-1440.png'), animations: 'disabled'})
-  await page.locator('.bp-link-preview__open').click()
-  await page.waitForTimeout(500)
-  expect(opened(page)).toBe(source)
+  await expect(page.locator('.bp-link-preview__open')).toBeHidden()
   await link(page).click()
   await page.waitForTimeout(500)
   expect(opened(page)).toBe(source)
-  await page.keyboard.press('Home')
-  for (const _ of 'Next stop: Li') await page.keyboard.press('ArrowRight')
-  expect(await page.evaluate(() => !!getSelection()?.anchorNode?.parentElement?.closest('[data-wikilink]'))).toBe(true)
   await page.keyboard.press('ControlOrMeta+Enter')
   await page.waitForTimeout(500)
   expect(opened(page)).toBe(source)

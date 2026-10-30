@@ -38,6 +38,7 @@ bp-paper-canvas .bp-paper-editor-body li p { margin: 0; }
 bp-paper-canvas input[type="checkbox"] { accent-color: var(--c-accent); margin: var(--sp-1) 0 0; }
 bp-paper-canvas [data-wikilink] { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); cursor: pointer; }
 bp-paper-canvas [data-wikilink]::before { content: "↗ "; font-size: .8em; opacity: .7; }
+bp-paper-canvas [data-wikilink][data-missing] { color: var(--c-muted); background: none; text-decoration: line-through; cursor: default; }
 :root {
   --paper-picker-bg: var(--c-surface); --paper-picker-ink: var(--c-text); --paper-picker-ink-soft: var(--c-text-2); --paper-picker-ink-faint: var(--c-muted);
   --paper-picker-rule: var(--c-border-soft); --paper-picker-rule-soft: var(--c-hover); --paper-picker-accent: var(--c-accent); --paper-picker-accent-soft: var(--c-accent-soft);

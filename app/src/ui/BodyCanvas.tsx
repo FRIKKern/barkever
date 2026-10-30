@@ -1,6 +1,6 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
 import {useNavigate} from '@tanstack/react-router'
-import {loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {linkAtCaret, loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Note} from '../lib/model'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
@@ -12,7 +12,6 @@ export type BodyHandle = {focus: () => void}
 type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker}
 
 const FLUSH_MS = 40
-const GONE = 'color: var(--c-muted); background: none; text-decoration: line-through; cursor: default;'
 const WORDS = JSON.stringify({'Link to page': 'Link to note', 'No matching pages': 'No matching notes'})
 
 export function BodyCanvas({note, s, handle, linker}: Props) {
@@ -66,14 +65,14 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       composing = e.type === 'compositionstart'
       if (!composing) onInput()
     }
-    const live = (to: string | null | undefined): to is string => !!to && !links.current.gone(to)
+    const live = (to: string | null | undefined): to is string => !!to && !('missing' in links.current.resolve(to))
     const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
     const onOpen = (e: Event) => {
       const d = (e as CustomEvent<{kind?: string; docId?: string; target?: string}>).detail
       if (d.kind === 'link') return
       e.preventDefault()
       const to = d.docId || d.target
-      if (live(to)) go(to)
+      if (to) go(to)
     }
     const onClick = (e: Event) => {
       const d = (e as CustomEvent<{docId: string | null; target: string | null}>).detail
@@ -82,9 +81,8 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return
-      const at = getSelection()?.anchorNode
-      const to = (at instanceof Element ? at : at?.parentElement)?.closest('[data-wikilink]')?.getAttribute('docid')
-      if (live(to)) (e.preventDefault(), e.stopPropagation(), go(to))
+      const to = linkAtCaret(e.currentTarget as CanvasElement)
+      if (live(to)) (e.preventDefault(), go(to))
     }
     loadCanvas().then(
       () => {
@@ -94,6 +92,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         el.blocks = latest.current.blocks
         el.wikilinkSource = (q) => links.current.pick(q)
         el.linkPreviewSource = ({kind, docId, target}) => (kind === 'wikilink' ? links.current.preview(docId || target || '') : null)
+        el.wikilinkResolve = (to) => links.current.resolve(to)
         el.setAttribute('editable', 'true')
         el.setAttribute('mention-trigger', 'off')
         el.setAttribute('data-strings', WORDS)
@@ -102,7 +101,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         el.addEventListener('bp-canvas-open-link', onOpen)
         el.addEventListener('bp-canvas-wikilink-click', onClick)
         el.addEventListener('input', onInput)
-        el.addEventListener('keydown', onKey, true)
+        el.addEventListener('keydown', onKey)
         el.addEventListener('compositionstart', onCompose)
         el.addEventListener('compositionend', onCompose)
         el.dataset.testid = 'canvas'
@@ -130,10 +129,11 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
     canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 
-  const dead = wikilinks(note.blocks).filter(linker.gone)
+  const targets = JSON.stringify(wikilinks(note.blocks).map((t) => [t, linker.resolve(t)]))
+  useEffect(() => canvas.current?.refreshWikilinks(), [targets])
+
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">
-      {dead.length > 0 && <style>{`${dead.map((t) => `bp-paper-canvas [data-wikilink][docid="${CSS.escape(t)}"]`).join(', ')} { ${GONE} }`}</style>}
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
       <Blocks blocks={note.blocks} s={s} />
     </div>
