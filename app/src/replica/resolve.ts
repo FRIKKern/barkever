@@ -1,5 +1,5 @@
 import type {Block} from '../lib/model.ts'
-import {collapse, mergeLocal} from './merge.ts'
+import {collapse, mergeLocal, organized} from './merge.ts'
 import type {NoteDoc} from './note.ts'
 
 function adopt(main: Block[], copy: Block[], ids: Set<string>): Block[] {
@@ -20,6 +20,6 @@ export function keep(n: NoteDoc, key: string, shown: Pick<NoteDoc, 'title' | 'bo
   if (!c) return n
   const ids = new Set(c.clash.filter((p) => p.startsWith('body:')).map((p) => p.slice(5)))
   const blocks = adopt(shown.body?.blocks ?? [], c.body?.blocks ?? [], ids)
-  const out = mergeLocal(n, shown, {title: c.clash.includes('title') ? c.title : shown.title, body: {...shown.body, blocks}}, at, local, me, server)
+  const out = mergeLocal(n, shown, {title: c.clash.includes('title') ? c.title : shown.title, body: {...shown.body, blocks}, ...organized(c, c.clash)}, at, local, me, server)
   return {...out, conflicts: collapse(dismiss(out, key).conflicts ?? [], out)}
 }

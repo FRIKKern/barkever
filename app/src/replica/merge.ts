@@ -72,13 +72,14 @@ export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
 type Part = 'title' | 'notebook' | 'tags'
 const part = (n: NoteDoc, p: string) => (p.startsWith('body:') ? n.body?.blocks.find((b) => b.id === p.slice(5)) : n[p as Part])
 const moved = (from: NoteDoc, to: NoteDoc) => (p: string) => !same(part(from, p), part(to, p))
-const copyOf = (c: Conflict): NoteDoc => ({_id: '', _type: 'note', title: c.title, body: c.body})
+const copyOf = (c: Conflict): NoteDoc => ({_id: '', _type: 'note', title: c.title, body: c.body, tags: c.tags, notebook: c.notebook})
 const holds = (c: Conflict, n: NoteDoc) => c.clash.every((p) => !moved(copyOf(c), n)(p))
 const TYPED = 512
 const carried = (p: string) => p === 'title' || p.startsWith('body:')
 const marked = (s: string) => `${s.length.toString(36)}.${digest(s)}.${digest(`~${s}`)}`
 const mark = (n: NoteDoc, p: string) => marked(`${p}\n${canon(part(n, p))}`)
 const typedFrom = (c: Conflict, typed: Set<string>) => c.clash.every((p) => carried(p) && typed.has(mark(copyOf(c), p)))
+export const organized = (n: Pick<NoteDoc, 'tags' | 'notebook'>, clash: string[]) => ({...(clash.includes('tags') && {tags: n.tags ?? []}), ...(clash.includes('notebook') && n.notebook && {notebook: n.notebook})})
 const before = (a: Conflict, b: Conflict) => a.at < b.at || (a.at === b.at && a._key < b._key)
 const text = (c: Conflict) => canon([...c.clash].sort().map((p) => [p, part(copyOf(c), p)]))
 
@@ -101,7 +102,7 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
   clash.push(...body.clash.map((id) => `body:${id}`))
   const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
   const copyKey = `${key}~${digest(canon([...clash].sort()))}`
-  if (clash.length && who !== me && !conflicts.some((c) => c._key === copyKey)) conflicts.push({_key: copyKey, by: who, at, title: theirs.title, body: theirs.body, clash})
+  if (clash.length && who !== me && !conflicts.some((c) => c._key === copyKey)) conflicts.push({_key: copyKey, by: who, at, title: theirs.title, body: theirs.body, ...organized(theirs, clash), clash})
   const typed = new Set(mine._typed)
   const kept = collapse(conflicts.filter((c) => !typedFrom(c, typed)), out)
   out.conflicts = kept.length || mine.conflicts || theirs.conflicts ? kept : undefined

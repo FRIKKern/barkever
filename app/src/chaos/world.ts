@@ -2,7 +2,7 @@ import {freeze} from './hooks.ts'
 import {newDevice, use, type Device} from './fake-db.ts'
 import {answer, type Remote} from './fake-remote.ts'
 import {barkpark} from './server.ts'
-import {partsOf, truth} from './truth.ts'
+import {partsOf, truth, type Held} from './truth.ts'
 import type {Setup, Step} from './plan.ts'
 import {keeper} from '../sync/cursor.ts'
 import type {Block, Conflict} from '../lib/model.ts'
@@ -10,7 +10,7 @@ import type {NoteDoc} from '../replica/note.ts'
 import type {Decide} from '../replica/settle.ts'
 import type {Frame} from '../sync/stream.ts'
 
-const {editBody, editTitle} = await import('../replica/local.ts')
+const {editBody, editTitle, moveNote, retag} = await import('../replica/local.ts')
 const {settle} = await import('../replica/settle.ts')
 const {push} = await import('../sync/push.ts')
 const {check, refetch} = await import('../sync/check.ts')
@@ -34,7 +34,7 @@ type Writer = {
   connected: boolean
   catching: boolean
   session: number
-  view: {title: string; blocks: Block[]}
+  view: {title: string; blocks: Block[]; tags: string[]; notebook: string | null}
   inbox: {f: Frame; replay: boolean}[]
   cursor?: ReturnType<typeof keeper>
   jobs: Job[]
@@ -46,7 +46,7 @@ type Writer = {
 }
 
 const para = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
-const textOf = (n: {title?: string; body?: NoteDoc['body']}, part: string) => partsOf(n).find(([p]) => p === part)?.[1] ?? ''
+const textOf = (n: Held, part: string) => partsOf(n).find(([p]) => p === part)?.[1] ?? ''
 const decideFor = (f: Frame): Decide => (known) => (known === f.rev ? 'skip' : known === (f.previousRev ?? undefined) ? 'apply' : 'suspect')
 
 function edited(old: string, token: string, mode: number, where: number) {
@@ -62,7 +62,7 @@ const modeName = (mode: number) => (mode < 0.5 ? 'types at the end of' : mode < 
 
 export const show = (n: NoteDoc | null | undefined) => {
   if (!n) return 'none'
-  const one = (v: {title?: string; body?: NoteDoc['body']}) => partsOf(v).map(([p, t]) => `${p === 'title' ? '' : `${p.slice(5)}:`}"${t}"`).join(' ')
+  const one = (v: Held) => partsOf(v).map(([p, t]) => `${p === 'title' ? '' : `${p.replace(/^body:/, '')}:`}"${t}"`).join(' ')
   return `${one(n)}${(n.conflicts ?? []).map((c: Conflict) => `\n      copy ${c._key} by ${c.by}: ${one(c)} clash ${c.clash.join(',')}`).join('')}`
 }
 
@@ -74,12 +74,12 @@ export function world(setup: Setup) {
   const log: string[] = []
   const t = truth()
   const writers: Writer[] = []
-  const first: NoteDoc = {_id: ID, _type: 'note', title: 'T0', tags: [], links: [], body: {blocks: Array.from({length: setup.blocks}, (_, i) => para(`s${i}`, `S${i}`))}}
+  const first: NoteDoc = {_id: ID, _type: 'note', title: 'T0', notebook: {_type: 'reference', _ref: 'nb0'}, tags: [], links: [], body: {blocks: Array.from({length: setup.blocks}, (_, i) => para(`s${i}`, `S${i}`))}}
   const server = barkpark(first, (f) => writers.forEach((w) => w.connected && w.inbox.push({f, replay: false})))
   for (const [part, text] of partsOf(first)) t.wrote({part, text, by: 'seed', step: -1})
 
   const note = (w: Writer) => w.device.stores.notes.get(ID) as NoteDoc | undefined
-  const viewOf = (w: Writer) => ({title: note(w)?.title ?? '', blocks: note(w)?.body?.blocks ?? []})
+  const viewOf = (w: Writer) => ({title: note(w)?.title ?? '', blocks: note(w)?.body?.blocks ?? [], tags: note(w)?.tags ?? [], notebook: note(w)?.notebook?._ref ?? null})
   const say = (w: Writer | string, what: string) => void log.push(`${(at === Infinity ? 'end' : String(at)).padStart(4)} ${typeof w === 'string' ? w : w.id} ${what}`)
   const queue = (w: Writer, job: Job) => void (w.jobs.includes(job) || w.jobs.push(job))
 
@@ -245,6 +245,27 @@ export function world(setup: Setup) {
     return true
   }
 
+  async function organize(w: Writer, a: number, b: number) {
+    const token = `${w.id}${++w.typed}`
+    if (a < 0.5) {
+      const [old, next] = [w.view.tags, b < 0.5 || !w.view.tags.length ? [...w.view.tags, token.toLowerCase()] : w.view.tags.filter((_, i) => i !== Math.floor(b * w.view.tags.length))]
+      t.editedFrom('tags', JSON.stringify(old))
+      t.wrote({part: 'tags', text: JSON.stringify(next), by: w.id, step: at})
+      say(w, `sets tags ${JSON.stringify(old)} → ${JSON.stringify(next)}`)
+      w.view.tags = next
+      await as(w, () => retag(ID, old, next))
+    } else {
+      const [old, next] = [w.view.notebook, `nb-${token}`]
+      t.editedFrom('notebook', old ?? '')
+      t.wrote({part: 'notebook', text: next, by: w.id, step: at})
+      say(w, `moves the note from notebook ${old} to ${next}`)
+      w.view.notebook = next
+      await as(w, () => moveNote(ID, old, next))
+    }
+    if (w.connected) queue(w, 'push')
+    return true
+  }
+
   function raw(a: number, b: number) {
     const doc = server.doc
     const parts = partsOf(doc)
@@ -258,10 +279,11 @@ export function world(setup: Setup) {
       return
     }
     const [part, old] = parts[i]
-    const next = edited(old, token, b, (a * 7919) % 1)
+    const next = part === 'tags' ? JSON.stringify([...JSON.parse(old), token.toLowerCase()]) : part === 'notebook' ? `nb-${token}` : edited(old, token, b, (a * 7919) % 1)
     t.editedFrom(part, old)
     t.wrote({part, text: next, by: 'raw', step: at})
-    say('raw', `${modeName(b)} ${part === 'title' ? 'the title' : `block ${part.slice(5)}`} on the server: "${old}" → "${next}"`)
+    say('raw', `${part === 'tags' || part === 'notebook' ? `sets the ${part}` : `${modeName(b)} ${part === 'title' ? 'the title' : `block ${part.slice(5)}`}`} on the server: "${old}" → "${next}"`)
+    if (part === 'tags' || part === 'notebook') return void server.raw((d) => ({...d, [part]: part === 'tags' ? JSON.parse(next) : {_type: 'reference', _ref: next}}))
     server.raw((d) => (part === 'title' ? {...d, title: next} : {...d, body: {blocks: (d.body?.blocks ?? []).map((x) => (`body:${x.id}` === part ? para(x.id, next) : x))}}))
   }
 
@@ -274,6 +296,8 @@ export function world(setup: Setup) {
       case 'add':
       case 'delete':
         return type(w, s.a, s.b, s.k)
+      case 'organize':
+        return organize(w, s.a, s.b)
       case 'render':
         say(w, 'shows the replica (canvas blurred)')
         w.view = viewOf(w)
@@ -357,7 +381,7 @@ export function world(setup: Setup) {
   }
 
   for (const id of NAMES.slice(0, setup.writers)) {
-    const w: Writer = {id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: []}, inbox: [], jobs: [], typed: 0}
+    const w: Writer = {id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: [], tags: [], notebook: null}, inbox: [], jobs: [], typed: 0}
     w.device.stores.notes.set(ID, {...server.doc, _gen: 0})
     w.device.stores.rows.set(ID, {id: ID, rev: 'r0'})
     w.device.stores.meta.set('cursor', 0)

@@ -1,4 +1,4 @@
-export type Kind = 'type' | 'add' | 'delete' | 'render' | 'net' | 'reload' | 'frame' | 'job' | 'reply' | 'wait' | 'raw'
+export type Kind = 'type' | 'add' | 'delete' | 'organize' | 'render' | 'net' | 'reload' | 'frame' | 'job' | 'reply' | 'wait' | 'raw'
 export type Step = {w: number; k: Kind; a: number; b: number}
 export type Setup = {writers: number; raw: boolean; blocks: number; solo: boolean}
 export type Plan = {seed: number; setup: Setup; steps: Step[]}
@@ -18,6 +18,7 @@ const WRITER: [Kind, number][] = [
   ['type', 26],
   ['add', 4],
   ['delete', 3],
+  ['organize', 4],
   ['render', 8],
   ['net', 5],
   ['reload', 3],
@@ -26,7 +27,7 @@ const WRITER: [Kind, number][] = [
   ['reply', 15],
   ['wait', 2],
 ]
-const QUIET = new Set<Kind>(['type', 'add', 'delete'])
+const QUIET = new Set<Kind>(['type', 'add', 'delete', 'organize'])
 
 function weighted(table: [Kind, number][], x: number): Kind {
   let left = x * table.reduce((s, [, n]) => s + n, 0)
