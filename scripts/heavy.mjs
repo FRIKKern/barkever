@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { HEAVY_DIR } from "./machine.mjs";
 
@@ -9,15 +9,32 @@ if (!cmd) { console.error("usage: node scripts/heavy.mjs <command> [args…]"); 
 
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const owner = process.env.HEAVY_OWNER ?? execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+const slotPath = (i) => `${HEAVY_DIR}/slot-${i}`;
+
+function holder(slot) {
+  try {
+    const [pid, ...rest] = readFileSync(slot, "utf8").split(" ");
+    return { pid: Number(pid), owner: rest.join(" ") };
+  } catch { return null; }
+}
+
+function ownerBusy() {
+  for (let i = 0; i < SLOTS; i++) {
+    const h = holder(slotPath(i));
+    if (h && h.owner === owner && alive(h.pid)) return true;
+  }
+  return false;
+}
 
 function take() {
+  if (ownerBusy()) return null;
   for (let i = 0; i < SLOTS; i++) {
-    const slot = `${HEAVY_DIR}/slot-${i}`;
-    try { writeFileSync(slot, String(process.pid), { flag: "wx" }); return slot; }
+    const slot = slotPath(i);
+    try { writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" }); return slot; }
     catch {
-      let holder = NaN;
-      try { holder = Number(readFileSync(slot, "utf8")); } catch { continue; }
-      if (!alive(holder)) { try { unlinkSync(slot); } catch {} i -= 1; }
+      const h = holder(slot);
+      if (h && !alive(h.pid)) { try { unlinkSync(slot); } catch {} i -= 1; }
     }
   }
   return null;
@@ -26,10 +43,10 @@ function take() {
 mkdirSync(HEAVY_DIR, { recursive: true });
 const asked = Date.now();
 let slot = take();
-if (!slot) console.error(`heavy: all ${SLOTS} slots busy, waiting`);
+if (!slot) console.error(`heavy: waiting (one slot per worktree, ${SLOTS} in all)`);
 while (!slot) { await sleep(2000); slot = take(); }
 const started = Date.now();
-const release = () => { try { if (Number(readFileSync(slot, "utf8")) === process.pid) unlinkSync(slot); } catch {} };
+const release = () => { if (holder(slot)?.pid === process.pid) try { unlinkSync(slot); } catch {} };
 
 const child = spawn(cmd, args, { stdio: "inherit" });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
