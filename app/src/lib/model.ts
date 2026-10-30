@@ -73,8 +73,18 @@ export function hitLine(n: Note, words: string[], title: Title): string | undefi
   return b && shownText(b, title)
 }
 
-const TEXT_BLOCKS = new Set(['paragraph', 'heading', 'list', 'blockquote'])
+const EMPTYABLE = new Set(['paragraph', 'heading', 'list', 'blockquote', 'text', 'strong', 'em', 'underline', 'strikethrough', 'code'])
+const NAMES = new Set(['id', 'type', '_key', '_type'])
+const FLAGS = new Set(['level', 'task', 'ordered', 'checked'])
 
-export const isBlank = (n: Note) => !n.title.trim() && n.blocks.every((b) => TEXT_BLOCKS.has(b.type) && !blockText(b).trim())
+const quiet = ([k, v]: [string, unknown]) => NAMES.has(k) || (FLAGS.has(k) && (typeof v === 'number' || typeof v === 'boolean')) || holdsNothing(v)
+
+const holdsNothing = (x: unknown): boolean =>
+  x == null ||
+  (typeof x === 'string' && !x.trim()) ||
+  (Array.isArray(x) && x.every(holdsNothing)) ||
+  (typeof x === 'object' && !Array.isArray(x) && (!('type' in x) || EMPTYABLE.has(String(x.type))) && Object.entries(x).every(quiet))
+
+export const isBlank = (n: Note) => !n.title.trim() && n.blocks.every(holdsNothing)
 
 export const emptyParagraph = (id: string): Block => ({id, type: 'paragraph', content: []})
