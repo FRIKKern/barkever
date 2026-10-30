@@ -119,7 +119,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
               {ins} in · {outs} out
             </span>
           </div>
-          <ConflictView note={note} />
+          <ConflictView note={note} onKeep={() => (lastKey.current = 0)} />
           <BodyCanvas note={note} s={s} handle={body} linker={linker} />
         </article>
       </div>

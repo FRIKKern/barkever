@@ -25,12 +25,16 @@ function Column({v, testId, children}: {v: Version; testId: string; children?: R
   )
 }
 
-function Copy({c, note}: {c: Conflict; note: Note}) {
+function Copy({c, note, onKeep}: {c: Conflict; note: Note; onKeep: () => void}) {
   const v = {label: `${yours(c.by) ? 'Your version' : 'Other version'} · ${when(c.at)}`, title: c.title, blocks: c.body?.blocks ?? [], clash: new Set(c.clash)}
+  const keep = () => {
+    onKeep()
+    void keepVersion(note.id, c._key, {title: note.title, body: {blocks: note.blocks}})
+  }
   return (
     <Column v={v} testId="conflict-other">
       <div className="kb-acts">
-        <button className="kb-act" onClick={() => void keepVersion(note.id, c._key, {title: note.title, body: {blocks: note.blocks}})} data-testid="keep-version">
+        <button className="kb-act" onClick={keep} data-testid="keep-version">
           Keep this
         </button>
         <button className="kb-act" onClick={() => void dismissVersion(note.id, c._key)} data-testid="dismiss-version">
@@ -41,7 +45,7 @@ function Copy({c, note}: {c: Conflict; note: Note}) {
   )
 }
 
-export function ConflictView({note}: {note: Note}) {
+export function ConflictView({note, onKeep}: {note: Note; onKeep: () => void}) {
   if (!note.conflicts.length) return null
   const lanes = groups(note.conflicts)
   const mine = {label: 'This version', title: note.title, blocks: note.blocks, clash: new Set(note.conflicts.flatMap((c) => c.clash))}
@@ -54,12 +58,12 @@ export function ConflictView({note}: {note: Note}) {
         <Column v={mine} testId="conflict-mine" />
         {lanes.map(({latest, earlier}) => (
           <div className="kb-lane" key={latest._key} data-testid="conflict-lane">
-            <Copy c={latest} note={note} />
+            <Copy c={latest} note={note} onKeep={onKeep} />
             {earlier.length > 0 && (
               <details className="kb-earlier">
                 <summary>{earlier.length} earlier</summary>
                 {earlier.map((c) => (
-                  <Copy key={c._key} c={c} note={note} />
+                  <Copy key={c._key} c={c} note={note} onKeep={onKeep} />
                 ))}
               </details>
             )}

@@ -3,6 +3,7 @@ import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {canvas, created, device, deviceOf, errorsOf, everything, leave, newNote, serverNote, status, synced, typeAtEndOf, type ServerNote} from './devices'
 import {blockText} from '../src/lib/model.ts'
 import {groups} from '../src/lib/versions.ts'
+import {TYPING_MS} from '../src/lib/typing.ts'
 
 test.afterAll(() => deleteNotes(created))
 
@@ -252,6 +253,63 @@ const holdReplica = (page: Page, ms: number) =>
     spin()
     tx.oncomplete = () => db.close()
   }, ms)
+
+const remoteTitle = (id: string, title: string) => barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', set: {title}}}]})})
+
+test('a remote title shows in an open editor whose title is focused but has no key pressed', async ({browser, baseURL}) => {
+  const a = await device(browser, baseURL!)
+  const errors = errorsOf(a)
+  const stamp = Date.now()
+  const id = await newNote(a, `Idle adopt ${stamp}`, 'Body.')
+  await leave(a)
+  await synced(a)
+  await a.goto(`/?n=${id}`)
+  const title = a.getByTestId('title')
+  await expect(title).toHaveValue(`Idle adopt ${stamp}`)
+  await title.focus()
+  expect((await remoteTitle(id, `Remote while idle ${stamp}`)).ok).toBe(true)
+  await expect(title).toHaveValue(`Remote while idle ${stamp}`, {timeout: 15_000})
+  await expect(title).toBeFocused()
+  expect(errors).toEqual([])
+  await a.context().close()
+})
+
+test('Keep this on a title version right after a title key shows the kept title before the typing pause ends, and it stays the main', async ({browser, baseURL}) => {
+  const a = await device(browser, baseURL!)
+  const errors = errorsOf(a)
+  const stamp = Date.now()
+  const id = await newNote(a, `Keep race ${stamp}`, 'Body.')
+  await leave(a)
+  await synced(a)
+  const title = a.getByTestId('title')
+  await a.context().setOffline(true)
+  await title.fill(`Mine ${stamp}`)
+  await leave(a)
+  await expect(status(a)).toHaveText('Offline · saved on this device', {timeout: 15_000})
+  const kept = `Theirs ${stamp}`
+  expect((await remoteTitle(id, kept)).ok).toBe(true)
+  await a.context().setOffline(false)
+  await synced(a)
+  const view = a.getByTestId('conflict')
+  await expect(view.getByTestId('conflict-other')).toContainText(kept, {timeout: 15_000})
+  if (!(await view.evaluate((d) => (d as HTMLDetailsElement).open))) await view.locator('summary').first().click()
+  await title.focus()
+  await title.press('End')
+  await title.evaluate((el) => el.addEventListener('keydown', () => ((window as unknown as {keyAt: number}).keyAt = Date.now()), {once: true}))
+  await title.press('X')
+  await view.getByTestId('keep-version').first().click()
+  const shown = await a.waitForFunction((t) => (document.querySelector('[data-testid="title"]') as HTMLTextAreaElement).value === t && [Date.now() - (window as unknown as {keyAt: number}).keyAt], kept, {polling: 'raf'})
+  const [after] = (await shown.jsonValue()) as number[]
+  test.info().annotations.push({type: 'kept title shown after the key', description: `${after} ms`})
+  expect(after, 'the kept title shows before the typing pause ends').toBeLessThan(TYPING_MS)
+  await a.waitForTimeout(TYPING_MS + 500)
+  await expect(title).toHaveValue(kept)
+  await leave(a)
+  await synced(a)
+  expect((await serverNote(id))!.title, 'the kept title is the main').toBe(kept)
+  expect(errors).toEqual([])
+  await a.context().close()
+})
 
 test('a title changed in another tab while this tab is mid-save is kept, and the title box shows what the replica holds', async ({browser, baseURL}) => {
   const one = await device(browser, baseURL!)
