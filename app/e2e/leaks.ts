@@ -3,6 +3,7 @@ import {extname, join, relative} from 'node:path'
 import type {Page, Request, Response} from '@playwright/test'
 import {loadServerEnv} from '../scripts/local-env.ts'
 import {untilWelcome} from './event-stream'
+import {secretNeedles} from './needles'
 import {DATASET} from './fixtures-cleanup'
 import {APP, buildDir} from './run'
 
@@ -10,21 +11,16 @@ const CLIENT = join(APP, buildDir(DATASET, 'app'), 'client')
 const SERVER = join(APP, 'src/server')
 const TYPE: Record<string, string> = {'.js': 'javascript', '.mjs': 'javascript', '.css': 'text/css'}
 const SECRET_NAME = /\b[A-Z][A-Z0-9_]*_(?:TOKEN|SECRET|KEY|PASSWORD)\b/g
-const TOKEN_SHAPE = /bp[a-z]{1,6}_[A-Za-z0-9_-]{43}/
 
-export type Needle = {name: string; value: string}
 type Seen = {where: string; text: string}
 
-export function serverSecrets(): Needle[] {
+export function serverSecrets() {
   const sources = (readdirSync(SERVER, {recursive: true}) as string[]).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).map((f) => readFileSync(join(SERVER, f), 'utf8'))
   const names = [...new Set(sources.flatMap((s) => [...s.matchAll(SECRET_NAME)].map(([name]) => name)))].sort()
   const env = {...process.env}
   loadServerEnv('production', true, env)
-  return names.flatMap((name) => (env[name] ? [{name, value: env[name]}] : []))
+  return secretNeedles(names, env)
 }
-
-export const exactLeaks = (needles: Needle[], where: string, text: string) => needles.filter((n) => text.includes(n.value)).map((n) => `${where}: ${n.name}`)
-export const leaks = (needles: Needle[], where: string, text: string) => [...exactLeaks(needles, where, text), ...(TOKEN_SHAPE.test(text) ? [`${where}: a bp token shape`] : [])]
 
 export async function servedFiles(page: Page) {
   const built = readdirSync(CLIENT, {recursive: true, withFileTypes: true})

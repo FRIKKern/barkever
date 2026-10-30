@@ -1,7 +1,8 @@
 import {expect, test, type BrowserContext, type Page} from '@playwright/test'
 import {ACCOUNT, cli, sessionToken} from './account'
 import {prefIds as ids} from './fixtures-cleanup'
-import {capture, exactLeaks, leaks, servedFiles, serverSecrets} from './leaks'
+import {capture, servedFiles, serverSecrets} from './leaks'
+import {exactLeaks, leaks} from './needles'
 
 const session = async (context: BrowserContext) => (await context.cookies()).find((c) => c.name === 'bk_session')
 
@@ -46,13 +47,14 @@ test.describe('signed out', () => {
     expect(served.files.filter(({want, status, type}) => !want || status !== 200 || !type.includes(want)).map(({p, status, type, want}) => `${p} ${status} ${type} (want ${want})`)).toEqual([])
     const {seen, unreadable, streams} = await received()
     expect(unreadable).toEqual([])
+    const scan = (where: string, text: string) => leaks(needles, where, text, [cookie!.value])
     const hits = [
       ...exactLeaks(needles, 'cookie value', cookie!.value),
-      ...leaks(needles, 'document.cookie', pageCookie),
-      ...leaks(needles, 'rendered page', await page.content()),
-      ...leaks(needles, 'server-rendered html', await (await page.request.get('/?n=fx-note-01')).text()),
-      ...served.files.flatMap(({p, text}) => leaks(needles, p, text)),
-      ...seen.flatMap(({where, text}) => leaks(needles, where, text)),
+      ...scan('document.cookie', pageCookie),
+      ...scan('rendered page', await page.content()),
+      ...scan('server-rendered html', await (await page.request.get('/?n=fx-note-01')).text()),
+      ...served.files.flatMap(({p, text}) => scan(p, text)),
+      ...seen.flatMap(({where, text}) => scan(where, text)),
     ]
     expect(hits).toEqual([])
     console.log(
