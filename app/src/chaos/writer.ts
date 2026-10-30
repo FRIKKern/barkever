@@ -3,6 +3,8 @@ import type {keeper} from '../sync/cursor.ts'
 import type {Block} from '../lib/model.ts'
 import type {Frame} from '../sync/stream.ts'
 
+export const ID = 'n1'
+
 export type Job = 'push' | 'refetch' | 'catchup'
 export type Call = {label: string; go: () => void; fail: () => void}
 export type Writer = {
