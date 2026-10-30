@@ -38,6 +38,11 @@ bp-paper-canvas .bp-paper-editor-body li p { margin: 0; }
 bp-paper-canvas input[type="checkbox"] { accent-color: var(--c-accent); margin: var(--sp-1) 0 0; }
 bp-paper-canvas [data-wikilink] { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); cursor: pointer; }
 bp-paper-canvas [data-wikilink]::before { content: "↗ "; font-size: .8em; opacity: .7; }
+:root {
+  --paper-picker-bg: var(--c-surface); --paper-picker-ink: var(--c-text); --paper-picker-ink-soft: var(--c-text-2); --paper-picker-ink-faint: var(--c-muted);
+  --paper-picker-rule: var(--c-border-soft); --paper-picker-rule-soft: var(--c-hover); --paper-picker-accent: var(--c-accent); --paper-picker-accent-soft: var(--c-accent-soft);
+  --paper-picker-chrome-bg: var(--c-raised); --paper-picker-chrome-border: var(--c-border); --paper-picker-shadow: var(--shadow-pop);
+}
 .empty-ed { margin: auto; text-align: center; color: var(--c-muted); font-size: var(--fs-m); }
 .nbchip.pick { border-radius: var(--r-pill); padding: 1px var(--sp-2) 1px var(--sp-half); margin-left: calc(-1 * var(--sp-half)); }
 .nbchip.pick:hover, .nbchip.pick:focus-within { background: var(--c-hover); }
