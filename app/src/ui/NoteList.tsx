@@ -1,6 +1,6 @@
 import {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react'
 import {Link, useNavigate} from '@tanstack/react-router'
-import {blockText, snippet, UNTITLED, type Note} from '../lib/model'
+import {hitLine, snippet, UNTITLED, type Note} from '../lib/model'
 import {scopeName, type Search} from '../lib/scope'
 import type {Found} from '../lib/search'
 import {groups} from '../lib/versions'
@@ -16,7 +16,6 @@ const marker = (words: string[]) => (words.length ? new RegExp(`(${[...words].so
 
 const highlight = (text: string, re: RegExp | null): ReactNode => (re ? text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part)) : text)
 
-const hitLine = (n: Note, words: string[]) => (words.length ? n.blocks.map(blockText).find((t) => words.some((w) => t.toLowerCase().includes(w))) : undefined)
 
 const STEP: Record<string, 'nextElementSibling' | 'previousElementSibling'> = {ArrowDown: 'nextElementSibling', ArrowUp: 'previousElementSibling'}
 
@@ -128,7 +127,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
               </div>
               <div className="row-bot">
                 <span className="dot" style={{background: w.shelf.colour(n.notebook)}} title={nb?.name} data-testid="note-notebook" data-notebook={nb?.name ?? ''} />
-                <span className="row-snip">{highlight(hitLine(n, words) ?? snippet(n), re)}</span>
+                <span className="row-snip">{highlight(hitLine(n, words, w.links.title) ?? snippet(n, w.links.title), re)}</span>
                 {n.conflicts.length > 0 && <span className="row-clash" title="Kept both versions" data-testid="note-conflict">{groups(n.conflicts).length + 1} versions</span>}
                 {d > 0 && (
                   <span className={`lk${d >= HUB ? ' hub' : ''}`} title={`${d} linked notes`}>

@@ -1,7 +1,8 @@
-import {wikilinks, type Library, type Note} from './model.ts'
+import {titleIn, wikilinks, type Library, type Note, type Title} from './model.ts'
 
 export type Links = {
   byId: Map<string, Note>
+  title: Title
   outs: (id: string) => string[]
   backs: (id: string) => string[]
   degree: (id: string) => number
@@ -29,5 +30,5 @@ export function indexLinks({notes}: Library): Links {
       .slice(0, max)
       .map((x) => x.id)
   }
-  return {byId, outs, backs, degree, sharesTag, total: [...out.values()].reduce((s, l) => s + l.length, 0)}
+  return {byId, title: titleIn(byId), outs, backs, degree, sharesTag, total: [...out.values()].reduce((s, l) => s + l.length, 0)}
 }

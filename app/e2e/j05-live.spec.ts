@@ -85,7 +85,7 @@ async function paste(page: Page, text: string) {
   await page.keyboard.press('ControlOrMeta+v')
 }
 
-test('J05 live titles: a typed [[Title]] links, a rename repaints every link without writing the linking note, Mod+Enter inside or on either side of a picked or typed link, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
+test('J05 live titles: a typed [[Title]] links, a rename repaints every link, the list line, search line, backlink line and graph tip without writing the linking note, Mod+Enter inside or on either side of a picked or typed link, before and after a rename, follows it, and a delete and a recreate mark and unmark it', async ({browser}) => {
   const context = await browser.newContext({storageState: test.info().project.use.storageState, colorScheme: 'dark'})
   const [page, other] = [await context.newPage(), await context.newPage()]
   const errors: string[] = []
@@ -118,6 +118,18 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link wit
   await synced(page)
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
   await page.screenshot({path: test.info().outputPath('j05-live-title-dark-1440.png')})
+
+  const line = `First ${RENAMED} then the rest.`
+  await expect(page.getByTestId('note-row').filter({hasText: SOURCE}).locator('.row-snip')).toHaveText(line)
+  await expect(other.getByTestId('linked-from').filter({hasText: SOURCE})).toContainText(line)
+  await other.getByTestId('graph-node').first().hover()
+  await expect(other.getByTestId('graph-tip')).toContainText(line)
+  await other.screenshot({path: test.info().outputPath('j05-live-plain-title-dark-1440.png'), animations: 'disabled'})
+  await page.getByTestId('search').fill('rest')
+  await expect(page.getByTestId('note-row').filter({hasText: SOURCE}).locator('.row-snip')).toHaveText(line)
+  await page.getByTestId('search').fill('')
+  await expect.poll(() => opened(page)).toBe(source)
+  expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
 
   await followFromEverySpot(page, BESIDE, source, target, 'after a rename, where a painted link never holds the caret')
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])

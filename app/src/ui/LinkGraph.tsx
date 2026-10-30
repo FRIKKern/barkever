@@ -104,7 +104,7 @@ export function LinkGraph({w, note, hover, onHover}: Props) {
             {w.shelf.path(tipNote.notebook).join(' › ')} · {w.links.degree(tipNote.id)} link{w.links.degree(tipNote.id) === 1 ? '' : 's'}
           </span>
           <b>{tipNote.title || UNTITLED}</b>
-          {snippet(tipNote)}
+          {snippet(tipNote, w.links.title)}
         </div>
       )}
       <div className="legend">

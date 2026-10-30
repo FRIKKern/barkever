@@ -47,7 +47,7 @@ export function Rail({w, s, note, onRail}: Props) {
         <LinkGraph w={w} note={note} hover={hover} onHover={setHover} />
         <section className="rel">
           <h4>Linked from · {ins.length}</h4>
-          {ins.length ? ins.map((id) => row(id, linkContext(w.links.byId.get(id)!.blocks, note.id), 'linked-from')) : <div className="rel-empty">No note links here yet.</div>}
+          {ins.length ? ins.map((id) => row(id, linkContext(w.links.byId.get(id)!.blocks, note.id, w.links.title), 'linked-from')) : <div className="rel-empty">No note links here yet.</div>}
         </section>
         <section className="rel">
           <h4>Links to · {outs.length}</h4>

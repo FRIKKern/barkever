@@ -2,10 +2,11 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
-import {linkContext, snippet, wikilinks} from './model.ts'
+import {linkContext, snippet, titleIn, wikilinks} from './model.ts'
 
 const fixtures = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 const notes = fixtures.filter((d) => d._type === 'note').map((d) => toNote(d as BpNote))
+const title = titleIn(new Map(notes.map((n) => [n.id, n])))
 const notebooks = fixtures.filter((d) => d._type === 'notebook').map((d) => toNotebook(d as BpNotebook))
 
 test('drafts resolve to the published id on note, notebook and links', () => {
@@ -43,7 +44,7 @@ test('wikilinks are found inside list items and nested inlines', () => {
 test('link context is the sentence that holds the link; snippet skips headings', () => {
   const kickoff = notes.find((n) => n.id === 'fx-note-00')!
   const sitemap = notes.find((n) => n.id === 'fx-note-01')!
-  assert.equal(linkContext(sitemap.blocks, 'fx-note-00'), 'See Harbor redesign: kickoff.')
-  assert.match(snippet(kickoff), /^Goals for the Harbor/)
-  assert.equal(snippet({...kickoff, blocks: []}), 'No text yet')
+  assert.equal(linkContext(sitemap.blocks, 'fx-note-00', title), 'See Harbor redesign: kickoff.')
+  assert.match(snippet(kickoff, title), /^Goals for the Harbor/)
+  assert.equal(snippet({...kickoff, blocks: []}, title), 'No text yet')
 })

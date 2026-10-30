@@ -1,4 +1,4 @@
-import {snippet, UNTITLED, type Note} from './model.ts'
+import {snippet, titleIn, UNTITLED, type Note} from './model.ts'
 import {newest, terms} from './search.ts'
 
 export type Candidate = {title: string; id: string; type: string}
@@ -26,10 +26,10 @@ export const DELETED: Preview = {title: 'Deleted note', excerpt: 'This note was 
 
 export function linkPreview(byId: Map<string, Note>, id: string, notebook: Named): Preview {
   const n = byId.get(id)
-  return n ? {title: n.title || UNTITLED, excerpt: snippet(n), subtitle: notebook(n.notebook)} : DELETED
+  return n ? {title: n.title || UNTITLED, excerpt: snippet(n, titleIn(byId)), subtitle: notebook(n.notebook)} : DELETED
 }
 
 export function linkTitle(byId: Map<string, Note>, id: string): Resolved {
-  const n = byId.get(id)
-  return n ? {title: n.title || UNTITLED} : {missing: true}
+  const title = titleIn(byId)(id)
+  return title ? {title} : {missing: true}
 }

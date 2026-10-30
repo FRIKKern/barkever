@@ -12,14 +12,35 @@ export const UNTITLED = 'Untitled'
 
 export const itemContent = (it: Item): Inline[] => (Array.isArray(it) ? it : it.content ?? [])
 
-export const inlineText = (c: Inline[] = []): string =>
-  c.map((x) => (x.type === 'text' ? x.value ?? '' : x.type === 'wikilink' ? inlineText(x.children) : '')).join('')
+export type Title = (id: string) => string | undefined
 
-export function blockText(b: Block): string {
-  if (b.type === 'heading') return b.text ?? inlineText(b.content)
-  if (b.type === 'list') return (b.items ?? []).map((it) => inlineText(itemContent(it))).join(' · ')
-  return inlineText(b.content)
+export const titleIn =
+  (byId: Map<string, Note>): Title =>
+  (id) => {
+    const n = byId.get(id)
+    return n && (n.title || UNTITLED)
+  }
+
+const stored: Title = () => undefined
+
+function inline(c: Inline[], title: Title): string {
+  return c.map((x) => (x.type === 'text' ? x.value ?? '' : x.type === 'wikilink' ? linkWords(x, title) : '')).join('')
 }
+
+function linkWords(x: Inline, title: Title): string {
+  const words = inline(x.children ?? [], title)
+  return (x.docId && words === x.target && title(x.docId)) || words
+}
+
+export const inlineText = (c: Inline[] = []): string => inline(c, stored)
+
+export function shownText(b: Block, title: Title): string {
+  if (b.type === 'heading') return b.text ?? inline(b.content ?? [], title)
+  if (b.type === 'list') return (b.items ?? []).map((it) => inline(itemContent(it), title)).join(' · ')
+  return inline(b.content ?? [], title)
+}
+
+export const blockText = (b: Block): string => shownText(b, stored)
 
 const inlines = (b: Block): Inline[] => (b.type === 'list' ? (b.items ?? []).flatMap(itemContent) : b.content ?? [])
 
@@ -30,14 +51,19 @@ export function wikilinks(blocks: Block[]): string[] {
   return [...out]
 }
 
-export function linkContext(blocks: Block[], target: string): string {
+export function linkContext(blocks: Block[], target: string, title: Title): string {
   const b = blocks.find((b) => wikilinks([b]).includes(target))
-  return b ? blockText(b) : ''
+  return b ? shownText(b, title) : ''
 }
 
-export function snippet(n: Note): string {
+export function snippet(n: Note, title: Title): string {
   const b = n.blocks.find((b) => b.type === 'paragraph' && blockText(b).trim())
-  return b ? blockText(b) : 'No text yet'
+  return b ? shownText(b, title) : 'No text yet'
+}
+
+export function hitLine(n: Note, words: string[], title: Title): string | undefined {
+  const b = words.length ? n.blocks.find((b) => words.some((w) => blockText(b).toLowerCase().includes(w))) : undefined
+  return b && shownText(b, title)
 }
 
 const TEXT_BLOCKS = new Set(['paragraph', 'heading', 'list', 'blockquote'])
