@@ -1,18 +1,19 @@
 import {freeze} from './hooks.ts'
-import {newDevice, use, type Device} from './fake-db.ts'
+import {use} from './fake-db.ts'
 import {answer, type Remote} from './fake-remote.ts'
 import {barkpark} from './server.ts'
 import {partsOf, truth} from './truth.ts'
-import {edited, modeName, para, placeOf, rawNext, rawVerb, rawWrite, retagged, show, textOf} from './edits.ts'
+import {edited, modeName, OLD_TITLE, oldCopies, para, placeOf, rawNext, rawVerb, rawWrite, replacedBy, retagged, show, textOf} from './edits.ts'
 import type {Setup, Step} from './plan.ts'
+import {writer, type Job, type Writer} from './writer.ts'
 import {unheld, unsettled, type Failure} from './judge.ts'
 import {keeper} from '../sync/cursor.ts'
-import type {Block, Conflict} from '../lib/model.ts'
+import type {Conflict} from '../lib/model.ts'
 import type {NoteDoc} from '../replica/note.ts'
 import type {Decide} from '../replica/settle.ts'
 import type {Frame} from '../sync/stream.ts'
 
-const {editBody, editTitle, moveNote, retag} = await import('../replica/local.ts')
+const {editBody, editTitle, keepVersion, moveNote, retag} = await import('../replica/local.ts')
 const {settle} = await import('../replica/settle.ts')
 const {push} = await import('../sync/push.ts')
 const {check, refetch} = await import('../sync/check.ts')
@@ -24,26 +25,6 @@ const ROUNDS = 40
 const OFFLINE = new Error('chaos: offline')
 const EPOCH = Date.parse('2026-10-29T12:00:00.000Z')
 
-type Job = 'push' | 'refetch' | 'catchup'
-type Call = {label: string; go: () => void; fail: () => void}
-type Writer = {
-  id: string
-  device: Device
-  online: boolean
-  connected: boolean
-  catching: boolean
-  session: number
-  view: {title: string; blocks: Block[]; tags: string[]; notebook: string | null}
-  inbox: {f: Frame; replay: boolean}[]
-  cursor?: ReturnType<typeof keeper>
-  jobs: Job[]
-  running?: Promise<unknown>
-  call?: Call
-  retry?: number
-  parked?: () => void
-  typed: number
-}
-
 const decideFor = (f: Frame): Decide => (known) => (known === f.rev ? 'skip' : known === (f.previousRev ?? undefined) ? 'apply' : 'suspect')
 
 export function world(setup: Setup) {
@@ -54,9 +35,11 @@ export function world(setup: Setup) {
   const log: string[] = []
   const t = truth()
   const writers: Writer[] = []
-  const first: NoteDoc = {_id: ID, _type: 'note', title: 'T0', notebook: {_type: 'reference', _ref: 'nb0'}, tags: [], links: [], body: {blocks: Array.from({length: setup.blocks}, (_, i) => para(`s${i}`, `S${i}`))}}
+  const fresh: NoteDoc = {_id: ID, _type: 'note', title: 'T0', notebook: {_type: 'reference', _ref: 'nb0'}, tags: [], links: [], body: {blocks: Array.from({length: setup.blocks}, (_, i) => para(`s${i}`, `S${i}`))}}
+  const first: NoteDoc = setup.solo ? fresh : {...fresh, conflicts: oldCopies(fresh)}
   const server = barkpark(first, (f) => writers.forEach((w) => w.connected && w.inbox.push({f, replay: false})))
   for (const [part, text] of partsOf(first)) t.wrote({part, text, by: 'seed', step: -1})
+  if (!setup.solo) t.wrote({part: 'title', text: OLD_TITLE, by: 'old', step: -1})
 
   const note = (w: Writer) => w.device.stores.notes.get(ID) as NoteDoc | undefined
   const viewOf = (w: Writer) => ({title: note(w)?.title ?? '', blocks: note(w)?.body?.blocks ?? [], tags: note(w)?.tags ?? [], notebook: note(w)?.notebook?._ref ?? null})
@@ -246,6 +229,19 @@ export function world(setup: Setup) {
     return true
   }
 
+  async function keepCopy(w: Writer, a: number) {
+    const n = note(w)
+    const c = n?.conflicts?.[Math.floor(a * n.conflicts.length)]
+    if (!n || !c) return false
+    const shown = {title: w.view.title, body: {blocks: w.view.blocks}}
+    for (const p of replacedBy(c)) t.editedFrom(p, textOf(p === 'tags' || p === 'notebook' ? n : shown, p))
+    say(w, `keeps copy ${c._key} by ${c.by} (${c.clash.join(',')})`)
+    await as(w, () => keepVersion(ID, c._key, shown))
+    w.view = viewOf(w)
+    if (w.connected) queue(w, 'push')
+    return true
+  }
+
   function raw(a: number, b: number) {
     const doc = server.doc
     const parts = partsOf(doc)
@@ -277,6 +273,8 @@ export function world(setup: Setup) {
         return type(w, s.a, s.b, s.k)
       case 'organize':
         return organize(w, s.a, s.b)
+      case 'keep':
+        return keepCopy(w, s.a)
       case 'render':
         say(w, 'shows the replica (canvas blurred)')
         w.view = viewOf(w)
@@ -349,7 +347,7 @@ export function world(setup: Setup) {
   const settled = () => unsettled(t, server.doc, writers.map((w) => [w.id, note(w)]), !!setup.solo, at)
 
   for (const id of NAMES.slice(0, setup.writers)) {
-    const w: Writer = {id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: [], tags: [], notebook: null}, inbox: [], jobs: [], typed: 0}
+    const w = writer(id)
     w.device.stores.notes.set(ID, {...server.doc, _gen: 0})
     w.device.stores.rows.set(ID, {id: ID, rev: 'r0'})
     w.device.stores.meta.set('cursor', 0)

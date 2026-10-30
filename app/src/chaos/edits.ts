@@ -34,6 +34,11 @@ export const rawWrite =
           ? {...d, title: next}
           : {...d, body: {blocks: (d.body?.blocks ?? []).map((x) => (`body:${x.id}` === part ? para(x.id, next) : x))}}
 
+export const OLD_TITLE = 'T-old'
+export const oldCopies = (n: NoteDoc): Conflict[] =>
+  [['tags'], ['notebook'], ['title', 'tags']].map((clash) => ({_key: `r-old~${clash.join('+')}`, by: 'Z', at: '2026-10-01T00:00:00.000Z', title: clash.includes('title') ? OLD_TITLE : n.title, body: n.body, clash}))
+export const replacedBy = (c: Conflict) => c.clash.filter((p) => (p === 'tags' ? c.tags : p === 'notebook' ? c.notebook : p === 'title' ? c.title : c.body) !== undefined)
+
 export const show = (n: NoteDoc | null | undefined) => {
   if (!n) return 'none'
   const one = (v: Held) => partsOf(v).map(([p, t]) => `${p === 'title' ? '' : `${p.replace(/^body:/, '')}:`}"${t}"`).join(' ')
