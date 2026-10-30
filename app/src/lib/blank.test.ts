@@ -10,3 +10,5 @@ for (const [what, blocks] of HOLDING) test(`a note holding ${what} is not blank`
 for (const [what, blocks] of BLANK) test(`a note holding ${what} is blank`, () => assert.equal(isBlank(note(blocks)), true))
 
 test('a title alone makes a note not blank', () => assert.equal(isBlank({...note([]), title: 'Plan'}), false))
+
+test('a title of spaces leaves a note blank', () => assert.equal(isBlank({...note([]), title: '  \t'}), true))

@@ -54,3 +54,16 @@ for (const [path, run] of PATHS) {
     test(`${path}: a note made here holding ${what} stays`, async () => assert.deepEqual(kept(await run('n1', blocks), 'n1'), [true, false]))
   test(`${path}: a note made here holding nothing goes`, async () => assert.equal((await run('n1', BLANK[0][1])).stores.notes.has('n1'), false))
 }
+
+test('leaving a note that is already gone does nothing', async () => {
+  const d = newDevice(ME)
+  use(d)
+  await dropIfBlank('gone')
+  assert.equal(d.stores.outbox.has('gone'), false)
+})
+
+test('the app-start sweep keeps the open note even when it holds nothing', async () => {
+  const d = await made('n1', BLANK[0][1], 'r1')
+  await dropBlankDrafts('n1')
+  assert.deepEqual(kept(d, 'n1'), [true, false])
+})

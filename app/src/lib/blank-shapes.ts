@@ -10,6 +10,7 @@ export const HOLDING: [string, Block[]][] = [
   ['only words in a nested list item', [{id: 'l', type: 'list', items: [{content: [], children: [{id: 'c', type: 'paragraph', content: [text('Nested rope')]}]} as never]}]],
   ['only an inline with neither value nor children', [{id: 'p', type: 'paragraph', content: [{type: 'tag'}]}]],
   ['a heading whose text is empty and whose content holds words', [{id: 'h', type: 'heading', level: 2, text: '', content: [text('Winter plan')]}]],
+  ['a heading saved empty once, then given bold words', [{id: 'h', type: 'heading', level: 1, text: '', content: [{type: 'strong', children: [text('Buy rope')]}]}]],
   ['a block of a type nobody knows', [{id: 'x', type: 'callout'}]],
 ]
 
@@ -19,4 +20,5 @@ export const BLANK: [string, Block[]][] = [
   ['bold spaces', [{id: 'p', type: 'paragraph', content: [{type: 'strong', children: [text(' ')]}]}]],
   ['an empty heading', [{id: 'h', type: 'heading', level: 2, text: '', content: []}]],
   ['a list of empty items', [{id: 'l', type: 'list', ordered: true, items: [[], {content: [], checked: false}]}]],
+  ['a paragraph whose fields are null', [{id: 'p', type: 'paragraph', content: null, caption: undefined} as never]],
 ]
