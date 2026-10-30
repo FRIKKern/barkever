@@ -3,7 +3,7 @@ import {mkdirSync, mkdtempSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {test} from 'node:test'
-import {bareImports} from './bundle-imports.mjs'
+import {bareImports, bundlePackages} from './bundle-imports.mjs'
 import {installedClosure} from './installed.mjs'
 import {signedBy} from './signature.mjs'
 import {NOTARY_PROFILE, signing} from './signing.mjs'
@@ -51,30 +51,44 @@ test('bundle imports keep bare package names and drop relative, absolute, node: 
   assert.deepEqual(bareImports(code), ['react', 'idb', '@tanstack/react-router', '@scope/pkg'])
 })
 
+test('bundle packages read every .js file under the folder, nested ones too, and nothing else', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'barkever-bundle-'))
+  mkdirSync(join(dir, 'assets'))
+  writeFileSync(join(dir, 'server.js'), 'import "react"; import a from "./assets/a.js"')
+  writeFileSync(join(dir, 'assets/a.js'), 'import {b} from "idb"; import {c} from "react"')
+  writeFileSync(join(dir, 'assets/a.js.map'), '{"sourcesContent": ["import x from \\"vite\\""]}')
+  writeFileSync(join(dir, 'README.md'), 'import y from "nope"')
+  assert.deepEqual(bundlePackages(dir), ['idb', 'react'])
+})
+
 function tree() {
   const root = mkdtempSync(join(tmpdir(), 'barkever-installed-'))
   const pkg = (dir, json) => (mkdirSync(dir, {recursive: true}), writeFileSync(join(dir, 'package.json'), JSON.stringify(json)), dir)
   const store = join(root, 'store')
-  pkg(join(store, 'a@1/node_modules/a'), {version: '1.0.0', dependencies: {b: '^2'}, optionalDependencies: {gone: '1'}, peerDependencies: {c: '3'}})
+  pkg(join(store, 'a@1/node_modules/a'), {version: '1.0.0', dependencies: {b: '^2'}, peerDependencies: {c: '3'}})
   pkg(join(store, 'a@1/node_modules/b'), {version: '2.0.0'})
   pkg(join(store, 'c@3/node_modules/c'), {version: '3.0.0'})
+  symlinkSync(join(store, 'c@3/node_modules/c'), join(store, 'a@1/node_modules/c'))
   const app = join(root, 'app')
   mkdirSync(join(app, 'node_modules'), {recursive: true})
   symlinkSync(join(store, 'a@1/node_modules/a'), join(app, 'node_modules/a'))
-  symlinkSync(join(store, 'c@3/node_modules/c'), join(app, 'node_modules/c'))
   return {root, app, pkg}
 }
 
-test('the installed closure follows symlinks to each dependency as installed and skips missing optional ones', () => {
+test('the installed closure follows symlinks to each dependency and peer as installed', () => {
   const {app} = tree()
-  const picked = installedClosure([['a', app], ['c', app]])
+  const picked = installedClosure([['a', app]])
   assert.deepEqual([...picked].map(([n, {version}]) => [n, version]), [['a', '1.0.0'], ['b', '2.0.0'], ['c', '3.0.0']])
   assert.match(picked.get('b').dir, /store\/a@1\/node_modules\/b$/)
+  assert.match(picked.get('c').dir, /store\/c@3\/node_modules\/c$/)
 })
 
 test('the installed closure refuses a missing dependency and two versions of one package', () => {
   const {root, app, pkg} = tree()
   assert.throws(() => installedClosure([['nope', app]]), /nope is not installed/)
+  pkg(join(root, 'store/a@1/node_modules/b'), {version: '2.0.0', peerDependencies: {gone: '1'}})
+  assert.throws(() => installedClosure([['a', app]]), /gone is not installed/)
+  pkg(join(root, 'store/a@1/node_modules/b'), {version: '2.0.0'})
   pkg(join(root, 'other/node_modules/b'), {version: '9.0.0'})
   assert.throws(() => installedClosure([['a', app], ['b', join(root, 'other')]]), /two versions of b: 2.0.0 and 9.0.0/)
 })
