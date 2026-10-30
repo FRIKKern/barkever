@@ -1,5 +1,5 @@
 import {expect, test, type Page} from '@playwright/test'
-import {deleteNotes} from './fixtures-cleanup'
+import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {canvas, created, newNote, serverNote, status, synced} from './devices'
 import {oldEditor} from './old-editor'
 
@@ -89,4 +89,19 @@ test('J05 marks: bold, italic and code words show in the list line, search, the 
   await expect(reader.getByTestId('body').locator('p')).toHaveText(LINE, {timeout: 30_000})
   expect(errors).toEqual([])
   await context.close()
+})
+
+test('J05 marks: a kept version shows its bold words in the versions view', async ({page}) => {
+  const id = `note-marks-${Date.now()}`
+  created.push(id)
+  const para = (words: string) => ({id: 'p', type: 'paragraph', content: [{type: 'strong', children: [{type: 'text', value: words}]}, {type: 'text', value: ' stays.'}]})
+  const copy = {_key: 'r0~body', by: 'device-elsewhere', at: '2026-10-30T12:00:00.000Z', body: {blocks: [para('Old rope')]}, clash: ['body:p']}
+  const doc = {_id: id, _type: 'note', title: 'Marked versions', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks: [para('New rope')]}, conflicts: [copy]}
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: doc}]})})
+  expect(res.status).toBe(200)
+  await page.goto(`/?n=${id}`)
+  const view = page.getByTestId('conflict')
+  await view.locator('summary').first().click({timeout: 30_000})
+  await expect(view.getByTestId('conflict-mine').locator('.kb-block')).toHaveText('New rope stays.')
+  await expect(view.getByTestId('conflict-other').locator('.kb-block')).toHaveText('Old rope stays.')
 })
