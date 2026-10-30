@@ -53,9 +53,9 @@ test('two proven pushes that disagree keep, field by field, what the server show
   const [one, two] = [copy('local-1~a', {title: 'Old'}, ['title']), copy('local-2~a', {title: 'Older'}, ['title'])]
   const base = note('r1', 'T', [])
   const [first, second] = [note('r1', 'X', [], {tags: ['a'], conflicts: [one]}), note('r1', 'Y', [], {tags: ['b'], conflicts: [one, two]})]
-  const out = merged(base, [first, second], {...second, title: 'T'}, note('r2', 'Y', [], {tags: ['z'], conflicts: [one, two]}))
+  const out = merged(base, [first, second], {...second, title: 'T', tags: ['a']}, note('r2', 'Y', [], {tags: ['z'], conflicts: [one, two]}))
   assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.clash)], ['T', [['title'], ['title'], ['tags']]])
-  for (const tags of ['["b"]', '["z"]']) assert.ok(everything(out).includes(tags), JSON.stringify(everything(out)))
+  for (const tags of ['["a"]', '["z"]']) assert.ok(everything(out).includes(tags), JSON.stringify(everything(out)))
 })
 
 test('only the push that proves it landed counts: an earlier refused push of mine never turns a later edit on top of the landed one into a copy', () => {
@@ -110,8 +110,8 @@ test('a new copy key that never reached the server proves nothing', () => {
 for (const title of ['Y', 'W'])
   test(`the first push carrying a new copy never reached the server and a later one carrying it landed: a part the server shows from any push is not mine to copy back (mine ${title})`, () => {
     const made = copy('local-1~a', {title: 'Old'}, ['title'])
-    const base = note('r1', 'T', [], {by: 'me.0'})
-    const [never, landed] = [note('r1', 'X', [], {by: 'me.1', conflicts: [made]}), note('r1', 'Y', [], {by: 'me.2', conflicts: [made]})]
-    const out = merged(base, [never, landed], note('r1', title, [], {by: 'me.3', conflicts: [made]}), note('r3', 'Y', [], {by: 'B.9', tags: ['z'], conflicts: [made]}))
-    assert.deepEqual([out?.title, out?.tags, out?.conflicts?.map((c) => c._key)], [title, ['z'], ['local-1~a']])
+    const base = note('r1', 'T', [p('p', 'T1')], {by: 'me.0'})
+    const [never, landed] = [note('r1', 'X', [p('p', 'X1')], {by: 'me.1', conflicts: [made]}), note('r1', 'Y', [p('p', 'Y1')], {by: 'me.2', conflicts: [made]})]
+    const out = merged(base, [never, landed], note('r1', title, [p('p', `${title}1`)], {by: 'me.3', conflicts: [made]}), note('r3', 'Y', [p('p', 'Y1')], {by: 'B.9', tags: ['z'], conflicts: [made]}))
+    assert.deepEqual([out?.title, out?.body?.blocks.map(blockText), out?.tags, out?.conflicts?.map((c) => c._key)], [title, [`${title}1`], ['z'], ['local-1~a']])
   })
