@@ -19,7 +19,8 @@ node mac/scripts/build.mjs
                                   keychain profile barkever-notary   (main path)
                                   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD (any set: wins)
                                   APPLE_API_KEY, _KEY_ID, _ISSUER    (any set: the API key)
-        └─ after the build: codesign --verify --deep --strict, then runtime flag + the expected signer, or exit 1
+
+        then: codesign --verify --deep --strict, runtime flag, expected signer ─► else exit 1
 
 node mac/scripts/rehearse.mjs ─► mount DMG ─► copy to a temp Applications ─► codesign --verify --deep --strict
                                  ─► runtime flag ─► [Developer ID: spctl --assess, stapler validate]
