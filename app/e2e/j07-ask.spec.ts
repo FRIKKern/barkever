@@ -1,0 +1,92 @@
+import {expect, test, type Page} from '@playwright/test'
+
+type Sent = {question: string; notes: {id: string; title: string; text: string}[]}
+type Mode = 'claude' | 'codex' | 'error'
+
+const ask = async (page: Page, question: string) => {
+  await page.getByLabel('Ask about your notes').fill(question)
+  await page.keyboard.press('Enter')
+}
+const asks = (page: Page) => page.evaluate(() => (window as unknown as {asks: Sent[]}).asks)
+const mode = (page: Page, m: Mode) => page.evaluate((m) => ((window as unknown as {mode: Mode}).mode = m), m)
+
+function stubBridge(page: Page) {
+  return page.addInitScript(() => {
+    const w = window as unknown as {asks: Sent[]; mode: Mode; barkever: unknown}
+    w.asks = []
+    w.mode = 'claude'
+    w.barkever = {
+      ask: async (req: Sent) => {
+        w.asks.push(req)
+        if (w.mode === 'error') return {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'}
+        const hits = req.notes.flatMap((n) => n.text.split(/(?<=\.)\s+|\n+/).filter((s) => /carousel/i.test(s)).slice(0, 1).map((quote) => ({id: n.id, title: n.title, quote})))
+        const codex = w.mode === 'codex'
+        return {
+          found: true,
+          answer: hits.map((h, i) => `${h.title} [${i + 1}]`).join(', ') + '.',
+          citations: hits.map(({id, quote}) => ({id, quote})),
+          provider: w.mode,
+          model: codex ? 'codex' : 'fake-sonnet',
+          tokens: 1234,
+          costUsd: codex ? null : 0.002,
+          read: req.notes.length,
+        }
+      },
+    }
+  })
+}
+
+test('J07 Ask in the web app without the Mac bridge says where Ask runs', async ({page}) => {
+  await page.goto('/?n=fx-note-10')
+  await page.getByTestId('ask-tab').click()
+  await expect(page.getByTestId('ai-off')).toHaveText('Ask runs in the Barkever Mac app.')
+  await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
+  await expect(page.getByTestId('linked-from').first()).toBeHidden()
+})
+
+test('J07 Ask answers from the notes it read, cites each one, says when nothing matches, and has an off switch', async ({page}) => {
+  await stubBridge(page)
+  await page.emulateMedia({colorScheme: 'dark'})
+  await page.goto('/?n=fx-note-10')
+  await page.getByTestId('ask-tab').click()
+
+  await ask(page, 'What did we decide about the carousel?')
+  const answer = page.getByTestId('ask-answer').last()
+  await expect(answer).toContainText(/^(Harbor redesign: wireframes|Weekly sync, week 41) 1, (Harbor redesign: wireframes|Weekly sync, week 41) 2\./)
+  const sources = await page.getByTestId('ask-source').evaluateAll((els) => els.map((e) => e.textContent!.slice(1)).sort())
+  expect(sources).toEqual(['Harbor redesign: wireframes“Round two dropped the carousel.”', 'Weekly sync, week 41“Decision: drop the carousel.”'])
+  await expect(page.getByTestId('ask-meta')).toHaveText('Read 3 notes · fake-sonnet · your login · ≈ $0.002')
+  const [sent] = await asks(page)
+  expect(sent.question).toBe('What did we decide about the carousel?')
+  expect(sent.notes.map((n) => n.id).sort()).toEqual(['fx-note-02', 'fx-note-10', 'fx-note-38'])
+  expect(Object.keys(sent.notes[0])).toEqual(['id', 'title', 'text'])
+
+  await ask(page, 'When is the zebra xylophone recital?')
+  await expect(page.getByTestId('ask-answer').last()).toHaveText(/^Not in your notes\.No note mentions this\. Checked \d+ notes; nothing was sent\.$/)
+  expect(await asks(page)).toHaveLength(1)
+  await page.screenshot({path: test.info().outputPath('j07-ask-dark.png'), animations: 'disabled'})
+
+  const first = (await page.getByTestId('ask-source').first().textContent())!.split('“')[0].slice(1)
+  await page.getByTestId('ask-cite').first().click()
+  await expect(page.getByTestId('title')).toHaveValue(first)
+  await page.getByTestId('ask-source').filter({hasText: 'Harbor redesign: wireframes'}).click()
+  await expect(page).toHaveURL(/n=fx-note-02/)
+  await expect(page.getByTestId('ask-answer')).toHaveCount(2)
+
+  await mode(page, 'codex')
+  await ask(page, 'carousel')
+  await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · codex · your login · 1,234 tokens')
+
+  await mode(page, 'error')
+  await ask(page, 'carousel')
+  await expect(page.getByTestId('ask-error')).toHaveText('Ask failed.claude: fake claude: not signed in · codex: fake codex: not signed in')
+
+  await page.getByTestId('ai-switch').uncheck()
+  await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
+  await page.reload()
+  await page.getByTestId('ask-tab').click()
+  await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
+  await page.getByTestId('ai-switch').check()
+  await expect(page.getByLabel('Ask about your notes')).toBeVisible()
+  expect(await asks(page)).toHaveLength(0)
+})

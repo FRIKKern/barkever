@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {THEME_KEY} from '../styles/tokens'
 
 const RAIL_KEY = 'barkever.rail'
+const AI_KEY = 'barkever.ai'
 
 const read = (k: string) => {
   try {
@@ -35,4 +36,14 @@ export function useRail(): [boolean | null, () => void] {
     setRail(!shown)
   }, [rail])
   return [rail, toggle]
+}
+
+export function useAi(): [boolean, () => void] {
+  const [on, setOn] = useState(true)
+  useEffect(() => setOn(read(AI_KEY) !== 'off'), [])
+  const toggle = useCallback(() => {
+    write(AI_KEY, on ? 'off' : 'on')
+    setOn(!on)
+  }, [on])
+  return [on, toggle]
 }

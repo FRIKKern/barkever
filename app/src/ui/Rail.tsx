@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {Link} from '@tanstack/react-router'
 import {linkContext, UNTITLED, type Note} from '../lib/model'
 import type {Search} from '../lib/scope'
+import {AskPanel} from './Ask'
 import {Icon} from './icons'
 import {LinkGraph} from './LinkGraph'
 import type {World} from './world'
@@ -10,6 +11,7 @@ type Props = {w: World; s: Search; note: Note; onRail: () => void}
 
 export function Rail({w, s, note, onRail}: Props) {
   const [hover, setHover] = useState<string | null>(null)
+  const [tab, setTab] = useState<'links' | 'ask'>('links')
   const ins = w.links.backs(note.id)
   const outs = w.links.outs(note.id)
   const shared = w.links.sharesTag(note.id, 4)
@@ -38,12 +40,19 @@ export function Rail({w, s, note, onRail}: Props) {
   return (
     <aside className="rail" aria-label="Connections">
       <div className="bar rail-bar">
-        <span className="rail-h">Connections</span>
+        <div className="seg" role="tablist">
+          <button role="tab" aria-selected={tab === 'links'} onClick={() => setTab('links')}>
+            Connections
+          </button>
+          <button role="tab" aria-selected={tab === 'ask'} onClick={() => setTab('ask')} data-testid="ask-tab">
+            ✨ Ask
+          </button>
+        </div>
         <button className="icon-btn" onClick={onRail} title="Hide connections" aria-label="Hide connections">
           <Icon name="rail" />
         </button>
       </div>
-      <div className="rail-body">
+      <div className="rail-body" hidden={tab !== 'links'}>
         <LinkGraph w={w} note={note} hover={hover} onHover={setHover} />
         <section className="rel">
           <h4>Linked from · {ins.length}</h4>
@@ -59,6 +68,9 @@ export function Rail({w, s, note, onRail}: Props) {
             {shared.map((id) => row(id, `#${w.links.byId.get(id)!.tags.filter((t) => note.tags.includes(t)).join(' #')}`, 'shares-tag'))}
           </section>
         )}
+      </div>
+      <div className="rail-body" hidden={tab !== 'ask'}>
+        <AskPanel w={w} s={s} />
       </div>
     </aside>
   )
