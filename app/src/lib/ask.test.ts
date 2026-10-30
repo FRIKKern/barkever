@@ -14,9 +14,10 @@ test('question words drop short and common words, in English and Norwegian, and 
   assert.deepEqual(askWords('?! …'), [])
 })
 
-test('Ask reads the notes that hold the question words, rare words and title hits first', () => {
+test('Ask reads the notes J03 search finds for each question word, typos included', () => {
   assert.deepEqual(titles('What did we decide about the carousel?').sort(), ['Harbor redesign: wireframes', 'Notes: Small Teams', 'Weekly sync, week 41'])
   assert.equal(titles('When is my dentist appointment?')[0], 'Book the dentist')
+  assert.equal(titles('Whats our sourdoug hydraton?')[0], 'Recipes: sourdough')
 })
 
 test('a question no note matches picks nothing, so nothing is sent', () => {
@@ -32,8 +33,6 @@ test('Ask reads at most a few notes, best score first, then newest', () => {
   assert.deepEqual(pickNotes(tie, 'harbor quarry').map((n) => n.id), ['c', 'b', 'a'])
   const rare = [note('common', 'harbor sync', '2026-03-01'), note('x', 'sync', '2026-01-01'), note('y', 'sync', '2026-01-01'), note('only', 'harbor', '2025-01-01')]
   assert.deepEqual(pickNotes(rare, 'harbor sync').map((n) => n.id), ['common', 'only', 'x', 'y'])
-  const body = (id: string, title: string, text: string) => ({...note(id, title, '2026-01-01'), blocks: [{id: 'p', type: 'paragraph', content: [{type: 'text', value: text}]}]})
-  assert.deepEqual(pickNotes([body('in-body', 'misc', 'the quarry'), body('in-title', 'quarry', 'misc')], 'quarry').map((n) => n.id), ['in-title', 'in-body'])
 })
 
 test('a note goes out as id, title and text, cut at the per-note cap', () => {

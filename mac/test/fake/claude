@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const {createInterface} = require('node:readline')
-const {hangs, record, refusal, reply} = require('./answer.cjs')
+const {behavior, hangs, record, refusal, reply} = require('./answer.cjs')
 
 const args = process.argv.slice(2)
 const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
@@ -12,6 +12,7 @@ const flags = [
   {name: 'no JSON schema', ok: args.includes('--json-schema')},
 ]
 let system = ''
+const base = () => ({session_id: 's', uuid: 'u', duration_ms: 1, duration_api_ms: 1, num_turns: 1})
 
 createInterface({input: process.stdin}).on('line', (line) => {
   const m = JSON.parse(line)
@@ -23,14 +24,18 @@ createInterface({input: process.stdin}).on('line', (line) => {
   const prompt = m.message.content.map((c) => c.text).join('')
   record('claude', {args, system, prompt})
   if (hangs('claude')) return
+  if (behavior('claude') === 'quiet') process.exit(0)
+  if (behavior('claude') === 'limit') {
+    out({...base(), type: 'result', subtype: 'success', is_error: true, result: 'Claude AI usage limit reached', total_cost_usd: 0, usage: {}})
+    process.exit(1)
+  }
   const wrong = refusal('claude', flags)
-  const base = {session_id: 's', uuid: 'u', duration_ms: 1, duration_api_ms: 1, num_turns: 1}
   if (wrong) {
-    out({...base, type: 'result', subtype: 'error_during_execution', is_error: true, errors: [wrong], total_cost_usd: 0, usage: {}})
+    out({...base(), type: 'result', subtype: 'error_during_execution', is_error: true, errors: [wrong], total_cost_usd: 0, usage: {}})
     process.exit(1)
   }
   out({type: 'system', subtype: 'init', model: 'fake-sonnet', session_id: 's', uuid: 'u', tools: [], mcp_servers: []})
   const usage = {input_tokens: 900, output_tokens: 100, cache_creation_input_tokens: 0, cache_read_input_tokens: 0}
-  out({...base, type: 'result', subtype: 'success', is_error: false, result: '', structured_output: reply('claude', prompt), total_cost_usd: 0.002, usage})
+  out({...base(), type: 'result', subtype: 'success', is_error: false, result: '', structured_output: reply('claude', prompt), total_cost_usd: 0.002, usage})
   process.exit(0)
 })

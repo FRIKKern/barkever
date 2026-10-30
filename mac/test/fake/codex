@@ -5,8 +5,21 @@ const {hangs, record, refusal, reply} = require('./answer.cjs')
 const args = process.argv.slice(2)
 const joined = args.join(' ')
 const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
-const need = ['exec --json', '--sandbox read-only', '--ignore-user-config', '--ignore-rules', '--ephemeral', '--output-schema schema.json', '--output-last-message answer.json']
-const flags = [...need.map((n) => ({name: `missing ${n}`, ok: joined.includes(n)})), ...['shell_tool', 'unified_exec', 'apps', 'plugins', 'multi_agent', 'hooks'].map((f) => ({name: `${f} is on`, ok: joined.includes(`--disable ${f}`)}))]
+const OFF = ['shell_tool', 'unified_exec', 'apps', 'plugins', 'browser_use', 'computer_use', 'image_generation', 'multi_agent', 'hooks', 'view_image', 'skill_search', 'tool_suggest', 'goals', 'sleep_tool']
+const need = [
+  'exec --json',
+  '--output-schema schema.json',
+  '--output-last-message answer.json',
+  '--sandbox read-only',
+  '--skip-git-repo-check',
+  '--ephemeral',
+  '--ignore-user-config',
+  '--ignore-rules',
+  '-c web_search="disabled"',
+  '-c approval_policy="never"',
+  ...OFF.map((f) => `--disable ${f}`),
+]
+const flags = [...need.map((n) => ({name: `missing ${n}`, ok: ` ${joined} `.includes(` ${n} `)})), {name: 'prompt not read from stdin', ok: args.at(-1) === '-'}]
 const system = JSON.parse(args.find((a) => a.startsWith('developer_instructions=')).slice('developer_instructions='.length))
 const prompt = readFileSync(0, 'utf8')
 record('codex', {args, system, prompt})

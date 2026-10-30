@@ -3,14 +3,14 @@ import {existsSync, mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {test} from 'node:test'
-import {MAX_REQUEST, ask, checked, type AskNote} from './ask.ts'
-import {budget} from './budget.ts'
-import {claude} from './claude.ts'
-import {codex} from './codex.ts'
-import {fakeBin} from './fakes.ts'
-import {NONE, SPENT, firstAnswer} from './first-answer.ts'
-import {childEnv, findTool} from './provider.ts'
-import {OTHER_ORIGIN, askHandler, installed} from './serve.ts'
+import {MAX_REQUEST, ask, checked, type AskNote} from './ai/ask.ts'
+import {budget} from './ai/budget.ts'
+import {claude} from './ai/claude.ts'
+import {codex} from './ai/codex.ts'
+import {fakeBin} from './ai/fakes.ts'
+import {NONE, SPENT, firstAnswer} from './ai/first-answer.ts'
+import {childEnv, findTool} from './ai/provider.ts'
+import {OTHER_ORIGIN, askHandler, installed} from './ai/serve.ts'
 
 const NOTES: AskNote[] = [
   {id: 'fx-note-1', title: 'Harbor redesign: wireframes', text: 'Three wireframe rounds. Round two dropped the carousel.'},
@@ -65,16 +65,16 @@ test('a used-up budget refuses before any binary runs, and a new day starts at z
   const fake = fakeBin()
   const file = join(mkdtempSync(join(tmpdir(), 'barkever-budget-')), 'budget.json')
   let now = new Date(2026, 9, 30, 23, 0)
-  const b = budget(file, 1500, () => now)
+  const b = budget(file, 2000, () => now)
   const call = () => ask({question: 'carousel', notes: NOTES}, {providers: [claude(join(fake.dir, 'claude'))], budget: b, env: env(fake.dir)})
   await call()
-  assert.equal(b.left(), 500)
+  assert.equal(b.left(), 1000)
   await call()
-  assert.equal(b.left(), -500)
+  assert.equal(b.left(), 0)
   await assert.rejects(call(), new RegExp(SPENT))
   assert.equal(fake.calls().length, 2)
   now = new Date(2026, 9, 31, 0, 1)
-  assert.equal(b.left(), 1500)
+  assert.equal(b.left(), 2000)
 })
 
 test('a budget file that is missing or broken counts as nothing spent', () => {
@@ -185,4 +185,12 @@ test('the ask handler answers its own origin, turns failures into an error, and 
   assert.equal(fake.calls().length, 1)
   fake.behave({claude: 'fail', codex: 'fail'})
   assert.deepEqual(await handle(from('http://127.0.0.1:4100/'), carousel), {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'})
+})
+
+test('claude reports a usage limit as its own message, and a run that ends without a result says so', async () => {
+  const fake = fakeBin({claude: 'limit'})
+  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake.dir), timeoutMs: 30_000})
+  await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /^Error: Claude AI usage limit reached$/)
+  fake.behave({claude: 'quiet'})
+  await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /claude stopped without an answer/)
 })

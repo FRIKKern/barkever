@@ -43,4 +43,4 @@ function reply(cli, prompt) {
   return typeof b === 'object' ? b.reply : answerFor(prompt)
 }
 
-module.exports = {hangs, record, refusal, reply}
+module.exports = {behavior, hangs, record, refusal, reply}

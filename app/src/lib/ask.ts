@@ -1,5 +1,5 @@
 import {blockText, type Note} from './model.ts'
-import {newest} from './search.ts'
+import {find, newest} from './search.ts'
 
 export type AskNote = {id: string; title: string; text: string}
 export type Citation = {id: string; quote: string}
@@ -21,18 +21,15 @@ const STOP = new Set(
   ).split(' '),
 )
 
-export const askWords = (question: string) => [...new Set(question.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])].filter((w) => w.length > 2 && !STOP.has(w))
+export const askWords = (question: string) => [...new Set(question.toLowerCase().match(/[\p{L}\p{N}]+/gu))].filter((w) => w.length > 2 && !STOP.has(w))
 
 export const noteText = (n: Note) => n.blocks.map(blockText).join('\n')
 
 export function pickNotes(notes: Note[], question: string): Note[] {
-  const words = askWords(question)
-  const docs = notes.map((n) => ({n, title: n.title.toLowerCase(), text: noteText(n).toLowerCase()}))
-  const rare = new Map(words.map((w) => [w, 1 / Math.max(1, docs.filter((d) => d.title.includes(w) || d.text.includes(w)).length)]))
-  const score = (d: (typeof docs)[number]) => words.reduce((s, w) => s + rare.get(w)! * ((d.title.includes(w) ? 2 : 0) + (d.text.includes(w) ? 1 : 0)), 0)
-  return docs
-    .map((d) => ({n: d.n, score: score(d)}))
-    .filter((h) => h.score > 0)
+  const hits = askWords(question).map((w) => find(notes, w).notes)
+  const score = (n: Note) => hits.reduce((s, h) => s + (h.includes(n) ? 1 / h.length : 0), 0)
+  return [...new Set(hits.flat())]
+    .map((n) => ({n, score: score(n)}))
     .sort((a, b) => b.score - a.score || newest(a.n, b.n))
     .slice(0, ASK_NOTES)
     .map((h) => h.n)

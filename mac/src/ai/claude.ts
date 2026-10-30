@@ -29,7 +29,8 @@ export const claude = (bin: string): Provider => ({
       for await (const m of query({prompt, options})) {
         if (m.type === 'system' && m.subtype === 'init') model = m.model
         if (m.type !== 'result') continue
-        if (m.subtype !== 'success' || m.is_error) throw new Error(m.subtype === 'success' ? m.result : m.errors.join('; '))
+        if (m.subtype !== 'success') throw new Error(m.errors.join('; '))
+        if (m.is_error) throw new Error(m.result)
         return {data: m.structured_output, model, tokens: tokens(m.usage as Usage), costUsd: m.total_cost_usd}
       }
       throw new Error('claude stopped without an answer')

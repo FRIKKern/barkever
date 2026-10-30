@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test'
 
 type Sent = {question: string; notes: {id: string; title: string; text: string}[]}
-type Mode = 'claude' | 'codex' | 'error'
+type Mode = 'claude' | 'codex' | 'error' | 'missing'
 
 const ask = async (page: Page, question: string) => {
   await page.getByLabel('Ask about your notes').fill(question)
@@ -19,6 +19,7 @@ function stubBridge(page: Page) {
       ask: async (req: Sent) => {
         w.asks.push(req)
         if (w.mode === 'error') return {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'}
+        if (w.mode === 'missing') return {found: false, answer: 'No date is written down.', citations: [], provider: 'claude', model: 'fake-sonnet', tokens: 900, costUsd: 0.001, read: req.notes.length}
         const hits = req.notes.flatMap((n) => n.text.split(/(?<=\.)\s+|\n+/).filter((s) => /carousel/i.test(s)).slice(0, 1).map((quote) => ({id: n.id, title: n.title, quote})))
         const codex = w.mode === 'codex'
         return {
@@ -76,6 +77,15 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await mode(page, 'codex')
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · codex · your login · 1,234 tokens')
+
+  await mode(page, 'missing')
+  await ask(page, 'carousel')
+  await expect(page.getByTestId('ask-answer').last()).toHaveText('Not in your notes.No date is written down.Checked 2 notes · fake-sonnet · your login · ≈ $0.001')
+
+  const turns = await page.getByTestId('ask-answer').count()
+  await page.getByLabel('Ask about your notes').fill('   ')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.q')).toHaveCount(turns)
 
   await mode(page, 'error')
   await ask(page, 'carousel')
