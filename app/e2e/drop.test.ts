@@ -29,6 +29,7 @@ async function fakeBarkpark(answers: Record<string, Reply[]>) {
     res.writeHead(status, headers).end(typeof body === 'string' ? body : JSON.stringify(body))
   })
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
+  server.unref()
   const {port} = server.address() as {port: number}
   const send: Send = (path, init) => fetch(`http://127.0.0.1:${port}${path}`, init)
   return {send, calls, close: () => server.close()}
@@ -47,20 +48,25 @@ test('a 202 is "still deleting": the same DELETE goes again 2 s later until the 
   for (let i = 1; i < bp.calls.length; i++) assert.ok(bp.calls[i]!.at - bp.calls[i - 1]!.at >= 1_900, `poll ${i} waited ${bp.calls[i]!.at - bp.calls[i - 1]!.at} ms`)
 })
 
-test('a 404, also after a 202, means gone', async () => {
-  const bp = await fakeBarkpark({[A]: [202, 404]})
+test('a 404, also on a poll naming the run (its dataset is gone, whatever now holds the name), means gone', async () => {
+  const bp = await fakeBarkpark({[A]: [202, {status: 404, code: 'not_found'}]})
   assert.deepEqual(await drop(A, bp.send, 10), {gone: true, said: `${A} was already gone`})
   bp.close()
-  assert.equal(bp.calls.length, 2)
+  assert.deepEqual(bp.calls.map((c) => c.query), ['', `?dataset_id=${RUN}`])
 })
 
-test('a 503 or a 409 keeps the dataset after one DELETE', async () => {
-  for (const status of [503, 409]) {
-    const bp = await fakeBarkpark({[A]: [status]})
+test('a rolled-back 503 or a refusing 409 keeps the dataset after one DELETE', async () => {
+  const refusals: Reply[] = [
+    ...['dataset_delete_timeout', 'dataset_delete_contended', 'dataset_delete_database', 'dataset_delete_interrupted'].map((reason) => ({status: 503, reason})),
+    ...['halted', 'production_dataset_protected', 'dataset_in_shared_search', 'dataset_media_referenced'].map((code) => ({status: 409, code})),
+  ]
+  for (const r of refusals) {
+    const bp = await fakeBarkpark({[A]: [r, 200]})
     const out = await drop(A, bp.send, 10)
     bp.close()
+    const {status, code, reason} = r as {status: number; code?: string; reason?: string}
     assert.equal(out.gone, false)
-    assert.match(out.said, new RegExp(`^kept ${A}: Barkpark ${status} `))
+    assert.match(out.said, new RegExp(`^kept ${A}: Barkpark ${status} .*${reason ?? code}`))
     assert.equal(bp.calls.length, 1)
   }
 })
@@ -117,6 +123,15 @@ test('a 503 dataset_delete_busy waits Retry-After seconds, then sends the same D
   assert.deepEqual(out, {gone: true, said: `dropped ${A} (3 documents)`})
   assert.deepEqual(bp.calls.map((c) => c.query), ['', `?dataset_id=${RUN}`, `?dataset_id=${RUN}`])
   assert.ok(bp.calls[2]!.at - bp.calls[1]!.at >= 950, `waited ${bp.calls[2]!.at - bp.calls[1]!.at} ms after the busy answer`)
+})
+
+test('a busy 503 on the first DELETE, before any run, waits Retry-After and asks again without a dataset_id', async () => {
+  const bp = await fakeBarkpark({[A]: [{status: 503, reason: 'dataset_delete_busy', retryAfter: 1}, 202, 200]})
+  const out = await drop(A, bp.send, 20)
+  bp.close()
+  assert.deepEqual(out, {gone: true, said: `dropped ${A} (3 documents)`})
+  assert.deepEqual(bp.calls.map((c) => c.query), ['', '', `?dataset_id=${RUN}`])
+  assert.ok(bp.calls[1]!.at - bp.calls[0]!.at >= 950, `waited ${bp.calls[1]!.at - bp.calls[0]!.at} ms after the busy answer`)
 })
 
 test('a busy 503 whose Retry-After runs past the cap is kept without waiting it out', async () => {
