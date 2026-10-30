@@ -1,8 +1,9 @@
-import {_electron as electron, chromium, expect, type Browser, type BrowserContext, type Page, type TestInfo} from '@playwright/test'
+import {_electron as electron, chromium, expect, type Browser, type Page} from '@playwright/test'
 import {spawn} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {fileURLToPath} from 'node:url'
 import {DATASET} from '../../app/e2e/fixtures-cleanup.ts'
+import {traced} from './trace.ts'
 
 const ELECTRON = createRequire(import.meta.url)('electron') as string
 const MAC = fileURLToPath(new URL('..', import.meta.url))
@@ -11,19 +12,6 @@ export type Keychain = 'mock' | 'real'
 export type Run = {page: Page; browser: Browser; quit(): Promise<void>}
 
 const appEnv = (data: string, env: Record<string, string>) => ({...(process.env as Record<string, string>), BARKEVER_USER_DATA: data, BARKPARK_DATASET: DATASET, ...env})
-
-let tracing: BrowserContext | undefined
-
-async function traced(context: BrowserContext) {
-  await context.tracing.start({screenshots: true, snapshots: true})
-  tracing = context
-}
-
-export async function keepTraceOnFailure(info: TestInfo) {
-  const context = tracing
-  tracing = undefined
-  if (context && info.status !== info.expectedStatus) await context.tracing.stop({path: info.outputPath('trace.zip')})
-}
 
 export async function launchDriven(data: string) {
   const app = await electron.launch({args: [MAC], env: appEnv(data, {})})

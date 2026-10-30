@@ -5,7 +5,8 @@ import {join} from 'node:path'
 import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
-import {keepTraceOnFailure, launchDriven, launchPlain} from './launch.ts'
+import {launchDriven, launchPlain} from './launch.ts'
+import {keepTraceOnFailure} from './trace.ts'
 
 test.describe.configure({mode: 'serial'})
 
