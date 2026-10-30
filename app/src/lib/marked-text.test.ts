@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {blockText, hitLine, isBlank, linkContext, snippet, titleIn, type Block, type Inline, type Note} from './model.ts'
+import {blockText, hitLine, isBlank, linkContext, snippet, titleIn, wikilinks, type Block, type Inline, type Note} from './model.ts'
 import {linkPreview} from './link-pick.ts'
 import {find} from './search.ts'
 import {empty} from '../replica/made.ts'
@@ -61,4 +61,13 @@ test('a mark around a link still shows the linked note\'s current title', () => 
   const p: Block = {id: 'p', type: 'paragraph', content: [text('See '), wrap('strong', {type: 'wikilink', target: 'Pier', docId: 'pier', children: [text('Pier')]})]}
   assert.equal(snippet(note('m', 'M', [p]), title), 'See Pier walk')
   assert.equal(linkContext([p], 'pier', title), 'See Pier walk')
+})
+
+test('list items read like the canvas: a string item is its text, and nested items count, for words, links and blank', () => {
+  const nested: Block = {id: 'n', type: 'list', items: [{content: [], children: [{id: 'c', type: 'list', items: [[wrap('em', text('Deep rope'))], [{type: 'wikilink', target: 'Pier', docId: 'pier', children: [text('Pier')]}]]}]}, 'String item']}
+  assert.equal(blockText(nested), 'Deep rope · Pier · String item')
+  assert.deepEqual(wikilinks([nested]), ['pier'])
+  assert.equal(linkContext([nested], 'pier', title), 'Deep rope · Pier walk · String item')
+  assert.equal(isBlank(note('x', '', [{id: 'n2', type: 'list', items: [{children: [{id: 'c', type: 'list', items: [[text('Only nested')]]}]}]}])), false)
+  assert.equal(isBlank(note('y', '', [{id: 's', type: 'list', items: ['Only a string']}])), false)
 })

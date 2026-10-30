@@ -1,5 +1,5 @@
 export type Inline = {type: string; value?: string; text?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
-export type Item = Inline[] | {content?: Inline[]; text?: string; checked?: boolean}
+export type Item = Inline[] | string | {content?: Inline[]; text?: string; checked?: boolean; children?: Block[]}
 export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; caption?: string}
 
 export type Conflict = {_key: string; by?: string; at: string; title?: string; body?: {blocks: Block[]}; tags?: string[]; notebook?: {_ref: string; _type?: string} | null; clash: string[]}
@@ -12,7 +12,9 @@ export const UNTITLED = 'Untitled'
 
 export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (x.content?.length ? x.content : x.text ? [{type: 'text', value: x.text}] : [])
 
-export const itemContent = (it: Item): Inline[] => (Array.isArray(it) ? it : contentOf(it))
+export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : contentOf(it))
+
+export const nestedOf = (it: Item): Block[] => (typeof it === 'object' && !Array.isArray(it) ? it.children ?? [] : [])
 
 export type Title = (id?: string) => string | undefined
 
@@ -39,13 +41,13 @@ export const linkMissing = (x: Inline, title: Title): boolean => !title(x.docId)
 export const inlineText = (c: Inline[] = []): string => inline(c, stored)
 
 export function shownText(b: Block, title: Title): string {
-  if (b.type === 'list') return (b.items ?? []).map((it) => inline(itemContent(it), title)).join(' · ')
+  if (b.type === 'list') return (b.items ?? []).flatMap((it) => [inline(itemContent(it), title), ...nestedOf(it).map((c) => shownText(c, title))]).filter(Boolean).join(' · ')
   return inline(contentOf(b), title)
 }
 
 export const blockText = (b: Block): string => shownText(b, stored)
 
-const inlines = (b: Block): Inline[] => (b.type === 'list' ? (b.items ?? []).flatMap(itemContent) : b.content ?? [])
+const inlines = (b: Block): Inline[] => (b.type === 'list' ? (b.items ?? []).flatMap((it) => [...itemContent(it), ...nestedOf(it).flatMap(inlines)]) : b.content ?? [])
 
 export function wikilinks(blocks: Block[]): string[] {
   const out = new Set<string>()

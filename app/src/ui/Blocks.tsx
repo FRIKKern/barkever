@@ -1,5 +1,5 @@
 import {Link} from '@tanstack/react-router'
-import {contentOf, itemContent, linkMissing, linkWords, type Block, type Inline, type Title} from '../lib/model'
+import {contentOf, itemContent, linkMissing, nestedOf, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
 import type {Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
@@ -22,17 +22,20 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
   )
 }
 
+const Nested = ({it, at}: {it: Item; at: At}) => nestedOf(it).map((c, j) => <BlockView key={j} b={c} at={at} />)
+
 function BlockView({b, at}: {b: Block; at: At}) {
   if (b.type === 'heading') return b.level === 3 ? <h3><Inlines c={contentOf(b)} at={at} /></h3> : <h2><Inlines c={contentOf(b)} at={at} /></h2>
   if (b.type === 'list' && b.task)
     return (
       <ul className="tasks">
         {(b.items ?? []).map((it, i) => (
-          <li key={i} className={!Array.isArray(it) && it.checked ? 'done' : ''}>
+          <li key={i} className={typeof it === 'object' && !Array.isArray(it) && it.checked ? 'done' : ''}>
             <span className="cb" />
             <span className="li-t">
               <Inlines c={itemContent(it)} at={at} />
             </span>
+            <Nested it={it} at={at} />
           </li>
         ))}
       </ul>
@@ -41,6 +44,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
     const items = (b.items ?? []).map((it, i) => (
       <li key={i}>
         <Inlines c={itemContent(it)} at={at} />
+        <Nested it={it} at={at} />
       </li>
     ))
     return b.ordered ? <ol>{items}</ol> : <ul>{items}</ul>

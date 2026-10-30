@@ -42,6 +42,8 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
     {id: 'p', type: 'paragraph', content: [text('See '), {type: 'wikilink', target: 'Old name', docId: 'fx-note-01', children: [text('Old name')]}, text(' and '), {type: 'strong'}, {type: 'strong', children: [text('bold')]}, text('.')]},
     {id: 'pt', type: 'paragraph', text: 'Plain paragraph'},
     {id: 'pl', type: 'paragraph', content: [{type: 'text', text: 'Legacy leaf'}]},
+    {id: 'ls', type: 'list', items: ['String item', {content: [text('Top')], children: [{id: 'c', type: 'list', items: [[text('Nested item')]]}]}]},
+    {id: 'lt', type: 'list', task: true, items: ['Open task', {content: [text('Done task')], checked: true, children: [{id: 'c2', type: 'list', items: [[text('Sub task')]]}]}]},
   ]
   const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: {_id: SHAPES, _type: 'note', title: 'Old shapes', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}}]})})
   expect(res.status).toBe(200)
@@ -52,7 +54,11 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   await expect(body.locator('h2')).toHaveText(['Old heading', 'Saved empty, then bold'], {timeout: 30_000})
   await expect(body.locator('h3')).toHaveText(['', 'Third level'])
   await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf'])
+  await expect(body.locator('li')).toHaveText(['String item', 'TopNested item', 'Nested item', 'Open task', 'Done taskSub task', 'Sub task'])
+  await expect(body.locator('li.done')).toHaveText('Done taskSub task')
   await expect(body.locator('a.wl')).toHaveAttribute('href', /n=fx-note-01/)
   await page.screenshot({path: test.info().outputPath('j05-guard-shapes-dark-1440.png')})
+  await page.setViewportSize({width: 390, height: 844})
+  await page.screenshot({path: test.info().outputPath('j05-guard-shapes-dark-390.png'), fullPage: true})
   expect(errors).toEqual([])
 })
