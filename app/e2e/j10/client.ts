@@ -43,10 +43,12 @@ export async function signIn(page: Page) {
 
 const editor = (page: Page, id: string) => page.locator(`main.editor[data-note-id="${id}"]`)
 const row = (page: Page, id: string) => page.locator(`[data-testid=note-row][data-note-id="${id}"]`)
+const shown = (u: URL) => u.searchParams.get('n')
 const block = (page: Page, id: string) => page.getByTestId('canvas').locator(`[data-bp-id="${id}"]`)
 
 export async function open(page: Page, id: string) {
   if (!(await editor(page, id).count())) await row(page, id).click()
+  await expect(page).toHaveURL((u) => shown(u) === id)
   await expect(editor(page, id).getByTestId('canvas').locator('[contenteditable="true"]')).toBeAttached()
 }
 
@@ -107,11 +109,10 @@ async function addAfterLast(page: Page, text: string): Promise<string> {
 export async function act(page: Page, writer: Writer, op: Op) {
   const made: Made = {}
   if (op.kind === 'create') {
-    const before = page.url()
+    const before = shown(new URL(page.url()))
     await page.getByTestId('new-note').first().click()
-    await expect(page).not.toHaveURL(before)
-    made.note = new URL(page.url()).searchParams.get('n')!
-    expect(made.note).toMatch(/^note-/)
+    await expect(page).toHaveURL((u) => /^note-/.test(shown(u) ?? '') && shown(u) !== before)
+    made.note = shown(new URL(page.url()))!
     await open(page, made.note)
     await page.getByTestId('title').fill(op.title)
     made.block = `${made.note}-p0`
@@ -130,6 +131,7 @@ export async function act(page: Page, writer: Writer, op: Op) {
     if (op.kind === 'delete') {
       await page.getByTestId('delete-note').click()
       await expect(row(page, op.note)).toHaveCount(0)
+      await expect(page).toHaveURL((u) => shown(u) === null)
     }
   }
   writer.done(op, made)
