@@ -39,12 +39,22 @@ test('a block id my push holds proves nothing: a block deleted on the server can
   assert.ok(everything(merged(base, [refused], refused, theirs)).includes('S0 C1'))
 })
 
-test('two unacked pushes carry the same new copy, so one landed, but which one is unknown: a part they disagree on keeps its base, so the server value survives too', () => {
+test('every unacked push shares one ifRevisionID, so only the first push carrying a new copy can have landed: a later one carrying it too was refused', () => {
   const made = copy('local-1~a', {title: 'Old'}, ['title'])
   const base = note('r1', 'T', [])
   const [first, second] = [note('r1', 'X', [], {conflicts: [made]}), note('r1', 'Y', [], {conflicts: [made]})]
   const theirs = note('r2', 'Z', [], {conflicts: [made]})
-  for (const mine of [first, second]) for (const title of [mine.title!, 'Z']) assert.ok(everything(merged(base, [first, second], mine, theirs)).includes(title), `${mine.title} keeps ${title}`)
+  for (const title of ['Y', 'Z']) assert.ok(everything(merged(base, [first, second], second, theirs)).includes(title), title)
+  const out = merged(base, [first, second], first, theirs)
+  assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.title)], ['Z', ['Old']])
+})
+
+test('two proven pushes that disagree keep, field by field, what the server shows of them: my title set back after the landed one stays', () => {
+  const [one, two] = [copy('local-1~a', {title: 'Old'}, ['title']), copy('local-2~a', {title: 'Older'}, ['title'])]
+  const base = note('r1', 'T', [])
+  const [first, second] = [note('r1', 'X', [], {conflicts: [one]}), note('r1', 'Y', [], {conflicts: [one, two]})]
+  const out = merged(base, [first, second], {...second, title: 'T'}, note('r2', 'Y', [], {tags: ['z'], conflicts: [one, two]}))
+  assert.deepEqual([out?.title, out?.tags, out?.conflicts?.map((c) => c._key)], ['T', ['z'], ['local-1~a', 'local-2~a']])
 })
 
 test('only the push that proves it landed counts: an earlier refused push of mine never turns a later edit on top of the landed one into a copy', () => {

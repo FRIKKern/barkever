@@ -131,11 +131,12 @@ export function baseFor(base: NoteDoc | null, sent: NoteDoc[], theirs: NoteDoc |
   if (sent.some((x) => sameContent(x, theirs))) return theirs
   if (!base) return base
   const [was, now] = [made(base), made(theirs)]
-  const proven = sent.filter((x) => (x.by === theirs.by && x.by !== base.by) || [...made(x)].some((p) => !was.has(p) && now.has(p)))
+  const first = (p: string, i: number) => !was.has(p) && now.has(p) && !sent.slice(0, i).some((y) => made(y).has(p))
+  const proven = sent.filter((x, i) => (x.by === theirs.by && x.by !== base.by) || [...made(x)].some((p) => first(p, i)))
   const pushes = proven.length ? proven : sent
   const byId = (n: NoteDoc) => new Map((n.body?.blocks ?? []).map((x) => [x.id, x]))
   const [B, T, S] = [byId(base), byId(theirs), pushes.map(byId)]
-  const pick = <V>(b: V, s: V[], t: V) => (proven.length ? (s.every((x) => same(x, s[0])) ? s[0] : b) : landed(b, s, t))
+  const pick = <V>(b: V, s: V[], t: V) => (proven.length && s.every((x) => same(x, s[0])) ? s[0] : landed(b, s, t))
   const ids = order(base.body?.blocks ?? [], pushes[pushes.length - 1].body?.blocks ?? [], theirs.body?.blocks ?? [])
   const blocks = ids.flatMap((id) => pick(B.get(id), S.map((m) => m.get(id)), T.get(id)) ?? [])
   const out: NoteDoc = {...base, body: base.body || blocks.length ? {...base.body, blocks} : undefined}

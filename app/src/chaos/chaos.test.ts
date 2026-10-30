@@ -98,6 +98,31 @@ const oldSignature: Pin = {
   ],
 }
 
+const keptTwice: Pin = {
+  setup: {writers: 2, raw: false, blocks: 3, solo: false},
+  steps: [
+    [0, 'net', 0.919, 0.697], [1, 'type', 0.866, 0.055], [0, 'keep', 0.839, 0.363], [1, 'job', 0.783, 0.27], [0, 'net', 0.591, 0.295], [0, 'frame', 0.185, 0.174], [0, 'type', 0.817, 0.153],
+    [1, 'type', 0.035, 0.065], [1, 'frame', 0.183, 0.136], [1, 'net', 0.067, 0.974], [0, 'job', 0.069, 0.143], [0, 'net', 0.496, 0.275], [1, 'net', 0.455, 0.975], [0, 'type', 0.807, 0.65],
+    [1, 'job', 0.322, 0.42], [0, 'net', 0.913, 0.171], [0, 'job', 0.256, 0.303], [1, 'reply', 0.407, 0.192], [1, 'reply', 0.638, 0.033], [0, 'keep', 0.561, 0.312],
+  ],
+}
+
+const sameKeyEcho: Pin = {
+  setup: {writers: 2, raw: false, blocks: 1, solo: false},
+  steps: [
+    [0, 'organize', 0.149, 0.46], [1, 'net', 0.808, 0.715], [1, 'net', 0.303, 0.838], [0, 'job', 0.428, 0.655], [1, 'frame', 0.596, 0.723], [1, 'organize', 0.148, 0.658], [1, 'job', 0.431, 0.61],
+    [1, 'reload', 0.184, 0.936], [0, 'type', 0.308, 0.421], [1, 'organize', 0.057, 0.291], [1, 'job', 0.701, 0.546],
+  ],
+}
+
+const laterCarrier: Pin = {
+  setup: {writers: 3, raw: true, blocks: 1, solo: false},
+  steps: [
+    [2, 'type', 0.734, 0.83], [3, 'raw', 0.179, 0.773], [2, 'frame', 0.09, 0.884], [2, 'keep', 0.473, 0.419], [2, 'job', 0.857, 0.819], [1, 'add', 0.043, 0.077], [2, 'type', 0.281, 0.94],
+    [2, 'reload', 0.304, 0.647], [2, 'job', 0.742, 0.982], [2, 'keep', 0.121, 0.13],
+  ],
+}
+
 test('seed 40: a writer’s losing block survives that writer clashing again with text it adopted from the main', async () => {
   const r = await pinned(signed, 40)
   assert.equal(r.failure, undefined, r.failure && report(r))
@@ -130,5 +155,20 @@ test('seed 327: a block set back to text its writer had typed over keeps its cop
 
 test('a title set back to my signed one after a raw write, then refused by a second raw write that keeps my old signature, survives', async () => {
   const r = await pinned(oldSignature, 1)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('seed 84951: two unacked pushes that disagree but carry one new copy key keep what the server shows of them, so a kept text survives', async () => {
+  const r = await pinned(keptTwice, 84951)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('seed 107159: two unacked pushes that disagree but carry one new copy key never copy my own landed text back to me', async () => {
+  const r = await pinned(sameKeyEcho, 107159)
+  assert.equal(r.failure, undefined, r.failure && report(r))
+})
+
+test('seed 139464: a later push still carrying a copy key an earlier push made proves nothing, so a kept text survives', async () => {
+  const r = await pinned(laterCarrier, 139464)
   assert.equal(r.failure, undefined, r.failure && report(r))
 })
