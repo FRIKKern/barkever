@@ -5,15 +5,23 @@ const API_KEY = ['APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER']
 const DEVELOPER_ID = /^\s*\d+\) ([0-9A-F]{40}) "Developer ID Application: (.+)"$/gm
 
 export function developerIds(findIdentity) {
-  const byHash = new Map([...findIdentity.matchAll(DEVELOPER_ID)].map((m) => [m[1], m[2]]))
+  const byHash = new Map([...findIdentity.matchAll(DEVELOPER_ID)].map((m) => [m[1], {hash: m[1], name: m[2]}]))
   return [...byHash.values()]
 }
 
+const listed = (ids) => ids.map((id) => `${id.name} ${id.hash}`).join(' | ') || 'none'
+
 function identityFrom(env, ids) {
   if (env.CSC_LINK) throw new Error('CSC_LINK is not supported: put the Developer ID Application identity in the login keychain instead')
-  if (env.CSC_NAME) return {name: env.CSC_NAME.replace(PREFIX, ''), from: 'CSC_NAME'}
-  if (ids.length > 1) throw new Error(`${ids.length} Developer ID Application identities in the keychain; pick one with CSC_NAME="<name>": ${ids.join(' | ')}`)
-  return ids.length ? {name: ids[0], from: 'the keychain'} : null
+  if (env.CSC_NAME) {
+    const wanted = env.CSC_NAME.replace(PREFIX, '')
+    const matches = ids.filter((id) => id.name === wanted || id.hash === wanted)
+    if (matches.length !== 1)
+      throw new Error(`CSC_NAME="${env.CSC_NAME}" matches ${matches.length} Developer ID Application identities in the keychain; give one exact name or SHA-1: ${listed(ids)}`)
+    return {...matches[0], from: 'CSC_NAME'}
+  }
+  if (ids.length > 1) throw new Error(`${ids.length} Developer ID Application identities in the keychain; pick one with CSC_NAME="<name or SHA-1>": ${listed(ids)}`)
+  return ids.length ? {...ids[0], from: 'the keychain'} : null
 }
 
 function notaryFrom(env) {
@@ -26,16 +34,16 @@ export function signing(env, ids) {
   const identity = identityFrom(env, ids)
   if (!identity)
     return {
-      developerId: false,
+      signer: null,
       config: {mac: {identity: '-', hardenedRuntime: true, notarize: false}},
       env: {CSC_IDENTITY_AUTO_DISCOVERY: 'false'},
       says: 'Signing ad hoc: no Developer ID Application identity in the keychain and no CSC_NAME.',
     }
   const notary = notaryFrom(env)
   return {
-    developerId: true,
-    config: {forceCodeSigning: true, mac: {identity: identity.name, hardenedRuntime: true, notarize: true}},
+    signer: identity.name,
+    config: {forceCodeSigning: true, mac: {identity: identity.hash, hardenedRuntime: true, notarize: true}},
     env: notary.env,
-    says: `Signing with Developer ID ${identity.name} from ${identity.from}; notarizing with ${notary.says}.`,
+    says: `Signing with Developer ID ${identity.name} (${identity.hash}) from ${identity.from}; notarizing with ${notary.says}.`,
   }
 }

@@ -8,62 +8,82 @@ import {installedClosure} from './installed.mjs'
 import {assertSigned, signedBy} from './signature.mjs'
 import {developerIds, NOTARY_PROFILE, signing} from './signing.mjs'
 
-const fake = 'Not-a-real-identity (TEAM000000)'
-const other = 'Someone Else (TEAM111111)'
-const hash = (c) => c.repeat(40)
-const found = (...lines) => `${lines.map((l, i) => `  ${i + 1}) ${l}`).join('\n')}\n     ${lines.length} valid identities found\n`
+const h = (n) => n.toString(16).toUpperCase().padStart(40, '0')
+const jane = 'Jane Doe (TEAM111111)'
+const listing = (...rows) => `${rows.map(([hash, name], i) => `  ${i + 1}) ${hash} "${name}"`).join('\n')}\n     ${rows.length} valid identities found\n`
+const pick = (env, ...rows) => signing(env, developerIds(listing(...rows)))
+const devId = (n, name = jane) => [h(n), `Developer ID Application: ${name}`]
 
-test('developer ids are the Developer ID Application identities in find-identity output, once per certificate', () => {
-  const out = found(`${hash('A')} "Screenscribe Dev"`, `${hash('B')} "Developer ID Application: ${fake}"`, `${hash('C')} "Apple Development: ${other}"`, `${hash('B')} "Developer ID Application: ${fake}"`)
-  assert.deepEqual(developerIds(out), [fake])
-  assert.deepEqual(developerIds(found(`${hash('A')} "Screenscribe Dev"`)), [])
-  assert.deepEqual(developerIds(found(`${hash('B')} "Developer ID Application: ${fake}"`, `${hash('D')} "Developer ID Application: ${other}"`)), [fake, other])
+test('developer ids keep each Developer ID Application certificate once, by SHA-1, with its name', () => {
+  const ids = developerIds(listing([h(1), 'Screenscribe Dev'], devId(3), [h(2), `Apple Development: ${jane}`], devId(3)))
+  assert.deepEqual(ids, [{hash: h(3), name: jane}])
 })
 
-test('no Developer ID and no CSC_NAME signs ad hoc with the hardened runtime and never notarizes, whatever notary settings are around', () => {
-  for (const env of [{}, {APPLE_API_KEY: 'k', APPLE_API_KEY_ID: 'i', APPLE_API_ISSUER: 's'}, {APPLE_KEYCHAIN_PROFILE: NOTARY_PROFILE}]) {
-    const sign = signing(env, [])
+test('C1 auto: the one Developer ID signs by its SHA-1, past a dev cert and a self-made cert with the same name', () => {
+  const sign = pick({}, [h(1), 'Apple Development: Jane Doe (PERS222222)'], [h(2), `${jane} local`], devId(3))
+  assert.deepEqual(sign.config, {forceCodeSigning: true, mac: {identity: h(3), hardenedRuntime: true, notarize: true}})
+  assert.equal(sign.signer, jane)
+  assert.deepEqual(sign.env, {APPLE_KEYCHAIN_PROFILE: 'barkever-notary'})
+  assert.equal(sign.says, `Signing with Developer ID ${jane} (${h(3)}) from the keychain; notarizing with keychain profile barkever-notary.`)
+})
+
+test('C2 a CSC_NAME shorthand that is not one exact Developer ID name refuses and lists the candidates', () => {
+  assert.throws(() => pick({CSC_NAME: 'Jane Doe'}, devId(4, 'Jane Doe Consulting AS (TEAM999999)'), devId(3)), new RegExp(`matches 0 .*Jane Doe Consulting AS \\(TEAM999999\\) ${h(4)} \\| Jane Doe \\(TEAM111111\\) ${h(3)}`))
+})
+
+test('C3 CSC_NAME refuses when only an Apple Development cert carries the name', () => {
+  assert.throws(() => pick({CSC_NAME: 'Jane Doe'}, [h(1), 'Apple Development: Jane Doe (PERS222222)']), /matches 0 .*: none$/)
+})
+
+test('C4 CSC_NAME naming a self-made cert refuses', () => {
+  assert.throws(() => pick({CSC_NAME: 'Screenscribe Dev'}, [h(5), 'Screenscribe Dev'], devId(3)), /CSC_NAME="Screenscribe Dev" matches 0/)
+})
+
+test('C5 CSC_NAME holding the SHA-1 of a non-Developer-ID cert refuses', () => {
+  assert.throws(() => pick({CSC_NAME: h(1)}, [h(1), `Apple Distribution: ${jane}`], devId(3)), /matches 0/)
+})
+
+test('C6 CSC_NAME with a typo refuses instead of building unsigned', () => {
+  assert.throws(() => pick({CSC_NAME: 'Jane Doe (TEAM11111X)'}, devId(3)), /matches 0/)
+})
+
+test('C7 auto: a self-made cert listed first with the Developer ID name does not change the pick', () => {
+  assert.equal(pick({}, [h(6), jane], devId(3)).config.mac.identity, h(3))
+})
+
+test('C8 a renewal: two certs with one name refuse by name and list both hashes; either SHA-1 picks it', () => {
+  assert.throws(() => pick({}, devId(7), devId(3)), new RegExp(`2 Developer ID Application identities.*${h(7)} \\| .*${h(3)}`))
+  assert.throws(() => pick({CSC_NAME: jane}, devId(7), devId(3)), /matches 2/)
+  const sign = pick({CSC_NAME: h(3)}, devId(7), devId(3))
+  assert.equal(sign.config.mac.identity, h(3))
+  assert.match(sign.says, /from CSC_NAME/)
+})
+
+test('C9 no Developer ID under -p codesigning signs ad hoc with the hardened runtime and never notarizes, whatever notary settings are around', () => {
+  for (const env of [{}, {APPLE_API_KEY: 'k', APPLE_API_KEY_ID: 'i', APPLE_API_ISSUER: 's'}, {APPLE_KEYCHAIN_PROFILE: NOTARY_PROFILE}, {APPLE_ID: 'a@b.c'}]) {
+    const sign = pick(env, [h(1), 'Screenscribe Dev'])
     assert.deepEqual(sign.config, {mac: {identity: '-', hardenedRuntime: true, notarize: false}})
-    assert.equal(sign.developerId, false)
+    assert.equal(sign.signer, null)
     assert.deepEqual(sign.env, {CSC_IDENTITY_AUTO_DISCOVERY: 'false'})
     assert.match(sign.says, /ad hoc/)
   }
 })
 
-test('the one Developer ID in the keychain signs with no env vars and notarizes through the barkever-notary keychain profile', () => {
-  const sign = signing({}, [fake])
-  assert.deepEqual(sign.config, {forceCodeSigning: true, mac: {identity: fake, hardenedRuntime: true, notarize: true}})
-  assert.equal(sign.developerId, true)
-  assert.deepEqual(sign.env, {APPLE_KEYCHAIN_PROFILE: 'barkever-notary'})
-  assert.equal(sign.says, `Signing with Developer ID ${fake} from the keychain; notarizing with keychain profile barkever-notary.`)
-})
-
-test('two Developer IDs and no CSC_NAME refuse and name both; CSC_NAME picks one', () => {
-  assert.throws(() => signing({}, [fake, other]), new RegExp(`2 Developer ID Application identities.*${fake.replace(/[()]/g, '\\$&')} \\| ${other.replace(/[()]/g, '\\$&')}`))
-  const sign = signing({CSC_NAME: other}, [fake, other])
-  assert.equal(sign.config.mac.identity, other)
-  assert.match(sign.says, /from CSC_NAME/)
-})
-
-test('CSC_NAME signs with that name even when the keychain lists no Developer ID', () => {
-  const sign = signing({CSC_NAME: fake}, [])
-  assert.deepEqual(sign.config.mac, {identity: fake, hardenedRuntime: true, notarize: true})
-  assert.deepEqual(sign.env, {APPLE_KEYCHAIN_PROFILE: 'barkever-notary'})
-})
-
-test('CSC_NAME copied with its "Developer ID Application:" prefix signs with the bare name electron-builder accepts', () => {
-  const sign = signing({CSC_NAME: `Developer ID Application: ${fake}`}, [])
-  assert.equal(sign.config.mac.identity, fake)
-  assert.equal(sign.says, `Signing with Developer ID ${fake} from CSC_NAME; notarizing with keychain profile barkever-notary.`)
+test('CSC_NAME as an exact name, with or without a copied prefix, picks that cert by SHA-1', () => {
+  for (const name of [jane, `Developer ID Application: ${jane}`]) {
+    const sign = pick({CSC_NAME: name}, devId(4, 'Jane Doe Consulting AS (TEAM999999)'), devId(3))
+    assert.equal(sign.config.mac.identity, h(3))
+    assert.equal(sign.signer, jane)
+  }
 })
 
 test('CSC_LINK is refused, with or without CSC_NAME, so a certificate file never silently builds ad hoc', () => {
-  for (const env of [{CSC_LINK: '/x.p12'}, {CSC_LINK: '/x.p12', CSC_NAME: fake}]) assert.throws(() => signing(env, [fake]), /CSC_LINK is not supported/)
+  for (const env of [{CSC_LINK: '/x.p12'}, {CSC_LINK: '/x.p12', CSC_NAME: jane}]) assert.throws(() => pick(env, devId(3)), /CSC_LINK is not supported/)
 })
 
 test('APPLE_ID or its app-specific password wins over the API key and the profile, the order electron-builder checks them in', () => {
   for (const env of [{APPLE_ID: 'a@b.c'}, {APPLE_APP_SPECIFIC_PASSWORD: 'x'}, {APPLE_ID: 'a@b.c', APPLE_API_KEY: 'k'}]) {
-    const sign = signing(env, [fake])
+    const sign = pick(env, devId(3))
     assert.deepEqual(sign.env, {})
     assert.match(sign.says, /notarizing with APPLE_ID and its app-specific password\.$/)
   }
@@ -71,34 +91,35 @@ test('APPLE_ID or its app-specific password wins over the API key and the profil
 
 test('any APPLE_API_* variable means the API key path, so a partial key fails in electron-builder instead of falling back to the profile', () => {
   for (const name of ['APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER']) {
-    const sign = signing({[name]: 'x'}, [fake])
-    assert.deepEqual(sign.config.mac, {identity: fake, hardenedRuntime: true, notarize: true})
+    const sign = pick({[name]: 'x'}, devId(3))
+    assert.equal(sign.config.mac.identity, h(3))
     assert.deepEqual(sign.env, {})
     assert.match(sign.says, /APPLE_API_\* key/)
   }
 })
 
 test('what signing prints names the identity and the notary path, never a key value', () => {
-  const says = signing({APPLE_API_KEY: '/keys/AuthKey_SECRET.p8', APPLE_API_KEY_ID: 'KEYID123', APPLE_API_ISSUER: 'issuer-uuid'}, [fake]).says
-  for (const secret of ['AuthKey_SECRET', 'KEYID123', 'issuer-uuid']) assert.ok(!says.includes(secret))
+  const says = pick({APPLE_API_KEY: '/keys/AuthKey_SECRET.p8', APPLE_API_KEY_ID: 'KEYID123', APPLE_API_ISSUER: 'issuer-uuid', APPLE_ID: 'x@y.z', APPLE_APP_SPECIFIC_PASSWORD: 'pw-secret'}, devId(3)).says
+  for (const secret of ['AuthKey_SECRET', 'KEYID123', 'issuer-uuid', 'x@y.z', 'pw-secret']) assert.ok(!says.includes(secret))
 })
 
-test('a built app must carry the hardened runtime and the signature the build asked for', () => {
+test('a built app must carry the hardened runtime and exactly the signer the build chose', () => {
   const adhoc = signedBy('flags=0x10002(adhoc,runtime)')
-  const developer = signedBy(`flags=0x10000(runtime)\nAuthority=Developer ID Application: ${fake}`)
-  assertSigned(adhoc, false)
-  assertSigned(developer, true)
-  assert.throws(() => assertSigned(signedBy('flags=0x20002(adhoc,linker-signed)'), false), /signed ad hoc without the hardened runtime/)
-  assert.throws(() => assertSigned(adhoc, true), /expected a Developer ID signature, the app is signed ad hoc/)
-  assert.throws(() => assertSigned(developer, false), /expected an ad hoc signature, the app is Developer ID Application/)
+  const developer = signedBy(`flags=0x10000(runtime)\nAuthority=Developer ID Application: ${jane}\nAuthority=Developer ID Certification Authority`)
+  assertSigned(adhoc, null)
+  assertSigned(developer, jane)
+  assert.throws(() => assertSigned(signedBy('flags=0x20002(adhoc,linker-signed)'), null), /signed ad hoc without the hardened runtime/)
+  assert.throws(() => assertSigned(adhoc, jane), new RegExp(`expected Developer ID Application: Jane Doe \\(TEAM111111\\), the app is signed ad hoc`))
+  assert.throws(() => assertSigned(developer, null), /expected signed ad hoc, the app is Developer ID Application/)
+  assert.throws(() => assertSigned(developer, 'Jane Doe Consulting AS (TEAM999999)'), /the app is Developer ID Application: Jane Doe \(TEAM111111\)/)
 })
 
 test('the signature reader tells ad hoc, Developer ID and the runtime flag apart', () => {
   assert.deepEqual(signedBy('CodeDirectory v=20500 size=630 flags=0x10002(adhoc,runtime) hashes=9+7\nSignature=adhoc'), {runtime: true, developerId: false, label: 'signed ad hoc'})
   assert.deepEqual(signedBy('CodeDirectory v=20500 flags=0x2(adhoc) hashes=9+7'), {runtime: false, developerId: false, label: 'signed ad hoc'})
-  assert.deepEqual(signedBy(`CodeDirectory v=20500 flags=0x10000(runtime) hashes=9+7\nAuthority=Developer ID Application: ${fake}\nAuthority=Developer ID Certification Authority`), {runtime: true, developerId: true, label: `Developer ID Application: ${fake}`})
+  assert.deepEqual(signedBy(`CodeDirectory v=20500 flags=0x10000(runtime) hashes=9+7\nAuthority=Developer ID Application: ${jane}\nAuthority=Developer ID Certification Authority`), {runtime: true, developerId: true, label: `Developer ID Application: ${jane}`})
   assert.deepEqual(signedBy('code object is not signed at all'), {runtime: false, developerId: false, label: 'unsigned'})
-  assert.deepEqual(signedBy(`flags=0x10000(runtime)\nAuthority=Apple Development: ${fake}\nAuthority=Apple Worldwide Developer Relations Certification Authority`), {runtime: true, developerId: false, label: `Apple Development: ${fake}`})
+  assert.deepEqual(signedBy(`flags=0x10000(runtime)\nAuthority=Apple Development: ${jane}\nAuthority=Apple Worldwide Developer Relations Certification Authority`), {runtime: true, developerId: false, label: `Apple Development: ${jane}`})
 })
 
 test('bundle imports keep bare package names and drop relative, absolute, node: and non-package strings', () => {

@@ -8,7 +8,8 @@ export function signedBy(codesignDv) {
   }
 }
 
-export function assertSigned(signer, developerId) {
+export function assertSigned(signer, name) {
   if (!signer.runtime) throw new Error(`the app is ${signer.label} without the hardened runtime`)
-  if (signer.developerId !== developerId) throw new Error(`expected ${developerId ? 'a Developer ID' : 'an ad hoc'} signature, the app is ${signer.label}`)
+  const wanted = name ? `Developer ID Application: ${name}` : 'signed ad hoc'
+  if (signer.label !== wanted) throw new Error(`expected ${wanted}, the app is ${signer.label}`)
 }
