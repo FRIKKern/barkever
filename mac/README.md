@@ -5,7 +5,8 @@
 ```
 node mac/scripts/build.mjs
         │
-        │ which identity?   CSC_NAME set ─────────────────────────► that one
+        │ which identity?   CSC_LINK set ─────────────────────────► refuse (keychain only)
+        │                   CSC_NAME set ─────────────────────────► that one
         │                   else the keychain's Developer ID Application identities:
         │                     one ────────────────────────────────► that one
         │                     two or more ────────────────────────► refuse, name them
@@ -16,14 +17,16 @@ node mac/scripts/build.mjs
         └─ Developer ID ► sign, hardened runtime ─► notarize ─► staple ──► mac/dist/Barkever.app
                                                     │                      mac/dist/Barkever-<v>-<arch>.dmg
                                   keychain profile barkever-notary   (main path)
-                                  APPLE_API_KEY, _KEY_ID, _ISSUER    (any set: the API key instead)
+                                  APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD (any set: wins)
+                                  APPLE_API_KEY, _KEY_ID, _ISSUER    (any set: the API key)
+        └─ after the build: codesign --verify --deep --strict, then runtime flag + the expected signer, or exit 1
 
 node mac/scripts/rehearse.mjs ─► mount DMG ─► copy to a temp Applications ─► codesign --verify --deep --strict
                                  ─► runtime flag ─► [Developer ID: spctl --assess, stapler validate]
-                                 ─► launch ─► window shows Sign in ─► quit ─► detach, delete temp
+                                 ─► launch ─► Sign in, client hydrated, service worker ready, no failed request ─► quit ─► detach, delete temp
 ```
 
-The build's first line names the path it took. The DMG is built with `TMPDIR=/tmp/` because `hdiutil` breaks on an external volume. Prepush never runs the rehearsal, so run it by hand after a build. It uses its own empty profile and a mock keychain, and saves `mac/dist/rehearsal.png`.
+The build's first line names the path it took. Prepush never runs the rehearsal, so run it by hand after a build. It uses its own empty profile and a mock keychain, and saves `mac/dist/rehearsal.png`.
 
 ### Owner steps: switch on real signing
 
@@ -34,4 +37,4 @@ The build's first line names the path it took. The DMG is built with `TMPDIR=/tm
 | 3 | `node mac/scripts/build.mjs`, with no env vars | First line: `Signing with Developer ID <Name> (<TEAMID>) from the keychain; notarizing with keychain profile barkever-notary.` |
 | 4 | `node mac/scripts/rehearse.mjs` | Table shows `Developer ID Application: …`, and the `spctl --assess` and `xcrun stapler validate` rows pass |
 
-If the keychain holds two Developer IDs, the build refuses and names both. Pick one with `CSC_NAME="<Name> (<TEAMID>)"`, without the `Developer ID Application:` prefix, which electron-builder rejects. To skip the profile and pass the API key in the shell, set `APPLE_API_KEY` (the `.p8` path), `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`. If only some are set, the build fails; it doesn't fall back to the profile.
+If the keychain holds two Developer IDs, the build refuses and names both. Pick one with `CSC_NAME="<Name> (<TEAMID>)"`; a copied `Developer ID Application:` prefix is dropped. A Developer ID build that can't sign fails, and never falls back to ad hoc. To pass notary credentials in the shell instead of the profile, set `APPLE_API_KEY` (the `.p8` path), `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`. Or set `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`. If only some of a set are there, the build fails; it doesn't fall back to the profile.

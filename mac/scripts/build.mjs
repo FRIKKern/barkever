@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import {execFileSync} from 'node:child_process'
+import {execFileSync, spawnSync} from 'node:child_process'
 import {cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {bundlePackages} from './bundle-imports.mjs'
 import {installedClosure} from './installed.mjs'
+import {assertSigned, signedBy} from './signature.mjs'
 import {developerIds, signing} from './signing.mjs'
 
 if (process.platform !== 'darwin') {
@@ -43,14 +44,15 @@ const config = {
   directories: {output: OUT},
   files: ['package.json', 'mac/src/**', 'app/dist/**'],
   artifactName: 'Barkever-${version}-${arch}.${ext}',
-  mac: {target: ['dmg'], category: 'public.app-category.productivity', ...sign.mac},
+  ...sign.config,
+  mac: {target: ['dmg'], category: 'public.app-category.productivity', ...sign.config.mac},
   dmg: {sign: false},
 }
 const configFile = `${stage}.json`
 writeFileSync(configFile, JSON.stringify(config, null, 2))
 rmSync(OUT, {recursive: true, force: true})
 try {
-  run(join(MAC, 'node_modules/.bin/electron-builder'), ['--mac', `--${process.arch}`, '--publish', 'never', '--projectDir', stage, '--config', configFile], {...sign.env, TMPDIR: '/tmp/'})
+  run(join(MAC, 'node_modules/.bin/electron-builder'), ['--mac', `--${process.arch}`, '--publish', 'never', '--projectDir', stage, '--config', configFile], sign.env)
 } finally {
   rmSync(stage, {recursive: true, force: true})
   rmSync(configFile, {force: true})
@@ -59,4 +61,7 @@ try {
 const built = join(OUT, process.arch === 'arm64' ? 'mac-arm64' : 'mac', 'Barkever.app')
 const dmg = join(OUT, `Barkever-${mac.version}-${process.arch}.dmg`)
 for (const made of [built, dmg]) if (!existsSync(made)) throw new Error(`not built: ${made}`)
+run('codesign', ['--verify', '--deep', '--strict', built])
+const shown = spawnSync('codesign', ['-dv', '--verbose=2', built], {encoding: 'utf8'})
+assertSigned(signedBy(shown.stderr), sign.developerId)
 console.log(`Built ${built}\nBuilt ${dmg}`)
