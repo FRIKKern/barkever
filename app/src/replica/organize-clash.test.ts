@@ -58,3 +58,12 @@ test('Keep this on a tags or notebook copy makes its tags or notebook the main',
   const moved = keep(tagged, 'k2', tagged, AT, 'local-k2', 'A')
   assert.deepEqual([moved.notebook?._ref, moved.conflicts], ['work', []])
 })
+
+test('a clash with a side that has no tags field keeps "no tags" in the copy, and Keep this clears them', () => {
+  const {tags: _, ...bare} = {...r0, tags: ['old']}
+  const r1 = {...sign(bare, 'B'), _rev: 'r1'}
+  const a = mergeLocal({...r0, tags: ['old']}, {tags: ['old']}, {tags: ['old', 'a']}, AT, 'local-1', 'A', {...r0, tags: ['old']})
+  const merged = mergeNote({...r0, tags: ['old']}, a, r1, AT, 'A')
+  assert.deepEqual(merged.conflicts?.map((c) => [c.clash, c.tags]), [[['tags'], []]])
+  assert.deepEqual(keep(merged, merged.conflicts![0]._key, merged, AT, 'local-k', 'A').tags, [])
+})
