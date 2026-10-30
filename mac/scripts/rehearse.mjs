@@ -14,7 +14,6 @@ const home = mkdtempSync('/tmp/barkever-rehearsal-')
 const mount = join(home, 'mount')
 const app = join(home, 'Applications', 'Barkever.app')
 const rows = []
-const broken = []
 
 const said = (cmd, args) => spawnSync(cmd, args, {encoding: 'utf8'})
 const sh = (cmd, args) => {
@@ -61,8 +60,6 @@ try {
       env: {HOME: process.env.HOME, USER: process.env.USER, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', TMPDIR: '/tmp/', BARKEVER_USER_DATA: join(home, 'data')},
     })
     child = barkever.process()
-    barkever.context().on('requestfailed', (r) => broken.push(`${r.url()} ${r.failure().errorText}`))
-    barkever.context().on('response', (r) => r.status() >= 400 && broken.push(`${r.url()} ${r.status()}`))
     return `pid ${child.pid}`
   })
   await step('window loads the app', async () => {
@@ -70,6 +67,9 @@ try {
     await page.getByRole('heading', {name: 'Sign in'}).waitFor({timeout: 30_000})
     const worker = await page.evaluate(() =>
       Promise.race([navigator.serviceWorker.ready.then((r) => r.active.scriptURL), new Promise((_, no) => setTimeout(() => no(new Error('no service worker within 15 s: the client never ran')), 15_000))]),
+    )
+    const broken = await page.evaluate(() =>
+      [...performance.getEntriesByType('navigation'), ...performance.getEntriesByType('resource')].filter((e) => e.responseStatus === 0 || e.responseStatus >= 400).map((e) => `${e.name} ${e.responseStatus}`),
     )
     if (broken.length) throw new Error(`requests failed: ${broken.join(', ')}`)
     await page.screenshot({path: shot})
