@@ -80,7 +80,7 @@ const carried = (p: string) => p === 'title' || p.startsWith('body:')
 const marked = (s: string) => `${s.length.toString(36)}.${digest(s)}.${digest(`~${s}`)}`
 const mark = (n: NoteDoc, p: string) => marked(`${p}\n${canon(part(n, p))}`)
 const typedFrom = (c: Conflict, typed: Set<string>) => heldParts(c).every((p) => carried(p) && typed.has(mark(copyOf(c), p)))
-export const organized = (n: Pick<NoteDoc, 'tags' | 'notebook'>, clash: string[]) => ({...(clash.includes('tags') && {tags: n.tags ?? []}), ...(clash.includes('notebook') && {notebook: n.notebook ?? null})})
+const organized = (n: Pick<NoteDoc, 'tags' | 'notebook'>, clash: string[]) => ({...(clash.includes('tags') && {tags: n.tags ?? []}), ...(clash.includes('notebook') && {notebook: n.notebook ?? null})})
 const before = (a: Conflict, b: Conflict) => a.at < b.at || (a.at === b.at && a._key < b._key)
 const text = (c: Conflict) => canon(heldParts(c).sort().map((p) => [p, part(copyOf(c), p)]))
 
