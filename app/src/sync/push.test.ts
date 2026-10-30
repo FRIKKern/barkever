@@ -90,3 +90,10 @@ test('a field the note no longer has is unset at Barkpark, not left behind', () 
   assert.ok(!('unset' in (mutationFor({id: 'n1', base, v: 1, at: 0}, {...base, title: 'U'}) as {patch: object}).patch))
   assert.equal(mutationFor({id: 'n1', base, v: 1, at: 0}, base), null)
 })
+
+test('after a push whose reply was lost, going back to the base value still pushes, so a push that landed cannot keep its value', () => {
+  const base = note('r1', 'T0 B1', [])
+  const lost = note('r1', 'A1', [], 'dev-me')
+  const m = mutationFor({id: 'n1', base, v: 2, at: 0, sent: [lost]}, note('r1', 'T0 B1', [], 'dev-me')) as {patch: {set: {title?: string}; ifRevisionID: string}}
+  assert.deepEqual([m.patch.set.title, m.patch.ifRevisionID], ['T0 B1', 'r1'])
+})

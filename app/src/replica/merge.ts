@@ -121,18 +121,24 @@ export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partia
   return mergeNote(base, typed, note, at, me, key, other === me ? `${me}~tab` : other)
 }
 
+const FIELDS = ['title', 'notebook', 'tags', 'links', 'conflicts'] as const
+const made = (n: NoteDoc) => new Set((n.conflicts ?? []).map((c) => c._key).filter((k) => k.startsWith('local-')))
 const landed = <T>(base: T, sent: T[], theirs: T) => (sent.some((x) => same(x, theirs)) ? theirs : base)
 
 export function baseFor(base: NoteDoc | null, sent: NoteDoc[], theirs: NoteDoc | null): NoteDoc | null {
   if (!theirs || !sent.length) return base
   if (sent.some((x) => sameContent(x, theirs))) return theirs
   if (!base) return base
+  const [was, now] = [made(base), made(theirs)]
+  const proven = sent.filter((x) => [...made(x)].some((p) => !was.has(p) && now.has(p)))
+  const pushes = proven.length ? proven : sent
   const byId = (n: NoteDoc) => new Map((n.body?.blocks ?? []).map((x) => [x.id, x]))
-  const [B, T, S] = [byId(base), byId(theirs), sent.map(byId)]
-  const ids = order(base.body?.blocks ?? [], sent[sent.length - 1].body?.blocks ?? [], theirs.body?.blocks ?? [])
-  const blocks = ids.flatMap((id) => landed(B.get(id), S.map((m) => m.get(id)), T.get(id)) ?? [])
+  const [B, T, S] = [byId(base), byId(theirs), pushes.map(byId)]
+  const pick = <V>(b: V, s: V[], t: V) => (proven.length ? (s.every((x) => same(x, s[0])) ? s[0] : b) : landed(b, s, t))
+  const ids = order(base.body?.blocks ?? [], pushes[pushes.length - 1].body?.blocks ?? [], theirs.body?.blocks ?? [])
+  const blocks = ids.flatMap((id) => pick(B.get(id), S.map((m) => m.get(id)), T.get(id)) ?? [])
   const out: NoteDoc = {...base, body: base.body || blocks.length ? {...base.body, blocks} : undefined}
-  for (const f of ['title', 'notebook', 'tags', 'links', 'conflicts'] as const) (out as Record<string, unknown>)[f] = landed(base[f], sent.map((x) => x[f]), theirs[f])
+  for (const f of FIELDS) (out as Record<string, unknown>)[f] = pick(base[f], pushes.map((x) => x[f]), theirs[f])
   return sameContent(out, base) ? base : out
 }
 

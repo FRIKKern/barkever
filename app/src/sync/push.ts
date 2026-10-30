@@ -20,7 +20,7 @@ export function mutationFor(e: Entry, note: NoteDoc | undefined): object | null 
   if (!note) return null
   if (!e.base) return {create: {...content(note), _id: e.id, _type: 'note'}}
   const base = e.base
-  const changed = NOTE_FIELDS.filter((f) => !same(note[f], base[f]))
+  const changed = NOTE_FIELDS.filter((f) => [base, ...(e.sent ?? [])].some((x) => !same(note[f], x[f])))
   const unset = changed.filter((f) => note[f] === undefined)
   const set = Object.fromEntries(changed.filter((f) => note[f] !== undefined).map((f) => [f, note[f]]))
   return changed.length ? {patch: {id: e.id, type: 'note', set: {...set, by: note.by}, ...(unset.length && {unset}), ifRevisionID: base._rev}} : null
