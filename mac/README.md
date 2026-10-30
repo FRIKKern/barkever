@@ -25,7 +25,7 @@ node mac/scripts/build.mjs
 
 node mac/scripts/rehearse.mjs ─► mount DMG ─► copy to a temp Applications ─► codesign --verify --deep --strict
                                  ─► runtime flag ─► [Developer ID: spctl --assess, stapler validate]
-                                 ─► launch ─► Sign in, client ran (service worker ready) ─► quit ─► detach, delete temp
+                                 ─► launch ─► Sign in, client ran (service worker ready), no request at 0 or >= 400 ─► quit ─► detach, delete temp
 ```
 
 The build's first line names the path it took. Prepush never runs the rehearsal, so run it by hand after a build. It uses its own empty profile and a mock keychain, and saves `mac/dist/rehearsal.png`.

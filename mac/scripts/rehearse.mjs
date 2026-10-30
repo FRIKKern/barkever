@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process'
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync} from 'node:fs'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
+import {failedRequests} from './failed-requests.mjs'
 import {signedBy} from './signature.mjs'
 
 const MAC = fileURLToPath(new URL('..', import.meta.url))
@@ -65,9 +66,14 @@ try {
   await step('window loads the app', async () => {
     const page = await barkever.firstWindow()
     await page.getByRole('heading', {name: 'Sign in'}).waitFor({timeout: 30_000})
-    const worker = await page.evaluate(() =>
-      Promise.race([navigator.serviceWorker.ready.then((r) => r.active.scriptURL), new Promise((_, no) => setTimeout(() => no(new Error('no service worker within 15 s: the client never ran')), 15_000))]),
-    )
+    const worker = await page
+      .evaluate(() =>
+        Promise.race([navigator.serviceWorker.ready.then((r) => r.active.scriptURL), new Promise((_, no) => setTimeout(() => no(new Error('no service worker within 15 s: the client never ran')), 15_000))]),
+      )
+      .catch((e) => e)
+    const broken = failedRequests(await page.evaluate(() => [...performance.getEntriesByType('navigation'), ...performance.getEntriesByType('resource')].map(({name, responseStatus}) => ({name, responseStatus}))))
+    if (broken.length) throw new Error(`requests failed: ${broken.join(', ')}`)
+    if (worker instanceof Error) throw worker
     await page.screenshot({path: shot})
     return `${await page.title()} at ${page.url()}, hydrated, service worker ${new URL(worker).pathname}`
   })
