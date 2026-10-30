@@ -32,6 +32,8 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const focusCanvas = () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
   useImperativeHandle(handle, () => ({focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true))}), [])
 
+  const inSource = () => !!canvas.current?.querySelector('.bp-canvas-source')
+
   const flush = () => {
     if (!canvas.current) return
     readTyping(canvas.current)
@@ -61,6 +63,10 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       flushing ??= setTimeout(() => {
         flushing = undefined
         const upTo = savePoint(id, 'body')
+        if (inSource()) {
+          if (!canvas.current!.hasPendingChanges()) markSaved(id, 'body', upTo)
+          return
+        }
         flush()
         if (!composing) markSaved(id, 'body', upTo)
       }, FLUSH_MS)
