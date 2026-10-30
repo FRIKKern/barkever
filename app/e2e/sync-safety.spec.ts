@@ -208,35 +208,36 @@ test('two devices typing in one block online keep every text, and show at most o
   await Promise.all([a.context().close(), b.context().close()])
 })
 
-test('a remote writer setting the title six times while I type it shows one version, its latest', async ({browser, baseURL}) => {
-  test.setTimeout(90_000)
-  const a = await device(browser, baseURL!)
-  const errors = errorsOf(a)
-  const id = await newNote(a, `Title race ${Date.now()}`, 'Body.')
-  const title = a.getByTestId('title')
-  await title.focus()
-  await title.press('End')
-  const typing = title.pressSequentially(' L' + 'abcdefghijklmnopqrstuvwxyz'.repeat(2), {delay: 60})
-  for (let i = 1; i <= 6; i++) {
-    await a.waitForTimeout(400)
-    const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', set: {title: `Remote title ${i}`}}}]})})
-    expect(res.ok).toBe(true)
-  }
-  await typing
-  await leave(a)
-  await synced(a)
-  await a.waitForTimeout(1500)
-  await synced(a)
-  const note = (await serverNote(id))!
-  expect(note.title).toMatch(/xyz$/)
-  const copies = note.conflicts ?? []
-  test.info().annotations.push({type: 'copies', description: `stored ${copies.length}, shown ${groups(copies).length}, ${JSON.stringify(note).length} bytes`})
-  expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
-  expect(groups(copies).length, `one shown version for one remote writer: ${JSON.stringify(copies.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
-  expect(groups(copies)[0]?.latest.title, 'the shown version is the remote writer’s latest').toBe('Remote title 6')
-  expect(errors).toEqual([])
-  await a.context().close()
-})
+for (const [pace, letters] of [[60, 2], [300, 1]] as const)
+  test(`a remote writer setting the title six times while I type it, a key every ${pace} ms, shows one version, its latest`, async ({browser, baseURL}) => {
+    test.setTimeout(90_000)
+    const a = await device(browser, baseURL!)
+    const errors = errorsOf(a)
+    const id = await newNote(a, `Title race ${Date.now()}`, 'Body.')
+    const title = a.getByTestId('title')
+    await title.focus()
+    await title.press('End')
+    const typing = title.pressSequentially(' L' + 'abcdefghijklmnopqrstuvwxyz'.repeat(letters), {delay: pace})
+    for (let i = 1; i <= 6; i++) {
+      await a.waitForTimeout(400)
+      const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{patch: {id, type: 'note', set: {title: `Remote title ${i}`}}}]})})
+      expect(res.ok).toBe(true)
+    }
+    await typing
+    await leave(a)
+    await synced(a)
+    await a.waitForTimeout(1500)
+    await synced(a)
+    const note = (await serverNote(id))!
+    expect(note.title).toMatch(/xyz$/)
+    const copies = note.conflicts ?? []
+    test.info().annotations.push({type: 'copies', description: `stored ${copies.length}, shown ${groups(copies).length}, ${JSON.stringify(note).length} bytes`})
+    expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
+    expect(groups(copies).length, `one shown version for one remote writer: ${JSON.stringify(copies.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
+    expect(groups(copies)[0]?.latest.title, `the shown version is the remote writer’s latest: ${JSON.stringify({title: note.title, copies: copies.map((c) => [c.title, c.at, c._key])})}`).toBe('Remote title 6')
+    expect(errors).toEqual([])
+    await a.context().close()
+  })
 
 const holdReplica = (page: Page, ms: number) =>
   page.evaluate(async (ms) => {

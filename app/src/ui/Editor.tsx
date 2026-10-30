@@ -9,6 +9,7 @@ import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
+import {afterTyping} from '../lib/typing'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
 import {ConflictView} from './ConflictView'
 import {Icon} from './icons'
@@ -27,12 +28,19 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const body = useRef<BodyHandle>(null)
   const keys = useRef(0)
+  const lastKey = useRef(0)
 
-  const adopt = () => {
-    const at = keys.current
-    void savedTitle(note.id).then((t) => at === keys.current && setTitle(t))
-  }
-  useEffect(adopt, [note.gen])
+  useEffect(
+    () =>
+      afterTyping(
+        () => lastKey.current,
+        () => {
+          const at = keys.current
+          void savedTitle(note.id).then((t) => at === keys.current && setTitle(t))
+        },
+      ),
+    [note.gen],
+  )
 
   useEffect(() => {
     if (focusTitle || !note.title) titleRef.current?.focus()
@@ -44,6 +52,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
     setTitle(value)
     markDirty(note.id, 'title')
     keys.current++
+    lastKey.current = Date.now()
     void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', savePoint(note.id, 'title')))
   }
 
