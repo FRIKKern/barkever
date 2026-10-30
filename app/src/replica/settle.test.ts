@@ -62,3 +62,16 @@ test('a push that landed under newer typing is forgotten with its base: catch-up
   const acked = d.stores.outbox.get('n1') as {base: Note; sent?: Note[]}
   assert.deepEqual([acked.base._rev, acked.sent], ['r3', undefined])
 })
+
+test('a push refused before the base moved on never counts as landed later: another writer going back to its old value keeps that value', async () => {
+  const d = newDevice(ME)
+  use(d)
+  const tagged = (n: Note, tags: string[]) => ({...n, tags})
+  const stale = tagged(note('r2', 'T', ME, [p('a', 'one more')]), ['r2'])
+  d.stores.notes.set('n1', stale)
+  d.stores.outbox.set('n1', {id: 'n1', base: tagged(note('r2', 'T', 'raw', [p('a', 'one')]), ['r2']), v: 2, at: 0, sent: [stale]})
+  await settle('note', 'n1', tagged(note('r4', 'T', 'raw', [p('a', 'one')]), ['a1', 'r3']), () => 'apply')
+  await settle('note', 'n1', tagged(note('r5', 'T', 'A', [p('a', 'one')]), ['r2']), () => 'apply')
+  const n = d.stores.notes.get('n1') as Note
+  assert.deepEqual([n.tags, n.body?.blocks.map(blockText)], [['r2'], ['one more']])
+})

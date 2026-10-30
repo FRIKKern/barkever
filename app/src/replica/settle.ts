@@ -51,7 +51,7 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     if (entry) void outbox.delete(id)
     show(theirs)
   } else {
-    void outbox.put({...entry, base: theirs, ...(theirs && base === theirs && {sent: undefined}), delete: merged ? undefined : true})
+    void outbox.put({...entry, base: theirs, sent: undefined, delete: merged ? undefined : true})
     show(merged && {...merged, _id: id, _type: 'note', _rev: theirs?._rev})
   }
   if (touchedByOthers(theirs, deviceId())) void tx.objectStore('meta').delete(madeKey(id))
