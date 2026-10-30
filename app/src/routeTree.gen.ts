@@ -14,6 +14,7 @@ import { Route as EditorFilesRouteImport } from './routes/editor-files'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as ApiListenRouteImport } from './routes/api/listen'
+import { Route as AssetsSplatRouteImport } from './routes/assets.$'
 import { Route as EditorAssetsSplatRouteImport } from './routes/editor-assets.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const ApiListenRoute = ApiListenRouteImport.update({
   path: '/api/listen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssetsSplatRoute = AssetsSplatRouteImport.update({
+  id: '/assets/$',
+  path: '/assets/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EditorAssetsSplatRoute = EditorAssetsSplatRouteImport.update({
   id: '/editor-assets/$',
   path: '/editor-assets/$',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
+  '/assets/$': typeof AssetsSplatRoute
   '/editor-assets/$': typeof EditorAssetsSplatRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
+  '/assets/$': typeof AssetsSplatRoute
   '/editor-assets/$': typeof EditorAssetsSplatRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-out': typeof SignOutRoute
   '/api/listen': typeof ApiListenRoute
+  '/assets/$': typeof AssetsSplatRoute
   '/editor-assets/$': typeof EditorAssetsSplatRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/api/listen'
+    | '/assets/$'
     | '/editor-assets/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/api/listen'
+    | '/assets/$'
     | '/editor-assets/$'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/api/listen'
+    | '/assets/$'
     | '/editor-assets/$'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignOutRoute: typeof SignOutRoute
   ApiListenRoute: typeof ApiListenRoute
+  AssetsSplatRoute: typeof AssetsSplatRoute
   EditorAssetsSplatRoute: typeof EditorAssetsSplatRoute
 }
 
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiListenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assets/$': {
+      id: '/assets/$'
+      path: '/assets/$'
+      fullPath: '/assets/$'
+      preLoaderRoute: typeof AssetsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/editor-assets/$': {
       id: '/editor-assets/$'
       path: '/editor-assets/$'
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignOutRoute: SignOutRoute,
   ApiListenRoute: ApiListenRoute,
+  AssetsSplatRoute: AssetsSplatRoute,
   EditorAssetsSplatRoute: EditorAssetsSplatRoute,
 }
 export const routeTree = rootRouteImport
