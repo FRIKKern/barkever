@@ -24,7 +24,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 2. Worktree for anything but `main`: `node scripts/worktree.mjs <name>` (installs, links the env). The main checkout never switches branches.
 3. One journey per branch. Name it in the commit and the Trail: `J03: …`.
 4. `npm run check` before every commit.
-5. `node scripts/land.mjs <name> [--trail <n>]`: rebase, check, queued prepush (secret scan only for text-only changes), push, trail link, fast-forward `main`. No squash. Evidence and change URL on the task.
+5. `node scripts/land.mjs <name> --reviewed <sha> [--trail <n>]`: refuses a head the reviewer did not pass, then rebase, check, queued prepush (secret scan only for text-only changes), push, trail link, fast-forward `main`. No squash. Evidence and change URL on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change.
 
 ## Long unattended runs
