@@ -45,6 +45,14 @@ export function linkAtCaret(el: CanvasElement): string | null {
 
 let loading: Promise<void> | null = null
 
+export const CANVAS_CONTRACT = '1.17.0'
+
+export function atLeast(version: string | undefined, want: string): boolean {
+  const [a, b] = [version ?? '', want].map((v) => v.split('.').map(Number))
+  const i = b.findIndex((n, k) => a[k] !== n)
+  return i === -1 || a[i] > b[i]
+}
+
 async function canvasFiles(): Promise<CanvasFiles> {
   const res = await fetch('/editor-files').catch(() => undefined)
   if (res?.ok) return res.json()
@@ -58,6 +66,8 @@ export function loadCanvas(): Promise<void> {
     for (const href of files.styles) add(Object.assign(document.createElement('link'), {rel: 'stylesheet', href}))
     await new Promise((ok, no) => add(Object.assign(document.createElement('script'), {src: files.script, onload: ok, onerror: () => no(new Error('the editor script did not load'))})))
     await customElements.whenDefined('bp-paper-canvas')
+    const version = (customElements.get('bp-paper-editor') as {CONTRACT_VERSION?: string} | undefined)?.CONTRACT_VERSION
+    if (!atLeast(version, CANVAS_CONTRACT)) throw new Error(`Barkpark serves editor ${version ?? 'of unknown version'}; Barkever needs ${CANVAS_CONTRACT} or newer`)
   })().catch((e) => {
     loading = null
     throw e
