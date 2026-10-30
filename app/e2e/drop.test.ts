@@ -175,9 +175,9 @@ test('a run that did not pass drops nothing', () => {
   for (const status of ['failed', 'timedout', 'interrupted']) assert.deepEqual(toDrop([MINE], status, PID), {drop: [], kept: [`kept ${MINE}: the run did not pass, so it stays to look at`]})
 })
 
-test('the sweep takes only run datasets older than 2 hours, oldest first', () => {
+test('the sweep takes only run datasets older than 2 hours, oldest first, never one stamped in the future', () => {
   const now = Date.UTC(2026, 9, 30, 12, 0, 0)
-  const all = ['e2e-20261030095959-1', 'j10-20261030100000-2', 'e2e-20261030110000-3', 'production', 'fixtures', 'probe-p3h-20261029120000', 'notes-20261029120000', 'e2e-20261030080000-4']
+  const all = ['e2e-20261030095959-1', 'j10-20261030100000-2', 'e2e-20261030110000-3', 'e2e-20261030150000-5', 'production', 'fixtures', 'probe-p3h-20261029120000', 'notes-20261029120000', 'e2e-20261030080000-4']
   assert.deepEqual(stale(all, now), ['e2e-20261030080000-4', 'e2e-20261030095959-1', 'probe-p3h-20261029120000'])
 })
 
