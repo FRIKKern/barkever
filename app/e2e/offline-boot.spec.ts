@@ -23,6 +23,8 @@ const servedBuild = (page: Page) => page.locator('meta[name="barkever-build"]').
 
 const rows = (page: Page) => page.getByTestId('note-row')
 
+const READ_ONLY = 'Read only: the editor could not load (offline, and it is not on this device yet).'
+
 async function loadOnline(page: Page) {
   await page.goto(ORIGIN)
   await expect(rows(page).first()).toBeVisible({timeout: 30_000})
@@ -51,7 +53,47 @@ test('offline cold start: a new tab shows the signed-in user’s notes from the 
   await cold.evaluate(async () => (await caches.open('barkever-a')).delete('/editor-files'))
   const bare = await context.newPage()
   await bare.goto(`${ORIGIN}/?n=fx-note-01`)
-  await expect(bare.getByTestId('body')).toContainText('Read only: the editor could not load (offline, and it is not on this device yet).')
+  await expect(bare.getByTestId('body')).toContainText(READ_ONLY)
+})
+
+async function editorUncached(page: Page) {
+  await loadOnline(page)
+  await expect.poll(() => kept(page)).toMatchObject({controlled: true, editor: true})
+  await page.evaluate(async () => (await caches.open('barkever-a')).delete('/editor-files'))
+  await stop()
+}
+
+async function editable(page: Page) {
+  await expect(page.getByTestId('canvas').locator('[contenteditable="true"]')).toBeVisible({timeout: 30_000})
+  await expect(page.getByTestId('body')).not.toContainText('Read only')
+}
+
+test('a note opened offline before the editor is on the device turns editable when the network returns, without a reload', async ({context}, info) => {
+  await serve('a')
+  await editorUncached(await context.newPage())
+  await context.setOffline(true)
+  const page = await context.newPage()
+  await page.goto(`${ORIGIN}/?n=fx-note-01`)
+  await expect(page.getByTestId('body')).toContainText(READ_ONLY)
+  await page.evaluate(() => Object.assign(window, {sameDocument: true}))
+  await serve('a')
+  await context.setOffline(false)
+  await editable(page)
+  expect(await page.evaluate(() => 'sameDocument' in window)).toBe(true)
+  await page.screenshot({path: info.outputPath('offline-retry-online.png')})
+  await page.evaluate(() => new Promise((done) => (dispatchEvent(new Event('online')), setTimeout(done))))
+  await expect(page.getByTestId('canvas')).toHaveCount(1)
+})
+
+test('when Barkpark answers again but the browser never went offline, the next note open loads the editor', async ({context}) => {
+  await serve('a')
+  await editorUncached(await context.newPage())
+  const page = await context.newPage()
+  await page.goto(`${ORIGIN}/?n=fx-note-01`)
+  await expect(page.getByTestId('body')).toContainText('Read only: the editor could not load')
+  await serve('a')
+  await rows(page).filter({hasNotText: 'Harbor redesign: sitemap'}).first().click()
+  await editable(page)
 })
 
 test('online but the server is gone: the app says it can’t reach Barkpark and keeps the change on the device', async ({context}) => {

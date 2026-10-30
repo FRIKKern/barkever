@@ -103,7 +103,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       const to = linkAtCaret(e.currentTarget as CanvasElement)
       if (live(to)) (e.preventDefault(), go(to))
     }
-    loadCanvas().then(
+    const mount = () => loadCanvas().then(
       () => {
         if (gone || !host.current) return
         const el = document.createElement('bp-paper-canvas') as CanvasElement
@@ -130,8 +130,13 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         setState({live: true})
         if (wantFocus.current) focusCanvas()
       },
-      (e: Error) => !gone && setState({live: false, blocked: e.message}),
+      (e: Error) => {
+        if (gone) return
+        setState({live: false, blocked: e.message})
+        addEventListener('online', mount, {once: true})
+      },
     )
+    mount()
     addEventListener('pagehide', flush)
     return () => {
       gone = true
