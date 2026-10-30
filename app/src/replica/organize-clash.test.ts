@@ -80,9 +80,10 @@ test('a notebook copy holds no tags, so Keep this on it leaves the tags typed si
 
 test('Keep this on a copy stored before copies held tags or notebook leaves both alone', () => {
   const main = {...r0, tags: ['keep-me'], conflicts: [copy('k1', '1', {}, ['tags']), copy('k2', '2', {}, ['notebook'])]}
-  const tagged = keep(main, 'k1', main, AT, 'local-k', 'A')
-  const moved = keep(tagged, 'k2', tagged, AT, 'local-k2', 'A')
-  assert.deepEqual([tagged.tags, tagged.notebook, moved.tags, moved.notebook, moved.conflicts], [['keep-me'], nb('inbox'), ['keep-me'], nb('inbox'), []])
+  for (const key of ['k1', 'k2']) {
+    const kept = keep(main, key, main, AT, 'local-k', 'A')
+    assert.deepEqual([kept.tags, kept.notebook, kept.conflicts], [['keep-me'], nb('inbox'), []], key)
+  }
 })
 
 test('one writer takes the note out of every notebook while another moves it: the copy keeps "no notebook" through JSON, and Keep this unfiles the note', () => {
@@ -112,4 +113,12 @@ test('an old copy whose held text is text I typed over goes, even though it list
   const a = mergeLocal(r0, {title: 'Plan'}, {title: 'Mine'}, AT, 'local-1', 'A', r0)
   const theirs = {...r0, _rev: 'r1', conflicts: [copy('k1', '1', {title: 'Plan'}, ['title', 'tags'])]}
   assert.deepEqual(mergeNote(r0, a, theirs, AT, 'A').conflicts, [])
+})
+
+test('Keep this on a copy with no title or no body field leaves the title and the blocks it lists alone', () => {
+  const main = {...r0, title: 'Mine', body: {blocks: [{id: 's1', type: 'paragraph', content: [{type: 'text', value: 'S1'}]}]}, conflicts: [copy('k1', '1', {title: undefined}, ['title']), copy('k2', '2', {body: undefined}, ['body:s1'])]} as Note
+  for (const key of ['k1', 'k2']) {
+    const kept = keep(main, key, main, AT, 'local-k', 'A')
+    assert.deepEqual([kept.title, kept.body?.blocks.map((b) => b.id)], ['Mine', ['s1']], key)
+  }
 })
