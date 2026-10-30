@@ -64,3 +64,17 @@ export async function dropEach(datasets: string[], one: (dataset: string) => Pro
   }
   return true
 }
+
+export async function sweep(listed: Response, now: number, yes: boolean, one: (dataset: string) => Promise<Dropped>, say: (line: string) => void): Promise<boolean> {
+  if (!listed.ok) throw new Error(`listing datasets: Barkpark ${listed.status}`)
+  const all = ((await listed.json()) as {datasets: {slug: string}[]}).datasets.map((d) => d.slug)
+  const old = stale(all, now)
+  say(`${all.length} datasets, ${old.length} leftover run datasets older than 2 hours${yes ? '' : ' (dry run; --yes deletes them)'}:`)
+  if (!yes) {
+    for (const name of old) say(`  ${name}`)
+    return true
+  }
+  if (await dropEach(old, one, say)) return true
+  say('stopped: the last dataset is not gone, so the rest wait for the next sweep')
+  return false
+}

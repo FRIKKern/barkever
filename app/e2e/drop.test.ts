@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
-import {drop, dropEach, stale, toDrop, type Send} from './drop.ts'
+import {drop, dropEach, stale, sweep, toDrop, type Dropped, type Send} from './drop.ts'
 
 type Call = {path: string; query: string; method: string; at: number}
 type Reply = number | {status: number; reason?: string; code?: string; retryAfter?: number; id?: string | null; html?: boolean}
@@ -178,4 +178,38 @@ test('the sweep takes only run datasets older than 2 hours, oldest first', () =>
   const now = Date.UTC(2026, 9, 30, 12, 0, 0)
   const all = ['e2e-20261030095959-1', 'j10-20261030100000-2', 'e2e-20261030110000-3', 'production', 'fixtures', 'probe-p3h-20261029120000', 'notes-20261029120000', 'e2e-20261030080000-4']
   assert.deepEqual(stale(all, now), ['e2e-20261030080000-4', 'e2e-20261030095959-1', 'probe-p3h-20261029120000'])
+})
+
+const NOW = Date.UTC(2026, 9, 30, 12, 0, 0)
+const OLD = ['e2e-20261030080000-1', 'j10-20261030090000-2']
+const listing = (slugs: string[]) => new Response(JSON.stringify({datasets: slugs.map((slug) => ({slug}))}), {headers: {'content-type': 'application/json'}})
+
+function sweeper(answers: Record<string, boolean>) {
+  const tried: string[] = []
+  const said: string[] = []
+  const one = async (d: string): Promise<Dropped> => (tried.push(d), {gone: answers[d] ?? true, said: `${d} ${answers[d] ?? true}`})
+  return {tried, said, one, say: (l: string) => said.push(l)}
+}
+
+test('the sweep is a dry run without --yes: it names the old run datasets and deletes nothing', async () => {
+  const s = sweeper({})
+  assert.equal(await sweep(listing([...OLD, 'e2e-20261030113000-3', 'production']), NOW, false, s.one, s.say), true)
+  assert.deepEqual(s.tried, [])
+  assert.deepEqual(s.said, ['4 datasets, 2 leftover run datasets older than 2 hours (dry run; --yes deletes them):', ...OLD.map((n) => `  ${n}`)])
+})
+
+test('the sweep with --yes deletes only the old run datasets, one at a time, and stops at one that is not gone', async () => {
+  const all = sweeper({})
+  assert.equal(await sweep(listing([...OLD, 'e2e-20261030113000-3', 'production']), NOW, true, all.one, all.say), true)
+  assert.deepEqual(all.tried, OLD)
+  const stuck = sweeper({[OLD[0]!]: false})
+  assert.equal(await sweep(listing(OLD), NOW, true, stuck.one, stuck.say), false)
+  assert.deepEqual(stuck.tried, [OLD[0]])
+  assert.match(stuck.said.at(-1)!, /^stopped: /)
+})
+
+test('a failed listing stops the sweep before any delete', async () => {
+  const s = sweeper({})
+  await assert.rejects(sweep(new Response('no', {status: 401}), NOW, true, s.one, s.say), /listing datasets: Barkpark 401/)
+  assert.deepEqual(s.tried, [])
 })
