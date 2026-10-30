@@ -31,6 +31,10 @@ test('C2 a CSC_NAME shorthand that is not one exact Developer ID name refuses an
   assert.throws(() => pick({CSC_NAME: 'Jane Doe'}, devId(4, 'Jane Doe Consulting AS (TEAM999999)'), devId(3)), new RegExp(`matches 0 .*Jane Doe Consulting AS \\(TEAM999999\\) ${h(4)} \\| Jane Doe \\(TEAM111111\\) ${h(3)}`))
 })
 
+test('a CSC_NAME that is only a suffix of the one Developer ID name refuses', () => {
+  for (const part of ['Doe (TEAM111111)', '(TEAM111111)']) assert.throws(() => pick({CSC_NAME: part}, devId(3)), /matches 0/)
+})
+
 test('C3 CSC_NAME refuses when only an Apple Development cert carries the name', () => {
   assert.throws(() => pick({CSC_NAME: 'Jane Doe'}, [h(1), 'Apple Development: Jane Doe (PERS222222)']), /matches 0 .*: none$/)
 })
