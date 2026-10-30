@@ -35,9 +35,13 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   const text = (value: string) => ({type: 'text', value})
   const blocks = [
     {id: 'h', type: 'heading', level: 2, text: 'Old heading'},
+    {id: 'h1', type: 'heading', level: 2, text: '', content: [{type: 'strong', children: [text('Saved empty, then bold')]}]},
     {id: 'h0', type: 'heading', level: 3},
+    {id: 'h4', type: 'heading', level: 3, text: '', content: [text('Third level')]},
     {id: 'p0', type: 'paragraph'},
     {id: 'p', type: 'paragraph', content: [text('See '), {type: 'wikilink', target: 'Old name', docId: 'fx-note-01', children: [text('Old name')]}, text(' and '), {type: 'strong'}, {type: 'strong', children: [text('bold')]}, text('.')]},
+    {id: 'pt', type: 'paragraph', text: 'Plain paragraph'},
+    {id: 'pl', type: 'paragraph', content: [{type: 'text', text: 'Legacy leaf'}]},
   ]
   const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: {_id: SHAPES, _type: 'note', title: 'Old shapes', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}}]})})
   expect(res.status).toBe(200)
@@ -45,9 +49,9 @@ test('the read-only body reads old and empty block shapes, and shows a link by i
   await page.addInitScript(oldEditor)
   await page.goto(`/?n=${SHAPES}`)
   const body = page.getByTestId('body')
-  await expect(body.locator('h2')).toHaveText('Old heading', {timeout: 30_000})
-  await expect(body.locator('h3')).toHaveText('')
-  await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`])
+  await expect(body.locator('h2')).toHaveText(['Old heading', 'Saved empty, then bold'], {timeout: 30_000})
+  await expect(body.locator('h3')).toHaveText(['', 'Third level'])
+  await expect(body.locator('p')).toHaveText(['', `See ${linked} and bold.`, 'Plain paragraph', 'Legacy leaf'])
   await expect(body.locator('a.wl')).toHaveAttribute('href', /n=fx-note-01/)
   await page.screenshot({path: test.info().outputPath('j05-guard-shapes-dark-1440.png')})
   expect(errors).toEqual([])
