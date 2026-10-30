@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
-import {launchDriven, launchPlain} from './launch.ts'
+import {keepTraceOnFailure, launchDriven, launchPlain} from './launch.ts'
 
 test.describe.configure({mode: 'serial'})
 
@@ -15,6 +15,7 @@ const NOTE = 'Harbor redesign: sitemap'
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
+test.afterEach(({}, info) => keepTraceOnFailure(info))
 
 const rows = (page: Page) => page.getByTestId('note-row')
 const noteId = (page: Page) => new URL(page.url()).searchParams.get('n')
@@ -152,4 +153,31 @@ test('criterion 2 on the real Keychain: sign in, quit, relaunch signed in, cooki
   expect((await cookieInJar(again.browser))?.value).toBe(cookie.value)
   await signOut(again.page)
   await again.quit()
+})
+
+test('a window that commits while the worker claims is still kept for offline', async () => {
+  let install = () => {}
+  const installing = new Promise<void>((ok) => (install = ok))
+  let claimed = () => {}
+  const claim = new Promise<void>((ok) => (claimed = ok))
+  let signingIn = false
+  const app = await launchDriven(profile())
+  await app.context().route('**/*', async (route) => {
+    const r = route.request()
+    const path = new URL(r.url()).pathname
+    if (r.serviceWorker() && path.startsWith('/assets/')) await installing
+    else if (r.serviceWorker() && path === '/') claimed()
+    else if (signingIn && r.isNavigationRequest() && path === '/') {
+      signingIn = false
+      install()
+      await claim
+    }
+    await route.continue()
+  })
+  const page = await app.firstWindow()
+  await expect(page).toHaveURL(/\/sign-in/, {timeout: 30_000})
+  signingIn = true
+  await signIn(page)
+  await expect.poll(() => kept(page), {timeout: 20_000}).toBe(true)
+  await app.close()
 })

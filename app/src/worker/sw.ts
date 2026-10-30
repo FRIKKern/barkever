@@ -76,7 +76,7 @@ async function stored(e: Fetching) {
 
 addEventListener('install', (e) => (e as Waiting).waitUntil(install()))
 addEventListener('activate', (e) => (e as Waiting).waitUntil(activate()))
-addEventListener('message', (e: Event) => (e as Waiting).waitUntil(fill()))
+addEventListener('message', (e: Event) => (e as Waiting).waitUntil(Promise.all([worker.clients.claim(), fill()])))
 addEventListener('fetch', (event) => {
   const e = event as Fetching
   const url = new URL(e.request.url)
