@@ -67,3 +67,13 @@ test('a clash with a side that has no tags field keeps "no tags" in the copy, an
   assert.deepEqual(merged.conflicts?.map((c) => [c.clash, c.tags]), [[['tags'], []]])
   assert.deepEqual(keep(merged, merged.conflicts![0]._key, merged, AT, 'local-k', 'A').tags, [])
 })
+
+test('a notebook copy holds no tags, so Keep this on it leaves the tags typed since', () => {
+  const r1 = {...sign({...r0, tags: ['from-b'], notebook: nb('work')}, 'B'), _rev: 'r1'}
+  const a = mergeLocal(r0, {notebook: nb('inbox')}, {notebook: nb('home')}, AT, 'local-1', 'A', r0)
+  const merged = mergeNote(r0, a, r1, AT, 'A')
+  const [c] = merged.conflicts!
+  assert.deepEqual([merged.tags, c.clash, c.tags], [['from-b'], ['notebook'], undefined])
+  const retagged = {...merged, tags: ['since']}
+  assert.deepEqual([keep(retagged, c._key, retagged, AT, 'local-k', 'A')].map((n) => [n.notebook?._ref, n.tags]), [['work', ['since']]])
+})
