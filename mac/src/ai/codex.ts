@@ -32,7 +32,7 @@ export const codexArgs = (system: string) => [
 
 function run(bin: string, args: string[], cwd: string, env: Record<string, string>, timeout: number, input: string) {
   return new Promise<{out: string; err: string; code: number | null}>((done, fail) => {
-    const child = spawn(bin, args, {cwd, env, timeout})
+    const child = spawn(bin, args, {cwd, env, timeout, killSignal: 'SIGKILL'})
     let out = ''
     let err = ''
     child.stdout.on('data', (d) => (out += d))
@@ -48,9 +48,11 @@ export const codex = (bin: string): Provider => ({
   async run({system, prompt, schema, cwd, env, timeoutMs}) {
     writeFileSync(join(cwd, 'schema.json'), JSON.stringify(schema))
     const {out, err, code} = await run(bin, codexArgs(system), cwd, env, timeoutMs, prompt)
-    const events = out.split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l) as Event)
+    const events = out.split('\n').filter(Boolean).map((l) => JSON.parse(l) as Event)
     if (code !== 0) throw new Error(events.find((e) => e.type === 'turn.failed')?.error?.message ?? `codex exited with ${code}: ${err.trim()}`)
-    const usage = events.find((e) => e.type === 'turn.completed')!.usage!
+    const done = events.find((e) => e.type === 'turn.completed')
+    if (!done) throw new Error('codex stopped before the turn completed')
+    const usage = done.usage!
     return {data: JSON.parse(readFileSync(join(cwd, 'answer.json'), 'utf8')), model: 'codex', tokens: usage.input_tokens + usage.output_tokens, costUsd: null}
   },
 })

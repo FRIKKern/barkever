@@ -10,6 +10,7 @@ const flags = [
   {name: 'MCP config is not strict', ok: args.includes('--strict-mcp-config') && !args.includes('--mcp-config')},
   {name: 'tools are on', ok: args.includes('--tools') && after('--tools') === ''},
   {name: 'no JSON schema', ok: args.includes('--json-schema')},
+  {name: 'the session is kept', ok: args.includes('--no-session-persistence')},
 ]
 let system = ''
 const base = () => ({session_id: 's', uuid: 'u', duration_ms: 1, duration_api_ms: 1, num_turns: 1})

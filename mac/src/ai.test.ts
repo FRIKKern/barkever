@@ -104,6 +104,12 @@ test('a citation must name a note that was sent and quote it', () => {
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-9', quote: 'Decision: drop the carousel.'}]}, NOTES), /not in note fx-note-9/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: 'Decision: drop the carousel.'}]}, NOTES), /not in note fx-note-1/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: '  '}]}, NOTES), /not in note fx-note-1/)
+  assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: 'e'}]}, NOTES), /not in note fx-note-1/)
+  assert.throws(() => checked({...ok, citations: [{id: 'fx-note-2', quote: 'ecision: drop'}]}, NOTES), /not in note fx-note-2/)
+  assert.throws(() => checked({...ok, citations: [{id: 'fx-note-2', quote: 'Decision: dro'}]}, NOTES), /not in note fx-note-2/)
+  assert.throws(() => checked({...ok, citations: [{id: 'fx-note-9', quote: 'undefined'}]}, NOTES), /not in note fx-note-9/)
+  assert.deepEqual(checked({...ok, citations: [{id: 'fx-note-2', quote: 'drop the'}]}, NOTES).citations, [{id: 'fx-note-2', quote: 'drop the'}])
+  assert.deepEqual(checked({...ok, citations: [{id: 'fx-note-2', quote: '(drop) the'}]}, NOTES.map((n) => (n.id === 'fx-note-2' ? {...n, text: 'Decision: (drop) the carousel.'} : n))).citations.length, 1)
   assert.deepEqual(checked({...ok, answer: 'From the title [1].', citations: [{id: 'fx-note-3', quote: 'Book the dentist'}]}, NOTES).citations, [{id: 'fx-note-3', quote: 'Book the dentist'}])
 })
 
@@ -118,7 +124,7 @@ test('every [n] in the answer points at a citation, and a found answer cites at 
 const both = (dir: string) => [claude(join(dir, 'claude')), codex(join(dir, 'codex'))]
 const carousel = {question: 'What did we decide about the carousel?', notes: NOTES}
 
-test('when claude fails, codex answers in its own fresh folder with user config, rules and tools off', async () => {
+test('when claude fails, codex answers in its own fresh folder with config.toml, rules and tools off', async () => {
   const fake = fakeBin({claude: 'fail'})
   const a = await ask(carousel, {providers: both(fake.dir), budget: roomy(), env: env(fake.dir)})
   assert.equal(a.provider, 'codex')
@@ -159,7 +165,7 @@ test('a request too long to send is refused before any call', async () => {
   assert.equal(fake.calls().length, 0)
 })
 
-test('a CLI that never answers is stopped at the timeout', async () => {
+test('a CLI that never answers, even one that ignores SIGTERM, is stopped at the timeout', {timeout: 20_000}, async () => {
   const fake = fakeBin({claude: 'hang', codex: 'hang'})
   const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake.dir), timeoutMs: 500})
   const started = Date.now()
@@ -193,4 +199,30 @@ test('claude reports a usage limit as its own message, and a run that ends witho
   await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /^Error: Claude AI usage limit reached$/)
   fake.behave({claude: 'quiet'})
   await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /claude stopped without an answer/)
+})
+
+test('an answer of the wrong shape says so', () => {
+  const ok = {found: true, answer: 'Dropped [1].', citations: [{id: 'fx-note-2', quote: 'Decision: drop the carousel.'}]}
+  for (const bad of [null, {...ok, found: 'yes'}, {...ok, answer: 1}, {...ok, citations: undefined}, {...ok, citations: [null]}, {...ok, citations: [{id: 2, quote: 'x'}]}, {...ok, citations: [{id: 'fx-note-2', quote: 3}]}])
+    assert.throws(() => checked(bad, NOTES), /^Error: the answer has the wrong shape$/)
+})
+
+test('codex that exits 0 without completing the turn says so', async () => {
+  const fake = fakeBin({codex: 'no-turn'})
+  await assert.rejects(ask(carousel, {providers: [codex(join(fake.dir, 'codex'))], budget: roomy(), env: env(fake.dir)}), /codex: codex stopped before the turn completed/)
+})
+
+test('a sender with no frame gets an error, not a rejected call', async () => {
+  const fake = fakeBin()
+  const handle = askHandler('http://127.0.0.1:4100', () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake.dir)}))
+  assert.match(((await handle({senderFrame: null}, carousel)) as {error: string}).error, /./)
+  assert.equal(fake.calls().length, 0)
+})
+
+test('known limit (decision 0030): codex still reads the AGENTS.md in CODEX_HOME', async () => {
+  const fake = fakeBin({claude: 'fail'})
+  const home = mkdtempSync(join(tmpdir(), 'barkever-codex-home-'))
+  writeFileSync(join(home, 'AGENTS.md'), 'SYNTHETIC-MARKER')
+  await ask(carousel, {providers: both(fake.dir), budget: roomy(), env: env(fake.dir, {CODEX_HOME: home})})
+  assert.equal(fake.calls().find((c) => c.cli === 'codex')!.userInstructions, 'SYNTHETIC-MARKER')
 })

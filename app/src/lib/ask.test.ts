@@ -12,6 +12,12 @@ test('question words drop short and common words, in English and Norwegian, and 
   assert.deepEqual(askWords('What did we decide about the carousel, the CAROUSEL?'), ['decide', 'carousel'])
   assert.deepEqual(askWords('Hva har vi bestemt om karusellen?'), ['bestemt', 'karusellen'])
   assert.deepEqual(askWords('?! …'), [])
+  const every =
+    'the and for are was were what when where which who whom why how did does our you your his her its their with from that this have has had ' +
+    'not but can will would should about into over than then them they there these those been any all some just also only very more most ' +
+    'som det den har var hva når hvor hvem hvorfor hvordan med fra til ikke men kan vil skal blir ble jeg dere han hun meg oss deg seg ' +
+    'sin sitt sine min mitt mine vår vårt våre hadde'
+  assert.deepEqual(askWords(every), [])
 })
 
 test('Ask reads the notes J03 search finds for each question word, typos included', () => {

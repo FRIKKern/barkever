@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const {readFileSync, writeFileSync} = require('node:fs')
-const {hangs, record, refusal, reply} = require('./answer.cjs')
+const {behavior, hangs, record, refusal, reply, userInstructions} = require('./answer.cjs')
 
 const args = process.argv.slice(2)
 const joined = args.join(' ')
@@ -22,7 +22,7 @@ const need = [
 const flags = [...need.map((n) => ({name: `missing ${n}`, ok: ` ${joined} `.includes(` ${n} `)})), {name: 'prompt not read from stdin', ok: args.at(-1) === '-'}]
 const system = JSON.parse(args.find((a) => a.startsWith('developer_instructions=')).slice('developer_instructions='.length))
 const prompt = readFileSync(0, 'utf8')
-record('codex', {args, system, prompt})
+record('codex', {args, system, prompt, userInstructions: userInstructions()})
 if (hangs('codex')) return
 const wrong = refusal('codex', flags, ['schema.json'])
 out({type: 'thread.started', thread_id: 'fake'})
@@ -32,4 +32,5 @@ if (wrong) {
 }
 JSON.parse(readFileSync('schema.json', 'utf8'))
 writeFileSync('answer.json', JSON.stringify(reply('codex', prompt)))
+if (behavior('codex') === 'no-turn') process.exit(0)
 out({type: 'turn.completed', usage: {input_tokens: 700, cached_input_tokens: 100, output_tokens: 50}})

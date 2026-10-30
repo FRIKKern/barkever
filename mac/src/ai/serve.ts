@@ -17,8 +17,8 @@ export const OTHER_ORIGIN = 'Ask answers Barkever only.'
 
 export function askHandler(origin: string, ai: () => Ai) {
   return async (e: Sender, req: AskRequest): Promise<Asked | {error: string}> => {
-    if (new URL(e.senderFrame!.url).origin !== origin) return {error: OTHER_ORIGIN}
     try {
+      if (new URL(e.senderFrame!.url).origin !== origin) return {error: OTHER_ORIGIN}
       return await ask(req, ai())
     } catch (err) {
       return {error: (err as Error).message}

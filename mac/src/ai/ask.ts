@@ -9,6 +9,7 @@ export type Answer = {found: boolean; answer: string; citations: Citation[]}
 export type Asked = Answer & {provider: string; model: string; tokens: number; costUsd: number | null; read: number}
 
 export const MAX_REQUEST = 120_000
+export const MIN_QUOTE = 8
 export const TIMEOUT_MS = 90_000
 
 export const SYSTEM = [
@@ -37,10 +38,18 @@ export const prompt = ({question, notes}: AskRequest) => `Question: ${question}\
 
 const squash = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const wholeWords = (quote: string) => new RegExp(`(?<![\\p{L}\\p{N}])${escape(squash(quote))}(?![\\p{L}\\p{N}])`, 'u')
+
+const isAnswer = (d: Answer) =>
+  typeof d?.found === 'boolean' && typeof d.answer === 'string' && Array.isArray(d.citations) && d.citations.every((c) => typeof c?.id === 'string' && typeof c.quote === 'string')
+
 export function checked(data: unknown, notes: AskNote[]): Answer {
+  if (!isAnswer(data as Answer)) throw new Error('the answer has the wrong shape')
   const {found, answer, citations} = data as Answer
   const text = new Map(notes.map((n) => [n.id, squash(`${n.title}\n${n.text}`)]))
-  const bad = citations.find((c) => !squash(c.quote) || !text.get(c.id)?.includes(squash(c.quote)))
+  const bad = citations.find((c) => squash(c.quote).length < MIN_QUOTE || !wholeWords(c.quote).test(text.get(c.id) ?? ''))
   if (bad) throw new Error(`cited “${bad.quote}”, which is not in note ${bad.id}`)
   const marks = [...answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]))
   if (marks.some((n) => n < 1 || n > citations.length)) throw new Error('the answer points at a citation it does not have')

@@ -9,6 +9,11 @@ function behavior(cli) {
   return (existsSync(file) && JSON.parse(readFileSync(file, 'utf8'))[cli]) || 'answer'
 }
 
+function userInstructions() {
+  const file = join(process.env.CODEX_HOME || join(process.env.HOME, '.codex'), 'AGENTS.md')
+  return existsSync(file) ? readFileSync(file, 'utf8') : ''
+}
+
 function record(cli, call) {
   appendFileSync(join(HERE, 'calls.jsonl'), JSON.stringify({cli, cwd: process.cwd(), env: Object.keys(process.env), ...call}) + '\n')
 }
@@ -22,7 +27,7 @@ function refusal(cli, flags, own = []) {
   if (behavior(cli) === 'fail') return `fake ${cli}: not signed in`
 }
 
-const hangs = (cli) => behavior(cli) === 'hang' && setInterval(() => {}, 1000)
+const hangs = (cli) => behavior(cli) === 'hang' && (process.on('SIGTERM', () => {}), setInterval(() => {}, 1000))
 
 const WORD = /[\p{L}\p{N}]{4,}/gu
 
@@ -43,4 +48,4 @@ function reply(cli, prompt) {
   return typeof b === 'object' ? b.reply : answerFor(prompt)
 }
 
-module.exports = {behavior, hangs, record, refusal, reply}
+module.exports = {behavior, hangs, record, refusal, reply, userInstructions}

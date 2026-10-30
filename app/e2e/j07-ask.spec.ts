@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test'
 
 type Sent = {question: string; notes: {id: string; title: string; text: string}[]}
-type Mode = 'claude' | 'codex' | 'error' | 'missing'
+type Mode = 'claude' | 'codex' | 'error' | 'missing' | 'reject' | 'slow'
 
 const ask = async (page: Page, question: string) => {
   await page.getByLabel('Ask about your notes').fill(question)
@@ -12,12 +12,14 @@ const mode = (page: Page, m: Mode) => page.evaluate((m) => ((window as unknown a
 
 function stubBridge(page: Page) {
   return page.addInitScript(() => {
-    const w = window as unknown as {asks: Sent[]; mode: Mode; barkever: unknown}
+    const w = window as unknown as {asks: Sent[]; mode: Mode; barkever: unknown; release: () => void}
     w.asks = []
     w.mode = 'claude'
     w.barkever = {
       ask: async (req: Sent) => {
         w.asks.push(req)
+        if (w.mode === 'reject') throw new Error('the Mac app went away')
+        if (w.mode === 'slow') await new Promise<void>((done) => (w.release = done))
         if (w.mode === 'error') return {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'}
         if (w.mode === 'missing') return {found: false, answer: 'No date is written down.', citations: [], provider: 'claude', model: 'fake-sonnet', tokens: 900, costUsd: 0.001, read: req.notes.length}
         const hits = req.notes.flatMap((n) => n.text.split(/(?<=\.)\s+|\n+/).filter((s) => /carousel/i.test(s)).slice(0, 1).map((quote) => ({id: n.id, title: n.title, quote})))
@@ -78,6 +80,16 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · codex · your login · 1,234 tokens')
 
+  await mode(page, 'slow')
+  await ask(page, 'carousel')
+  await expect(page.locator('.a.meta').last()).toHaveText('Reading 2 notes…')
+  await page.evaluate(() => (window as unknown as {release: () => void}).release())
+  await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · fake-sonnet · your login · ≈ $0.002')
+
+  await mode(page, 'reject')
+  await ask(page, 'carousel')
+  await expect(page.getByTestId('ask-error').last()).toContainText('the Mac app went away')
+
   await mode(page, 'missing')
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-answer').last()).toHaveText('Not in your notes.No date is written down.Checked 2 notes · fake-sonnet · your login · ≈ $0.001')
@@ -89,7 +101,7 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
 
   await mode(page, 'error')
   await ask(page, 'carousel')
-  await expect(page.getByTestId('ask-error')).toHaveText('Ask failed.claude: fake claude: not signed in · codex: fake codex: not signed in')
+  await expect(page.getByTestId('ask-error').last()).toHaveText('Ask failed.claude: fake claude: not signed in · codex: fake codex: not signed in')
 
   await page.getByTestId('ai-switch').uncheck()
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')

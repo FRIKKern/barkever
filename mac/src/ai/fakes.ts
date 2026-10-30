@@ -5,8 +5,8 @@ import {fileURLToPath} from 'node:url'
 
 const FAKES = fileURLToPath(new URL('../../test/fake', import.meta.url))
 
-export type FakeCall = {cli: string; cwd: string; env: string[]; args: string[]; system: string; prompt: string}
-export type Behavior = 'answer' | 'fail' | 'hang' | 'quiet' | 'limit' | {reply: unknown}
+export type FakeCall = {cli: string; cwd: string; env: string[]; args: string[]; system: string; prompt: string; userInstructions?: string}
+export type Behavior = 'answer' | 'fail' | 'hang' | 'quiet' | 'limit' | 'no-turn' | {reply: unknown}
 
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'barkever-fake-bin-'))

@@ -82,7 +82,7 @@ export function AskPanel({w, s}: {w: World; s: Search}) {
     setQ('')
     setTurns((t) => [...t, turn])
     if (!turn.sent.length) return
-    const reply = await api!.ask({question, notes: turn.sent.map(asked)})
+    const reply = await api!.ask({question, notes: turn.sent.map(asked)}).catch((e: Error): AskReply => ({error: e.message}))
     setTurns((t) => t.map((x) => (x.id === turn.id ? {...x, reply} : x)))
   }
 

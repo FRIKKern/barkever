@@ -13,4 +13,6 @@ Electron main ─► claude (Agent SDK)  settingSources [] · --strict-mcp-confi
 
 **Why.** The Codex SDK 0.155 only passes `--config k=v`. It cannot ignore the user's config.toml or rules, so their MCP servers would load. That breaks 0007's strict MCP.
 
+**Limit.** `--ignore-user-config` skips config.toml only. A probe against a local fake model server (no model call) showed `$CODEX_HOME/AGENTS.md` still sent as user instructions; no `-c` key dropped it. A fresh CODEX_HOME would need a copy of auth.json, which a token refresh could strand. The same probe showed one tool left, `request_user_input`. Fake codex reads AGENTS.md too, and a test names the limit.
+
 **Instead of.** The Codex SDK with config overrides.
