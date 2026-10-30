@@ -33,6 +33,7 @@ test('Ask reads at most a few notes, best score first, then newest', () => {
   assert.deepEqual(pickNotes(tie, 'harbor quarry').map((n) => n.id), ['c', 'b', 'a'])
   const rare = [note('common', 'harbor sync', '2026-03-01'), note('x', 'sync', '2026-01-01'), note('y', 'sync', '2026-01-01'), note('only', 'harbor', '2025-01-01')]
   assert.deepEqual(pickNotes(rare, 'harbor sync').map((n) => n.id), ['common', 'only', 'x', 'y'])
+  assert.deepEqual(pickNotes([note('old', 'alpha', '2025-01-01'), note('new', 'beta', '2026-01-01')], 'alpha beta').map((n) => n.id), ['new', 'old'])
 })
 
 test('a note goes out as id, title and text, cut at the per-note cap', () => {

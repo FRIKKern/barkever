@@ -1,4 +1,4 @@
-# 0029 Codex runs as `codex exec`, not the Codex SDK
+# 0030 Codex runs as `codex exec`, not the Codex SDK
 
 Accepted 2026-10-30. Supersedes the codex line of [0007](0007-ai-on-subscriptions.md).
 
