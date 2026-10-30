@@ -18,8 +18,6 @@
        {"name": "at", "title": "Kept at", "type": "string"},
        {"name": "title", "title": "Title", "type": "string"},
        {"name": "body", "title": "Body", "type": "richText", "editor": "blocks"},
-       {"name": "tags", "title": "Tags", "type": "arrayOf", "ordered": true, "of": {"type": "string"}},
-       {"name": "notebook", "title": "Notebook", "type": "reference", "refType": "notebook"},
        {"name": "clash", "title": "Clashing parts", "type": "arrayOf", "of": {"type": "string"}}]}}
   ],
   "listPreview": {"title": "title", "subtitle": "notebook"}
