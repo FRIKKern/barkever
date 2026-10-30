@@ -163,10 +163,11 @@ const MINE = `e2e-20261030080000-${PID}`
 
 test('a passing run drops only the datasets it made itself', () => {
   const other = `e2e-20261030080000-${PID + 1}`
+  const longerPid = `e2e-20261030080000-1${PID}`
   const named = 'probe-p3g-latest'
-  assert.deepEqual(toDrop([MINE, `j10-20261030080000-${PID}`, other, named, 'production', 'fixtures'], 'passed', PID), {
+  assert.deepEqual(toDrop([MINE, `j10-20261030080000-${PID}`, other, longerPid, named, 'production', 'fixtures'], 'passed', PID), {
     drop: [MINE, `j10-20261030080000-${PID}`],
-    kept: [other, named, 'production', 'fixtures'].map((d) => `kept ${d}: this run did not make it`),
+    kept: [other, longerPid, named, 'production', 'fixtures'].map((d) => `kept ${d}: this run did not make it`),
   })
 })
 
