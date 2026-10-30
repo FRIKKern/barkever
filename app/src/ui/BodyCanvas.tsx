@@ -93,6 +93,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         if (gone || !host.current) return
         const el = document.createElement('bp-paper-canvas') as CanvasElement
         el.acknowledgedSaves = true
+        el.flushKeepsSource = true
         el.blocks = latest.current.blocks
         el.wikilinkSource = (q) => links.current.pick(q)
         el.linkPreviewSource = ({kind, docId, target}) => (kind === 'wikilink' ? links.current.preview(docId || target || '') : null)

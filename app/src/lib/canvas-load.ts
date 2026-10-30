@@ -9,6 +9,7 @@ export type CanvasOps = {seq: number}
 export type CanvasElement = HTMLElement & {
   blocks: Block[]
   acknowledgedSaves: boolean
+  flushKeepsSource: boolean
   wikilinkSource: (query: string) => Candidate[]
   linkPreviewSource: (link: {kind: string; docId: string | null; target: string | null}) => Preview | null
   wikilinkResolve: (docId: string) => Resolved
