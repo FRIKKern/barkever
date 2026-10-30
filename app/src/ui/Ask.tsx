@@ -1,4 +1,4 @@
-import {useRef, useState, type FormEvent} from 'react'
+import {useEffect, useRef, useState, type FormEvent} from 'react'
 import {Link} from '@tanstack/react-router'
 import {asked, bridge, parts, pickNotes, type AskReply, type Asked} from '../lib/ask'
 import type {Note} from '../lib/model'
@@ -67,7 +67,12 @@ export function AskPanel({w, s}: {w: World; s: Search}) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [q, setQ] = useState('')
   const next = useRef(0)
+  const end = useRef<HTMLDivElement>(null)
   const api = bridge()
+
+  useEffect(() => {
+    end.current?.scrollIntoView({block: 'end'})
+  }, [turns])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -105,6 +110,7 @@ export function AskPanel({w, s}: {w: World; s: Search}) {
                 <Reply w={w} s={s} turn={t} />
               </div>
             ))}
+            <div ref={end} />
           </div>
           <div className="ask-in">
             <form onSubmit={submit}>

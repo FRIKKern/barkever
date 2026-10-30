@@ -2,6 +2,7 @@ import {_electron as electron, chromium, expect, type Browser, type Page} from '
 import {spawn} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {fileURLToPath} from 'node:url'
+import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET} from '../../app/e2e/fixtures-cleanup.ts'
 import {traced} from './trace.ts'
 
@@ -52,4 +53,13 @@ export async function launchPlain(data: string, keychain: Keychain, env: Record<
       await exited
     },
   }
+}
+
+export async function signIn(page: Page) {
+  await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:\d+\/sign-in/, {timeout: 30_000})
+  await page.waitForLoadState('networkidle')
+  await page.getByLabel('Email').fill(ACCOUNT.email)
+  await page.getByLabel('Password').fill(ACCOUNT.password)
+  await page.getByRole('button', {name: 'Sign in'}).click()
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 30_000})
 }

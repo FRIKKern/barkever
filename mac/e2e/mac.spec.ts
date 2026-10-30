@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
-import {launchDriven, launchPlain} from './launch.ts'
+import {launchDriven, launchPlain, signIn} from './launch.ts'
 import {keepTraceOnFailure} from './trace.ts'
 
 test.describe.configure({mode: 'serial'})
@@ -30,15 +30,6 @@ const holding = (dir: string, needle: string) =>
     .filter((d) => d.isFile())
     .map((d) => join(d.parentPath, d.name))
     .filter((f) => readFileSync(f).includes(needle))
-
-async function signIn(page: Page) {
-  await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:\d+\/sign-in/, {timeout: 30_000})
-  await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(ACCOUNT.email)
-  await page.getByLabel('Password').fill(ACCOUNT.password)
-  await page.getByRole('button', {name: 'Sign in'}).click()
-  await expect(rows(page).first()).toBeVisible({timeout: 30_000})
-}
 
 async function signOut(page: Page) {
   page.on('dialog', (d) => void d.accept())
