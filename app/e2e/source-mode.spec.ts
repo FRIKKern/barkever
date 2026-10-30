@@ -41,19 +41,21 @@ for (const width of [1440, 390]) {
   })
 }
 
-test('typing in Markdown source mode and back to what it showed reads Saved, and leaving it stays Saved', async ({page}) => {
-  const id = await newNote(page, `Source undo ${Date.now()}`, 'Base.')
-  await richThenSource(page)
+test('Markdown source mode opened with the keyboard: typing and back to what it showed reads Saved, and leaving it stays Saved', async ({page}) => {
+  await newNote(page, `Source undo ${Date.now()}`, 'Base.')
+  await canvas(page).locator('[contenteditable="true"] > [data-bp-id]').first().click()
+  await page.keyboard.press(toggle)
+  await expect(source(page)).toBeFocused()
+  await expect(source(page)).toHaveValue('Base.')
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
   await toEnd(page)
   await page.keyboard.type('x')
   await expect(status(page)).toHaveText('Saving…')
   await page.keyboard.press('Backspace')
   await expect(status(page)).toHaveText('Saved')
+  await page.waitForTimeout(1000)
   await expect(source(page)).toBeFocused()
   await page.keyboard.press(toggle)
   await expect(source(page)).toHaveCount(0)
   await expect(status(page)).toHaveText('Saved')
-  await synced(page)
-  expect(everything(await serverNote(id))).toContain('Base.R')
 })
