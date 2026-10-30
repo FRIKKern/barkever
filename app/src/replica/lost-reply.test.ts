@@ -54,7 +54,7 @@ test('two proven pushes that disagree keep, field by field, what the server show
   const base = note('r1', 'T', [])
   const [first, second] = [note('r1', 'X', [], {tags: ['a'], conflicts: [one]}), note('r1', 'Y', [], {tags: ['b'], conflicts: [one, two]})]
   const out = merged(base, [first, second], {...second, title: 'T'}, note('r2', 'Y', [], {tags: ['z'], conflicts: [one, two]}))
-  assert.equal(out?.title, 'T')
+  assert.deepEqual([out?.title, out?.conflicts?.map((c) => c.clash)], ['T', [['title'], ['title'], ['tags']]])
   for (const tags of ['["b"]', '["z"]']) assert.ok(everything(out).includes(tags), JSON.stringify(everything(out)))
 })
 
