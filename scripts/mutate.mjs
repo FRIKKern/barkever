@@ -57,6 +57,7 @@ function closing(s, open) {
   return -1;
 }
 
+const EMPTY = new Set(["[]", "{}"]);
 const splice = (s, from, to, text) => s.slice(0, from) + text + s.slice(to);
 
 function fallbacks(s) {
@@ -69,7 +70,7 @@ function fallbacks(s) {
     if (!l || !r) continue;
     const [a, b] = [s.slice(l.from, l.to), s.slice(r.from, r.to)];
     const other = op === "||" ? "??" : "||";
-    out.push({ label: `\`${op}\` → \`${other}\` in \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${a} ${other} ${b})`) });
+    if (op === "||" || !EMPTY.has(b)) out.push({ label: `\`${op}\` → \`${other}\` in \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${a} ${other} ${b})`) });
     out.push({ label: `swap \`${a} ${op} ${b}\``, line: splice(s, l.from, r.to, `(${b} ${op} ${a})`) });
     out.push({ label: `drop \`${op} ${b}\``, line: splice(s, l.from, r.to, a) });
   }
@@ -82,9 +83,15 @@ const SWAPS = [
   [/\.(?:startsWith|endsWith)\(/g, { ".startsWith(": ".includes(", ".endsWith(": ".includes(" }],
 ];
 
+function around(s, m) {
+  const l = leftOperand(s, m.index);
+  const r = rightOperand(s, m.index + m[0].length);
+  return [l && s.slice(l.from, l.to), m[0].trim(), r && s.slice(r.from, r.to)].filter(Boolean).join(m[0].startsWith(".") ? "" : " ");
+}
+
 function swaps(s) {
   return SWAPS.flatMap(([re, to]) =>
-    [...s.matchAll(re)].map((m) => ({ label: `\`${m[0].trim()}\` → \`${to[m[0]].trim()}\``, line: splice(s, m.index, m.index + m[0].length, to[m[0]]) })),
+    [...s.matchAll(re)].map((m) => ({ label: `\`${m[0].trim()}\` → \`${to[m[0]].trim()}\` in \`${around(s, m)}\``, line: splice(s, m.index, m.index + m[0].length, to[m[0]]) })),
   );
 }
 

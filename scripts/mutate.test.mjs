@@ -17,11 +17,19 @@ test("a fallback gets ?? for ||, its operands swapped, and its fallback dropped,
     "  return c.map((x) => x.value || inline(x.children ?? [], title)).join('')",
   ]);
   assert.ok(lines(s).includes("  return c.map((x) => x.value || (inline(x.children ?? [], title) || x.text)).join('')"));
-  assert.ok(lines(s).includes("  return c.map((x) => x.value || x.text || inline((x.children || []), title)).join('')"));
+  assert.ok(!lines(s).includes("  return c.map((x) => x.value || x.text || inline((x.children || []), title)).join('')"));
 });
 
 test("operands keep calls, optional chains, strings and negation whole", () => {
   assert.deepEqual(lines("const a = !f(x, y)?.z ?? 'a b'").slice(0, 2), ["const a = (!f(x, y)?.z || 'a b')", "const a = ('a b' ?? !f(x, y)?.z)"]);
+});
+
+test("?? [] and ?? {} get no || mutant, since no array or object is falsy; swap and drop stay", () => {
+  assert.deepEqual(mutantsOf("f(x.items ?? [], y ?? {})").map((m) => m.label), ["swap `x.items ?? []`", "drop `?? []`", "swap `y ?? {}`", "drop `?? {}`"]);
+});
+
+test("a comparison's label names its operands, so two on one line differ", () => {
+  assert.deepEqual(mutantsOf("a.type === 'h' ? b : c.level === 3").map((m) => m.label), ["`===` → `!==` in `a.type === 'h'`", "`===` → `!==` in `c.level === 3`"]);
 });
 
 test("assignments ||= and ??= are left alone", () => assert.deepEqual(lines("a ||= b; c ??= d"), []));
