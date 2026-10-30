@@ -103,6 +103,7 @@ test('J10: an hour offline on two clients, reconnect, both replicas equal the se
   const contexts = await Promise.all([0, 1].map(() => browser.newContext({baseURL: info.project.use.baseURL, viewport: {width: 1440, height: 900}})))
   const [pa, pb] = await Promise.all(contexts.map((c) => c.newPage()))
   for (const p of [pa, pb]) p.on('pageerror', (e) => errors.push(e.message))
+  for (const p of [pa, pb]) if (process.env.J10_CPU) await (await p.context().newCDPSession(p)).send('Emulation.setCPUThrottlingRate', {rate: Number(process.env.J10_CPU)})
   await Promise.all(
     [pa, pb].map(async (p) => {
       await signIn(p)
