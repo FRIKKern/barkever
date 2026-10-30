@@ -15,6 +15,7 @@ const SPOTS = [
   ['line start, before the typed link', 'again here.', 'start', 0],
 ] as const
 const BESIDE = SPOTS.slice(1)
+const HUMAN_KEY_MS = 30
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
 
@@ -53,17 +54,15 @@ async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: n
   const line = page.getByTestId('canvas').locator('p', {hasText: text})
   const box = (await line.boundingBox())!
   await line.click({position: {x: box.width - 2, y: box.height / 2}})
-  if (edge === 'start') await page.keyboard.press('ControlOrMeta+ArrowLeft')
-  for (let i = 0; i < steps; i++) await page.keyboard.press(edge === 'start' ? 'ArrowRight' : 'ArrowLeft')
+  if (edge === 'start') await page.keyboard.press('ControlOrMeta+ArrowLeft', {delay: HUMAN_KEY_MS})
+  for (let i = 0; i < steps; i++) await page.keyboard.press(edge === 'start' ? 'ArrowRight' : 'ArrowLeft', {delay: HUMAN_KEY_MS})
 }
 
 async function followFromEverySpot(page: Page, spots: typeof BESIDE | typeof SPOTS, from: string, to: string, when: string) {
   for (const [spot, text, edge, steps] of spots) {
-    await expect(async () => {
-      await caretAt(page, text, edge, steps)
-      await page.keyboard.press('ControlOrMeta+Enter')
-      await expect.poll(() => opened(page), {timeout: 2_000}).toBe(to)
-    }, `Mod+Enter ${spot}, ${when}`).toPass({timeout: 10_000})
+    await caretAt(page, text, edge, steps)
+    await page.keyboard.press('ControlOrMeta+Enter')
+    await expect.poll(() => opened(page), {message: `Mod+Enter ${spot}, ${when}`}).toBe(to)
     await page.goBack()
     await expect.poll(() => opened(page)).toBe(from)
   }
