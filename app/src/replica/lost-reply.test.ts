@@ -106,3 +106,12 @@ test('a new copy key that never reached the server proves nothing', () => {
   const out = merged(base, [refused], refused, note('r2', 'Z', []))
   for (const title of ['X', 'Z']) assert.ok(everything(out).includes(title), JSON.stringify(everything(out)))
 })
+
+for (const title of ['Y', 'W'])
+  test(`the first push carrying a new copy never reached the server and a later one carrying it landed: a part the server shows from any push is not mine to copy back (mine ${title})`, () => {
+    const made = copy('local-1~a', {title: 'Old'}, ['title'])
+    const base = note('r1', 'T', [], {by: 'me.0'})
+    const [never, landed] = [note('r1', 'X', [], {by: 'me.1', conflicts: [made]}), note('r1', 'Y', [], {by: 'me.2', conflicts: [made]})]
+    const out = merged(base, [never, landed], note('r1', title, [], {by: 'me.3', conflicts: [made]}), note('r3', 'Y', [], {by: 'B.9', tags: ['z'], conflicts: [made]}))
+    assert.deepEqual([out?.title, out?.tags, out?.conflicts?.map((c) => c._key)], [title, ['z'], ['local-1~a']])
+  })

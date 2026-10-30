@@ -135,12 +135,12 @@ export function baseFor(base: NoteDoc | null, sent: NoteDoc[], theirs: NoteDoc |
   const proven = sent.filter((x, i) => (x.by === theirs.by && x.by !== base.by) || [...made(x)].some((p) => first(p, i)))
   const pushes = proven.length ? proven : sent
   const byId = (n: NoteDoc) => new Map((n.body?.blocks ?? []).map((x) => [x.id, x]))
-  const [B, T, S] = [byId(base), byId(theirs), pushes.map(byId)]
-  const pick = <V>(b: V, s: V[], t: V) => (proven.length && s.every((x) => same(x, s[0])) ? s[0] : landed(b, s, t))
+  const [B, T, S, A] = [byId(base), byId(theirs), pushes.map(byId), sent.map(byId)]
+  const pick = <V>(b: V, s: V[], t: V, a: V[]) => (a.some((x) => same(x, t)) ? t : proven.length && s.every((x) => same(x, s[0])) ? s[0] : landed(b, s, t))
   const ids = order(base.body?.blocks ?? [], pushes[pushes.length - 1].body?.blocks ?? [], theirs.body?.blocks ?? [])
-  const blocks = ids.flatMap((id) => pick(B.get(id), S.map((m) => m.get(id)), T.get(id)) ?? [])
+  const blocks = ids.flatMap((id) => pick(B.get(id), S.map((m) => m.get(id)), T.get(id), A.map((m) => m.get(id))) ?? [])
   const out: NoteDoc = {...base, body: base.body || blocks.length ? {...base.body, blocks} : undefined}
-  for (const f of FIELDS) (out as Record<string, unknown>)[f] = pick(base[f], pushes.map((x) => x[f]), theirs[f])
+  for (const f of FIELDS) (out as Record<string, unknown>)[f] = pick(base[f], pushes.map((x) => x[f]), theirs[f], sent.map((x) => x[f]))
   return sameContent(out, base) ? base : out
 }
 
