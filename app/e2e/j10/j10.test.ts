@@ -252,6 +252,7 @@ test('J10: an hour offline on two clients, reconnect, both replicas equal the se
   await expect(view).toBeVisible()
   await expect(view.getByTestId('conflict-other')).toHaveCount((after.get(CONFLICT) as Note).conflicts!.length)
   for (const say of ['Tuesday', 'Thursday', 'cancelled']) await expect(view).toContainText(say)
+  await view.locator('summary').first().click()
   await view.screenshot({path: process.env.J10_SHOT ?? info.outputPath('conflict.png')})
 
   await expect(pa.getByTestId('sync-stuck')).toHaveCount(0)

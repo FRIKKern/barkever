@@ -38,7 +38,7 @@ test('same block changed both sides keeps mine in place and theirs as a conflict
   assert.deepEqual(texts(out), ['a:one', 'b:mine', 'c:three'])
   assert.equal(out.conflicts?.length, 1)
   const [c] = out.conflicts!
-  assert.deepEqual([c._key, c.at, c.clash, c.title], ['r1', AT, ['body:b'], 'Plan'])
+  assert.deepEqual([c._key.split('~')[0], c.at, c.clash, c.title], ['r1', AT, ['body:b'], 'Plan'])
   assert.deepEqual(texts({...theirs, body: c.body}), ['a:one', 'b:theirs', 'c:three'])
 })
 
@@ -56,12 +56,12 @@ test('the same change on both sides is no conflict', () => {
   assert.equal(out.conflicts, undefined)
 })
 
-test('a block I deleted that they edited comes back, flagged', () => {
+test('a block I deleted that they edited comes back, with no copy of text the note already shows', () => {
   const mine = {...base, body: {blocks: [p('a', 'one'), p('c', 'three')]}}
   const theirs = {...base, _rev: 'r1', body: {blocks: [p('a', 'one'), p('b', 'two!'), p('c', 'three')]}}
   const out = mergeNote(base, mine, theirs, AT, ME)
   assert.deepEqual(texts(out), ['a:one', 'b:two!', 'c:three'])
-  assert.deepEqual(out.conflicts?.[0].clash, ['body:b'])
+  assert.equal(out.conflicts, undefined)
 })
 
 test('a block deleted on one side and untouched on the other is gone', () => {
@@ -102,7 +102,7 @@ test('reconcile without a base: equal blocks merge, differing ones clash', () =>
   const theirs = note([p('a', 'one'), p('b', 'theirs')], {_rev: 'r9'})
   const out = reconcile(null, mine, theirs, AT, ME)!
   assert.deepEqual(texts(out), ['a:one', 'b:mine'])
-  assert.deepEqual(out.conflicts?.map((c) => [c._key, c.clash]), [['r9', ['body:b']]])
+  assert.deepEqual(out.conflicts?.map((c) => [c._key.split('~')[0], c.clash]), [['r9', ['body:b']]])
 })
 
 test('conflict copies merge by key: one side resolving removes it, both adding keeps one', () => {

@@ -12,6 +12,9 @@ offline sync ── C sync-sse   ◐ fast, full docs, loses in-flight commits
 
 local replica ─ E replica-tanstack-db ✗ young library, merge not built
               └ F replica-idb         ✅ won ──► decision 0015
+
+copy rule ───── G copy-rule-ancestry  ✗ lost (464 lost seeds / 10k)
+             └─ H copy-rule-never-drop ◐ won + 3 fixes (copy-rule-judge) ──► decision 0027
 ```
 
 | Spike | Question | Verdict | Report |
@@ -22,5 +25,7 @@ local replica ─ E replica-tanstack-db ✗ young library, merge not built
 | D | Catch-up via `_updatedAt` pull queries | Kept as the safety check | [sync-pull/REPORT.md](sync-pull/REPORT.md) |
 | E | Replica on TanStack DB + offline-transactions | Lost | [replica-tanstack-db/REPORT.md](replica-tanstack-db/REPORT.md) |
 | F | Replica on `idb` + TanStack Query + own outbox | Won | [replica-idb/REPORT.md](replica-idb/REPORT.md) |
+| G | A copy drops only when a kept text covers it (ancestry stamps) | Lost | [copy-rule-ancestry/REPORT.md](copy-rule-ancestry/REPORT.md) |
+| H | Never drop a kept copy; Keep this · Dismiss | Won, plus three fixes | [copy-rule-never-drop/REPORT.md](copy-rule-never-drop/REPORT.md), [copy-rule-judge/JUDGE.md](copy-rule-judge/JUDGE.md) |
 
 Spike code is evidence, not product code. Scripts read the token inside Node from `~/.config/barkpark/config.json` and never print it.

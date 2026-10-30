@@ -1,63 +1,14 @@
-import {expect, test, type Browser, type Page} from '@playwright/test'
+import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
-import {anotherDevice} from './account'
-import {blockText, type Block} from '../src/lib/model.ts'
+import {canvas, created, device, deviceOf, errorsOf, everything, leave, newNote, serverNote, status, synced, typeAtEndOf, type ServerNote} from './devices'
+import {blockText} from '../src/lib/model.ts'
+import {groups} from '../src/lib/versions.ts'
 
-type ServerNote = {_id: string; _rev: string; title?: string; by?: string; body?: {blocks: Block[]}; conflicts?: {by?: string; title?: string; body?: {blocks: Block[]}; clash: string[]}[]}
-
-const created: string[] = []
 test.afterAll(() => deleteNotes(created))
-
-const canvas = (page: Page) => page.getByTestId('canvas')
-const status = (page: Page) => page.getByTestId('save-status')
-const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
-const leave = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
-
-async function device(browser: Browser, baseURL: string) {
-  const context = await browser.newContext({baseURL, storageState: anotherDevice(), viewport: {width: 1440, height: 900}})
-  const page = await context.newPage()
-  return page
-}
-
-async function newNote(page: Page, title: string, body: string) {
-  await page.goto('/')
-  await expect(page.getByTestId('new-note')).toBeEnabled()
-  await page.keyboard.press('n')
-  await expect(page.getByTestId('title')).toBeFocused()
-  const id = new URL(page.url()).searchParams.get('n')!
-  created.push(id)
-  await page.keyboard.type(title)
-  await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached()
-  await page.keyboard.press('Enter')
-  await page.keyboard.type(body)
-  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
-  return id
-}
-
-async function typeAtEndOf(page: Page, index: number, text: string) {
-  const block = canvas(page).locator('[contenteditable="true"] > [data-bp-id]').nth(index)
-  const box = (await block.boundingBox())!
-  await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2)
-  await page.keyboard.press('End')
-  await page.keyboard.type(text)
-}
-
-async function serverNote(id: string): Promise<ServerNote | undefined> {
-  const res = await barkpark(`/v1/data/query/${DATASET}/note?perspective=drafts&filter[_id][in]=${id},drafts.${id}`)
-  return ((await res.json()) as {result: {documents: ServerNote[]}}).result.documents[0]
-}
 
 async function serverRows(id: string): Promise<string[]> {
   const res = await barkpark(`/v1/data/query/${DATASET}/note?perspective=raw&filter[_id][in]=${id},drafts.${id}`)
   return ((await res.json()) as {result: {documents: {_id: string}[]}}).result.documents.map((d) => d._id)
-}
-
-const everything = (n: ServerNote | undefined) => (n ? [n, ...(n.conflicts ?? [])].flatMap((v) => [v.title ?? '', ...(v.body?.blocks ?? []).map(blockText)]).join(' | ') : '')
-
-const errorsOf = (page: Page) => {
-  const errors: string[] = []
-  page.on('pageerror', (e) => errors.push(e.message))
-  return errors
 }
 
 test('bug 1: a focused editor that never saw the merged text keeps every version when it types again', async ({browser, baseURL}) => {
@@ -230,10 +181,7 @@ test('when no tab holds the sync lock, sync takes it back by itself and keeps sa
   await expect.poll(async () => blockText((await serverNote(id))?.body?.blocks[0] ?? {id: '', type: 'paragraph'}), {timeout: 15_000}).toBe('Before. After.')
 })
 
-const deviceOf = (page: Page) => page.evaluate(() => Object.entries(localStorage).find(([k]) => k.endsWith('-device'))?.[1])
-const writerOf = (n: ServerNote) => n.by?.slice(0, n.by.lastIndexOf('.'))
-
-test('two devices typing in one block online keep at most one copy, the other device’s latest, never their own', async ({browser, baseURL}) => {
+test('two devices typing in one block online keep every text, and show at most one version per device', async ({browser, baseURL}) => {
   test.setTimeout(90_000)
   const a = await device(browser, baseURL!)
   const b = await device(browser, baseURL!)
@@ -252,15 +200,15 @@ test('two devices typing in one block online keep at most one copy, the other de
   const note = (await serverNote(id))!
   const devices = [await deviceOf(a), await deviceOf(b)]
   const copies = note.conflicts ?? []
-  expect(copies.length, 'one kept copy at most for two writers').toBeLessThanOrEqual(1)
-  expect(copies.filter((c) => c.by === writerOf(note)), 'the writer of the note is never its own copy').toEqual([])
-  expect(copies.every((c) => devices.includes(c.by)), 'each copy names the other device').toBe(true)
+  test.info().annotations.push({type: 'copies', description: `stored ${copies.length}, shown ${groups(copies).length}, ${JSON.stringify(note).length} bytes`})
+  expect(groups(copies).length, 'one shown version per device at most').toBeLessThanOrEqual(2)
+  expect(copies.every((c) => devices.includes(c.by)), 'each copy names one of the two devices').toBe(true)
   for (const t of ['A7', 'B7']) expect(everything(note), `${t} survives`).toContain(t)
   expect(errors).toEqual([])
   await Promise.all([a.context().close(), b.context().close()])
 })
 
-test('a remote writer setting the title six times while I type it keeps one copy, its latest', async ({browser, baseURL}) => {
+test('a remote writer setting the title six times while I type it shows one version, its latest', async ({browser, baseURL}) => {
   test.setTimeout(90_000)
   const a = await device(browser, baseURL!)
   const errors = errorsOf(a)
@@ -281,8 +229,11 @@ test('a remote writer setting the title six times while I type it keeps one copy
   await synced(a)
   const note = (await serverNote(id))!
   expect(note.title).toMatch(/xyz$/)
-  expect(note.conflicts?.length ?? 0, `one copy at most for one remote writer: ${JSON.stringify(note.conflicts?.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
+  const copies = note.conflicts ?? []
+  test.info().annotations.push({type: 'copies', description: `stored ${copies.length}, shown ${groups(copies).length}, ${JSON.stringify(note).length} bytes`})
   expect(everything(note), 'the remote writer’s latest title survives').toContain('Remote title 6')
+  expect(groups(copies).length, `one shown version for one remote writer: ${JSON.stringify(copies.map((c) => [c.by, c.title]))}`).toBeLessThanOrEqual(1)
+  expect(groups(copies)[0]?.latest.title, 'the shown version is the remote writer’s latest').toBe('Remote title 6')
   expect(errors).toEqual([])
   await a.context().close()
 })

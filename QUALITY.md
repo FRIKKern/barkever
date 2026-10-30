@@ -57,7 +57,7 @@ seed ─► 15–75 random steps ─► world: no network, no browser, simulated
 
 - **Lost text**: every version a writer typed stays, as the main or a copy, unless a writer later edited from that exact text. The bot knows what each screen showed; the app has to infer it.
 - `pnpm -r test` runs 2,000 seeds and 300 solo seeds (`app/src/chaos/`). `npm run chaos [count] [from] [--solo]` runs deeper (default 50,000).
-- Bugs main is known to have (lost text, echo copies) are `todo` tests; `CHAOS_STRICT=1` makes them fail.
+- Every check is strict: a lost-text or echo seed fails the run. Shrunk seeds that once failed stay as pinned tests.
 
 ## 5. AI
 

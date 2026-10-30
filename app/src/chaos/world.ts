@@ -1,4 +1,4 @@
-import './hooks.ts'
+import {freeze} from './hooks.ts'
 import {newDevice, use, type Device} from './fake-db.ts'
 import {answer, type Remote} from './fake-remote.ts'
 import {barkpark} from './server.ts'
@@ -94,7 +94,7 @@ export function world(setup: Setup) {
       .then(fn)
       .catch((e) => e === OFFLINE || (caught ??= {kind: 'crash', step: at, detail: `${w.id}: ${e?.stack ?? e}`}))
     await Promise.race([flow, new Promise<void>((r) => (w.parked = r))])
-    const own = (c: Conflict) => server.authors.get(c._key) === w.id || (c.clash.length > 0 && c.clash.every((p) => t.author(p, textOf(c, p)) === w.id))
+    const own = (c: Conflict) => server.authors.get(c._key.split('~')[0]) === w.id || (c.clash.length > 0 && c.clash.every((p) => t.author(p, textOf(c, p)) === w.id))
     const echo = (note(w)?.conflicts ?? []).find((c) => !had.has(c._key) && !shared.has(c._key) && own(c))
     if (echo) caught ??= {kind: 'echo', step: at, detail: `${w.id} made copy ${echo._key} by ${echo.by} of its own text: ${show(note(w))}`}
   }
@@ -372,8 +372,7 @@ export function world(setup: Setup) {
       return server.doc
     },
     async run(steps: Step[]): Promise<Failure | undefined> {
-      const now = Date.now
-      Date.now = () => EPOCH + clock
+      const thaw = freeze(() => EPOCH + clock)
       try {
         for (const [i, s] of steps.entries()) {
           at = i
@@ -383,7 +382,7 @@ export function world(setup: Setup) {
         }
         return await finish()
       } finally {
-        Date.now = now
+        thaw()
       }
     },
   }

@@ -15,6 +15,7 @@ export type NoteDoc = {
   links?: Ref[]
   conflicts?: Conflict[]
   by?: string
+  _typed?: string[]
 }
 export type NotebookDoc = {_id: string; _type: 'notebook'; _rev?: string; name?: string; parent?: Ref}
 export type Doc = NoteDoc | NotebookDoc
