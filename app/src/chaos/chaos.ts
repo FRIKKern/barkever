@@ -1,5 +1,7 @@
 import {plan, type Plan, type Step} from './plan.ts'
-import {show, world, type Failure} from './world.ts'
+import {world} from './world.ts'
+import {show} from './edits.ts'
+import type {Failure} from './judge.ts'
 
 export type Run = {plan: Plan; failure?: Failure; copies: number; log: string[]; server: string}
 

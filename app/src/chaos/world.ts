@@ -2,8 +2,10 @@ import {freeze} from './hooks.ts'
 import {newDevice, use, type Device} from './fake-db.ts'
 import {answer, type Remote} from './fake-remote.ts'
 import {barkpark} from './server.ts'
-import {partsOf, truth, type Held} from './truth.ts'
+import {partsOf, truth} from './truth.ts'
+import {edited, modeName, para, placeOf, rawNext, rawVerb, rawWrite, retagged, show, textOf} from './edits.ts'
 import type {Setup, Step} from './plan.ts'
+import {unheld, unsettled, type Failure} from './judge.ts'
 import {keeper} from '../sync/cursor.ts'
 import type {Block, Conflict} from '../lib/model.ts'
 import type {NoteDoc} from '../replica/note.ts'
@@ -14,7 +16,6 @@ const {editBody, editTitle, moveNote, retag} = await import('../replica/local.ts
 const {settle} = await import('../replica/settle.ts')
 const {push} = await import('../sync/push.ts')
 const {check, refetch} = await import('../sync/check.ts')
-const {sameContent} = await import('../replica/merge.ts')
 const {fromServer} = await import('../replica/note.ts')
 
 export const ID = 'n1'
@@ -22,8 +23,6 @@ const NAMES = ['A', 'B', 'C']
 const ROUNDS = 40
 const OFFLINE = new Error('chaos: offline')
 const EPOCH = Date.parse('2026-10-29T12:00:00.000Z')
-
-export type Failure = {kind: 'lost' | 'echo' | 'diverged' | 'stuck' | 'noisy' | 'crash'; step: number; detail: string}
 
 type Job = 'push' | 'refetch' | 'catchup'
 type Call = {label: string; go: () => void; fail: () => void}
@@ -45,26 +44,7 @@ type Writer = {
   typed: number
 }
 
-const para = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
-const textOf = (n: Held, part: string) => partsOf(n).find(([p]) => p === part)?.[1] ?? ''
 const decideFor = (f: Frame): Decide => (known) => (known === f.rev ? 'skip' : known === (f.previousRev ?? undefined) ? 'apply' : 'suspect')
-
-function edited(old: string, token: string, mode: number, where: number) {
-  if (mode < 0.5 || !old) return old ? `${old} ${token}` : token
-  if (mode < 0.8) {
-    const words = old.split(' ')
-    words.splice(Math.floor(where * (words.length + 1)), 0, token)
-    return words.join(' ')
-  }
-  return token
-}
-const modeName = (mode: number) => (mode < 0.5 ? 'types at the end of' : mode < 0.8 ? 'types in the middle of' : 'types over')
-
-export const show = (n: NoteDoc | null | undefined) => {
-  if (!n) return 'none'
-  const one = (v: Held) => partsOf(v).map(([p, t]) => `${p === 'title' ? '' : `${p.replace(/^body:/, '')}:`}"${t}"`).join(' ')
-  return `${one(n)}${(n.conflicts ?? []).map((c: Conflict) => `\n      copy ${c._key} by ${c.by}: ${one(c)} clash ${c.clash.join(',')}`).join('')}`
-}
 
 export function world(setup: Setup) {
   let clock = 0
@@ -230,7 +210,7 @@ export function world(setup: Setup) {
       } else {
         const next = edited(old, token, b, (a * 7919) % 1)
         t.wrote({part, text: next, by: w.id, step: at})
-        say(w, `${modeName(b)} ${part === 'title' ? 'the title' : `block ${part.slice(5)}`}: "${old}" → "${next}"`)
+        say(w, `${modeName(b)} ${placeOf(part)}: "${old}" → "${next}"`)
         if (part === 'title') {
           w.view.title = next
           await as(w, () => editTitle(ID, old, next))
@@ -248,7 +228,7 @@ export function world(setup: Setup) {
   async function organize(w: Writer, a: number, b: number) {
     const token = `${w.id}${++w.typed}`
     if (a < 0.5) {
-      const [old, next] = [w.view.tags, b < 0.5 || !w.view.tags.length ? [...w.view.tags, token.toLowerCase()] : w.view.tags.filter((_, i) => i !== Math.floor(b * w.view.tags.length))]
+      const [old, next] = [w.view.tags, retagged(w.view.tags, token, b)]
       t.editedFrom('tags', JSON.stringify(old))
       t.wrote({part: 'tags', text: JSON.stringify(next), by: w.id, step: at})
       say(w, `sets tags ${JSON.stringify(old)} → ${JSON.stringify(next)}`)
@@ -279,12 +259,11 @@ export function world(setup: Setup) {
       return
     }
     const [part, old] = parts[i]
-    const next = part === 'tags' ? JSON.stringify([...JSON.parse(old), token.toLowerCase()]) : part === 'notebook' ? `nb-${token}` : edited(old, token, b, (a * 7919) % 1)
+    const next = rawNext(part, old, token, a, b)
     t.editedFrom(part, old)
     t.wrote({part, text: next, by: 'raw', step: at})
-    say('raw', `${part === 'tags' || part === 'notebook' ? `sets the ${part}` : `${modeName(b)} ${part === 'title' ? 'the title' : `block ${part.slice(5)}`}`} on the server: "${old}" → "${next}"`)
-    if (part === 'tags' || part === 'notebook') return void server.raw((d) => ({...d, [part]: part === 'tags' ? JSON.parse(next) : {_type: 'reference', _ref: next}}))
-    server.raw((d) => (part === 'title' ? {...d, title: next} : {...d, body: {blocks: (d.body?.blocks ?? []).map((x) => (`body:${x.id}` === part ? para(x.id, next) : x))}}))
+    say('raw', `${rawVerb(part, b)} on the server: "${old}" → "${next}"`)
+    server.raw(rawWrite(part, next))
   }
 
   async function act(s: Step): Promise<boolean> {
@@ -328,11 +307,7 @@ export function world(setup: Setup) {
     }
   }
 
-  function inspect(): Failure | undefined {
-    if (caught) return caught
-    const lost = t.lost([server.doc, ...writers.map(note)])
-    if (lost.length) return {kind: 'lost', step: at, detail: lost.map((v) => `"${v.text}" (${v.part}, written by ${v.by} at step ${v.step}) is on no device and not on the server`).join('\n  ')}
-  }
+  const inspect = () => caught ?? unheld(t, [server.doc, ...writers.map(note)], at)
 
   async function drain() {
     let moved = false
@@ -371,14 +346,7 @@ export function world(setup: Setup) {
     return {kind: 'stuck', step: at, detail: `not settled after ${ROUNDS} rounds: ${writers.map((w) => `${w.id} outbox ${w.device.stores.outbox.size}`).join(', ')}`}
   }
 
-  function settled(): Failure | undefined {
-    const doc = server.doc
-    const off = writers.filter((w) => !note(w) || !sameContent(note(w)!, doc))
-    if (off.length) return {kind: 'diverged', step: at, detail: `server: ${show(doc)}\n  ${off.map((w) => `${w.id}: ${show(note(w))}`).join('\n  ')}`}
-    const lost = t.lost([doc])
-    if (lost.length) return {kind: 'lost', step: at, detail: lost.map((v) => `"${v.text}" (${v.part}, by ${v.by} at step ${v.step}) is not on the settled note`).join('\n  ')}
-    if (setup.solo && doc.conflicts?.length) return {kind: 'noisy', step: at, detail: `one writer typing alone made ${doc.conflicts.length} copies: ${show(doc)}`}
-  }
+  const settled = () => unsettled(t, server.doc, writers.map((w) => [w.id, note(w)]), !!setup.solo, at)
 
   for (const id of NAMES.slice(0, setup.writers)) {
     const w: Writer = {id, device: newDevice(id), online: true, connected: false, catching: false, session: 0, view: {title: '', blocks: [], tags: [], notebook: null}, inbox: [], jobs: [], typed: 0}
