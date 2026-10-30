@@ -1,16 +1,17 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
-import {drop, dropEach, type Send} from './drop.ts'
+import {drop, dropEach, stale, toDrop, type Send} from './drop.ts'
 
 type Call = {path: string; query: string; method: string; at: number}
-type Reply = number | {status: number; reason?: string; code?: string; retryAfter?: number; id?: string | null}
+type Reply = number | {status: number; reason?: string; code?: string; retryAfter?: number; id?: string | null; html?: boolean}
 
 const RUN = 'ds-7f3a'
 
 function reply(r: Reply, name: string) {
-  const {status, reason, code = 'storage_unavailable', retryAfter, id = RUN} = typeof r === 'number' ? {status: r} : r
+  const {status, reason, code = 'storage_unavailable', retryAfter, id = RUN, html} = typeof r === 'number' ? {status: r} : r
   const headers: Record<string, string> = {'content-type': 'application/json', ...(retryAfter && {'retry-after': String(retryAfter)})}
+  if (html) return {status, headers, body: '<html>502 Bad Gateway</html>'}
   if (status === 200) return {status, headers, body: {deleted: true, documents: 3}}
   if (status === 202) return {status, headers, body: {deleting: true, dataset: name, ...(id && {dataset_id: id})}}
   return {status, headers, body: {error: {code, message: 'fake', ...(reason && {details: {reason}})}}}
@@ -25,7 +26,7 @@ async function fakeBarkpark(answers: Record<string, Reply[]>) {
     const name = url.pathname.split('/').pop()!
     const queue = left[name] ?? [404]
     const {status, headers, body} = reply(queue.length > 1 ? queue.shift()! : queue[0]!, name)
-    res.writeHead(status, headers).end(JSON.stringify(body))
+    res.writeHead(status, headers).end(typeof body === 'string' ? body : JSON.stringify(body))
   })
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
   const {port} = server.address() as {port: number}
@@ -144,4 +145,37 @@ test('only a busy 503 is retried: a rolled-back 503 with a Retry-After is still 
   bp.close()
   assert.equal(out.gone, false)
   assert.equal(bp.calls.length, 1)
+})
+
+test('an answer that is not JSON, even with a JSON content type, keeps the dataset and says what came back', async () => {
+  for (const status of [200, 404, 502]) {
+    const bp = await fakeBarkpark({[A]: [{status, html: true}]})
+    const out = await drop(A, bp.send, 10)
+    bp.close()
+    assert.equal(out.gone, false)
+    assert.match(out.said, new RegExp(`^kept ${A}: Barkpark ${status} answered with something that is not JSON: <html>`))
+    assert.equal(bp.calls.length, 1)
+  }
+})
+
+const PID = 4242
+const MINE = `e2e-20261030080000-${PID}`
+
+test('a passing run drops only the datasets it made itself', () => {
+  const other = `e2e-20261030080000-${PID + 1}`
+  const named = 'probe-p3g-latest'
+  assert.deepEqual(toDrop([MINE, `j10-20261030080000-${PID}`, other, named, 'production', 'fixtures'], 'passed', PID), {
+    drop: [MINE, `j10-20261030080000-${PID}`],
+    kept: [other, named, 'production', 'fixtures'].map((d) => `kept ${d}: this run did not make it`),
+  })
+})
+
+test('a run that did not pass drops nothing', () => {
+  for (const status of ['failed', 'timedout', 'interrupted']) assert.deepEqual(toDrop([MINE], status, PID), {drop: [], kept: [`kept ${MINE}: the run did not pass, so it stays to look at`]})
+})
+
+test('the sweep takes only run datasets older than 2 hours, oldest first', () => {
+  const now = Date.UTC(2026, 9, 30, 12, 0, 0)
+  const all = ['e2e-20261030095959-1', 'j10-20261030100000-2', 'e2e-20261030110000-3', 'production', 'fixtures', 'probe-p3h-20261029120000', 'notes-20261029120000', 'e2e-20261030080000-4']
+  assert.deepEqual(stale(all, now), ['e2e-20261030080000-4', 'e2e-20261030095959-1', 'probe-p3h-20261029120000'])
 })

@@ -2,8 +2,10 @@ import {rmSync} from 'node:fs'
 import {join} from 'node:path'
 import type {FullResult, Reporter} from '@playwright/test/reporter'
 import {APP} from './run.ts'
-import {drop, dropEach, ownRun} from './drop.ts'
+import {drop, dropEach, toDrop} from './drop.ts'
 import {bp} from './seed.ts'
+
+const REPORTER_CAP_MS = 2 * 60_000
 
 export default class Cleanup implements Reporter {
   dataset: string
@@ -17,9 +19,8 @@ export default class Cleanup implements Reporter {
   async onEnd({status}: FullResult) {
     rmSync(join(APP, 'dist', this.dataset), {recursive: true, force: true})
     rmSync(join(APP, 'e2e/.auth', `${this.dataset}.json`), {force: true})
-    if (status !== 'passed') return console.log(`kept ${this.dataset} to look at`)
-    const made = [this.dataset, ...this.also]
-    for (const d of made.filter((d) => !ownRun(d))) console.log(`kept ${d}: this run did not make it`)
-    await dropEach(made.filter(ownRun), (d) => drop(d, bp), console.log)
+    const {drop: mine, kept} = toDrop([this.dataset, ...this.also], status, process.pid)
+    for (const line of kept) console.log(line)
+    await dropEach(mine, (d) => drop(d, bp, 2_000, REPORTER_CAP_MS), console.log)
   }
 }
