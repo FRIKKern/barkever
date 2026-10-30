@@ -45,3 +45,11 @@ test('two unacked pushes carry the same new copy, so one landed, but which one i
   const theirs = note('r2', 'Z', [], {conflicts: [made]})
   for (const mine of [first, second]) assert.ok(everything(merged(base, [first, second], mine, theirs)).includes(mine.title!), mine.title)
 })
+
+test('only the push that proves it landed counts: an earlier refused push of mine never turns a later edit on top of the landed one into a copy', () => {
+  const made = copy('local-1~a', {title: 'Old'}, ['title'])
+  const base = note('r1', 'T', [])
+  const [refused, landed] = [note('r1', 'X', []), note('r1', 'Y', [], {conflicts: [made]})]
+  const out = merged(base, [refused, landed], landed, note('r2', 'Z', [], {conflicts: [made]}))
+  assert.deepEqual([out?.title, out?.conflicts?.map((c) => c._key)], ['Z', ['local-1~a']])
+})
