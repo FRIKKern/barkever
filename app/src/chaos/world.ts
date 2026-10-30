@@ -234,7 +234,11 @@ export function world(setup: Setup) {
     const c = n?.conflicts?.[Math.floor(a * n.conflicts.length)]
     if (!n || !c) return false
     const shown = {title: w.view.title, body: {blocks: w.view.blocks}}
-    for (const p of replacedBy(c)) t.editedFrom(p, textOf(p === 'tags' || p === 'notebook' ? n : shown, p))
+    const copied = new Map(partsOf(c))
+    for (const p of replacedBy(c)) {
+      t.editedFrom(p, textOf(p === 'tags' || p === 'notebook' ? n : shown, p))
+      if (copied.has(p)) t.wrote({part: p, text: copied.get(p)!, by: w.id, step: at})
+    }
     say(w, `keeps copy ${c._key} by ${c.by} (${c.clash.join(',')})`)
     await as(w, () => keepVersion(ID, c._key, shown))
     w.view = viewOf(w)
