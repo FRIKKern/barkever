@@ -7,7 +7,7 @@ import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Reach} from '../lib/online'
-import type {Search} from '../lib/scope'
+import {openNote, type Search} from '../lib/scope'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
 import {SideTags} from './SideTags'
@@ -41,7 +41,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
   const qc = useQueryClient()
   const {lib, shelf, prefs, links, perNotebook, tags} = w
   const count = (id: string) => shelf.scope(id).reduce((sum, nb) => sum + (perNotebook.get(nb) ?? 0), 0)
-  const scoped = !s.q && (s.nb || s.tag)
+  const scoped = s.view || (!s.q && (s.nb || s.tag))
   const nbItem = (nb: Notebook, child = false) => (
     <Link key={nb.id} to="/" search={{nb: nb.id}} onClick={() => onPick()} className={`si${child ? ' child' : ''}${!s.q && s.nb === nb.id ? ' on' : ''}`} data-testid="side-notebook">
       <span className="dot" style={{background: shelf.colour(nb.id)}} />
@@ -54,7 +54,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
     const nb = shelf.byId.get(id)
     if (!n && !nb) return null
     return (
-      <Link key={id} to="/" search={n ? {...s, q: undefined, n: id} : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
+      <Link key={id} to="/" search={n ? openNote({...s, q: undefined}, id) : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
         <Icon name={icon} />
         <span className="t">{n ? n.title || UNTITLED : nb!.name}</span>
       </Link>
@@ -81,6 +81,11 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
           <Icon name="notes" />
           All notes
           <span className="n">{lib.notes.length}</span>
+        </Link>
+        <Link to="/" search={{view: 'tasks'}} onClick={() => onPick()} className={`si${s.view === 'tasks' ? ' on' : ''}`} data-testid="side-tasks">
+          <Icon name="tasks" />
+          Tasks
+          <span className="n">{w.tasks.open}</span>
         </Link>
         <div className="side-h">Notebooks</div>
         {shelf.roots.map((nb) => [nbItem(nb), ...shelf.children(nb.id).map((c) => nbItem(c, true))])}

@@ -2,7 +2,7 @@ import {useMemo, useRef, useState, type KeyboardEvent} from 'react'
 import {useNavigate} from '@tanstack/react-router'
 import {edgePath, GRAPH, layoutGraph, wrapLabel} from '../lib/graph-layout'
 import {snippet, UNTITLED, type Note} from '../lib/model'
-import type {Search} from '../lib/scope'
+import {openNote, type Search} from '../lib/scope'
 import {sizePx} from '../styles/tokens'
 import type {World} from './world'
 
@@ -26,7 +26,7 @@ export function LinkGraph({w, note, hover, onHover}: Props) {
     if (id !== note.id) setTip({id, left: Math.min(Math.max(dot.left - box.left - TIP_W / 2 + dot.width / 2, 8), box.width - TIP_W - 8), top: dot.bottom - box.top + 34})
   }
   const leave = () => (onHover(null), setTip(null))
-  const open = (id: string) => (leave(), navigate({to: '/', search: (prev: Search) => ({...prev, n: id})}))
+  const open = (id: string) => (leave(), navigate({to: '/', search: (prev: Search) => openNote(prev, id)}))
   const button = (id: string, label: string) => ({
     role: 'button',
     tabIndex: 0,

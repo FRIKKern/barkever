@@ -7,20 +7,21 @@ import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
-import {scopeName, type Search} from '../lib/scope'
+import {openNote, scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
 import {ConflictView} from './ConflictView'
+import type {BackStep} from './history'
 import {Icon} from './icons'
 import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
 const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device'}
 
-type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; onBack: () => void; onEscape: () => void; onRail: () => void}
+type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void}
 
-export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}: Props) {
+export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
@@ -58,7 +59,7 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
 
   const label = LABEL[status]
   const remove = () => {
-    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}))
+    void deleteNote(note.id).then(() => navigate({to: '/', search: openNote(s)}))
   }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)
@@ -70,9 +71,9 @@ export function Editor({w, s, note, reach, focusTitle, onBack, onEscape, onRail}
   return (
     <main className="editor" aria-label="Note" data-note-id={note.id} onKeyDown={(e) => e.key === 'Escape' && !e.defaultPrevented && (e.preventDefault(), onEscape())}>
       <div className="mhead">
-        <Link className="back" to="/" search={{...s, n: undefined}} replace onClick={(e) => (e.preventDefault(), onBack())}>
+        <Link className="back" to="/" search={back.to} replace onClick={(e) => (e.preventDefault(), back.go())}>
           <Icon name="back" />
-          {scopeName(s, w.shelf)}
+          {scopeName(back.to, w.shelf)}
         </Link>
         <span className={`saved ${status}`}>{label}</span>
       </div>

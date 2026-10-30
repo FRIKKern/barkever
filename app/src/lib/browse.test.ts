@@ -6,7 +6,7 @@ import {indexLinks} from './links.ts'
 import {GRAPH, layoutGraph, wrapLabel} from './graph-layout.ts'
 import {layoutMap} from './mini-map.ts'
 import {shelve} from './notebooks.ts'
-import {landing, parseSearch, visibleNotes} from './scope.ts'
+import {landing, openNote, parseSearch, scopeName, visibleNotes} from './scope.ts'
 import {isBlank, type Library, type Note} from './model.ts'
 
 const docs = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
@@ -81,8 +81,17 @@ test('notebook scope includes its stack; colours are stable tokens', () => {
   assert.ok(visibleNotes(lib.notes, {nb: 'fx-nb-home', q: 'harbor sitemap'}, shelf).notes.some((n) => n.id === 'fx-note-01'))
 })
 
-test('search params keep only non-empty strings', () => {
-  assert.deepEqual(parseSearch({nb: 'x', n: '', q: 3, tag: undefined}), {nb: 'x', tag: undefined, q: undefined, n: undefined})
+test('search params keep only non-empty strings, and view is tasks or nothing', () => {
+  assert.deepEqual(parseSearch({nb: 'x', n: '', q: 3, tag: undefined}), {nb: 'x', tag: undefined, q: undefined, n: undefined, view: undefined, line: undefined})
+  assert.deepEqual(parseSearch({view: 'tasks', line: 'b:2', n: 'a'}), {nb: undefined, tag: undefined, q: undefined, n: 'a', view: 'tasks', line: 'b:2'})
+  assert.equal(parseSearch({view: 'board'}).view, undefined)
+  assert.equal(parseSearch({line: ''}).line, undefined)
+})
+
+test('opening a note drops the board and the line, and keeps the list it came from', () => {
+  assert.deepEqual(openNote({nb: 'x', q: 'y', n: 'a', line: 'b:0', view: 'tasks'}, 'c'), {nb: 'x', q: 'y', n: 'c', line: undefined, view: undefined})
+  assert.deepEqual(openNote({tag: 't', n: 'a', line: 'b:0'}), {tag: 't', n: undefined, line: undefined, view: undefined})
+  assert.equal(scopeName({view: 'tasks', nb: 'fx-nb-home'}, shelve(lib.notebooks)), 'Tasks')
 })
 
 test('a new note lands where you are and stays in the list it was made from', () => {

@@ -1,6 +1,6 @@
 import {Link} from '@tanstack/react-router'
 import {contentOf, itemContent, leafText, linkMissing, nestedOf, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
-import type {Search} from '../lib/scope'
+import {openNote, type Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
 
@@ -12,7 +12,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
           {linkWords(x, at.title)}
         </span>
       ) : (
-        <Link key={i} className="wl" to="/" search={{...at.s, n: x.docId}}>
+        <Link key={i} className="wl" to="/" search={openNote(at.s, x.docId)}>
           {linkWords(x, at.title)}
         </Link>
       )
@@ -28,7 +28,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
   if (b.type === 'heading') return b.level === 3 ? <h3><Inlines c={contentOf(b)} at={at} /></h3> : <h2><Inlines c={contentOf(b)} at={at} /></h2>
   if (b.type === 'list' && b.task)
     return (
-      <ul className="tasks">
+      <ul className="tasks" data-bp-id={b.id}>
         {(b.items ?? []).map((it, i) => (
           <li key={i} className={typeof it === 'object' && !Array.isArray(it) && it.checked ? 'done' : ''}>
             <span className="cb" />

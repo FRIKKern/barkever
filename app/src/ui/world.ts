@@ -1,11 +1,12 @@
 import {useMemo} from 'react'
 import {useSuspenseQuery} from '@tanstack/react-query'
+import {board, type Board} from '../lib/board'
 import {libraryQuery, prefsQuery} from '../lib/library'
 import {indexLinks, type Links} from '../lib/links'
 import {shelve, type Shelf} from '../lib/notebooks'
 import type {Library, Note, Prefs} from '../lib/model'
 
-export type World = {lib: Library; prefs: Prefs; shelf: Shelf; links: Links; perNotebook: Map<string, number>; tags: [string, number][]}
+export type World = {lib: Library; prefs: Prefs; shelf: Shelf; links: Links; tasks: Board; perNotebook: Map<string, number>; tags: [string, number][]}
 
 function tally(notes: Note[]) {
   const perNotebook = new Map<string, number>()
@@ -22,6 +23,7 @@ export function useWorld(): World {
   const {data: prefs} = useSuspenseQuery(prefsQuery)
   const shelf = useMemo(() => shelve(lib.notebooks), [lib.notebooks])
   const links = useMemo(() => indexLinks(lib), [lib])
+  const tasks = useMemo(() => board(lib.notes, shelf, links.title), [lib.notes, shelf, links])
   const counts = useMemo(() => tally(lib.notes), [lib.notes])
-  return {lib, prefs, shelf, links, ...counts}
+  return {lib, prefs, shelf, links, tasks, ...counts}
 }

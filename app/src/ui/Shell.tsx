@@ -8,6 +8,7 @@ import {scopeName, visibleNotes, type Search} from '../lib/scope'
 import {prepare} from '../lib/search'
 import {useCapture} from './capture'
 import {dropBlankDrafts, dropIfBlank} from '../replica/drop'
+import {Board, type BoardHandle} from './Board'
 import {Editor} from './Editor'
 import {useBackStep, useLeave} from './history'
 import {useRail} from './local-prefs'
@@ -34,10 +35,12 @@ export function Shell({s}: {s: Search}) {
   const [drawer, setDrawer] = useState(false)
   const [focusTitle, setFocusTitle] = useState<{id: string}>()
   const list = useRef<ListHandle>(null)
+  const boardRef = useRef<BoardHandle>(null)
   const capture = useCapture(w, s)
   const back = useBackStep(s)
   const found = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s.q, s.nb, s.tag, w.shelf])
-  const note = s.n ? w.links.byId.get(s.n) : undefined
+  const tasks = s.view === 'tasks'
+  const note = s.n && !tasks ? w.links.byId.get(s.n) : undefined
   const newNote = capture && (() => (setDrawer(false), capture()))
   const tab = `${note ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
 
@@ -60,7 +63,8 @@ export function Shell({s}: {s: Search}) {
 
   const closeDrawer = () => {
     flushSync(() => setDrawer(false))
-    list.current?.menu()
+    const pane = list.current ?? boardRef.current
+    pane?.menu()
   }
   const pick = (id?: string) => {
     if (!drawer) return
@@ -79,7 +83,7 @@ export function Shell({s}: {s: Search}) {
     return () => removeEventListener('keydown', onKey)
   }, [newNote, drawer])
 
-  const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
+  const cls = ['app', tasks ? 'tasks' : note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (
     <div className={cls}>
       <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />
@@ -91,26 +95,32 @@ export function Shell({s}: {s: Search}) {
             {AWAY[reach]}
           </div>
         )}
-        <NoteList ref={list} w={w} s={s} found={found} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />
-        {note ? (
-          <>
-            <Editor
-              key={note.id}
-              w={w}
-              s={s}
-              note={note}
-              reach={reach}
-              focusTitle={focusTitle?.id === note.id ? focusTitle : undefined}
-              onBack={back}
-              onEscape={() => list.current?.row(note.id) || back()}
-              onRail={toggleRail}
-            />
-            <Rail w={w} s={s} note={note} onRail={toggleRail} />
-          </>
+        {tasks ? (
+          <Board ref={boardRef} w={w} onMenu={() => setDrawer(true)} />
         ) : (
-          <main className="editor" aria-label="Note">
-            <div className="empty-ed">{s.n ? 'That note is gone.' : 'Pick a note, or press N for a new one.'}</div>
-          </main>
+          <>
+            <NoteList ref={list} w={w} s={s} found={found} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />
+            {note ? (
+              <>
+                <Editor
+                  key={note.id}
+                  w={w}
+                  s={s}
+                  note={note}
+                  reach={reach}
+                  focusTitle={focusTitle?.id === note.id ? focusTitle : undefined}
+                  back={back}
+                  onEscape={() => list.current?.row(note.id) || back.go()}
+                  onRail={toggleRail}
+                />
+                <Rail w={w} s={s} note={note} onRail={toggleRail} />
+              </>
+            ) : (
+              <main className="editor" aria-label="Note">
+                <div className="empty-ed">{s.n ? 'That note is gone.' : 'Pick a note, or press N for a new one.'}</div>
+              </main>
+            )}
+          </>
         )}
       </div>
     </div>

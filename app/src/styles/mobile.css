@@ -22,4 +22,10 @@
   .mhead .mt { flex: 1; font-weight: var(--fw-bold); font-size: var(--fs-l); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mhead .saved { margin-left: auto; }
   .list .bar { border-bottom: 0; padding: var(--sp-2) var(--sp-3) 0; }
+  .board { min-height: 100%; }
+  .board-h { padding: 0 var(--sp-4); }
+  .board-h b { display: none; }
+  .cols { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; }
+  .tk { padding: var(--sp-1) 0; }
+  .tk .go { position: static; margin-left: auto; opacity: 1; }
 }

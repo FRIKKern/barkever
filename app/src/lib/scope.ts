@@ -2,11 +2,13 @@ import type {Note} from './model.ts'
 import {find, newest, terms, type Found} from './search.ts'
 import type {Shelf} from './notebooks.ts'
 
-export type Search = {nb?: string; tag?: string; q?: string; n?: string}
+export type Search = {nb?: string; tag?: string; q?: string; n?: string; view?: 'tasks'; line?: string}
 
 const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
 
-export const parseSearch = (s: Record<string, unknown>): Search => ({nb: str(s.nb), tag: str(s.tag), q: str(s.q), n: str(s.n)})
+export const parseSearch = (s: Record<string, unknown>): Search => ({nb: str(s.nb), tag: str(s.tag), q: str(s.q), n: str(s.n), view: s.view === 'tasks' ? 'tasks' : undefined, line: str(s.line)})
+
+export const openNote = (s: Search, n?: string): Search => ({...s, n, view: undefined, line: undefined})
 
 export function visibleNotes(notes: Note[], s: Search, shelf: Shelf): Found {
   if (terms(s.q).length) return find(notes, s.q!)
@@ -24,6 +26,7 @@ export function landing(s: Search, shelf: Shelf): Landing | null {
 }
 
 export function scopeName(s: Search, shelf: Shelf): string {
+  if (s.view === 'tasks') return 'Tasks'
   if (terms(s.q).length) return 'Search'
   if (s.nb) return shelf.byId.get(s.nb)?.name ?? 'Notebook'
   if (s.tag) return `#${s.tag}`

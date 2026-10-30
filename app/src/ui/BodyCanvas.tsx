@@ -1,11 +1,12 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref} from 'react'
 import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {lineOf} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Note} from '../lib/model'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
-import type {Search} from '../lib/scope'
+import {openNote, type Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
 export type BodyHandle = {focus: () => void}
@@ -66,7 +67,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       if (!composing) onInput()
     }
     const live = (to: string | null | undefined): to is string => !!to && !('missing' in links.current.resolve(to))
-    const go = (to: string) => navigate({to: '/', search: (prev: Search) => ({...prev, n: to})})
+    const go = (to: string) => navigate({to: '/', search: (prev: Search) => openNote(prev, to)})
     const onOpen = (e: Event) => {
       const d = (e as CustomEvent<{kind?: string; docId?: string; target?: string}>).detail
       if (d.kind === 'link') return
@@ -129,11 +130,30 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
     canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 
+  const at = lineOf(s.line)
+  const mark = at && `.doc-body [data-bp-id="${CSS.escape(at.block)}"] > li:nth-child(${at.item + 1})`
+  useEffect(() => {
+    if (!mark || !host.current) return
+    let shown: Element | undefined
+    const seek = () => {
+      const el = [...host.current!.querySelectorAll(mark)].find((e) => e.checkVisibility())
+      if (!el || el === shown) return
+      shown = el
+      el.scrollIntoView({block: 'center'})
+      if (el.closest('bp-paper-canvas')) watch.disconnect()
+    }
+    const watch = new MutationObserver(seek)
+    watch.observe(host.current, {childList: true, subtree: true, attributes: true, attributeFilter: ['class']})
+    seek()
+    return () => watch.disconnect()
+  }, [mark, id])
+
   const targets = JSON.stringify(wikilinks(note.blocks).map((t) => [t, linker.resolve(t)]))
   useEffect(() => canvas.current?.refreshWikilinks(), [targets])
 
   return (
     <div className={`doc-body${state.live ? ' live' : ''}`} ref={host} data-testid="body">
+      {mark && <style>{`${mark} { background: var(--c-mark); border-radius: var(--r-s); }`}</style>}
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
       <Blocks blocks={note.blocks} s={s} title={linker.title} />
     </div>

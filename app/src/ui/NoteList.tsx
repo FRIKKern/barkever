@@ -1,7 +1,7 @@
 import {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {hitLine, snippet, UNTITLED, type Note} from '../lib/model'
-import {scopeName, type Search} from '../lib/scope'
+import {openNote, scopeName, type Search} from '../lib/scope'
 import type {Found} from '../lib/search'
 import {groups} from '../lib/versions'
 import {when} from '../lib/when'
@@ -61,7 +61,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
     if (row && step) (e.preventDefault(), (row[step] as HTMLElement | null)?.focus())
     else if (row && e.key === 'Enter') {
       e.preventDefault()
-      navigate({to: '/', search: {...s, n: row.dataset.noteId}})
+      navigate({to: '/', search: openNote(s, row.dataset.noteId)})
       onOpen(row.dataset.noteId!)
     }
   }
@@ -118,7 +118,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
           const d = w.links.degree(n.id)
           const nb = w.shelf.byId.get(n.notebook ?? '')
           return (
-            <Link key={n.id} to="/" search={{...s, n: n.id}} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} tabIndex={n.id === active ? 0 : -1} onFocus={() => setCursor(n.id)} data-testid="note-row" data-note-id={n.id}>
+            <Link key={n.id} to="/" search={openNote(s, n.id)} className={`row${n.id === s.n ? ' sel' : ''}`} role="option" aria-selected={n.id === s.n} tabIndex={n.id === active ? 0 : -1} onFocus={() => setCursor(n.id)} data-testid="note-row" data-note-id={n.id}>
               <div className="row-top">
                 <span className={`row-title${n.title ? '' : ' untitled'}`} data-testid="note-title">
                   {highlight(n.title || UNTITLED, re)}
