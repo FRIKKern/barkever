@@ -1,6 +1,6 @@
 import {Link} from '@tanstack/react-router'
 import {contentOf, itemContent, leafText, linkMissing, nestedOf, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
-import {openNote, type Search} from '../lib/scope'
+import type {Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
 
@@ -12,7 +12,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
           {linkWords(x, at.title)}
         </span>
       ) : (
-        <Link key={i} className="wl" to="/" search={openNote(at.s, x.docId)}>
+        <Link key={i} className="wl" to="/" search={{...at.s, n: x.docId}}>
           {linkWords(x, at.title)}
         </Link>
       )

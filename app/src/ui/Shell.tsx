@@ -40,7 +40,7 @@ export function Shell({s}: {s: Search}) {
   const back = useBackStep(s)
   const found = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s.q, s.nb, s.tag, w.shelf])
   const tasks = s.view === 'tasks'
-  const note = s.n && !tasks ? w.links.byId.get(s.n) : undefined
+  const note = s.n ? w.links.byId.get(s.n) : undefined
   const newNote = capture && (() => (setDrawer(false), capture()))
   const tab = `${note ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
 
@@ -83,7 +83,7 @@ export function Shell({s}: {s: Search}) {
     return () => removeEventListener('keydown', onKey)
   }, [newNote, drawer])
 
-  const cls = ['app', tasks ? 'tasks' : note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
+  const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (
     <div className={cls}>
       <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />

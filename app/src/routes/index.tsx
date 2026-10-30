@@ -1,11 +1,12 @@
 import {createFileRoute} from '@tanstack/react-router'
 import {libraryQuery, prefsQuery} from '../lib/library'
-import {parseSearch} from '../lib/scope'
+import {leaveNote, parseSearch} from '../lib/scope'
 import {Shell} from '../ui/Shell'
 
 export const Route = createFileRoute('/')({
   ssr: false,
   validateSearch: parseSearch,
+  search: {middlewares: [leaveNote]},
   loader: ({context}) => Promise.all([context.queryClient.ensureQueryData(libraryQuery), context.queryClient.ensureQueryData(prefsQuery)]),
   component: Home,
 })

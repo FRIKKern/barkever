@@ -7,13 +7,13 @@ export type Card = {note: string; title: string; block: string; tasks: Task[]}
 export type Column = {notebook: string | null; name: string; cards: Card[]; open: number; done: number}
 export type Board = {columns: Column[]; open: number; done: number; lists: number}
 
+export const summary = (b: Board) => (b.lists ? `${b.open} open · ${b.done} done · from ${b.lists} checklist${b.lists === 1 ? '' : 's'}` : 'No checklists yet. Start a line in a note with [ ] and a space.')
+
 export const lineKey = (block: string, item: number) => `${block}:${item}`
 
 export function lineOf(line?: string): {block: string; item: number} | undefined {
-  const at = line?.lastIndexOf(':') ?? -1
-  const item = line?.slice(at + 1) ?? ''
-  if (at < 1 || !/^\d{1,6}$/.test(item)) return
-  return {block: line!.slice(0, at), item: Number(item)}
+  const m = line?.match(/^(.+):(\d{1,6})$/)
+  return m ? {block: m[1], item: Number(m[2])} : undefined
 }
 
 const isChecklist = (b: Block) => b.type === 'list' && b.task === true

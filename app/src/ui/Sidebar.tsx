@@ -7,7 +7,7 @@ import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Reach} from '../lib/online'
-import {openNote, type Search} from '../lib/scope'
+import type {Search} from '../lib/scope'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
 import {SideTags} from './SideTags'
@@ -54,7 +54,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
     const nb = shelf.byId.get(id)
     if (!n && !nb) return null
     return (
-      <Link key={id} to="/" search={n ? openNote({...s, q: undefined}, id) : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
+      <Link key={id} to="/" search={n ? {...s, q: undefined, n: id} : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
         <Icon name={icon} />
         <span className="t">{n ? n.title || UNTITLED : nb!.name}</span>
       </Link>

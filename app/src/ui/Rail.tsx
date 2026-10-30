@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {Link} from '@tanstack/react-router'
 import {linkContext, UNTITLED, type Note} from '../lib/model'
-import {openNote, type Search} from '../lib/scope'
+import type {Search} from '../lib/scope'
 import {AskPanel} from './Ask'
 import {Icon} from './icons'
 import {LinkGraph} from './LinkGraph'
@@ -22,7 +22,7 @@ export function Rail({w, s, note, onRail}: Props) {
       <Link
         key={id}
         to="/"
-        search={openNote(s, id)}
+        search={{...s, n: id}}
         className={`rel-row${hover === id ? ' hl' : ''}`}
         onMouseEnter={() => setHover(id)}
         onMouseLeave={() => setHover(null)}

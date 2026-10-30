@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {board, lineKey, lineOf} from './board.ts'
+import {board, lineKey, lineOf, summary} from './board.ts'
 import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
 import {indexLinks} from './links.ts'
 import {blockText, type Block, type Item, type Note, type Notebook} from './model.ts'
@@ -23,6 +23,8 @@ const lines = (b: ReturnType<typeof board>) => b.columns.flatMap((c) => c.cards.
 test('the fixtures: 14 checklists, 28 open and 14 done, one column per notebook in sidebar order', () => {
   const b = board(notes, shelf, title)
   assert.deepEqual([b.lists, b.open, b.done], [14, 28, 14])
+  assert.equal(summary(b), '28 open · 14 done · from 14 checklists')
+  assert.equal(summary({columns: [], open: 1, done: 0, lists: 1}), '1 open · 0 done · from 1 checklist')
   assert.deepEqual(
     b.columns.map((c) => `${c.name} ${c.open}/${c.done}`),
     ['Home 11/5', 'Inbox 1/0', 'Travel 5/2', 'Work 2/2', 'Meetings 3/1', 'Projects 6/4'],
@@ -65,6 +67,7 @@ test('a nested checklist line shows under its parent and opens at the parent lin
 test('plain lists, empty checklists and other blocks make no card', () => {
   const b = board([note('n', [{id: 'l', type: 'list', items: [text('bullet')]}, checklist('e', []), checklist('blank', [{text: ' '}]), {id: 'p', type: 'paragraph', content: text('[ ] not a task')}])], shelve([nb('a')]), () => undefined)
   assert.deepEqual(b, {columns: [], open: 0, done: 0, lists: 0})
+  assert.equal(summary(b), 'No checklists yet. Start a line in a note with [ ] and a space.')
 })
 
 test('newest note first in a column; one card per checklist, in body order', () => {
@@ -76,13 +79,13 @@ test('newest note first in a column; one card per checklist, in body order', () 
 
 test('no task goes missing: a notebook off the shelf gets the last column, a deeper notebook its own', () => {
   const s = shelve([nb('a'), nb('b', 'a'), nb('c', 'b')])
-  const b = board([note('lost', [checklist('l', [{text: 'lost'}])], {notebook: 'gone'}), note('none', [checklist('x', [{text: 'none'}])], {notebook: null}), note('deep', [checklist('d', [{text: 'deep'}])], {notebook: 'c'}), note('top', [checklist('t', [{text: 'top'}])], {notebook: 'b'})], s, () => undefined)
+  const b = board([note('a-lost', [checklist('l', [{text: 'lost'}])], {notebook: 'gone'}), note('b-none', [checklist('x', [{text: 'none'}])], {notebook: null}), note('z-deep', [checklist('d', [{text: 'deep'}])], {notebook: 'c'}), note('z-top', [checklist('t', [{text: 'top'}])], {notebook: 'b'})], s, () => undefined)
   assert.deepEqual(
     b.columns.map((c) => [c.notebook, c.name, c.cards.map((x) => x.note).sort().join(',')]),
     [
-      ['b', 'B', 'top'],
-      ['c', 'C', 'deep'],
-      [null, 'No notebook', 'lost,none'],
+      ['b', 'B', 'z-top'],
+      ['c', 'C', 'z-deep'],
+      [null, 'No notebook', 'a-lost,b-none'],
     ],
   )
   assert.equal(lines(b).length, 4)

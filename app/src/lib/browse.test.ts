@@ -6,7 +6,7 @@ import {indexLinks} from './links.ts'
 import {GRAPH, layoutGraph, wrapLabel} from './graph-layout.ts'
 import {layoutMap} from './mini-map.ts'
 import {shelve} from './notebooks.ts'
-import {landing, openNote, parseSearch, scopeName, visibleNotes} from './scope.ts'
+import {landing, leaveNote, parseSearch, scopeName, visibleNotes, type Search} from './scope.ts'
 import {isBlank, type Library, type Note} from './model.ts'
 
 const docs = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
@@ -88,9 +88,15 @@ test('search params keep only non-empty strings, and view is tasks or nothing', 
   assert.equal(parseSearch({line: ''}).line, undefined)
 })
 
-test('opening a note drops the board and the line, and keeps the list it came from', () => {
-  assert.deepEqual(openNote({nb: 'x', q: 'y', n: 'a', line: 'b:0', view: 'tasks'}, 'c'), {nb: 'x', q: 'y', n: 'c', line: undefined, view: undefined})
-  assert.deepEqual(openNote({tag: 't', n: 'a', line: 'b:0'}), {tag: 't', n: undefined, line: undefined, view: undefined})
+test('a line or the board left over from one note does not follow you to the next; one the link sets stays', () => {
+  const go = (from: Search, to: (s: Search) => Search) => leaveNote({search: from, next: to})
+  assert.deepEqual(go({nb: 'x', q: 'y', n: 'a', line: 'b:0'}, (s) => ({...s, n: 'c'})), {nb: 'x', q: 'y', n: 'c', line: undefined, view: undefined})
+  assert.deepEqual(go({n: 'a', line: 'b:0'}, (s) => ({...s, n: undefined})), {n: undefined, line: undefined, view: undefined})
+  assert.deepEqual(go({view: 'tasks'}, (s) => ({...s, q: undefined, n: 'c'})), {view: undefined, q: undefined, n: 'c', line: undefined})
+  assert.deepEqual(go({view: 'tasks'}, () => ({n: 'a', line: 'b:2'})), {n: 'a', line: 'b:2', view: undefined})
+  assert.deepEqual(go({n: 'a', line: 'b:0'}, () => ({view: 'tasks'})), {view: 'tasks', line: undefined})
+  assert.deepEqual(go({n: 'a', line: 'b:0'}, (s) => ({...s, q: 'z'})), {n: 'a', line: 'b:0', q: 'z'})
+  assert.deepEqual(go({n: 'a', line: 'b:0'}, () => ({n: 'a', line: 'c:1'})), {n: 'a', line: 'c:1'})
   assert.equal(scopeName({view: 'tasks', nb: 'fx-nb-home'}, shelve(lib.notebooks)), 'Tasks')
 })
 

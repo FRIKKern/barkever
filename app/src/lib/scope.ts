@@ -8,7 +8,11 @@ const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
 
 export const parseSearch = (s: Record<string, unknown>): Search => ({nb: str(s.nb), tag: str(s.tag), q: str(s.q), n: str(s.n), view: s.view === 'tasks' ? 'tasks' : undefined, line: str(s.line)})
 
-export const openNote = (s: Search, n?: string): Search => ({...s, n, view: undefined, line: undefined})
+export function leaveNote({search, next}: {search: Search; next: (s: Search) => Search}): Search {
+  const to = next(search)
+  if (to.n === search.n) return to
+  return {...to, line: to.line === search.line ? undefined : to.line, view: to.view === search.view ? undefined : to.view}
+}
 
 export function visibleNotes(notes: Note[], s: Search, shelf: Shelf): Found {
   if (terms(s.q).length) return find(notes, s.q!)

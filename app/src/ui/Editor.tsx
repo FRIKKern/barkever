@@ -7,7 +7,7 @@ import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
-import {openNote, scopeName, type Search} from '../lib/scope'
+import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
@@ -59,7 +59,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
 
   const label = LABEL[status]
   const remove = () => {
-    void deleteNote(note.id).then(() => navigate({to: '/', search: openNote(s)}))
+    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}))
   }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)
