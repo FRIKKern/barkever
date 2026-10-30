@@ -253,13 +253,17 @@ test('a malformed star call changes nothing on Barkpark', async ({page}) => {
   expect(await starredOnServer('fx-note-07')).toBe(false)
 })
 
-test('a star Barkpark refuses for good is dropped and never blocks the next one', async ({page}) => {
+async function fillShortcutsToTheLimit() {
   const size = (ids: string[]) => JSON.stringify({v: 1, ids}).length
   const ids = ['fx-note-02']
   while (size(ids) < 16_300) ids.push(`fx-pad-${ids.length}`)
   ids.push(`fx-pad-${'x'.repeat(16_380 - size(ids) - 10)}`)
   expect(size(ids)).toBe(16_380)
   await writePrefs(userToken(), {shortcuts: ids, recents: kept.recents})
+}
+
+test('a star Barkpark refuses for good is dropped and never blocks the next one', async ({page}) => {
+  await fillShortcutsToTheLimit()
   const sent: string[] = []
   page.on('request', (r) => r.url().includes('/_serverFn/') && starCall(r.postData() ?? '', 'fx-note-07') && sent.push(r.url()))
   const warned = warnings(page)
@@ -291,6 +295,25 @@ test('a star Barkpark refuses for good is dropped and never blocks the next one'
   await writePrefs(userToken(), kept)
 })
 
+test("starring a note again clears its \"Couldn't star\" line at once", async ({page}) => {
+  await fillShortcutsToTheLimit()
+  await openNote(page, 'fx-note-07')
+  const star = page.getByTestId('star')
+  const notice = page.getByTestId('star-dropped')
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await star.click()
+  await expect(notice).toHaveCount(1)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+  await writePrefs(userToken(), {...kept, shortcuts: []})
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await star.click()
+  await expect(notice).toHaveCount(0, {timeout: 500})
+  await expect.poll(() => starredOnServer('fx-note-07')).toBe(true)
+  await expect.poll(() => pendingStars(page)).toEqual({})
+  await expect(notice).toHaveCount(0)
+  await writePrefs(userToken(), kept)
+})
+
 test('a star that fails for a while (signed out, then a 503 twice) stays queued and retries on its own, backing off', async ({page, context}) => {
   await unstarOnServer('fx-note-07')
   await openNote(page, 'fx-note-07')
@@ -317,8 +340,10 @@ test('a star that fails for a while (signed out, then a 503 twice) stays queued 
   await star.click()
   await expect.poll(() => starredOnServer('fx-note-07'), {timeout: 15_000}).toBe(false)
   expect(at).toHaveLength(3)
-  expect(at[1] - at[0]).toBeGreaterThanOrEqual(1_800)
+  expect(at[1] - at[0], 'the success before reset the backoff to 2 s').toBeGreaterThanOrEqual(1_800)
+  expect(at[1] - at[0], 'the success before reset the backoff to 2 s').toBeLessThan(3_500)
   expect(at[2] - at[1]).toBeGreaterThanOrEqual(3_800)
+  expect(at[2] - at[1]).toBeLessThan(6_000)
   await expect.poll(() => pendingStars(page)).toEqual({})
   await expect(star).toHaveAttribute('aria-pressed', 'false')
 })
