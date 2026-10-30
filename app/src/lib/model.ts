@@ -1,5 +1,5 @@
-export type Inline = {type: string; value?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
-export type Item = Inline[] | {content?: Inline[]; checked?: boolean}
+export type Inline = {type: string; value?: string; text?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
+export type Item = Inline[] | {content?: Inline[]; text?: string; checked?: boolean}
 export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; caption?: string}
 
 export type Conflict = {_key: string; by?: string; at: string; title?: string; body?: {blocks: Block[]}; tags?: string[]; notebook?: {_ref: string; _type?: string} | null; clash: string[]}
@@ -10,7 +10,9 @@ export type Prefs = {shortcuts: string[]; recents: string[]}
 
 export const UNTITLED = 'Untitled'
 
-export const itemContent = (it: Item): Inline[] => (Array.isArray(it) ? it : it.content ?? [])
+export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (x.content?.length ? x.content : x.text ? [{type: 'text', value: x.text}] : [])
+
+export const itemContent = (it: Item): Inline[] => (Array.isArray(it) ? it : contentOf(it))
 
 export type Title = (id?: string) => string | undefined
 
@@ -24,7 +26,7 @@ export const titleIn =
 const stored: Title = () => undefined
 
 function inline(c: Inline[], title: Title): string {
-  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : x.value ?? inline(x.children ?? [], title))).join('')
+  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : x.value || x.text || inline(x.children ?? [], title))).join('')
 }
 
 export function linkWords(x: Inline, title: Title): string {
@@ -37,9 +39,8 @@ export const linkMissing = (x: Inline, title: Title): boolean => !title(x.docId)
 export const inlineText = (c: Inline[] = []): string => inline(c, stored)
 
 export function shownText(b: Block, title: Title): string {
-  if (b.type === 'heading') return b.text ?? inline(b.content ?? [], title)
   if (b.type === 'list') return (b.items ?? []).map((it) => inline(itemContent(it), title)).join(' · ')
-  return inline(b.content ?? [], title)
+  return inline(contentOf(b), title)
 }
 
 export const blockText = (b: Block): string => shownText(b, stored)

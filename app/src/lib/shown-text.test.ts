@@ -55,7 +55,7 @@ test('a link is missing when its id names no note, or it has no id', () => {
 
 test('old and empty shapes read as their words or nothing', () => {
   const bare: Inline = {type: 'wikilink', docId: 'g'}
-  const blocks: Block[] = [{id: 'h', type: 'heading', text: 'Stored heading', content: [text('ignored')]}, {id: 'l', type: 'list'}, {id: 'p', type: 'paragraph'}, para('q', text('Ask '), bare, {type: 'text'}, text('.'))]
+  const blocks: Block[] = [{id: 'h', type: 'heading', text: 'Stored heading'}, {id: 'l', type: 'list'}, {id: 'p', type: 'paragraph'}, para('q', text('Ask '), bare, {type: 'text'}, text('.'))]
   assert.deepEqual(blocks.map((b) => blockText(b)), ['Stored heading', '', '', 'Ask .'])
   assert.equal(linkContext(blocks, 'nowhere', title), '')
 })

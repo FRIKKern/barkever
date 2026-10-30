@@ -1,6 +1,6 @@
 import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
-import {canvas, created, newNote, serverNote, status, synced} from './devices'
+import {canvas, created, leave, newNote, serverNote, status, synced} from './devices'
 import {oldEditor} from './old-editor'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
@@ -18,24 +18,52 @@ async function toggled(page: Page, key: string, words: string) {
   await page.keyboard.press(`ControlOrMeta+${key}`)
 }
 
-test('J05 marks: an untitled note whose only text is bold stays when I leave it', async ({page}) => {
-  await page.goto('/')
-  await expect(page.getByTestId('new-note')).toBeEnabled()
+async function fresh(page: Page) {
+  await leave(page)
   await page.keyboard.press('n')
   await expect(page.getByTestId('title')).toBeFocused()
   const id = new URL(page.url()).searchParams.get('n')!
   created.push(id)
   await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached()
   await page.keyboard.press('Enter')
-  await toggled(page, 'b', 'Buy rope')
+  return id
+}
+
+async function stored(page: Page) {
   await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
-  await page.goBack()
   await synced(page)
-  const kept = await serverNote(id)
-  expect(kept, 'the bold-only note is still on Barkpark').toBeDefined()
-  expect(kept!.body!.blocks[0].content).toEqual([{type: 'strong', children: [{type: 'text', value: 'Buy rope'}]}])
+}
+
+test('J05 marks: untitled notes whose only words are bold, or sit in a heading first saved empty, stay when I leave them and when the app starts', async ({page}) => {
+  await page.goto('/')
+  await expect(page.getByTestId('new-note')).toBeEnabled()
+  const bold = await fresh(page)
+  await toggled(page, 'b', 'Buy rope')
+  await stored(page)
+
+  const heading = await fresh(page)
+  await page.keyboard.type('# ')
+  await expect(canvas(page).locator('h1')).toBeAttached()
+  await stored(page)
   await page.reload()
-  await expect(page.locator(`[data-testid="note-row"][data-note-id="${id}"] .row-snip`)).toHaveText('Buy rope', {timeout: 30_000})
+  await canvas(page).locator('h1').click()
+  await toggled(page, 'b', 'Buy chain')
+  await expect(canvas(page).locator('h1')).toHaveText('Buy chain')
+  await stored(page)
+  expect(await body(heading)).toContain('"text":""')
+
+  const emptied = await fresh(page)
+  await page.keyboard.type('x')
+  await stored(page)
+  await page.keyboard.press('Backspace')
+  await stored(page)
+
+  await page.goto('/')
+  await expect.poll(async () => !(await serverNote(emptied)), {timeout: 30_000, message: 'the start sweep drops the emptied control note'}).toBe(true)
+  await synced(page)
+  for (const [id, words] of [[bold, 'Buy rope'], [heading, 'Buy chain']]) expect(await body(id), words).toContain(`"value":"${words}"`)
+  await expect(page.locator(`[data-testid="note-row"][data-note-id="${bold}"] .row-snip`)).toHaveText('Buy rope')
+  await expect(page.locator(`[data-testid="note-row"][data-note-id="${heading}"]`)).toHaveCount(1)
 })
 
 test('J05 marks: bold, italic and code words show in the list line, search, the backlink line, the graph tip, the link card and the read-only body', async ({browser}) => {

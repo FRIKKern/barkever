@@ -1,5 +1,5 @@
 import {Link} from '@tanstack/react-router'
-import {itemContent, linkMissing, linkWords, type Block, type Inline, type Title} from '../lib/model'
+import {contentOf, itemContent, linkMissing, linkWords, type Block, type Inline, type Title} from '../lib/model'
 import type {Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
@@ -17,13 +17,13 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
         </Link>
       )
     ) : (
-      x.value ?? <Inlines key={i} c={x.children ?? []} at={at} />
+      x.value || x.text || <Inlines key={i} c={x.children ?? []} at={at} />
     ),
   )
 }
 
 function BlockView({b, at}: {b: Block; at: At}) {
-  if (b.type === 'heading') return b.level === 3 ? <h3>{b.text ?? <Inlines c={b.content ?? []} at={at} />}</h3> : <h2>{b.text ?? <Inlines c={b.content ?? []} at={at} />}</h2>
+  if (b.type === 'heading') return b.level === 3 ? <h3><Inlines c={contentOf(b)} at={at} /></h3> : <h2><Inlines c={contentOf(b)} at={at} /></h2>
   if (b.type === 'list' && b.task)
     return (
       <ul className="tasks">
@@ -48,7 +48,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
   if (b.type === 'paragraph' || b.type === 'blockquote')
     return (
       <p>
-        <Inlines c={b.content ?? []} at={at} />
+        <Inlines c={contentOf(b)} at={at} />
       </p>
     )
   return null

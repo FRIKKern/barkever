@@ -42,3 +42,23 @@ test('an untitled note whose only text is bold is not blank, so leaving it never
   assert.equal(isBlank(bold), false)
   assert.equal(empty({_id: 'b', _type: 'note', title: '', tags: [], links: [], body: {blocks: bold.blocks}}), false)
 })
+
+test('words come from content when it holds any, else from text, like the canvas: headings, paragraphs, list items and text leaves', () => {
+  const once: Block = {id: 'h', type: 'heading', level: 1, text: '', content: [wrap('strong', text('Buy rope'))]}
+  const shapes: Block[] = [
+    once,
+    {id: 'h2', type: 'heading', text: 'Old', content: [text('New')]},
+    {id: 'h3', type: 'heading', text: 'Kept', content: []},
+    {id: 'p', type: 'paragraph', text: 'Buy chain'},
+    {id: 'q', type: 'paragraph', content: [{type: 'text', text: 'Legacy leaf'}]},
+    {id: 'l', type: 'list', items: [{text: 'Item text'}, {content: [], text: 'Empty content'}, {content: [text('Content')], text: 'ignored'}]},
+  ]
+  assert.deepEqual(shapes.map(blockText), ['Buy rope', 'New', 'Kept', 'Buy chain', 'Legacy leaf', 'Item text · Empty content · Content'])
+  for (const b of [once, shapes[3], shapes[4]]) assert.equal(isBlank(note('x', '', [b])), false, b.id)
+})
+
+test('a mark around a link still shows the linked note\'s current title', () => {
+  const p: Block = {id: 'p', type: 'paragraph', content: [text('See '), wrap('strong', {type: 'wikilink', target: 'Pier', docId: 'pier', children: [text('Pier')]})]}
+  assert.equal(snippet(note('m', 'M', [p]), title), 'See Pier walk')
+  assert.equal(linkContext([p], 'pier', title), 'See Pier walk')
+})
