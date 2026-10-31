@@ -19,6 +19,7 @@ const need = [
   '--ignore-rules',
   '-c web_search="disabled"',
   '-c approval_policy="never"',
+  '-c cli_auth_credentials_store="file"',
   ...OFF.map((f) => `--disable ${f}`),
 ]
 const flags = [...need.map((n) => ({name: `missing ${n}`, ok: ` ${joined} `.includes(` ${n} `)})), {name: 'prompt not read from stdin', ok: args.at(-1) === '-'}]

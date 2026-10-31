@@ -28,6 +28,8 @@ export const codexArgs = (system: string) => [
   '-c',
   'approval_policy="never"',
   '-c',
+  'cli_auth_credentials_store="file"',
+  '-c',
   `developer_instructions=${JSON.stringify(system)}`,
   ...OFF.flatMap((f) => ['--disable', f]),
   '-',
