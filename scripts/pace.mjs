@@ -39,7 +39,8 @@ function range() {
 
 function commits() {
   const span = range();
-  const out = span ? run("git", ["log", "--first-parent", span, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]) : null;
+  if (span === null) return null;
+  const out = run("git", ["log", "--first-parent", span, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]);
   if (out === null) return null;
   return out.split("\x1e").filter((r) => r.trim()).map((rec) => {
     const [head, ...rest] = rec.trim().split("\n");

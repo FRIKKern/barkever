@@ -103,6 +103,17 @@ test("--since before every commit on main counts them all, from that time", () =
   assert.equal(rows.commits.now, "4");
 });
 
+test("--since exactly at a snapshot starts at that snapshot, with no note", () => {
+  const { rows, header, stdout } = pace(world(), "--since", EARLIER_AT);
+  assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
+  assert.doesNotMatch(stdout, /starts at the snapshot/);
+  assert.equal(rows.commits.now, "3");
+});
+
+test("--since exactly at the earliest commit date still counts every commit", () => {
+  assert.equal(pace(world(), "--since", "2020-01-01T00:00:00.000Z").rows.commits.now, "4");
+});
+
 test("--since before the first snapshot but after a commit gives unknown commits over that window", () => {
   const { rows, header } = pace(world(), "--since", "2026-10-31T09:30:00.000Z");
   assert.match(header, /^pace 2026-10-31T09:30:00\.000Z → /);
