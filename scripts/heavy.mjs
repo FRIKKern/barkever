@@ -17,17 +17,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const owner = process.env.HEAVY_OWNER ?? execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const slotPath = (i) => `${HEAVY_DIR}/slot-${i}`;
 
-function holder(slot, i) {
+function holder(slot) {
   try {
     const [pid, ...rest] = readFileSync(slot, "utf8").split(" ");
-    return { pid: Number(pid), owner: rest.join(" "), at: statSync(slot, { bigint: true }).birthtimeNs, i };
+    return { pid: Number(pid), owner: rest.join(" "), at: statSync(slot, { bigint: true }).birthtimeNs };
   } catch { return null; }
 }
 
 const command = (pid) => { try { return execFileSync("ps", ["-ww", "-o", "command=", "-p", String(pid)], { encoding: "utf8" }).trim(); } catch { return ""; } };
 
-const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i), i)).filter((h) => h && h.pid !== process.pid && alive(h));
-const before = (me) => (h) => h.at < me.at || (h.at === me.at && h.i < me.i);
+const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i))).filter((h) => h && h.pid !== process.pid && alive(h));
+const before = (me) => (h) => h.at < me.at;
 
 function crowded(live) {
   if (live.some((h) => h.owner === owner)) return true;
@@ -45,7 +45,7 @@ function take() {
       if (h && !alive(h)) { try { unlinkSync(slot); } catch {} i -= 1; }
       continue;
     }
-    const me = holder(slot, i);
+    const me = holder(slot);
     if (me && !crowded(held().filter(before(me)))) return slot;
     try { unlinkSync(slot); } catch {}
     return null;
