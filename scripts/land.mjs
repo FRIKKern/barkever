@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 const [branch, ...rest] = process.argv.slice(2);
 const flag = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
@@ -34,6 +36,7 @@ if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(r
 
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
 const abortRebase = () => {
+  if (!existsSync(resolve(dir, git(["rev-parse", "--git-path", "rebase-merge"], dir)))) return "";
   const conflicts = git(["diff", "--name-only", "--diff-filter=U"], dir).replaceAll("\n", ", ");
   git(["rebase", "--abort"], dir);
   return ` on ${conflicts}; rebase aborted, ${branch} is back at ${head.slice(0, 10)}`;
