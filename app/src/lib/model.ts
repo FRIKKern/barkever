@@ -21,6 +21,8 @@ const NUMBERED = ['ordered-list', 'numbered_list']
 
 const asList = (b: Block): Block => (b.type !== 'list' && LISTS.includes(b.type) && Array.isArray(b.items) ? {...b, type: 'list', ordered: b.ordered === true || NUMBERED.includes(b.type)} : b)
 
+export const itemsOf = (b: Block): Item[] => (Array.isArray(b.items) ? b.items : [])
+
 export function nestedOf(it: Item): Block[] {
   const children = isObject(it) ? it.children : undefined
   return Array.isArray(children) ? children.filter(isObject).map((c) => asList(c as Block)) : []
@@ -55,13 +57,13 @@ export const inlineText = (c: Inline[] = []): string => inline(c, stored)
 export const itemText = (it: Item, title: Title): string => inline(itemContent(it), title)
 
 function shownText(b: Block, title: Title): string {
-  if (b.type === 'list') return (b.items ?? []).flatMap((it) => [inline(itemContent(it), title), ...nestedOf(it).map((c) => shownText(c, title))]).filter(Boolean).join(' · ')
+  if (b.type === 'list') return itemsOf(b).flatMap((it) => [inline(itemContent(it), title), ...nestedOf(it).map((c) => shownText(c, title))]).filter(Boolean).join(' · ')
   return inline(contentOf(b), title)
 }
 
 export const blockText = (b: Block): string => shownText(b, stored)
 
-const inlines = (b: Block): Inline[] => (b.type === 'list' ? (b.items ?? []).flatMap((it) => [...itemContent(it), ...nestedOf(it).flatMap(inlines)]) : b.content ?? [])
+const inlines = (b: Block): Inline[] => (b.type === 'list' ? itemsOf(b).flatMap((it) => [...itemContent(it), ...nestedOf(it).flatMap(inlines)]) : b.content ?? [])
 
 export function wikilinks(blocks: Block[]): string[] {
   const out = new Set<string>()

@@ -88,3 +88,20 @@ test('a checklist item whose children are not a list of objects still ticks, and
     assert.deepEqual((after[0]!.items![0] as {children: unknown}).children, children)
   }
 })
+
+test('a list whose items are not an array reads as a list with no lines, top level or nested, and a tick beside it still ticks', () => {
+  const good: Block = {id: 'good', type: 'list', task: true, items: [{text: 'tick me'}]}
+  for (const items of ['x', {a: 1}, 5]) {
+    const top = {id: 't', type: 'list', task: true, items} as unknown as Block
+    const nested: Block = {id: 'l', type: 'list', items: [{content: [text('Pier')], children: [{id: 'c', type: 'list', items} as unknown as Block]}]}
+    assert.equal(blockText(top), '')
+    assert.equal(blockText(nested), 'Pier')
+    assert.deepEqual(wikilinks([top, nested]), [])
+    const tasks = board([note([good, top, nested])], shelve([{id: 'a', name: 'A', parent: null}]), () => undefined).columns.flatMap((c) => c.cards.flatMap((card) => card.tasks))
+    assert.deepEqual(tasks.map((t) => t.text), ['tick me'])
+    const after = ticked([good, top, nested], tasks[0]!.box)
+    assert.equal((after[0]!.items![0] as {checked?: boolean}).checked, true)
+    assert.equal(after[1], top)
+    assert.equal(isBlank(note([top])), false)
+  }
+})
