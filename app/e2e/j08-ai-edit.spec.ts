@@ -31,7 +31,10 @@ function stubBridge(page: Page) {
               {block: a, after: p0},
               {block: b, after: p1},
             ],
-            citations: [{id: req.note.id, quote: 'one clear call to action'}],
+            citations: [
+              {id: req.note.id, quote: 'one clear call to action'},
+              {id: 'fx-note-01', quote: 'Top level: Home'},
+            ],
             provider: 'claude',
             model: 'fake-sonnet',
             tokens: 1234,
@@ -77,7 +80,7 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   expect(sent.notes.map((n) => n.id)).toContain(id)
 
   await expect(page.getByTestId('ai-edit-meta')).toHaveText('fake-sonnet · your login · ≈ $0.002')
-  await expect(page.getByTestId('ai-source')).toHaveText(['AI Edit accept'])
+  await expect(page.getByTestId('ai-source')).toHaveText(['AI Edit accept', 'Harbor redesign: sitemap'])
   const changes = page.getByTestId('ai-change')
   await expect(changes).toHaveCount(2)
   await expect(changes.nth(0).locator('del')).toHaveText(['site', 'clear'])
@@ -102,17 +105,19 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
 
   await expect(page.getByTestId('ai-undo')).toBeVisible()
   await page.keyboard.press('z')
-  await page.keyboard.press('ControlOrMeta')
-  await page.keyboard.press('Shift+ControlOrMeta+z')
-  for (const field of ['title', 'tag-add']) {
-    await page.getByTestId(field).focus()
-    await page.keyboard.press('ControlOrMeta+z')
-    await page.evaluate(() => (document.activeElement as HTMLElement).blur())
+  for (const key of ['Meta', 'Control']) {
+    await page.keyboard.press(key)
+    await page.keyboard.press(`Shift+${key}+z`)
+    for (const field of ['title', 'tag-add']) {
+      await page.getByTestId(field).focus()
+      await page.keyboard.press(`${key}+z`)
+      await page.evaluate(() => (document.activeElement as HTMLElement).blur())
+    }
   }
   await page.waitForTimeout(500)
   expect(content(await stored(id))).toBe(expected)
   await expect(page.getByTestId('ai-undo')).toBeVisible()
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press('Meta+z')
   await expect.poll(async () => content(await stored(id)), {timeout: 15_000}).toBe(content(before))
   await expect(page.getByTestId('canvas')).toContainText('one clear call to action')
   await expect(page.getByTestId('ai-bar')).toHaveCount(0)
@@ -223,7 +228,7 @@ test('J08 one undo takes back only the AI change: words another device typed mea
   const other = await device(browser, baseURL!)
   await remoteTypes(other, id, 'p1', ' REMOTE-P1.')
   await reaches(page, 'REMOTE-P1')
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press('Control+z')
   await expect(page.getByTestId('ai-bar')).toHaveCount(0)
   await settled(page)
   await synced(page)
