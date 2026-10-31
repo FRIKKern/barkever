@@ -44,7 +44,7 @@ async function firstSaveAfterReload(page: Page, beforeReload: () => Promise<void
   await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
   await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
   await beforeReload()
-  await page.reload()
+  await page.goto(`${ORIGIN}/?n=${NOTE}`)
   await open(page)
   const mark = `After ${Date.now()}.`
   await caretAtEnd(page)
@@ -58,8 +58,11 @@ async function firstSaveAfterReload(page: Page, beforeReload: () => Promise<void
   return ms
 }
 
-const rewindTo = (page: Page, cursor: number) =>
-  page.evaluate(async (cursor) => {
+const NO_APP = `${ORIGIN}/sw.js`
+
+const rewindTo = async (page: Page, cursor: number) => {
+  await page.goto(NO_APP)
+  await page.evaluate(async (cursor) => {
     const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
     const db = await new Promise<IDBDatabase>((ok) => {
       const r = indexedDB.open(name)
@@ -71,6 +74,7 @@ const rewindTo = (page: Page, cursor: number) =>
     await new Promise((ok) => (tx.oncomplete = ok))
     db.close()
   }, cursor)
+}
 
 test(`with ${HISTORY_EVENTS} events of history, a save typed right after a reload reaches Barkpark in under ${BUDGET_MS} ms`, async ({context}) => {
   const page = await context.newPage()
