@@ -61,14 +61,11 @@ export const replicaHolds = (page: Page, id: string, text: string) =>
     .poll(
       () =>
         page.evaluate(async ([id, text]) => {
-          for (const {name} of await indexedDB.databases()) {
-            const open = indexedDB.open(name!)
-            const store = await new Promise<IDBDatabase>((done, fail) => ((open.onsuccess = () => done(open.result)), (open.onerror = () => fail(open.error))))
-            const note = store.objectStoreNames.contains('notes') ? await new Promise((done) => (store.transaction('notes').objectStore('notes').get(id).onsuccess = (e) => done((e.target as IDBRequest).result))) : undefined
-            store.close()
-            if (note && JSON.stringify(note).includes(text)) return true
-          }
-          return false
+          const open = indexedDB.open((JSON.parse(localStorage.getItem('barkever-owner')!) as {replica: string}).replica)
+          const replica = await new Promise<IDBDatabase>((done, fail) => ((open.onsuccess = () => done(open.result)), (open.onerror = () => fail(open.error))))
+          const note = await new Promise((done) => (replica.transaction('notes').objectStore('notes').get(id).onsuccess = (e) => done((e.target as IDBRequest).result)))
+          replica.close()
+          return JSON.stringify(note).includes(text)
         }, [id, text]),
       {timeout: 30_000},
     )
