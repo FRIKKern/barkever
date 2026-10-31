@@ -18,7 +18,9 @@ const madeAt = (name: string) => {
 
 export const stale = (all: string[], now: number) => all.filter((n) => throwaway(n) && now - madeAt(n) > OLDER_THAN_MS).sort()
 
-const pause = (ms: number) => new Promise((done) => setTimeout(done, ms))
+export type Clock = {now(): number; pause(ms: number): Promise<unknown>}
+
+const wall: Clock = {now: Date.now, pause: (ms) => new Promise((done) => setTimeout(done, ms))}
 
 type Answer = {documents?: number; dataset_id?: string; error?: {code?: string; details?: {reason?: string}}}
 
@@ -35,9 +37,9 @@ const busyFor = (res: Response, answer: Answer) => {
   return res.status === 503 && answer.error?.details?.reason === 'dataset_delete_busy' && seconds > 0 ? seconds * 1000 : 0
 }
 
-export async function drop(dataset: string, send: Send, every = 2_000, cap = 10 * 60_000): Promise<Dropped> {
+export async function drop(dataset: string, send: Send, every = 2_000, cap = 10 * 60_000, clock = wall): Promise<Dropped> {
   if (!throwaway(dataset)) throw new Error(`only throwaway run datasets get deleted, not "${dataset}"`)
-  const until = Date.now() + cap
+  const until = clock.now() + cap
   let run: string | undefined
   for (;;) {
     const res = await send(`/v1/datasets/${dataset}${run ? `?dataset_id=${encodeURIComponent(run)}` : ''}`, {method: 'DELETE'})
@@ -51,8 +53,8 @@ export async function drop(dataset: string, send: Send, every = 2_000, cap = 10 
     if (res.status === 202) run = answer.dataset_id
     const wait = res.status === 202 ? every : busyFor(res, answer)
     if (!wait) return kept(`Barkpark ${res.status} ${body.slice(0, 400)}`)
-    if (Date.now() + wait > until) return kept(`Barkpark is still ${res.status === 202 ? 'deleting it' : 'busy'} after ${Math.round(cap / 1000)} s; the next DELETE picks the run up`)
-    await pause(wait)
+    if (clock.now() + wait > until) return kept(`Barkpark is still ${res.status === 202 ? 'deleting it' : 'busy'} after ${Math.round(cap / 1000)} s; the next DELETE picks the run up`)
+    await clock.pause(wait)
   }
 }
 

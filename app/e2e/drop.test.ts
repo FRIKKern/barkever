@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
-import {drop, dropEach, stale, sweep, toDrop, type Dropped, type Send} from './drop.ts'
+import {drop, dropEach, stale, sweep, toDrop, type Clock, type Dropped, type Send} from './drop.ts'
 
 type Call = {path: string; query: string; method: string; at: number}
 type Reply = number | {status: number; reason?: string; code?: string; retryAfter?: number; id?: string | null; html?: boolean}
@@ -17,7 +17,7 @@ function reply(r: Reply, name: string) {
   return {status, headers, body: {error: {code, message: 'fake', ...(reason && {details: {reason}})}}}
 }
 
-async function fakeBarkpark(answers: Record<string, Reply[]>) {
+async function fakeBarkpark(answers: Record<string, Reply[]>, slowMs = 0) {
   const calls: Call[] = []
   const left = Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, [...v]]))
   const server = createServer((req, res) => {
@@ -26,7 +26,7 @@ async function fakeBarkpark(answers: Record<string, Reply[]>) {
     const name = url.pathname.split('/').pop()!
     const queue = left[name] ?? [404]
     const {status, headers, body} = reply(queue.length > 1 ? queue.shift()! : queue[0]!, name)
-    res.writeHead(status, headers).end(typeof body === 'string' ? body : JSON.stringify(body))
+    setTimeout(() => res.writeHead(status, headers).end(typeof body === 'string' ? body : JSON.stringify(body)), slowMs)
   })
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
   server.unref()
@@ -71,15 +71,16 @@ test('a rolled-back 503 or a refusing 409 keeps the dataset after one DELETE', a
   }
 })
 
-test('a delete that stays at 202 stops polling at the cap and says it is kept', async () => {
-  const bp = await fakeBarkpark({[A]: [202]})
-  const started = Date.now()
-  const out = await drop(A, bp.send, 20, 150)
+test('a delete that stays at 202 stops polling at the cap and says it is kept, however slow each request is', {timeout: 5_000}, async () => {
+  const bp = await fakeBarkpark({[A]: [202]}, 60)
+  let now = 0
+  const clock: Clock = {now: () => now, pause: async (ms) => void (now += ms)}
+  const out = await drop(A, bp.send, 20, 160, clock)
   bp.close()
   assert.equal(out.gone, false)
   assert.match(out.said, /still deleting/)
-  assert.ok(Date.now() - started < 400)
-  assert.ok(bp.calls.length >= 3 && bp.calls.length <= 9, `${bp.calls.length} DELETEs`)
+  assert.equal(bp.calls.length, 9, `${bp.calls.length} DELETEs`)
+  assert.equal(now, 160)
 })
 
 test('production, fixtures and any other name are refused before a request goes out', async () => {
