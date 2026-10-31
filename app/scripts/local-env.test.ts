@@ -1,11 +1,13 @@
-import {test} from 'node:test'
+import {after, test} from 'node:test'
 import assert from 'node:assert/strict'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fillFromBarkparkCli} from './local-env.ts'
 
-const cfg = join(mkdtempSync(join(tmpdir(), 'bk-env-')), 'config.json')
+const dir = mkdtempSync(join(tmpdir(), 'bk-env-'))
+const cfg = join(dir, 'config.json')
+after(() => rmSync(dir, {recursive: true, force: true}))
 writeFileSync(cfg, JSON.stringify({server: 'https://bp.example', token: 'fake-cli-token'}))
 
 test('fills both from the CLI login when unset', () => {
