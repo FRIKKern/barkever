@@ -1,7 +1,8 @@
 import {strict as assert} from 'node:assert'
-import {spawn} from 'node:child_process'
-import {existsSync, readdirSync} from 'node:fs'
+import {spawn, spawnSync} from 'node:child_process'
+import {existsSync, mkdtempSync, readdirSync} from 'node:fs'
 import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {test} from 'node:test'
 
 const OWN = new URL('./own-tmp.mjs', import.meta.url).pathname
@@ -36,4 +37,12 @@ test('a run stopped by a signal is stopped too, and still leaves nothing', async
     assert.notEqual(code, 0)
     assert.equal(existsSync(made), false)
   }
+})
+
+test('a command that does not exist exits 127 with one line, and leaves no dir', () => {
+  const empty = mkdtempSync(join(tmpdir(), 'barkever-own-tmp-test-'))
+  const {status, stderr} = spawnSync('node', [OWN, 'no-such-binary-xyz'], {env: {...process.env, TMPDIR: `${empty}/`}, encoding: 'utf8'})
+  assert.equal(status, 127)
+  assert.equal(stderr, 'own-tmp: no-such-binary-xyz: spawn no-such-binary-xyz ENOENT\n')
+  assert.deepEqual(readdirSync(empty), [])
 })

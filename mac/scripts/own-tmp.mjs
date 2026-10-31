@@ -7,7 +7,12 @@ const [cmd, ...args] = process.argv.slice(2)
 const root = mkdtempSync(join(tmpdir(), 'barkever-run-'))
 const child = spawn(cmd, args, {stdio: 'inherit', env: {...process.env, TMPDIR: `${root}/`}})
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => child.kill(signal))
-child.on('exit', (code) => {
+const done = (code) => {
   rmSync(root, {recursive: true, force: true, maxRetries: 5})
-  process.exit(code ?? 1)
+  process.exit(code)
+}
+child.on('error', (error) => {
+  console.error(`own-tmp: ${cmd}: ${error.message}`)
+  done(127)
 })
+child.on('exit', (code) => done(code ?? 1))
