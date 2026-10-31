@@ -2,6 +2,7 @@ import {expect, type Browser, type Page} from '@playwright/test'
 import {barkpark, DATASET} from './fixtures-cleanup'
 import {anotherDevice} from './account'
 import {blockText, type Block, type Conflict} from '../src/lib/model.ts'
+import {clickCaret} from './caret'
 
 export type ServerNote = {_id: string; _rev: string; title?: string; by?: string; body?: {blocks: Block[]}; conflicts?: Conflict[]}
 
@@ -35,7 +36,7 @@ export async function newNote(page: Page, title: string, body: string) {
 export async function typeAtEndOf(page: Page, index: number, text: string) {
   const block = canvas(page).locator('[contenteditable="true"] > [data-bp-id]').nth(index)
   const box = (await block.boundingBox())!
-  await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2)
+  await clickCaret(block, {x: box.width - 2, y: box.height / 2})
   await page.keyboard.press('End')
   await page.keyboard.type(text)
 }
