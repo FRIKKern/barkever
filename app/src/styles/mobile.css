@@ -16,7 +16,7 @@
   .app .doc-title { font-size: var(--fs-title-m); }
   .app.drawer .sidebar { display: flex; position: fixed; z-index: 40; inset: 0 auto 0 0; width: calc(100% - var(--sp-7)); box-shadow: var(--shadow-pop); }
   .scrim { position: fixed; inset: 0; z-index: 39; background: var(--c-bg); opacity: .6; }
-  .offline { position: sticky; top: 0; z-index: 11; }
+  .offline { height: auto; padding: var(--sp-1) var(--sp-4); }
   .mhead { display: flex; position: sticky; top: 0; z-index: 10; align-items: center; gap: var(--sp-2); height: var(--h-mhead); padding: 0 var(--sp-3); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
   .mhead .back { display: flex; align-items: center; gap: var(--sp-hair); color: var(--c-accent); font-size: var(--fs-body); min-width: 0; white-space: nowrap; }
   .mhead .mt { flex: 1; font-weight: var(--fw-bold); font-size: var(--fs-l); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
