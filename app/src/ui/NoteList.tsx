@@ -154,12 +154,14 @@ function useHeldOrder(notes: Note[], rows: RefObject<HTMLDivElement | null>): No
   useEffect(() => {
     const el = rows.current!
     let press: AbortController | undefined
-    const down = () => {
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0 || !e.isPrimary) return
       press?.abort()
       const mine = (press = new AbortController())
       setHeld(latest.current)
       const up = () => (mine.abort(), setTimeout(() => press === mine && setHeld(null)))
-      for (const type of ['pointerup', 'pointercancel']) addEventListener(type, up, {capture: true, signal: mine.signal})
+      for (const type of ['pointerup', 'pointercancel', 'contextmenu']) addEventListener(type, up, {capture: true, signal: mine.signal})
+      addEventListener('blur', up, {signal: mine.signal})
     }
     el.addEventListener('pointerdown', down)
     return () => (el.removeEventListener('pointerdown', down), press?.abort())
