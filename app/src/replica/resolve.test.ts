@@ -123,3 +123,11 @@ test('copy order edge forms: no copies, one copy, an empty time, and words compa
   assert.equal(rounds(latest), 1)
   assert.equal(latest(), 'é')
 })
+
+test('Keep this removes the kept copy even when the main moved since it was shown and the copy holds the shown words', () => {
+  const moved = {...main, _rev: 'r6', title: 'Moved', body: {blocks: [p('a', 'one moved'), p('b', 'two')]}}
+  for (const k1 of [copy('k1', 1, 'C', ['body:a'], 'Main', [p('a', 'one')]), copy('k1', 1, 'C', ['title'], 'Main', [])]) {
+    const out = keep({...moved, conflicts: [k1]}, 'k1', main, at(9), 'local-k', 'dev-me')
+    assert.ok(!out.conflicts?.some((c) => c._key === 'k1'), k1.clash[0])
+  }
+})
