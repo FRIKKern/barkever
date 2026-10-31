@@ -11,6 +11,14 @@ const sourceMode = (page: Page) => canvas(page).evaluate((el) => (el as Canvas).
 const toggle = 'ControlOrMeta+Shift+m'
 const toEnd = (page: Page) => source(page).evaluate((ta: HTMLTextAreaElement) => ta.setSelectionRange(ta.value.length, ta.value.length))
 const caret = (page: Page) => source(page).evaluate((ta: HTMLTextAreaElement) => [ta.selectionStart, ta.selectionEnd, ta.value.length])
+const pushesOf = (page: Page, id: string) => {
+  const sent: string[] = []
+  page.on('request', (r) => {
+    const body = r.method() === 'POST' && r.url().includes('/_serverFn/') ? r.postData() ?? '' : ''
+    if (body.includes('mutations') && body.includes(id)) sent.push(body)
+  })
+  return sent
+}
 const stored = async (id: string, text: string) => expect.poll(async () => everything(await serverNote(id)), {timeout: 15_000}).toContain(text)
 
 async function openSource(page: Page) {
@@ -60,6 +68,7 @@ for (const width of [1440, 390]) {
 
 test('Markdown source mode opened with the keyboard keeps my selection while it saves, and leaving it sends nothing new', async ({page}) => {
   const id = await newNote(page, `Source select ${Date.now()}`, 'Base.')
+  const sent = pushesOf(page, id)
   await openSource(page)
   await page.keyboard.type(' More words here.')
   await page.keyboard.press('Shift+ArrowLeft')
@@ -69,10 +78,15 @@ test('Markdown source mode opened with the keyboard keeps my selection while it 
   await stored(id, 'Base. More words here.')
   expect(await caret(page), 'the selection is where I left it').toEqual(selected)
   await expect(source(page)).toBeFocused()
+  await synced(page)
+  const before = sent.length
+  expect(before, 'what I typed went out as a push').toBeGreaterThan(0)
   await page.keyboard.press(toggle)
   await expect(source(page)).toHaveCount(0)
   await expect(status(page)).toHaveText('Saved')
+  await page.waitForTimeout(1500)
   await synced(page)
+  expect(sent.length, 'leaving source mode pushed nothing new').toBe(before)
   expect(everything(await serverNote(id))).toContain('Base. More words here.')
 })
 
