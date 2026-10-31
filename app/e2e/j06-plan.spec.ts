@@ -1,6 +1,7 @@
 import {expect, test, type Locator, type Page} from '@playwright/test'
 import {lineKey, lineOf, type Spot} from '../src/lib/board'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
+import {serverNote} from './devices'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
 
@@ -11,6 +12,7 @@ const TASK = 'Buy stamps'
 const SUB = 'Ask for a receipt'
 const ABOVE = 'Weigh the parcel'
 const REMOTE = 'Parcel to Bergen'
+const NESTED = 'Buy packing tape'
 const FILLER = 40
 const created: string[] = []
 let made = {id: '', line: ''}
@@ -289,5 +291,46 @@ test('J06 on a phone, offline: the board stacks its columns, a line opens marked
   await page.keyboard.press('Escape')
   await expect(page.getByRole('button', {name: 'Notebooks'})).toBeFocused()
   await context.setOffline(false)
+  expect(errors).toEqual([])
+})
+
+test('J06 nested only: an untitled note whose only words sit in a nested checklist line stays when I leave it and reload, and that line is on the board', async ({page}) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto('/')
+  await expect(page.getByTestId('new-note').first()).toBeEnabled({timeout: 30_000})
+  await page.keyboard.press('n')
+  await expect(page.getByTestId('title')).toBeFocused()
+  const id = opened(page)
+  created.push(id)
+  await expect(editable(page)).toBeAttached()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('[ ] x')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Tab')
+  await page.keyboard.type(NESTED)
+  await page.keyboard.press('ArrowUp')
+  await page.keyboard.press('End')
+  await page.keyboard.press('Backspace')
+  await expect(page.getByTestId('canvas').locator('[data-type="taskList"] li p')).toHaveText(['', NESTED])
+  await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
+  await synced(page)
+
+  await page.getByTestId('side-tasks').click()
+  const card = page.getByTestId('task-card').filter({has: page.locator(`a.card-t[href*="n=${id}"]`)})
+  await expect(card.locator('.card-t')).toHaveText('Untitled')
+  await expect(card.getByTestId('task')).toHaveText([new RegExp(NESTED)])
+  await expect(card.getByTestId('task')).toHaveClass(/\bsub\b/)
+  await page.reload()
+  await expect(card.getByTestId('task')).toHaveText([new RegExp(NESTED)], {timeout: 30_000})
+  expect(JSON.stringify((await serverNote(id))?.body?.blocks)).toContain(NESTED)
+
+  const line = await linkOf(card.getByTestId('task'))
+  expect(spotOf(line)).toMatchObject({item: 0, nth: 0})
+  await card.getByTestId('task').click()
+  await atLine(page, line)
+  await expect(lineAt(page, line).locator('[data-type="taskList"] li p')).toHaveText(NESTED)
+  await page.goto('/')
+  await expect(page.locator(`[data-testid="note-row"][data-note-id="${id}"]`)).toHaveCount(1, {timeout: 30_000})
   expect(errors).toEqual([])
 })
