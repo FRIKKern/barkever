@@ -200,3 +200,11 @@ test('Dismiss ends with that copy gone whatever moved since it was shown, and af
   assert.equal(out.title, 'Moved again')
   assert.deepEqual(out.conflicts?.map((c) => c._key), ['k2', 'k3', 'k4'])
 })
+
+test('Keep this on a copy holding two parts, one equal to the shown words and one not, shows both over a main that moved both', () => {
+  const k1 = copy('k1', 1, 'C', ['title', 'body:a'], 'Main', [p('a', 'copy text')])
+  const moved = {...main, _rev: 'r6', title: 'Moved', body: {blocks: [p('a', 'one moved'), p('b', 'two')]}, conflicts: [k1]}
+  const out = keep(moved, 'k1', main, at(9), 'local-k', 'dev-me')
+  assert.deepEqual([out.title, texts(out)], ['Main', ['a:copy text', 'b:two']])
+  assert.deepEqual(out.conflicts?.map((c) => [c.title, blockText(c.body!.blocks[0]), c.clash.sort()]), [['Moved', 'one moved', ['body:a', 'title']]])
+})
