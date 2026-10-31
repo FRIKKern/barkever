@@ -3,12 +3,9 @@ import {readFileSync, rmSync} from 'node:fs'
 import {join} from 'node:path'
 import {fakeBin} from '../src/ai/fakes.ts'
 import {launchPlain, quitAll, signIn} from './launch.ts'
-import {dropProfiles, profile} from './profiles.ts'
+import {dropProfilesAfter, profile} from './profiles.ts'
 
-test.afterAll(async () => {
-  await quitAll()
-  dropProfiles()
-})
+test.afterAll(() => dropProfilesAfter(quitAll))
 
 const ask = async (page: Page, question: string) => {
   await page.getByLabel('Ask about your notes').fill(question)

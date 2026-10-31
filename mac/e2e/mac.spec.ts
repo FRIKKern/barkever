@@ -6,7 +6,7 @@ import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
 import {launchDriven, launchPlain, quitAll, signIn} from './launch.ts'
 import {keepScreenshotOnFailure} from './failure-shot.ts'
-import {dropProfiles, profile} from './profiles.ts'
+import {dropProfilesAfter, profile} from './profiles.ts'
 
 test.describe.configure({mode: 'serial'})
 
@@ -15,8 +15,7 @@ const NOTE = 'Harbor redesign: sitemap'
 
 const created: string[] = []
 test.afterAll(async () => {
-  await quitAll()
-  dropProfiles()
+  await dropProfilesAfter(quitAll)
   await deleteNotes(created)
 })
 test.afterEach(({}, info) => keepScreenshotOnFailure(info))

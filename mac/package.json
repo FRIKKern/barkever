@@ -11,8 +11,8 @@
   "scripts": {
     "start": "pnpm --filter @barkever/app build && electron .",
     "build": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types src/*.test.ts scripts/*.test.mjs e2e/*.test.ts",
-    "e2e": "pnpm --filter @barkever/app build && playwright test -c e2e/playwright.config.ts",
+    "test": "node scripts/own-tmp.mjs node --test --experimental-strip-types src/*.test.ts scripts/*.test.mjs e2e/*.test.ts",
+    "e2e": "pnpm --filter @barkever/app build && node scripts/own-tmp.mjs playwright test -c e2e/playwright.config.ts",
     "dist": "node scripts/build.mjs",
     "rehearse": "node scripts/rehearse.mjs"
   },

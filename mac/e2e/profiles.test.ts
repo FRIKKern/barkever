@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {existsSync, mkdirSync, rmSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
-import {dropProfiles, profile} from './profiles.ts'
+import {dropProfiles, dropProfilesAfter, profile} from './profiles.ts'
 
 test('every profile dir is gone after the cleanup, with what the app wrote into it', () => {
   const dirs = [profile(), profile()]
@@ -20,4 +20,13 @@ test('a dir the test already removed is fine, and a second cleanup is a no-op', 
   dropProfiles()
   dropProfiles()
   assert.equal(existsSync(kept), false)
+})
+
+test('the profiles are dropped when the quit fails, and when it hangs past the wait', {timeout: 5_000}, async () => {
+  const failed = profile()
+  await assert.rejects(dropProfilesAfter(async () => Promise.reject(new Error('wedged app'))), /wedged app/)
+  assert.equal(existsSync(failed), false)
+  const hung = profile()
+  await dropProfilesAfter(() => new Promise(() => {}), 20)
+  assert.equal(existsSync(hung), false)
 })
