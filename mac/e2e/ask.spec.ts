@@ -1,9 +1,14 @@
 import {expect, test, type Page} from '@playwright/test'
-import {mkdtempSync, readFileSync, rmSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {readFileSync, rmSync} from 'node:fs'
 import {join} from 'node:path'
 import {fakeBin} from '../src/ai/fakes.ts'
-import {launchPlain, signIn} from './launch.ts'
+import {launchPlain, quitAll, signIn} from './launch.ts'
+import {dropProfiles, profile} from './profiles.ts'
+
+test.afterAll(async () => {
+  await quitAll()
+  dropProfiles()
+})
 
 const ask = async (page: Page, question: string) => {
   await page.getByLabel('Ask about your notes').fill(question)
@@ -12,7 +17,7 @@ const ask = async (page: Page, question: string) => {
 
 test('J07 in the Mac app: the bridge runs fake claude, falls back to fake codex, cites, counts the budget, sends nothing without a match', async ({}, info) => {
   const fake = fakeBin()
-  const data = mkdtempSync(join(tmpdir(), 'barkever-mac-e2e-'))
+  const data = profile()
   const run = await launchPlain(data, 'mock', {PATH: `${fake.dir}:${process.env.PATH}`, CODEX_HOME: join(fake.home, '.codex'), ANTHROPIC_API_KEY: 'e2e-not-a-key', OPENAI_API_KEY: 'e2e-not-a-key', CLAUDECODE: '1'})
   const {page} = run
   await signIn(page)

@@ -1,21 +1,24 @@
 import {expect, test, type Browser, type ElectronApplication, type Page} from '@playwright/test'
-import {mkdtempSync, readdirSync, readFileSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {readdirSync, readFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
-import {launchDriven, launchPlain, signIn} from './launch.ts'
+import {launchDriven, launchPlain, quitAll, signIn} from './launch.ts'
 import {keepScreenshotOnFailure} from './failure-shot.ts'
+import {dropProfiles, profile} from './profiles.ts'
 
 test.describe.configure({mode: 'serial'})
 
-const profile = () => mkdtempSync(join(tmpdir(), 'barkever-mac-e2e-'))
 const DATA = profile()
 const NOTE = 'Harbor redesign: sitemap'
 
 const created: string[] = []
-test.afterAll(() => deleteNotes(created))
+test.afterAll(async () => {
+  await quitAll()
+  dropProfiles()
+  await deleteNotes(created)
+})
 test.afterEach(({}, info) => keepScreenshotOnFailure(info))
 
 const rows = (page: Page) => page.getByTestId('note-row')

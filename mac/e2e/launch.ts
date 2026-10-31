@@ -14,8 +14,17 @@ export type Run = {page: Page; browser: Browser; quit(): Promise<void>}
 
 const appEnv = (data: string, env: Record<string, string>) => ({...(process.env as Record<string, string>), BARKEVER_USER_DATA: data, BARKPARK_DATASET: DATASET, ...env})
 
+const running = new Set<() => Promise<void>>()
+
+export async function quitAll() {
+  await Promise.all([...running].map((stop) => stop()))
+}
+
 export async function launchDriven(data: string) {
   const app = await electron.launch({args: [MAC], env: appEnv(data, {})})
+  const stop = () => app.close()
+  running.add(stop)
+  app.once('close', () => running.delete(stop))
   watched(app.context())
   return app
 }
@@ -38,6 +47,12 @@ const loaded = async (http: string) =>
 export async function launchPlain(data: string, keychain: Keychain, env: Record<string, string> = {}): Promise<Run> {
   const child = spawn(ELECTRON, [MAC, '--remote-debugging-port=0', ...(keychain === 'mock' ? ['--use-mock-keychain'] : [])], {env: appEnv(data, env), stdio: ['ignore', 'ignore', 'pipe']})
   const exited = new Promise((done) => child.once('exit', done))
+  const stop = async () => {
+    running.delete(stop)
+    child.kill('SIGTERM')
+    await exited
+  }
+  running.add(stop)
   const http = await devtools(child)
   await expect.poll(() => loaded(http), {timeout: 30_000}).toBe(true)
   const browser = await chromium.connectOverCDP(http)
@@ -49,8 +64,7 @@ export async function launchPlain(data: string, keychain: Keychain, env: Record<
     browser,
     async quit() {
       await browser.close()
-      child.kill('SIGTERM')
-      await exited
+      await stop()
     },
   }
 }
