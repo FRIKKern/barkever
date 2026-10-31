@@ -13,11 +13,11 @@
     "scan": "node scripts/scan-outgoing.mjs",
     "dev": "pnpm --filter @barkever/app dev",
     "build": "pnpm -r build",
-    "test": "node --test scripts/check-repo.test.mjs scripts/mutate.test.mjs scripts/arms.test.mjs scripts/pace.test.mjs scripts/land.test.mjs && pnpm -r test",
+    "test": "node --test scripts/check-repo.test.mjs scripts/mutate.test.mjs scripts/arms.test.mjs scripts/pace.test.mjs scripts/land.test.mjs scripts/heavy.test.mjs && pnpm -r test",
     "e2e": "pnpm --filter @barkever/app e2e",
     "mac": "pnpm --filter @barkever/mac start",
     "e2e:mac": "pnpm --filter @barkever/mac e2e",
-    "prepush": "node scripts/check-repo.mjs && pnpm -r build && node --test scripts/check-repo.test.mjs scripts/mutate.test.mjs scripts/arms.test.mjs scripts/pace.test.mjs scripts/land.test.mjs && pnpm -r test && pnpm --filter @barkever/app e2e && pnpm --filter @barkever/app j10 && pnpm --filter @barkever/mac e2e && node scripts/scan-outgoing.mjs",
+    "prepush": "node scripts/check-repo.mjs && pnpm -r build && node --test scripts/check-repo.test.mjs scripts/mutate.test.mjs scripts/arms.test.mjs scripts/pace.test.mjs scripts/land.test.mjs scripts/heavy.test.mjs && pnpm -r test && pnpm --filter @barkever/app e2e && pnpm --filter @barkever/app j10 && pnpm --filter @barkever/mac e2e && node scripts/scan-outgoing.mjs",
     "j10": "pnpm --filter @barkever/app j10",
     "chaos": "pnpm --filter @barkever/app chaos"
   }
