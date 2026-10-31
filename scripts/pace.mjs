@@ -19,13 +19,18 @@ const run = (cmd, args) => {
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const count = (xs) => xs.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {});
 
+const json = (out) => { try { return out === null ? null : JSON.parse(out); } catch { return null; } };
+
 const snapshots = existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 const flag = process.argv.indexOf("--since");
 const since = flag > 0 ? process.argv[flag + 1] : snapshots.at(-1)?.at ?? new Date(Date.now() - 6 * 3600e3).toISOString();
+const base = snapshots.filter((s) => Date.parse(s.at) <= Date.parse(since)).at(-1);
 const now = new Date().toISOString();
 
 function commits() {
-  const out = run("git", ["log", "main", `--since=${since}`, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]) ?? "";
+  const from = base?.head && run("git", ["rev-parse", "--verify", "--quiet", `${base.head}^{commit}`])?.trim();
+  const out = from ? run("git", ["log", "--first-parent", `${from}..main`, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]) : null;
+  if (out === null) return null;
   return out.split("\x1e").filter((r) => r.trim()).map((rec) => {
     const [head, ...rest] = rec.trim().split("\n");
     const [sha, at, subject] = head.split("\x1f");
@@ -37,28 +42,35 @@ function commits() {
 }
 
 function tasks(id) {
-  const shown = JSON.parse(run("bp", ["task", "show", id, "-o", "json"]) ?? "null");
-  return (shown?.children ?? []).flatMap((c) => {
+  const children = json(run("bp", ["task", "show", id, "-o", "json"]))?.children;
+  if (!Array.isArray(children)) return null;
+  const rows = [];
+  for (const c of children) {
+    const below = tasks(c.doc_id);
+    if (below === null) return null;
     const tier = HARD_TASK.test(c.title) ? "hard" : STANDARD_TASK.test(c.title) ? "standard" : "light";
-    const row = { id: c.doc_id, title: c.title, status: c.lifecycle_status, updated: c.updated_at, criteria: c.criteria_progress, tier };
-    return [row, ...tasks(c.doc_id)];
-  });
+    rows.push({ id: c.doc_id, title: c.title, status: c.lifecycle_status, updated: c.updated_at, criteria: c.criteria_progress, tier }, ...below);
+  }
+  return rows;
 }
 
 function barkparkMerges() {
   const out = run("gh", ["pr", "list", "-R", "FRIKKern/barkpark", "--state", "merged", "--search", `barkever in:body merged:>=${since.slice(0, 10)}`,
     "--json", "number,title,mergedAt,additions,deletions", "--limit", "100"]);
-  return JSON.parse(out ?? "[]").filter((p) => p.mergedAt >= since);
+  const merged = json(out);
+  return Array.isArray(merged) ? merged.filter((p) => p.mergedAt >= since) : null;
 }
 
 const landed = commits();
 const tree = tasks(GOAL);
-const closed = tree.filter((t) => t.status === "done" && t.updated >= since);
+const closed = tree?.filter((t) => t.status === "done" && t.updated >= since);
 const h = hygiene();
 const m = machine();
 const top = (xs) => xs.slice(0, 20);
 const misses = existsSync(MISSES) ? readFileSync(MISSES, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 const missClasses = Object.entries(count(misses.map((x) => x.class))).sort((a, b) => b[1] - a[1]);
+const seenMisses = base?.misses?.total;
+const newMisses = Number.isInteger(seenMisses) && misses.length >= seenMisses ? misses.length - seenMisses : null;
 const halfFixes = [...new Set(misses.filter((x) => / r[2-9]/.test(x.where) && misses.some((y) => y.class === x.class && y.where.split(" ")[0] === x.where.split(" ")[0] && y.where !== x.where)).map((x) => `${x.where.split(" ")[0]} ${x.class}`))];
 
 const snap = {
@@ -66,7 +78,7 @@ const snap = {
   since,
   head: run("git", ["rev-parse", "--short", "main"])?.trim(),
   hours: +((Date.parse(now) - Date.parse(since)) / 3600e3).toFixed(2),
-  commits: {
+  commits: landed && {
     count: landed.length,
     byTier: count(landed.map((c) => c.tier)),
     add: sum(landed.map((c) => c.add)),
@@ -74,14 +86,14 @@ const snap = {
     journeys: [...new Set(landed.flatMap((c) => c.subject.match(/\bJ\d\d\b/g) ?? []))].sort(),
     list: landed.map((c) => `${c.sha} ${c.tier} ${c.subject}`),
   },
-  tasks: {
+  tasks: tree && {
     total: tree.length,
     byStatus: count(tree.map((t) => t.status)),
     openByTier: count(tree.filter((t) => t.status !== "done" && t.status !== "cancelled").map((t) => t.tier)),
     closed: closed.map((t) => `${t.id} ${t.tier} ${t.title}`),
   },
   machine: m,
-  misses: { total: misses.length, new: misses.filter((x) => x.at >= since.slice(0, 10)).length, byClass: Object.fromEntries(missClasses), halfFixes },
+  misses: { total: misses.length, new: newMisses, byClass: Object.fromEntries(missClasses), halfFixes },
   barkpark: barkparkMerges(),
   hygiene: {
     size: h.size,
@@ -98,23 +110,24 @@ if (process.argv.includes("--write")) {
 
 const prev = snapshots.at(-1);
 const row = (k, v, p) => console.log(`| ${k} | ${v} | ${p ?? "–"} |`);
+const of = (section, f) => (section === null ? "unknown" : section === undefined ? undefined : f(section));
+const tiers = (byTier) => ["hard", "standard", "light"].map((t) => byTier[t] ?? 0).join("/");
 console.log(`pace ${since} → ${now} (${snap.hours} h, main ${snap.head})\n`);
 console.log("| Metric | Now | Previous |\n|---|---|---|");
-row("commits", snap.commits.count, prev?.commits.count);
-row("commits hard/standard/light", ["hard", "standard", "light"].map((t) => snap.commits.byTier[t] ?? 0).join("/"),
-  prev && ["hard", "standard", "light"].map((t) => prev.commits.byTier[t] ?? 0).join("/"));
-row("lines +/−", `${snap.commits.add}/${snap.commits.del}`, prev && `${prev.commits.add}/${prev.commits.del}`);
-row("journeys touched", snap.commits.journeys.join(" ") || "–", prev?.commits.journeys.join(" "));
-row("tasks closed", snap.tasks.closed.length, prev?.tasks.closed.length);
-row("tasks open hard/standard/light", ["hard", "standard", "light"].map((t) => snap.tasks.openByTier[t] ?? 0).join("/"),
-  prev && ["hard", "standard", "light"].map((t) => prev.tasks.openByTier[t] ?? 0).join("/"));
+const both = (k, section, f) => row(k, of(snap[section], f), prev && of(prev[section], f));
+both("commits", "commits", (c) => c.count);
+both("commits hard/standard/light", "commits", (c) => tiers(c.byTier));
+both("lines +/−", "commits", (c) => `${c.add}/${c.del}`);
+both("journeys touched", "commits", (c) => c.journeys.join(" ") || "–");
+both("tasks closed", "tasks", (t) => t.closed.length);
+both("tasks open hard/standard/light", "tasks", (t) => tiers(t.openByTier));
 row("load per core (5 min)", m.loadPerCore, prev?.machine?.loadPerCore);
 row("swap used %", m.swapUsedPct, prev?.machine?.swapUsedPct);
 row("compute bound", m.computeBound ? "YES" : "no", prev?.machine && (prev.machine.computeBound ? "YES" : "no"));
 row("stray processes", m.strays.length, prev?.machine?.strays.length);
 row("heavy runs waited s (last 50)", sum(m.heavyRuns.map((r) => r.waitedS)), prev?.machine && sum(prev.machine.heavyRuns.map((r) => r.waitedS)));
-row("barkpark PRs merged", snap.barkpark.length, prev?.barkpark.length);
-row("review misses (new / total)", `${snap.misses.new} / ${misses.length}`, prev?.misses && `${prev.misses.new} / ${prev.misses.total}`);
+both("barkpark PRs merged", "barkpark", (b) => b.length);
+both("review misses (new / total)", "misses", (x) => `${x.new ?? "unknown"} / ${x.total}`);
 row("repeated miss classes", missClasses.filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", ") || "–", prev?.misses && Object.entries(prev.misses.byClass).filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", "));
 row("half fixes (same class again next round)", halfFixes.join(", ") || "–", prev?.misses?.halfFixes.join(", "));
 for (const [k, v] of Object.entries(snap.hygiene.counts)) row(k, v, prev?.hygiene.counts[k]);
