@@ -1,7 +1,7 @@
 import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -113,6 +113,25 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
     writeFileSync(join(dir, "slot-2"), `${gone} ghost`);
     assert.ok(await started(dir, run(dir, "a", "job")));
+  });
+
+  test("when every slot holds a dead pid, the asker takes one over and starts", async () => {
+    const dir = slots();
+    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
+    for (const i of [0, 1, 2]) writeFileSync(join(dir, `slot-${i}`), `${gone} ghost`);
+    assert.ok(await started(dir, run(dir, "a", "job")));
+  });
+
+  test("a run that ends removes only its own slot, not one another run took after its file was removed", async () => {
+    const dir = slots();
+    const first = run(dir, "a", "job");
+    assert.ok(await started(dir, first));
+    rmSync(join(dir, "slot-0"));
+    const second = run(dir, "b", "job");
+    assert.ok(await started(dir, second));
+    stop(first, "SIGTERM");
+    await within(3000, () => first.exitCode !== null || first.signalCode !== null);
+    assert.equal(readFileSync(join(dir, "slot-0"), "utf8").split(" ")[0], String(second.pid));
   });
 
   for (const killed of ["prepush", "one"]) {
