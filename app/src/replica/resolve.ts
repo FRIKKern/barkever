@@ -21,6 +21,6 @@ export function keep(n: NoteDoc, key: string, shown: Pick<NoteDoc, 'title' | 'bo
   const parts = heldParts(c)
   const ids = new Set(parts.filter((p) => p.startsWith('body:')).map((p) => p.slice(5)))
   const blocks = adopt(shown.body?.blocks ?? [], c.body?.blocks ?? [], ids)
-  const out = mergeLocal(n, shown, {title: parts.includes('title') ? c.title : shown.title, body: {...shown.body, blocks}, ...(parts.includes('tags') && {tags: c.tags}), ...(parts.includes('notebook') && {notebook: c.notebook ?? undefined})}, at, local, me, server)
+  const out = mergeLocal(n, shown, {title: parts.includes('title') ? c.title : shown.title, body: {...shown.body, blocks}, ...(parts.includes('tags') && {tags: c.tags}), ...(parts.includes('notebook') && {notebook: c.notebook ?? undefined})}, at, local, me, server, parts)
   return dismiss(out, key)
 }

@@ -18,8 +18,8 @@ export function same(a: unknown, b: unknown): boolean {
 
 export const sameContent = (a: NoteDoc, b: NoteDoc) => NOTE_FIELDS.every((f) => same(a[f], b[f]))
 
-function pick<T>(base: T, mine: T, theirs: T, clash: () => void): T {
-  if (same(mine, base)) return theirs
+function pick<T>(base: T, mine: T, theirs: T, clash: () => void, picked = false): T {
+  if (!picked && same(mine, base)) return theirs
   if (!same(theirs, base) && !same(mine, theirs)) clash()
   return mine
 }
@@ -40,12 +40,13 @@ function order(base: Block[], mine: Block[], theirs: Block[]): string[] {
   return out
 }
 
-export function mergeBlocks(base: Block[], mine: Block[], theirs: Block[]): {blocks: Block[]; clash: string[]} {
+export function mergeBlocks(base: Block[], mine: Block[], theirs: Block[], picked: string[] = []): {blocks: Block[]; clash: string[]} {
   const byId = (xs: Block[]) => new Map(xs.map((x) => [x.id, x]))
   const [B, M, T] = [byId(base), byId(mine), byId(theirs)]
   const clash: string[] = []
   const decide = (id: string): Block | undefined => {
     const [b, m, t] = [B.get(id), M.get(id), T.get(id)]
+    if (picked.includes(`body:${id}`)) return pick(b, m, t, () => clash.push(id), true)
     if (m && t) return pick(b, m, t, () => clash.push(id))
     const only = m ?? t
     if (!b || !only) return only
@@ -91,13 +92,13 @@ export function collapse(all: Conflict[], main: NoteDoc): Conflict[] {
   return all.filter((c) => first.get(texts.get(c)!) === c && !holds(c, main))
 }
 
-export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, me: string, key = theirs._rev ?? at, who = writerOf(theirs) ?? UNSIGNED): NoteDoc {
+export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: string, me: string, key = theirs._rev ?? at, who = writerOf(theirs) ?? UNSIGNED, picked: string[] = []): NoteDoc {
   const clash: string[] = []
   const out: NoteDoc = {...mine}
-  out.title = pick(base.title, mine.title, theirs.title, () => clash.push('title'))
-  out.notebook = pick(base.notebook, mine.notebook, theirs.notebook, () => clash.push('notebook'))
-  out.tags = pick(base.tags, mine.tags, theirs.tags, () => clash.push('tags'))
-  const body = mergeBlocks(base.body?.blocks ?? [], mine.body?.blocks ?? [], theirs.body?.blocks ?? [])
+  out.title = pick(base.title, mine.title, theirs.title, () => clash.push('title'), picked.includes('title'))
+  out.notebook = pick(base.notebook, mine.notebook, theirs.notebook, () => clash.push('notebook'), picked.includes('notebook'))
+  out.tags = pick(base.tags, mine.tags, theirs.tags, () => clash.push('tags'), picked.includes('tags'))
+  const body = mergeBlocks(base.body?.blocks ?? [], mine.body?.blocks ?? [], theirs.body?.blocks ?? [], picked)
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
   if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
   clash.push(...body.clash.map((id) => `body:${id}`))
@@ -112,7 +113,7 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
 
 const partsOf = (n: Partial<NoteDoc>) => [...(['title', 'notebook', 'tags'] as const).filter((p) => p in n), ...(n.body?.blocks ?? []).map((b) => `body:${b.id}`)]
 
-export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partial<NoteDoc>, at: string, key: string, me: string, server: NoteDoc | null): NoteDoc {
+export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partial<NoteDoc>, at: string, key: string, me: string, server: NoteDoc | null, picked: string[] = []): NoteDoc {
   const base = {...note, ...shown}
   const typed = {...note, ...after}
   const from = partsOf(shown).filter((p) => carried(p) && moved(base, typed)(p)).map((p) => mark(base, p))
@@ -120,7 +121,7 @@ export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partia
   if (from.length) typed._typed = [...new Set([...(note._typed ?? []), ...from])].filter((m) => !now.has(m)).slice(-TYPED)
   const under = [...partsOf(shown), ...partsOf(note)].filter(moved(base, note))
   const other = server && under.every((p) => !moved(server, note)(p)) ? (writerOf(server) ?? UNSIGNED) : me
-  return mergeNote(base, typed, note, at, me, key, other === me ? `${me}~tab` : other)
+  return mergeNote(base, typed, note, at, me, key, other === me ? `${me}~tab` : other, picked)
 }
 
 const FIELDS = ['title', 'notebook', 'tags', 'links', 'conflicts'] as const
