@@ -2,6 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {mergeLocal, mergeNote, same} from './merge.ts'
 import {move, tagsTo, tickAt, withTag} from './organize.ts'
+import {lineKey} from '../lib/board.ts'
 import {NOTE_FIELDS, type NoteDoc} from './note.ts'
 
 const AT = '2026-10-29T12:00:00.000Z'
@@ -50,9 +51,9 @@ test('a typed tag matches an existing one in any case, keeps its stored spelling
 test('a tick changes only that line of the body, and a note with no body stays as it is', () => {
   const list = {id: 'c', type: 'list', task: true, items: [{text: 'Pump', checked: false}, {text: 'Oil'}]}
   const n: NoteDoc = {...server, body: {blocks: [{id: 'p', type: 'paragraph', content: []}, list]}}
-  const after = tickAt(n, {block: 'c', item: 1})
+  const after = tickAt(n, lineKey('c', 1, {text: 'Oil'}, 0))
   assert.deepEqual(after.body, {blocks: [n.body!.blocks[0], {...list, items: [{text: 'Pump', checked: false}, {text: 'Oil', checked: true}]}]})
   assert.deepEqual(NOTE_FIELDS.filter((f) => !same(after[f], n[f])), ['body'])
   const none: NoteDoc = {...server, body: undefined}
-  assert.deepEqual(tickAt(none, {block: 'c', item: 0}), none)
+  assert.deepEqual(tickAt(none, lineKey('c', 0, {text: 'Pump'}, 0)), none)
 })

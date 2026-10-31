@@ -1,5 +1,5 @@
 import type {NoteDoc, Ref} from './note.ts'
-import {ticked, type Spot} from '../lib/board.ts'
+import {ticked} from '../lib/board.ts'
 
 type Change = [shown: Partial<NoteDoc>, after: Partial<NoteDoc>]
 
@@ -9,7 +9,7 @@ export const move = (n: NoteDoc, from: string | null, to: string): Change => [{n
 
 export const tagsTo = (shown: string[], tags: string[]): Change => [{tags: shown}, {tags}]
 
-export const tickAt = (n: NoteDoc, box: Spot): NoteDoc => ({...n, body: n.body && {...n.body, blocks: ticked(n.body.blocks, box)}})
+export const tickAt = (n: NoteDoc, box: string): NoteDoc => ({...n, body: n.body && {...n.body, blocks: ticked(n.body.blocks, box)}})
 
 const sameTag = (a: string) => (b: string) => a.toLowerCase() === b.toLowerCase()
 

@@ -2,7 +2,7 @@ import {inlineText, itemContent, itemText, nestedOf, UNTITLED, type Block, type 
 import type {Shelf} from './notebooks.ts'
 import {newest} from './search.ts'
 
-export type Task = {line: string; box: Spot; text: string; done: boolean; depth: number}
+export type Task = {line: string; box: string; text: string; done: boolean; depth: number}
 export type Card = {note: string; title: string; block: string; tasks: Task[]}
 export type Column = {notebook: string | null; name: string; cards: Card[]; open: number; done: number}
 export type Board = {columns: Column[]; open: number; done: number; lists: number}
@@ -19,7 +19,9 @@ export function textSum(it: Item): string {
 
 export const lineKey = (block: string, item: number, it: Item, nth: number) => `${block}:${item}:${textSum(it)}:${nth}`
 
-export function lineOf(line?: string): (Spot & {sum: string; nth: number}) | undefined {
+type Line = Spot & {sum: string; nth: number}
+
+export function lineOf(line?: string): Line | undefined {
   const m = line?.match(/^(.+):(\d{1,6}):([0-9a-z]{1,7}):(\d{1,6})$/)
   return m ? {block: m[1], item: Number(m[2]), sum: m[3], nth: Number(m[4])} : undefined
 }
@@ -30,21 +32,27 @@ export function findLine(blocks: Block[], line?: string): Spot | 'gone' | undefi
   const at = lineOf(line)
   if (!at) return
   const lists = blocks.filter(isChecklist)
-  const hits = (b: Block) => (b.items ?? []).flatMap((it, i) => (textSum(it) === at.sum ? [i] : []))
   const own = lists.find((b) => b.id === at.block)
-  const twins = own ? hits(own) : []
-  const near = at.nth < twins.length ? twins[at.nth] : twins.sort((x, y) => Math.abs(x - at.item) - Math.abs(y - at.item))[0]
+  const near = own && itemIn(own, at)
   if (near !== undefined) return {block: at.block, item: near}
-  const moved = lists.find((b) => hits(b).length)
-  return moved ? {block: moved.id, item: hits(moved)[0]} : 'gone'
+  const moved = lists.find((b) => hits(b, at).length)
+  return moved ? {block: moved.id, item: hits(moved, at)[0]} : 'gone'
+}
+
+const hits = (b: Block, at: Line) => (b.items ?? []).flatMap((it, i) => (textSum(it) === at.sum ? [i] : []))
+
+function itemIn(b: Block, at: Line): number | undefined {
+  const twins = hits(b, at)
+  return at.nth < twins.length ? twins[at.nth] : twins.sort((x, y) => Math.abs(x - at.item) - Math.abs(y - at.item))[0]
 }
 
 const done = (it: Item) => typeof it === 'object' && !Array.isArray(it) && it.checked === true
 
 function tasksIn(list: Block, line: (i: number) => string, depth: number, title: Title): Task[] {
+  const boxes = keysOf(list.id, list.items ?? [])
   return (list.items ?? []).flatMap((it, i) => {
     const text = itemText(it, title).trim()
-    const own = text ? [{line: line(i), box: {block: list.id, item: i}, text, done: done(it), depth}] : []
+    const own = text ? [{line: line(i), box: boxes[i], text, done: done(it), depth}] : []
     const nested = nestedOf(it).filter(isChecklist).flatMap((b) => tasksIn(b, () => line(i), depth + 1, title))
     return [...own, ...nested]
   })
@@ -52,10 +60,19 @@ function tasksIn(list: Block, line: (i: number) => string, depth: number, title:
 
 const flip = (it: Item): Item => (typeof it === 'object' && !Array.isArray(it) ? {...it, checked: !done(it)} : {content: itemContent(it), checked: true})
 
-const tickUnder = (it: Item, box: Spot): Item => (typeof it === 'object' && !Array.isArray(it) && it.children ? {...it, children: ticked(it.children, box)} : it)
+const tickUnder = (it: Item, at: Line): Item => (typeof it === 'object' && !Array.isArray(it) && it.children ? {...it, children: tickAll(it.children, at)} : it)
 
-export function ticked(blocks: Block[], box: Spot): Block[] {
-  return blocks.map((b) => (b.items ? {...b, items: b.items.map((it, i) => tickUnder(b.id === box.block && i === box.item ? flip(it) : it, box))} : b))
+function tickAll(blocks: Block[], at: Line): Block[] {
+  return blocks.map((b) => {
+    if (!b.items) return b
+    const hit = b.id === at.block ? itemIn(b, at) : undefined
+    return {...b, items: b.items.map((it, i) => tickUnder(i === hit ? flip(it) : it, at))}
+  })
+}
+
+export function ticked(blocks: Block[], box: string): Block[] {
+  const at = lineOf(box)
+  return at ? tickAll(blocks, at) : blocks
 }
 
 function keysOf(block: string, items: Item[]): string[] {
