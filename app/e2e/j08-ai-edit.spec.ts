@@ -100,6 +100,7 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
 
   await expect(page.getByTestId('ai-undo')).toBeVisible()
   await page.keyboard.press('z')
+  await page.keyboard.press('ControlOrMeta')
   await page.keyboard.press('Shift+ControlOrMeta+z')
   await page.waitForTimeout(500)
   expect(content(await stored(id))).toBe(expected)
