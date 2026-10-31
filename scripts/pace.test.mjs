@@ -116,21 +116,62 @@ test("--since searches Barkpark merges from the snapped start's date", () => {
   assert.match(readFileSync(join(w.dir, "gh-args"), "utf8"), /merged:>=2026-10-30 /);
 });
 
-for (const [name, args] of [["garbage", ["--since", "garbage"]], ["a flag", ["--since", "--write"]], ["nothing", ["--since"]]]) {
-  test(`--since followed by ${name} is a usage error that writes nothing`, () => {
+const BAD = [
+  ["nothing", ["--since"]],
+  ["a flag", ["--since", "--write"]],
+  ["the = spelling", ["--since=2026-10-31T10:30:00Z"]],
+  ["empty", ["--since", ""]],
+  ["zero", ["--since", "0"]],
+  ["a negative number", ["--since", "-1"]],
+  ["a bare number", ["--since", "6"]],
+  ["a number past 2^31", ["--since", "2147483648"]],
+  ["a year past JavaScript's last date", ["--since", "+275761-01-01T00:00:00Z"]],
+  ["garbage", ["--since", "garbage"]],
+  ["words around a year", ["--since", "garbage 2026"]],
+  ["a written-out date", ["--since", "Oct 31 2026"]],
+  ["a date with no time", ["--since", "2026-10-31"]],
+  ["February 30th", ["--since", "2026-02-30T10:00:00Z"]],
+  ["month 13", ["--since", "2026-13-01T10:00:00Z"]],
+  ["hour 24", ["--since", "2026-10-31T24:00:00Z"]],
+  ["minute 61", ["--since", "2026-10-31T10:61:00Z"]],
+  ["a time with words after it", ["--since", "2026-10-31T10:30:00Z", "junk"]],
+  ["--since twice", ["--since", "2026-10-31T10:30:00Z", "--since", "2026-10-31T11:30:00Z"]],
+  ["a misspelled flag", ["--sinse", "2026-10-31T10:30:00Z"]],
+  ["--write=1", ["--write=1"]],
+];
+
+for (const [name, args] of BAD) {
+  test(`${name} is a usage error that writes nothing`, () => {
     const w = world();
     const before = readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8");
     const r = paceRun(w, {}, ...args, "--write");
     assert.equal(r.status, 2);
     assert.match(r.stderr, /usage/);
+    assert.equal(r.stdout, "");
     assert.equal(readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8"), before);
   });
 }
 
-test("--since without milliseconds at a snapshot is that snapshot, with no snap note", () => {
-  const { header, stdout } = pace(world(), "--since", "2026-10-31T10:00:00Z");
-  assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
-  assert.doesNotMatch(stdout, /starts at the snapshot/);
+for (const at of ["2026-10-31T10:00:00Z", "2026-10-31T10:00Z", "2026-10-31T11:00:00+01:00", "2026-10-31T10:00:00.000000Z"]) {
+  test(`--since ${at} is the 10:00 snapshot, with no snap note`, () => {
+    const { header, stdout } = pace(world(), "--since", at);
+    assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
+    assert.doesNotMatch(stdout, /starts at the snapshot/);
+  });
+}
+
+test("--since in the far future starts at the last snapshot, with a snap note", () => {
+  const { header, stdout } = pace(world(), "--since", "9999-12-31T23:59:59Z");
+  assert.match(header, /^pace 2026-10-31T12:00:00\.000Z → /);
+  assert.match(stdout, /--since 9999-12-31T23:59:59\.000Z starts at the snapshot taken at 2026-10-31T12:00:00\.000Z/);
+});
+
+test("--write twice appends one snapshot", () => {
+  const w = world();
+  const lines = () => readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8").trim().split("\n").length;
+  const before = lines();
+  pace(w, "--write", "--write");
+  assert.equal(lines(), before + 1);
 });
 
 test("a --since with no zone is local time everywhere, snapshot pick and window alike", () => {

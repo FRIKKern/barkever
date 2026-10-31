@@ -22,13 +22,26 @@ const count = (xs) => xs.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {});
 const json = (out) => { try { return out === null ? null : JSON.parse(out); } catch { return null; } };
 
 const snapshots = existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-const flag = process.argv.indexOf("--since");
-const arg = process.argv[flag + 1];
-if (flag > 0 && Number.isNaN(Date.parse(arg))) {
+const TIME = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):/;
+const instant = (s) =>
+  TIME.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s.slice(0, 10)).toISOString().startsWith(s.slice(0, 10)) ? new Date(s).toISOString() : null;
+
+function options(args) {
+  const o = { since: null, write: false };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--write") o.write = true;
+    else if (args[i] === "--since" && o.since === null && instant(args[i + 1])) o.since = instant(args[++i]);
+    else return null;
+  }
+  return o;
+}
+
+const opts = options(process.argv.slice(2));
+if (!opts) {
   console.error("usage: node scripts/pace.mjs [--since <time, e.g. 2026-10-31T10:30:00Z>] [--write]");
   process.exit(2);
 }
-const asked = flag > 0 ? new Date(arg).toISOString() : null;
+const asked = opts.since;
 const base = asked ? snapshots.filter((s) => Date.parse(s.at) <= Date.parse(asked)).at(-1) : snapshots.at(-1);
 const since = base?.at ?? asked ?? new Date(Date.now() - 6 * 3600e3).toISOString();
 const now = new Date().toISOString();
@@ -119,7 +132,7 @@ const snap = {
   },
 };
 
-if (process.argv.includes("--write")) {
+if (opts.write) {
   mkdirSync("pace", { recursive: true });
   appendFileSync(LOG, JSON.stringify(snap) + "\n");
 }
@@ -148,4 +161,4 @@ both("review misses (new / total)", "misses", (x) => `${x.new ?? "unknown"} / ${
 row("repeated miss classes", missClasses.filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", ") || "–", prev?.misses && Object.entries(prev.misses.byClass).filter(([, n]) => n > 1).map(([c, n]) => `${c} ${n}`).join(", "));
 row("half fixes (same class again next round)", halfFixes.join(", ") || "–", prev?.misses?.halfFixes.join(", "));
 for (const [k, v] of Object.entries(snap.hygiene.counts)) row(k, v, prev?.hygiene.counts[k]);
-if (!process.argv.includes("--write")) console.log("\n(dry run: add --write to append to pace/snapshots.jsonl)");
+if (!opts.write) console.log("\n(dry run: add --write to append to pace/snapshots.jsonl)");
