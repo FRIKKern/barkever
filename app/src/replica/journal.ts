@@ -2,7 +2,7 @@ import type {Block} from '../lib/model'
 import {replicaKey} from './db'
 
 export type Step = {seq: number; base: Block[]; after: Block[]}
-export type Jotted = {seq: number; title?: string; titleSeq?: number; steps?: Step[]}
+type Jotted = {seq: number; title?: string; titleSeq?: number; steps?: Step[]}
 export type Jot = {title?: string; base?: Block[]; after?: Block[]}
 type Journal = Record<string, Jotted>
 

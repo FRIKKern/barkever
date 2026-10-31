@@ -44,7 +44,7 @@ export const inlineText = (c: Inline[] = []): string => inline(c, stored)
 
 export const itemText = (it: Item, title: Title): string => inline(itemContent(it), title)
 
-export function shownText(b: Block, title: Title): string {
+function shownText(b: Block, title: Title): string {
   if (b.type === 'list') return (b.items ?? []).flatMap((it) => [inline(itemContent(it), title), ...nestedOf(it).map((c) => shownText(c, title))]).filter(Boolean).join(' · ')
   return inline(contentOf(b), title)
 }

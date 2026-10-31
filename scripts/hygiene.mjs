@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 const CODE = /\.(ts|tsx|mjs|js)$/;
 const SCOPE = /^(app\/(src|e2e)|mac\/(src|e2e)|scripts|fixtures)\//;
+const USERS = /^(app|mac|scripts|fixtures)\//;
 const TEST = /\.test\.|\.spec\.|\/e2e\//;
 const GENERIC = /(Manager|Factory|Helpers?|Utils?|Service|Provider|Wrapper|Base)\.(ts|tsx)$/;
 const COMMENT = /^\s*(\/\/(?!\/ <reference)(?!\s*@ts-)|\/\*|\*(\s|\/|$))/;
@@ -27,7 +28,8 @@ const at = (f, i) => `${f}:${i + 1}`;
 export function hygiene() {
   const files = tracked();
   const code = files.filter((f) => CODE.test(f) && SCOPE.test(f) && !f.includes(".gen."));
-  const text = Object.fromEntries(code.map((f) => [f, readFileSync(f, "utf8")]));
+  const users = files.filter((f) => CODE.test(f) && USERS.test(f));
+  const text = Object.fromEntries(users.map((f) => [f, readFileSync(f, "utf8")]));
   const lines = Object.fromEntries(code.map((f) => [f, text[f].split("\n")]));
   const hits = (re) => code.flatMap((f) => lines[f].flatMap((l, i) => (re.test(l) ? [at(f, i)] : [])));
 
@@ -46,7 +48,7 @@ export function hygiene() {
         .map((m) => ({ file: f, name: m[1] })))
     .filter((d) => d.name !== "Route");
   const unusedExports = exported
-    .filter((d) => !code.some((f) => f !== d.file && new RegExp(`\\b${d.name.replace(/\$/g, "\\$")}\\b`).test(text[f])))
+    .filter((d) => !users.some((f) => f !== d.file && new RegExp(`\\b${d.name.replace(/\$/g, "\\$")}\\b`).test(text[f])))
     .map((d) => `${d.file} ${d.name}`);
 
   const patterns = [

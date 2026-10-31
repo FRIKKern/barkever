@@ -3,7 +3,7 @@ import {origin} from './barkpark'
 
 export type CanvasFiles = {script: string; styles: string[]}
 
-export const ASSET_PREFIX = '/editor-assets/'
+const ASSET_PREFIX = '/editor-assets/'
 
 const assetPath = (p: unknown): p is string => typeof p === 'string' && /^\/assets\/[\w./-]+$/.test(p) && !p.includes('..')
 const local = (p: string) => ASSET_PREFIX + p.slice('/assets/'.length)

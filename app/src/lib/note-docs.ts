@@ -1,6 +1,6 @@
 import type {Block, Conflict, Note, Notebook} from './model.ts'
 
-export type BpRef = {_ref?: string} | null
+type BpRef = {_ref?: string} | null
 export type BpNote = {_id: string; _rev?: string; _updatedAt?: string; title?: string | null; notebook?: BpRef; tags?: string[] | null; links?: BpRef[] | null; body?: {blocks?: Block[]} | null; conflicts?: Conflict[] | null}
 export type BpNotebook = {_id: string; name?: string | null; parent?: BpRef}
 

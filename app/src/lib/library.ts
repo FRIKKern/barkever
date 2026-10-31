@@ -53,7 +53,7 @@ const STAR_RETRY_MAX_MS = 5 * 60_000
 let retries = 0
 let retry: ReturnType<typeof setTimeout> | undefined
 
-export type DroppedStar = {id: string; on: boolean}
+type DroppedStar = {id: string; on: boolean}
 export const droppedStarsQuery = queryOptions({...local, queryKey: ['stars-dropped'], queryFn: (): DroppedStar[] => []})
 
 async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean; dropped: DroppedStar[]}> {

@@ -20,7 +20,7 @@ export function visibleNotes(notes: Note[], s: Search, shelf: Shelf): Found {
   return {notes: notes.filter(inScope).sort(newest), marks: []}
 }
 
-export type Landing = {notebook: string; tags: string[]; search: Search}
+type Landing = {notebook: string; tags: string[]; search: Search}
 
 export function landing(s: Search, shelf: Shelf): Landing | null {
   const here = s.nb && shelf.byId.has(s.nb) ? s.nb : undefined

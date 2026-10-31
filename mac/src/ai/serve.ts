@@ -12,7 +12,7 @@ export const installed = (path: string): Provider[] =>
     return bin ? [make(bin)] : []
   })
 
-export type Sender = {senderFrame: {url: string} | null}
+type Sender = {senderFrame: {url: string} | null}
 
 export const OTHER_ORIGIN = 'Ask answers Barkever only.'
 

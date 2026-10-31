@@ -2,8 +2,8 @@ import {inlineText, itemContent, itemText, nestedOf, UNTITLED, type Block, type 
 import type {Shelf} from './notebooks.ts'
 import {newest} from './search.ts'
 
-export type Task = {line: string; box: string; text: string; done: boolean; depth: number}
-export type Card = {note: string; title: string; block: string; tasks: Task[]}
+type Task = {line: string; box: string; text: string; done: boolean; depth: number}
+type Card = {note: string; title: string; block: string; tasks: Task[]}
 export type Column = {notebook: string | null; name: string; cards: Card[]; open: number; done: number}
 export type Board = {columns: Column[]; open: number; done: number; lists: number}
 

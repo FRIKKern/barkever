@@ -1,4 +1,4 @@
-export const BARKPARK = 'https://guerrilla.barkpark.cloud'
+const BARKPARK = 'https://guerrilla.barkpark.cloud'
 
 const PASSED = ['BARKPARK_WORKSPACE', 'BARKPARK_PROJECT', 'BARKPARK_DATASET', 'HOME', 'USER', 'LANG', 'TMPDIR'] as const
 

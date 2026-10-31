@@ -3,7 +3,7 @@ import {db} from '../replica/db'
 import {onChange} from '../replica/bus'
 import type {Reach} from './online'
 
-export type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked'
+type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked'
 export type Field = 'title' | 'body'
 type Stage = 'typed' | 'queued' | 'saved' | 'unchecked'
 

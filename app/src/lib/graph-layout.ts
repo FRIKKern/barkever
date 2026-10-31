@@ -2,9 +2,9 @@ import type {Links} from './links.ts'
 
 export const GRAPH = {W: 340, H: 300, cx: 170, cy: 158, colX: 62, rimX: 14} as const
 
-export type GNode = {key: string; id: string | null; x: number; y: number; kind: 'center' | 'n' | 'd2' | 'tagged' | 'more'; r: number; label?: string}
-export type GEdge = {a: string; b: string; kind: '' | 'd2' | 'tagged'; both?: boolean}
-export type Graph = {nodes: GNode[]; edges: GEdge[]; empty: boolean}
+type GNode = {key: string; id: string | null; x: number; y: number; kind: 'center' | 'n' | 'd2' | 'tagged' | 'more'; r: number; label?: string}
+type GEdge = {a: string; b: string; kind: '' | 'd2' | 'tagged'; both?: boolean}
+type Graph = {nodes: GNode[]; edges: GEdge[]; empty: boolean}
 
 export function layoutGraph(id: string, links: Links): Graph {
   const {W, H, cx, cy, colX, rimX} = GRAPH

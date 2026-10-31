@@ -13,7 +13,7 @@ interface Replica extends DBSchema {
   meta: {key: string; value: unknown}
 }
 
-export type DB = IDBPDatabase<Replica>
+type DB = IDBPDatabase<Replica>
 
 let name: string | undefined
 let named: (n: string) => void

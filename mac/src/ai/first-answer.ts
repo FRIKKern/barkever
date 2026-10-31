@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import type {Budget} from './budget.ts'
 import type {Call, Provider, Reply} from './provider.ts'
 
-export type Answered<T> = Omit<Reply, 'data'> & {data: T; provider: string}
+type Answered<T> = Omit<Reply, 'data'> & {data: T; provider: string}
 
 export const SPENT = 'Today’s AI budget is used up. It starts again tomorrow.'
 export const NONE = 'Neither claude nor codex is installed. Install one and sign in.'

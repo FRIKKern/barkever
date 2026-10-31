@@ -2,7 +2,7 @@ import {reached} from '../lib/online'
 import type {ServerDoc} from '../server/sync'
 
 export type Frame = {eventId: number; mutation: string; type: string; documentId: string; rev: string; previousRev: string | null; result: ServerDoc}
-export type Stream = {opened: Promise<boolean>; caughtUp: Promise<boolean>; closed: Promise<void>; close: () => void}
+type Stream = {opened: Promise<boolean>; caughtUp: Promise<boolean>; closed: Promise<void>; close: () => void}
 
 const QUIET_MS = 1000
 

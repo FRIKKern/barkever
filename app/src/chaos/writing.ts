@@ -6,7 +6,7 @@ import type {NoteDoc} from '../replica/note.ts'
 
 const {editBody, editTitle, keepVersion, moveNote, retag} = await import('../replica/local.ts')
 
-export type Desk = {
+type Desk = {
   t: Truth
   server: Server
   step: () => number

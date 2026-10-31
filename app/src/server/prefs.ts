@@ -18,7 +18,7 @@ export async function readPrefs(): Promise<Prefs> {
   return {shortcuts, recents}
 }
 
-export const RECENT_MAX = 20
+const RECENT_MAX = 20
 
 export const pushRecent = (id: string) => patch('recents', {op: 'push_front', item: id, max: RECENT_MAX})
 

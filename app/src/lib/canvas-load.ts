@@ -48,7 +48,7 @@ let loading: Promise<void> | null = null
 
 class Outdated extends Error {}
 
-export const CANVAS_CONTRACT = '1.20.0'
+const CANVAS_CONTRACT = '1.20.0'
 
 export function atLeast(version: string | undefined, want: string): boolean {
   const [a, b] = [version ?? '', want].map((v) => v.split('.').map(Number))

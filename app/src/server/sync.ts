@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import {bpFetch, bpJson, dataset} from './barkpark'
 import {exactDeletes, isDelete, type Delete} from './deletes'
 
-export type Json = string | number | boolean | null | Json[] | {[key: string]: Json}
+type Json = string | number | boolean | null | Json[] | {[key: string]: Json}
 export type ServerDoc = {[key: string]: Json} & {_id: string; _type: string; _rev: string}
 export type Pushed = {status: number; docs: (ServerDoc | null)[]; error?: string}
 export type Manifest = Record<'note' | 'notebook', {id: string; rev: string}[]>

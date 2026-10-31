@@ -9,7 +9,7 @@ const MAX_AGE = 60 * 60 * 24 * 30
 type Session = {email: string; token: string; exp: number}
 export type Me = {email: string | null} | null
 export type SignIn = {email: string; password: string; code?: string}
-export type SignInResult = {ok: true} | {ok: false; mfa: boolean; message: string}
+type SignInResult = {ok: true} | {ok: false; mfa: boolean; message: string}
 
 export const sharedToken = () => import.meta.env.DEV && process.env.BARKEVER_SHARED_TOKEN === '1'
 

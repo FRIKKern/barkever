@@ -15,7 +15,7 @@ const PATHS = {
   out: <path d="M6.5 3H4a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 4 13h2.5M10 5l3 3-3 3M13 8H6.5" />,
 }
 
-export type IconName = keyof typeof PATHS
+type IconName = keyof typeof PATHS
 
 export const Icon = ({name}: {name: IconName}) => (
   <svg className="ico" viewBox="0 0 16 16" aria-hidden="true">

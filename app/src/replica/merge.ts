@@ -63,7 +63,7 @@ function mergeConflicts(base: Conflict[], mine: Conflict[], theirs: Conflict[]):
   return [...mine.filter(keep), ...theirs.filter((c) => !M.has(c._key) && keep(c))]
 }
 
-export function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
+function linksFor(blocks: Block[], had: Ref[] = []): Ref[] {
   const ids = wikilinks(blocks)
   const old = had.map((l) => l._ref)
   return ids.length === old.length && ids.every((id) => old.includes(id)) ? had : linkRefs(ids)

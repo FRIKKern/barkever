@@ -4,7 +4,7 @@ import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './n
 import {notify} from './bus'
 import {madeKey, touchedByOthers} from './made'
 
-export type Verdict = 'apply' | 'skip' | 'suspect'
+type Verdict = 'apply' | 'skip' | 'suspect'
 export type Decide = (known: string | undefined) => Verdict
 
 export const casOn = (expected: string | undefined): Decide => (known) => (known === expected ? 'apply' : 'skip')

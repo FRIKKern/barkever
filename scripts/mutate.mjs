@@ -12,7 +12,7 @@ function skipQuote(s, i, step) {
   return -1;
 }
 
-export function leftOperand(s, at) {
+function leftOperand(s, at) {
   let i = at - 1;
   while (s[i] === " ") i--;
   const end = i + 1;
@@ -29,7 +29,7 @@ export function leftOperand(s, at) {
   return end > i + 1 ? { from: i + 1, to: end } : null;
 }
 
-export function rightOperand(s, at) {
+function rightOperand(s, at) {
   let i = at;
   while (s[i] === " ") i++;
   const from = i;

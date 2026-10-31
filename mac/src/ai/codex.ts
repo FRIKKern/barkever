@@ -10,7 +10,7 @@ export const GRACE_MS = 2000
 
 type Event = {type: string; usage?: {input_tokens: number; output_tokens: number}; error?: {message: string}}
 
-export const codexArgs = (system: string) => [
+const codexArgs = (system: string) => [
   'exec',
   '--json',
   '--output-schema',

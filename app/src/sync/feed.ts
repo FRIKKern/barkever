@@ -8,7 +8,7 @@ import type {Frame} from './stream'
 const SAVE_MS = 300
 const TYPES = new Set<string>(['note', 'notebook'])
 
-export type Feed = {since: number | null; onFrame: (f: Frame) => void; drained: () => Promise<void>; caughtUp: () => void; close: () => void}
+type Feed = {since: number | null; onFrame: (f: Frame) => void; drained: () => Promise<void>; caughtUp: () => void; close: () => void}
 
 const decideFor = (f: Frame): Decide => {
   const prev = f.previousRev ?? undefined
