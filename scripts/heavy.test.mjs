@@ -1,7 +1,7 @@
 import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -26,13 +26,15 @@ after(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, fo
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const slots = () => mkdtempSync(join(top, "slots-"));
-const runOn = (path, dir, owner, ...cmd) => {
-  const p = spawn(process.execPath, [heavy, ...cmd], { env: env(dir, owner, path), detached: true, stdio: "ignore" });
+const runOn = (path, dir, owner, ...cmd) => runWith({}, path, dir, owner, ...cmd);
+const runWith = (extra, path, dir, owner, ...cmd) => {
+  const p = spawn(process.execPath, [heavy, ...cmd], { env: { ...env(dir, owner, path), ...extra }, detached: true, stdio: "ignore" });
   p.mark = mark(dir, owner);
   groups.push(p);
   return p;
 };
 const run = (...a) => runOn(bin, ...a);
+
 const holds = (dir, p) => existsSync(p.mark);
 async function within(ms, ok) {
   for (const end = Date.now() + ms; Date.now() < end; await sleep(100)) if (ok()) return true;
@@ -75,6 +77,19 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), "one starts before the first poll");
     await sleep(POLL + 1000);
     assert.equal(racers.filter((p) => holds(dir, p)).length, 1);
+  });
+
+  test("twenty rounds of four runs asking at once beside a prepush: in every round one starts on its first try", async () => {
+    const home = slots();
+    const prepush = run(home, "lander", "npm", "run", "prepush");
+    assert.ok(await started(home, prepush));
+    for (let round = 0; round < 20; round++) {
+      const dir = slots();
+      writeFileSync(join(dir, "slot-0"), `${prepush.pid} lander`);
+      const racers = ["a", "b", "c", "d"].map((o) => run(dir, o, "job"));
+      assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), `round ${round}: nobody started before the first poll`);
+      racers.forEach((p) => stop(p));
+    }
   });
 
   test("a waiting run starts when the prepush ends", async () => {
@@ -129,6 +144,24 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
     for (const i of [0, 1, 2]) writeFileSync(join(dir, `slot-${i}`), `${gone} ghost`);
     assert.ok(await started(dir, run(dir, "a", "job")));
+  });
+
+  for (const text of ["", "0 ghost", "-1 ghost", "abc ghost"]) {
+    test(`a slot file reading ${JSON.stringify(text)} is a ghost once it is 5 s old: the asker takes it over`, async () => {
+      const dir = slots();
+      const old = new Date(Date.now() - 60_000);
+      writeFileSync(join(dir, "slot-0"), text);
+      utimesSync(join(dir, "slot-0"), old, old);
+      assert.ok(await started(dir, runWith({ HEAVY_SLOTS: "1" }, bin, dir, "a", "job")));
+    });
+  }
+
+  test("a fresh slot file with no pid yet is a run mid-write: it holds the slot until it is 5 s old", async () => {
+    const dir = slots();
+    writeFileSync(join(dir, "slot-0"), "");
+    const asker = runWith({ HEAVY_SLOTS: "1" }, bin, dir, "a", "job");
+    assert.ok(await waits(dir, asker), "the asker waits beside a file that is still being written");
+    assert.ok(await within(5000, () => holds(dir, asker)), "and takes it over once it is a ghost");
   });
 
   test("a run that ends removes only its own slot, not one another run took after its file was removed", async () => {

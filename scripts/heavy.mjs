@@ -11,7 +11,8 @@ if (!cmd) { console.error("usage: node scripts/heavy.mjs <command> [args…]"); 
 const PREPUSH = /\bheavy\.mjs npm run prepush$/;
 const lander = PREPUSH.test(process.argv.slice(1).join(" "));
 
-const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const signals = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const alive = (h) => (h.pid > 0 ? signals(h.pid) : Date.now() - Number(h.at / 1000000n) < 5000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const owner = process.env.HEAVY_OWNER ?? execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const slotPath = (i) => `${HEAVY_DIR}/slot-${i}`;
@@ -25,7 +26,7 @@ function holder(slot, i) {
 
 const command = (pid) => { try { return execFileSync("ps", ["-ww", "-o", "command=", "-p", String(pid)], { encoding: "utf8" }).trim(); } catch { return ""; } };
 
-const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i), i)).filter((h) => h && h.pid !== process.pid && alive(h.pid));
+const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i), i)).filter((h) => h && h.pid !== process.pid && alive(h));
 const before = (me) => (h) => h.at < me.at || (h.at === me.at && h.i < me.i);
 
 function crowded(live) {
@@ -41,7 +42,7 @@ function take() {
     try { writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" }); }
     catch {
       const h = holder(slot);
-      if (h && !alive(h.pid)) { try { unlinkSync(slot); } catch {} i -= 1; }
+      if (h && !alive(h)) { try { unlinkSync(slot); } catch {} i -= 1; }
       continue;
     }
     const me = holder(slot, i);
