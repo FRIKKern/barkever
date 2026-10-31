@@ -66,7 +66,7 @@ export const replicaHolds = (page: Page, id: string, text: string) =>
             const store = await new Promise<IDBDatabase>((done, fail) => ((open.onsuccess = () => done(open.result)), (open.onerror = () => fail(open.error))))
             const note = store.objectStoreNames.contains('notes') ? await new Promise((done) => (store.transaction('notes').objectStore('notes').get(id).onsuccess = (e) => done((e.target as IDBRequest).result))) : undefined
             store.close()
-            if (JSON.stringify(note ?? '').includes(text)) return true
+            if (note && JSON.stringify(note).includes(text)) return true
           }
           return false
         }, [id, text]),
