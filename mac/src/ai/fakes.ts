@@ -1,6 +1,8 @@
+import {spawnSync} from 'node:child_process'
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
+import {after} from 'node:test'
 import {fileURLToPath} from 'node:url'
 
 const FAKES = fileURLToPath(new URL('../../test/fake', import.meta.url))
@@ -36,6 +38,8 @@ export function ownerHome() {
   return home
 }
 
+const running = (pid: number, dir: string) => spawnSync('ps', ['-o', 'command=', '-p', String(pid)], {encoding: 'utf8'}).stdout.includes(dir)
+
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'barkever-fake-bin-'))
   for (const f of readdirSync(FAKES)) copyFileSync(join(FAKES, f), join(dir, f))
@@ -46,5 +50,6 @@ export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> 
   const calls = (): FakeCall[] => read('calls.jsonl').map((l) => JSON.parse(l))
   const termed = () => read('sigterm').map(Number)
   const trapped = (): Record<string, number> => Object.fromEntries(read('trapped').map((l) => l.split(' ')).map(([cli, pid]) => [cli, Number(pid)]))
+  after(() => read('pids').map(Number).filter((pid) => running(pid, dir)).forEach((pid) => process.kill(pid, 'SIGKILL')))
   return {dir, home: ownerHome(), behave, calls, termed, trapped}
 }
