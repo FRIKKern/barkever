@@ -134,5 +134,6 @@ export async function act(page: Page, writer: Writer, op: Op) {
       await expect(page).toHaveURL((u) => shown(u) === null)
     }
   }
+  if (op.kind !== 'delete') await expect(page.getByTestId('note-row').first(), 'its own save has re-sorted the list').toHaveAttribute('data-note-id', op.kind === 'create' ? made.note! : op.note)
   writer.done(op, made)
 }
