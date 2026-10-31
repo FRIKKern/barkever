@@ -191,18 +191,18 @@ test('the stream reconnects but Barkpark never says welcome: the note still turn
   expect(await page.evaluate(() => (window as unknown as Seen).answers())).toBe(answers)
 })
 
-test('while the editor can’t load it asks again after 2 s, then 4 s; an answer asks at once', async ({page}) => {
-  const {failed} = await loadFailsAfterTheAnswer(page, 9)
-  await expect.poll(() => failed.length, {timeout: 15_000}).toBe(3)
-  const [first, second, third] = failed
-  expect(second - first).toBeGreaterThanOrEqual(1900)
-  expect(second - first).toBeLessThan(3900)
-  expect(third - second).toBeGreaterThanOrEqual(3900)
+test('while the editor can’t load it asks again after 2 s; an answer asks at once and the next try waits 8 s', async ({page}) => {
+  const {failed} = await loadFailsAfterTheAnswer(page, 99)
+  await expect.poll(() => failed.length, {timeout: 10_000}).toBe(2)
+  expect(failed[1] - failed[0]).toBeGreaterThanOrEqual(1900)
+  expect(failed[1] - failed[0]).toBeLessThan(3900)
   await expect.poll(() => armed(page)).toBe(1)
   const answered = Date.now()
   await barkparkAnswers(page)
-  await expect.poll(() => failed.length, {timeout: 3000}).toBe(4)
-  expect(failed[3] - answered).toBeLessThan(3000)
+  await expect.poll(() => failed.length, {timeout: 3000}).toBe(3)
+  expect(failed[2] - answered).toBeLessThan(1500)
+  await page.waitForTimeout(5000)
+  expect(failed).toHaveLength(3)
 })
 
 test('an editor too old for Barkever arms no retry', async ({page}) => {

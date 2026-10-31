@@ -74,6 +74,7 @@ test('a message on the channel that is not true or false is no answer', {timeout
   other.postMessage('yes')
   other.postMessage(true)
   await heard
+  await new Promise((done) => setTimeout(done, 100))
   assert.equal(answersHeard(), before + 1)
   assert.equal(count(), 1)
   other.close()
