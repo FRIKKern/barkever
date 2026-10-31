@@ -55,3 +55,40 @@ export const errorsOf = (page: Page) => {
 }
 
 export const deviceOf = (page: Page) => page.evaluate(() => Object.entries(localStorage).find(([k]) => k.endsWith('-device'))?.[1])
+
+export const replicaHolds = (page: Page, id: string, text: string) =>
+  expect
+    .poll(
+      () =>
+        page.evaluate(async ([id, text]) => {
+          for (const {name} of await indexedDB.databases()) {
+            const open = indexedDB.open(name!)
+            const store = await new Promise<IDBDatabase>((done, fail) => ((open.onsuccess = () => done(open.result)), (open.onerror = () => fail(open.error))))
+            const note = store.objectStoreNames.contains('notes') ? await new Promise((done) => (store.transaction('notes').objectStore('notes').get(id).onsuccess = (e) => done((e.target as IDBRequest).result))) : undefined
+            store.close()
+            if (JSON.stringify(note ?? '').includes(text)) return true
+          }
+          return false
+        }, [id, text]),
+      {timeout: 30_000},
+    )
+    .toBe(true)
+
+export async function otherDeviceTypes(browser: Browser, baseURL: string, id: string, block: number, text: string) {
+  const other = await device(browser, baseURL)
+  await other.goto(`/?n=${id}`)
+  await expect(canvas(other).locator('[contenteditable="true"] > [data-bp-id]').nth(block)).toBeVisible({timeout: 20_000})
+  await typeAtEndOf(other, block, text)
+  await leave(other)
+  await synced(other)
+  await other.context().close()
+}
+
+export async function keepsOtherDevicesWords(page: Page, browser: Browser, baseURL: string, id: string, block: number, write: () => Promise<unknown>) {
+  const words = `OTHER-DEVICE-${Date.now()}`
+  await otherDeviceTypes(browser, baseURL, id, block, ` ${words}.`)
+  await replicaHolds(page, id, words)
+  await write()
+  await synced(page)
+  await expect.poll(async () => everything(await serverNote(id)), {timeout: 15_000, message: "the other device's words survive my write, in the note or a version"}).toContain(words)
+}

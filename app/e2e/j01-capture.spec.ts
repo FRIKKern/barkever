@@ -1,8 +1,9 @@
 import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes, serverNoteIds} from './fixtures-cleanup'
+import {created as shared, keepsOtherDevicesWords, newNote, status} from './devices'
 
 const created: string[] = []
-test.afterAll(() => deleteNotes(created))
+test.afterAll(() => deleteNotes([...created, ...shared]))
 
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1]
 
@@ -191,4 +192,16 @@ test('J01: an emptied note someone else wrote to since stays when I leave it', a
   await expect(synced).toHaveText('Synced', {timeout: 15_000})
   await expect(rowOf(page, id)).toHaveCount(1)
   expect(await serverNoteIds()).toContain(id)
+})
+
+test('J01: words another device typed into another block while my caret sat in this note survive what I type next', async ({page, browser, baseURL}) => {
+  test.setTimeout(120_000)
+  const id = await newNote(page, `Two devices ${Date.now()}`, 'First block.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Second block.')
+  await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  await keepsOtherDevicesWords(page, browser, baseURL!, id, 0, async () => {
+    await page.keyboard.type(' Mine.')
+    await expect(status(page)).toHaveText('Saved', {timeout: 15_000})
+  })
 })
