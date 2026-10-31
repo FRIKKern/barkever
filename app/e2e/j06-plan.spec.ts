@@ -3,6 +3,7 @@ import {lineKey, lineOf, type Spot} from '../src/lib/board'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {serverNote} from './devices'
 import {focusSettled, lineAtCaret} from './caret'
+import {printWatchOnFail, watchEditor} from './editor-watch'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
 
@@ -18,6 +19,7 @@ const FILLER = 40
 const created: string[] = []
 let made = {id: '', line: ''}
 test.afterAll(() => deleteNotes(created))
+test.afterEach(({}, info) => printWatchOnFail(info))
 
 const search = (page: Page) => Object.fromEntries(new URL(page.url()).searchParams)
 const opened = (page: Page) => search(page).n
@@ -299,6 +301,7 @@ test('J06 on a phone, offline: the board stacks its columns, a line opens marked
 test('J06 nested only: an untitled note whose only words sit in a nested checklist line stays when I leave it and reload, and that line is on the board', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
+  await watchEditor(page)
   await page.goto('/')
   await expect(page.getByTestId('new-note').first()).toBeEnabled({timeout: 30_000})
   await page.keyboard.press('n')
