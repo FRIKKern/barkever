@@ -8,6 +8,8 @@ const ask = async (page: Page, question: string) => {
   await page.keyboard.press('Enter')
 }
 const asks = (page: Page) => page.evaluate(() => (window as unknown as {asks: Sent[]}).asks)
+const asked = (page: Page) => page.evaluate(() => Number(localStorage.getItem('stub.asked') ?? 0))
+const told = (page: Page) => page.evaluate(() => localStorage.getItem('stub.ai'))
 const mode = (page: Page, m: Mode) => page.evaluate((m) => ((window as unknown as {mode: Mode}).mode = m), m)
 
 function stubBridge(page: Page) {
@@ -16,8 +18,10 @@ function stubBridge(page: Page) {
     w.asks = []
     w.mode = 'claude'
     w.barkever = {
+      setAi: async (on: boolean) => localStorage.setItem('stub.ai', String(on)),
       ask: async (req: Sent) => {
         w.asks.push(req)
+        localStorage.setItem('stub.asked', String(Number(localStorage.getItem('stub.asked') ?? 0) + 1))
         if (w.mode === 'reject') throw new Error('the Mac app went away')
         if (w.mode === 'slow') await new Promise<void>((done) => (w.release = done))
         if (w.mode === 'error') return {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'}
@@ -69,9 +73,14 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   expect(await asks(page)).toHaveLength(1)
   await page.screenshot({path: test.info().outputPath('j07-ask-dark.png'), animations: 'disabled'})
 
-  const first = (await page.getByTestId('ask-source').first().textContent())!.split('“')[0].slice(1)
-  await page.getByTestId('ask-cite').first().click()
-  await expect(page.getByTestId('title')).toHaveValue(first)
+  const cited = page.getByTestId('ask-answer').first()
+  const titles = await cited.getByTestId('ask-source').evaluateAll((els) => els.map((e) => e.querySelector('.t')!.textContent!.replace(/^\d+/, '')))
+  expect(new Set(titles).size).toBe(2)
+  await expect(cited.getByTestId('ask-cite')).toHaveCount(titles.length)
+  for (const [i, title] of titles.entries()) {
+    await cited.getByTestId('ask-cite').nth(i).click()
+    await expect(page.getByTestId('title')).toHaveValue(title)
+  }
   await page.getByTestId('ask-source').filter({hasText: 'Harbor redesign: wireframes'}).click()
   await expect(page).toHaveURL(/n=fx-note-02/)
   await expect(page.getByTestId('ask-answer')).toHaveCount(2)
@@ -103,12 +112,22 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-error').last()).toHaveText('Ask failed.claude: fake claude: not signed in · codex: fake codex: not signed in')
 
+  const before = await asked(page)
+  expect(before).toBe(6)
   await page.getByTestId('ai-switch').uncheck()
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
+  await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
+  expect(await told(page)).toBe('false')
+  await page.keyboard.press('Enter')
   await page.reload()
   await page.getByTestId('ask-tab').click()
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
+  await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
+  expect(await told(page)).toBe('false')
+  expect(await asked(page)).toBe(before)
   await page.getByTestId('ai-switch').check()
-  await expect(page.getByLabel('Ask about your notes')).toBeVisible()
-  expect(await asks(page)).toHaveLength(0)
+  expect(await told(page)).toBe('true')
+  await ask(page, 'carousel')
+  await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · fake-sonnet · your login · ≈ $0.002')
+  expect(await asked(page)).toBe(before + 1)
 })

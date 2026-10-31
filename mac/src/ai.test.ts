@@ -10,7 +10,8 @@ import {GRACE_MS, codex} from './ai/codex.ts'
 import {fakeBin, ownerHome} from './ai/fakes.ts'
 import {NONE, SPENT, firstAnswer} from './ai/first-answer.ts'
 import {childEnv, findTool} from './ai/provider.ts'
-import {OTHER_ORIGIN, askHandler, installed} from './ai/serve.ts'
+import {OTHER_ORIGIN, askHandler, installed, switchHandler} from './ai/serve.ts'
+import {AI_OFF, aiSwitch} from './ai/switch.ts'
 
 const NOTES: AskNote[] = [
   {id: 'fx-note-1', title: 'Harbor redesign: wireframes', text: 'Three wireframe rounds. Round two dropped the carousel.'},
@@ -18,6 +19,7 @@ const NOTES: AskNote[] = [
   {id: 'fx-note-3', title: 'Book the dentist', text: 'Before the end of the month.'},
 ]
 const env = (fake: ReturnType<typeof fakeBin>, extra: NodeJS.ProcessEnv = {}) => childEnv({...process.env, HOME: fake.home, CODEX_HOME: '', CLAUDE_CONFIG_DIR: '', ...extra}, `${fake.dir}:${process.env.PATH}`)
+const power = () => aiSwitch(join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json'))
 const roomy = () => budget(join(mkdtempSync(join(tmpdir(), 'barkever-budget-')), 'budget.json'), 1e9)
 
 test('the child keeps only login basics: no API keys, no nested-session variables', () => {
@@ -196,7 +198,7 @@ test('installed lists claude then codex, whichever are on the path', () => {
 
 test('the ask handler answers its own origin, turns failures into an error, and ignores other origins', async () => {
   const fake = fakeBin()
-  const handle = askHandler('http://127.0.0.1:4100', () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
+  const handle = askHandler('http://127.0.0.1:4100', power(), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
   const from = (url: string) => ({senderFrame: {url}})
   assert.equal(((await handle(from('http://127.0.0.1:4100/?n=fx-note-2'), carousel)) as {provider: string}).provider, 'claude')
   assert.deepEqual(await handle(from('http://127.0.0.1:4101/'), carousel), {error: OTHER_ORIGIN})
@@ -226,7 +228,7 @@ test('codex that exits 0 without completing the turn says so', async () => {
 
 test('a sender with no frame gets an error, not a rejected call', async () => {
   const fake = fakeBin()
-  const handle = askHandler('http://127.0.0.1:4100', () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
+  const handle = askHandler('http://127.0.0.1:4100', power(), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
   assert.match(((await handle({senderFrame: null}, carousel)) as {error: string}).error, /./)
   assert.equal(fake.calls().length, 0)
 })
@@ -250,4 +252,21 @@ test('codex signs in through a link to the owner login in CODEX_HOME, else in ~/
   const only = {providers: [codex(join(fake.dir, 'codex'))], budget: roomy()}
   assert.equal((await ask(carousel, {...only, env: env(fake, {HOME: bare, CODEX_HOME: join(elsewhere, '.codex')})})).provider, 'codex')
   await assert.rejects(ask(carousel, {...only, env: env(fake, {HOME: bare})}), /^Error: codex: fake codex: not signed in$/)
+})
+
+test('with the AI switch off the bridge refuses every ask before any binary runs, other origins cannot flip it, and it survives a restart', async () => {
+  const fake = fakeBin()
+  const file = join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json')
+  const origin = 'http://127.0.0.1:4100'
+  const from = (url: string) => ({senderFrame: {url}})
+  const handle = askHandler(origin, aiSwitch(file), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
+  const flip = switchHandler(origin, aiSwitch(file))
+  flip(from(`${origin}/`), false)
+  assert.deepEqual(await handle(from(`${origin}/`), carousel), {error: AI_OFF})
+  flip(from('http://127.0.0.1:4101/'), true)
+  assert.deepEqual(await askHandler(origin, aiSwitch(file), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))(from(`${origin}/`), carousel), {error: AI_OFF})
+  assert.equal(fake.calls().length, 0)
+  flip(from(`${origin}/`), true)
+  assert.equal(((await handle(from(`${origin}/`), carousel)) as {provider: string}).provider, 'claude')
+  assert.equal(fake.calls().length, 1)
 })

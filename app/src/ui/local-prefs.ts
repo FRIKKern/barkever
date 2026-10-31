@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react'
+import {bridge} from '../lib/ask'
 import {THEME_KEY} from '../styles/tokens'
 
 const RAIL_KEY = 'barkever.rail'
@@ -40,9 +41,14 @@ export function useRail(): [boolean | null, () => void] {
 
 export function useAi(): [boolean, () => void] {
   const [on, setOn] = useState(true)
-  useEffect(() => setOn(read(AI_KEY) !== 'off'), [])
+  useEffect(() => {
+    const saved = read(AI_KEY) !== 'off'
+    setOn(saved)
+    void bridge()?.setAi(saved)
+  }, [])
   const toggle = useCallback(() => {
     write(AI_KEY, on ? 'off' : 'on')
+    void bridge()?.setAi(!on)
     setOn(!on)
   }, [on])
   return [on, toggle]
