@@ -1,6 +1,6 @@
 import {strict as assert} from 'node:assert'
 import {spawn, spawnSync} from 'node:child_process'
-import {appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync} from 'node:fs'
+import {mkdtempSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {after, test} from 'node:test'
@@ -13,7 +13,6 @@ const {NODE_TEST_CONTEXT, ...outside} = process.env
 const ps = () => spawnSync('ps', ['-Ao', 'pid=,ppid=,command='], {encoding: 'utf8'}).stdout.split('\n').map((l) => l.trim().split(/\s+/)).filter((l) => l.length > 2)
 const alive = (dir: string) => ps().filter(([, , ...cmd]) => cmd.join(' ').includes(dir)).map(([pid]) => Number(pid))
 const orphaned = () => ps().filter(([, ppid, ...cmd]) => ppid === '1' && cmd.join(' ').includes(FIXTURE)).map(([pid]) => Number(pid))
-const trapped = (dir: string) => readdirSync(dir).filter((d) => d.startsWith('barkever-fake-bin-')).flatMap((d) => readFileSync(join(dir, d, 'trapped'), {encoding: 'utf8', flag: 'a+'}).split('\n').filter(Boolean))
 const until = async (ok: () => boolean, ms: number) => {
   for (const end = Date.now() + ms; !ok() && Date.now() < end; ) await new Promise((r) => setTimeout(r, 100))
 }
@@ -32,8 +31,8 @@ for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
     let out = ''
     run.stdout.on('data', (d) => (out += d))
     const exited = new Promise((done) => run.on('exit', done))
-    await until(() => trapped(dir).length === 8, 30_000)
-    assert.match(out, /not ok 1 - fails while its fakes hang[\s\S]*not ok 2 - times out[\s\S]*ok 3 - passes before/)
+    await until(() => out.includes('still running, fakes trapped'), 30_000)
+    assert.match(out, /\nnot ok 1 - fails while its fakes hang\n[\s\S]*\nnot ok 2 - times out[\s\S]*\nok 3 - passes before/)
     await until(() => alive(dir).length <= 2, 1000)
     assert.equal(alive(dir).length, 2, 'only the running test keeps its two fakes')
     run.kill(signal)
@@ -43,11 +42,11 @@ for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
   })
 }
 
-test('a recorded pid that no longer runs from its fake-bin is left alone', async () => {
-  appendFileSync(join(fakeBin().dir, 'pids'), `${sleeper.pid}\n`)
+test('a test that made a fake-bin ends without touching a process that does not run from it', async () => {
+  fakeBin()
 })
 
-test('the pid left alone is still running', () => {
+test('the process left alone is still running', () => {
   assert.match(spawnSync('ps', ['-o', 'stat=', '-p', String(sleeper.pid)], {encoding: 'utf8'}).stdout, /^[^Z\s]/)
 })
 

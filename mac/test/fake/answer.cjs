@@ -2,7 +2,6 @@ const {appendFileSync, existsSync, readdirSync, readFileSync} = require('node:fs
 const {basename, join} = require('node:path')
 
 const HERE = __dirname
-appendFileSync(join(HERE, 'pids'), `${process.pid}\n`)
 require('./parent-watch.cjs')
 const FORBIDDEN = /API_KEY|AUTH_TOKEN|OAUTH_TOKEN|^CLAUDECODE$|^CLAUDE_CODE_SSE_PORT$|^OPENAI_|^CODEX_(?!HOME$)/
 

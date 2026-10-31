@@ -41,8 +41,6 @@ export function ownerHome() {
 
 const UNIT = !!process.env.NODE_TEST_CONTEXT
 
-const running = (pid: number, dir: string) => spawnSync('ps', ['-o', 'command=', '-p', String(pid)], {encoding: 'utf8'}).stdout.includes(dir)
-
 const kill = (pid: number) => {
   try {
     process.kill(pid, 'SIGKILL')
@@ -51,9 +49,9 @@ const kill = (pid: number) => {
   }
 }
 
-const pidsIn = (dir: string) => (existsSync(join(dir, 'pids')) ? readFileSync(join(dir, 'pids'), 'utf8').split('\n').filter(Boolean).map(Number) : [])
+const runningFrom = (dir: string) => spawnSync('ps', ['-Ao', 'pid=,command='], {encoding: 'utf8'}).stdout.split('\n').filter((l) => l.includes(dir)).map((l) => Number(l.trim().split(' ')[0]))
 
-const reap = (dir: string) => pidsIn(dir).filter((pid) => running(pid, dir)).forEach(kill)
+const reap = (dir: string) => runningFrom(dir).forEach(kill)
 
 export const PARENT_WATCH = join(FAKES, 'parent-watch.cjs')
 
