@@ -1,5 +1,6 @@
 import {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react'
 import {Link, useNavigate} from '@tanstack/react-router'
+import {inHeldOrder} from '../lib/held-order'
 import {hitLine, snippet, UNTITLED, type Note} from '../lib/model'
 import {scopeName, type Search} from '../lib/scope'
 import type {Found} from '../lib/search'
@@ -28,11 +29,12 @@ export type ListHandle = {search: () => void; menu: () => void; row: (id: string
 type Props = {w: World; s: Search; found: Found; onMenu: () => void; onNew: (() => void) | null; onOpen: (id: string) => void}
 
 export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, found, onMenu, onNew, onOpen}, handle) {
-  const {notes, marks: words} = found
+  const {marks: words} = found
   const navigate = useNavigate()
   const searchRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
   const rowsRef = useRef<HTMLDivElement>(null)
+  const notes = useHeldOrder(found.notes, rowsRef)
   const [cursor, setCursor] = useState(s.n)
   const active = notes.some((n) => n.id === cursor) ? cursor : notes[0]?.id
   const rowEl = (id?: string) => (id ? rowsRef.current?.querySelector<HTMLElement>(`[data-note-id="${CSS.escape(id)}"]`) : null)
@@ -144,6 +146,26 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
     </section>
   )
 })
+
+function useHeldOrder(notes: Note[], rows: RefObject<HTMLDivElement | null>): Note[] {
+  const [held, setHeld] = useState<Note[] | null>(null)
+  const latest = useRef(notes)
+  latest.current = notes
+  useEffect(() => {
+    const el = rows.current!
+    let press: AbortController | undefined
+    const down = () => {
+      press?.abort()
+      const mine = (press = new AbortController())
+      setHeld(latest.current)
+      const up = () => (mine.abort(), setTimeout(() => press === mine && setHeld(null)))
+      for (const type of ['pointerup', 'pointercancel']) addEventListener(type, up, {capture: true, signal: mine.signal})
+    }
+    el.addEventListener('pointerdown', down)
+    return () => (el.removeEventListener('pointerdown', down), press?.abort())
+  }, [rows])
+  return useMemo(() => (held ? inHeldOrder(held, notes) : notes), [held, notes])
+}
 
 function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | null>): {shown: Note[]; more: boolean} {
   const [pages, setPages] = useState(1)
