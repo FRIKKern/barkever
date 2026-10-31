@@ -18,7 +18,8 @@ mkdirSync(noPs);
 writeFileSync(join(noPs, "ps"), "#!/bin/sh\nexit 1\n");
 chmodSync(join(noPs, "ps"), 0o755);
 const mark = (dir, owner) => join(dir, `ran-${owner}`);
-const env = (dir, owner, path = bin) => ({ ...process.env, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
+const { HEAVY_SLOTS, ...inherited } = process.env;
+const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
 const groups = [];
 const stop = (p, signal = "SIGKILL") => { try { process.kill(-p.pid, signal); } catch {} };
 after(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, force: true }); });
@@ -104,6 +105,14 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
     const pair = [runOn(noPs, dir, "a", "job"), runOn(noPs, dir, "b", "job")];
     assert.ok(await started(dir, ...pair));
+  });
+
+  test("a dead holder in a higher slot than the free one does not count beside a prepush", async () => {
+    const dir = slots();
+    assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
+    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(dir, "slot-2"), `${gone} ghost`);
+    assert.ok(await started(dir, run(dir, "a", "job")));
   });
 
   for (const killed of ["prepush", "one"]) {
