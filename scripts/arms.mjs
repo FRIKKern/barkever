@@ -4,10 +4,13 @@ import { resolve } from "node:path";
 const args = process.argv.slice(2);
 const runAt = args.indexOf("--run");
 const cmd = runAt < 0 ? null : args[runAt + 1];
-if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>" [--strict] [--timeout <ms>]]'); process.exit(2); }
+const usage = (why) => { console.error(`arms: ${why}\nusage: node scripts/arms.mjs [base] [--run "<test command>" [--strict] [--timeout <ms>]]`); process.exit(2); };
+if (runAt >= 0 && !cmd) usage("--run needs a test command");
 const strict = args.includes("--strict");
 const timeoutAt = args.indexOf("--timeout");
-const timeout = timeoutAt < 0 ? 600_000 : Number(args[timeoutAt + 1]);
+const ms = timeoutAt < 0 ? "600000" : args[timeoutAt + 1];
+if (!/^[1-9]\d*$/.test(ms ?? "")) usage(`--timeout needs a whole number of ms above 0, got ${ms ?? "nothing"}`);
+const timeout = Number(ms);
 const base = args.find((a, i) => !a.startsWith("--") && ![runAt, timeoutAt].some((f) => f >= 0 && i === f + 1)) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -36,6 +36,21 @@ test("without --run it lists the arms of the diff from main, test files left out
 test("--run with no command is a usage error, first or last", () => {
   assert.equal(arms(repo(), "main", "--run").status, 2);
   assert.equal(arms(repo(), "--run").status, 2);
+});
+
+test("a --timeout that is not a whole number of ms above 0 is a usage error naming --timeout, before the command runs", () => {
+  for (const bad of [["--timeout", "abc"], ["--timeout"], ["--timeout", "0"], ["--timeout", "-5"], ["--timeout", "1.5"]]) {
+    const dir = repo();
+    const r = arms(dir, "main", "--run", "touch ran", ...bad);
+    assert.equal(r.status, 2, bad.join(" "));
+    assert.match(r.stderr, /--timeout/, bad.join(" "));
+    assert.match(r.stderr, /^usage:/m, bad.join(" "));
+    assert.doesNotMatch(r.stderr, /clean tree/, bad.join(" "));
+    assert.equal(existsSync(join(dir, "ran")), false, bad.join(" "));
+  }
+  const r = arms(repo(), "main", "--timeout", "--run", "exit 0");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--timeout/);
 });
 
 test("a base other than main is read from the first plain argument, and Go rows are listed but not mutated", () => {
