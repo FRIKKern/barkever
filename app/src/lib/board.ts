@@ -55,7 +55,7 @@ const flip = (it: Item): Item => (typeof it === 'object' && !Array.isArray(it) ?
 const tickUnder = (it: Item, box: Spot): Item => (typeof it === 'object' && !Array.isArray(it) && it.children ? {...it, children: ticked(it.children, box)} : it)
 
 export function ticked(blocks: Block[], box: Spot): Block[] {
-  return blocks.map((b) => (b.type === 'list' && b.items ? {...b, items: b.items.map((it, i) => tickUnder(b.id === box.block && i === box.item ? flip(it) : it, box))} : b))
+  return blocks.map((b) => (b.items ? {...b, items: b.items.map((it, i) => tickUnder(b.id === box.block && i === box.item ? flip(it) : it, box))} : b))
 }
 
 function keysOf(block: string, items: Item[]): string[] {
