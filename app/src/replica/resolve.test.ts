@@ -208,3 +208,14 @@ test('Keep this on a copy holding two parts, one equal to the shown words and on
   assert.deepEqual([out.title, texts(out)], ['Main', ['a:copy text', 'b:two']])
   assert.deepEqual(out.conflicts?.map((c) => [c.title, blockText(c.body!.blocks[0]), c.clash.sort()]), [['Moved', 'one moved', ['body:a', 'title']]])
 })
+
+test('a Keep leaves the parts the copy does not hold to the normal merge: the main keeps their moved words, with no extra copy', () => {
+  const title = copy('k1', 1, 'C', ['title'], 'Copy title', [])
+  const movedA = {...main, _rev: 'r6', body: {blocks: [p('a', 'one moved'), p('b', 'two')]}, conflicts: [title]}
+  const out = keep(movedA, 'k1', main, at(9), 'local-k', 'dev-me')
+  assert.deepEqual([out.title, texts(out), out.conflicts], ['Copy title', ['a:one moved', 'b:two'], []])
+  const bodyA = copy('k2', 1, 'C', ['body:a'], 'Main', [p('a', 'copy text')])
+  const movedB = {...main, _rev: 'r6', title: 'Moved', body: {blocks: [p('a', 'one'), p('b', 'two moved')]}, conflicts: [bodyA]}
+  const kept = keep(movedB, 'k2', main, at(9), 'local-k', 'dev-me')
+  assert.deepEqual([kept.title, texts(kept), kept.conflicts], ['Moved', ['a:copy text', 'b:two moved'], []])
+})
