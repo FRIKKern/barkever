@@ -115,3 +115,8 @@ test("a startsWith label reads as one call", () => assert.deepEqual(mutantsOf("k
 test("killers keeps a name with a colon inside it, and drops a header ending in one", () => {
   assert.deepEqual(killers("✖ failing tests:\n✖ base: a carrier lands\n"), ["base: a carrier lands"]);
 });
+
+test("a label still reads when the call is unclosed or the comparison has no left side", () => {
+  assert.deepEqual(mutantsOf("k.startsWith(p").map((m) => m.label), ["`.startsWith(` → `.includes(` in `k.startsWith(p`"]);
+  assert.deepEqual(mutantsOf("=== b").map((m) => m.label), ["`===` → `!==` in `=== b`"]);
+});

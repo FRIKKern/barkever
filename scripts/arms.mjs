@@ -6,7 +6,7 @@ const runAt = args.indexOf("--run");
 const cmd = runAt < 0 ? null : args[runAt + 1];
 if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>" [--strict]]'); process.exit(2); }
 const strict = args.includes("--strict");
-const base = args.find((a, i) => !a.startsWith("--") && i !== runAt + 1) ?? "main";
+const base = args.find((a, i) => !a.startsWith("--") && (runAt < 0 || i !== runAt + 1)) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
 

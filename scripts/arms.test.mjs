@@ -33,7 +33,25 @@ test("without --run it lists the arms of the diff from main, test files left out
   assert.doesNotMatch(r.stdout, /a\.test\.mjs/);
 });
 
-test("--run with no command is a usage error", () => assert.equal(arms(repo(), "main", "--run").status, 2));
+test("--run with no command is a usage error, first or last", () => {
+  assert.equal(arms(repo(), "main", "--run").status, 2);
+  assert.equal(arms(repo(), "--run").status, 2);
+});
+
+test("a base other than main is read from the first plain argument, and Go rows are listed but not mutated", () => {
+  const dir = repo();
+  const git = (...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
+  git("branch", "trunk", "work");
+  writeFileSync(join(dir, "b.go"), "package b\nfunc f(a int) bool { if a == 1 { return true }; return false }\n");
+  writeFileSync(join(dir, "c.mjs"), "export const z = (a) => a || 3\n");
+  git("add", ".");
+  git("commit", "-qm", "more");
+  const listed = arms(dir, "trunk");
+  assert.match(listed.stdout, /b\.go:2/);
+  assert.doesNotMatch(listed.stdout, /a\.mjs/);
+  const r = arms(dir, "trunk", "--run", "true");
+  assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent \(1 arm rows in TS\/JS\)/);
+});
 
 test("only likely-equivalent survivors pass, and --strict fails them", () => {
   const dir = repo();
