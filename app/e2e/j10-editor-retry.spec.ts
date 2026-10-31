@@ -1,4 +1,5 @@
 import {expect, test, type Page} from '@playwright/test'
+import {oldEditor} from './old-editor'
 
 test.use({serviceWorkers: 'block'})
 
@@ -206,14 +207,8 @@ test('while the editor can’t load it asks again after 2 s; an answer asks at o
 })
 
 test('an editor too old for Barkever arms no retry', async ({page}) => {
-  await page.addInitScript(() => {
-    const define = customElements.define.bind(customElements)
-    customElements.define = (name, ctor, options) => {
-      if (name === 'bp-paper-editor') Object.defineProperty(ctor, 'CONTRACT_VERSION', {value: '1.16.0'})
-      define(name, ctor, options)
-    }
-  })
+  await page.addInitScript(oldEditor)
   await page.goto('/?n=fx-note-04')
-  await expect(page.getByText('Barkpark serves editor 1.16.0; Barkever needs 1.17.0 or newer')).toBeVisible({timeout: 30_000})
+  await expect(page.getByText('Barkpark serves editor 1.19.0; Barkever needs 1.20.0 or newer')).toBeVisible({timeout: 30_000})
   expect(await armed(page)).toBe(0)
 })
