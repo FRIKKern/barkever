@@ -10,6 +10,15 @@ const ask = async (page: Page, question: string) => {
 const asks = (page: Page) => page.evaluate(() => (window as unknown as {asks: Sent[]}).asks)
 const asked = (page: Page) => page.evaluate(() => Number(localStorage.getItem('stub.asked') ?? 0))
 const told = (page: Page) => page.evaluate(() => localStorage.getItem('stub.ai'))
+const lum = (c: string) => {
+  const [r, g, b] = c.match(/\d+/g)!.slice(0, 3).map((v) => Number(v) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+const knob = (page: Page) => page.getByTestId('ai-switch').evaluate((el) => ({knob: getComputedStyle(el, '::after').backgroundColor, track: getComputedStyle(el).backgroundColor}))
 const mode = (page: Page, m: Mode) => page.evaluate((m) => ((window as unknown as {mode: Mode}).mode = m), m)
 
 function stubBridge(page: Page) {
@@ -118,12 +127,18 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
   await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
   expect(await told(page)).toBe('false')
+  await expect.poll(async () => (await knob(page)).knob).toBe('rgb(255, 255, 255)')
+  await expect.poll(async () => { const k = await knob(page); return contrast(k.knob, k.track) }).toBeGreaterThanOrEqual(3)
+  await page.emulateMedia({colorScheme: 'light'})
+  await expect.poll(async () => (await knob(page)).knob).toBe('rgb(255, 255, 255)')
+  await page.emulateMedia({colorScheme: 'dark'})
   await page.keyboard.press('Enter')
+  await page.evaluate(() => localStorage.removeItem('stub.ai'))
   await page.reload()
   await page.getByTestId('ask-tab').click()
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
   await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
-  expect(await told(page)).toBe('false')
+  await expect.poll(() => told(page)).toBe('false')
   expect(await asked(page)).toBe(before)
   await page.getByTestId('ai-switch').check()
   expect(await told(page)).toBe('true')
