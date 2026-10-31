@@ -136,7 +136,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         setState({live: false, blocked: e.message})
         if (e instanceof Outdated) return
         if (answersHeard() > heard) return load()
-        addEventListener(ANSWERED, load, {once: true})
+        addEventListener(ANSWERED, load)
         waiting = setTimeout(load, retryIn(tries++))
       },
     )

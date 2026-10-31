@@ -165,6 +165,15 @@ test('one failed editor load while Barkpark keeps answering: the note turns edit
   expect(await page.evaluate(() => (window as unknown as Seen).answers())).toBe(answers)
 })
 
+test('a note switch stops the old note’s retry timer', async ({page}) => {
+  const {failed} = await loadFailsAfterTheAnswer(page, 99)
+  await row(page, 'Harbor redesign: wireframes').click()
+  await expect(page.getByTestId('title')).toHaveValue('Harbor redesign: wireframes')
+  await expect.poll(() => failed.length).toBe(2)
+  await page.waitForTimeout(3000)
+  expect(failed.filter((at) => at > failed[1])).toHaveLength(1)
+})
+
 test('the stream reconnects but Barkpark never says welcome: the note still turns editable', async ({page, context}) => {
   let reconnected = false
   await page.route('**/editor-files', (route) => (reconnected ? route.continue() : route.abort()))
