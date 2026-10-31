@@ -193,7 +193,7 @@ test.describe('with the editor blocked', () => {
     await expect(page.getByTestId('body')).toContainText('Read only: the editor could not load')
     await expect(page.getByTestId('canvas')).toHaveCount(0)
     await atLine(page, fresh, false)
-    await expect(lineAt(page, fresh, false).locator('.li-t')).toHaveText(TASK)
+    await expect(lineAt(page, fresh, false).locator(':scope > .li-t')).toHaveText(TASK)
 
     await page.getByTestId('delete-note').click()
     await expect.poll(() => opened(page)).toBeUndefined()
