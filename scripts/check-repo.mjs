@@ -46,6 +46,9 @@ for (const f of files.filter((f) => f.endsWith("package.json"))) {
   const pkg = JSON.parse(read(f));
   const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies });
   for (const d of deps) if (banned.some((re) => re.test(d))) fail(f, `banned dependency ${d} (see docs/decisions/0003, 0004)`);
+  for (const [name, cmd] of Object.entries(pkg.scripts ?? {}))
+    for (const part of cmd.split(/&&|\|\||;/))
+      if (/(^|\s)--test(\s|$)/.test(part) && !(+part.match(/\s--test-timeout=([1-9]\d*)(\s|$)/)?.[1] <= 2147483647)) fail(f, `script "${name}" runs node --test without a --test-timeout=<1 to 2147483647 ms>, so one hung test hangs the gate`);
 }
 
 const secret = [

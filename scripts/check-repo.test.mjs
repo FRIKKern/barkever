@@ -28,10 +28,35 @@ test("clean copy passes", () => {
   assert.equal(r.status, 0, r.stderr);
 });
 
+test("a --test-timeout of 2147483647 ms, the most Node takes, passes", () => {
+  const dir = copy();
+  testTimeout(" --test-timeout=2147483647")(dir);
+  const r = run(dir);
+  assert.equal(r.status, 0, r.stderr);
+});
+
+test("a package.json with no scripts passes", () => {
+  const dir = copy();
+  mkdirSync(join(dir, "fixtures/planted"), { recursive: true });
+  writeFileSync(join(dir, "fixtures/planted/package.json"), "{}");
+  const r = run(dir);
+  assert.equal(r.status, 0, r.stderr);
+});
+
+const testTimeout = (flag) => (d) => {
+  const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8"));
+  p.scripts.test = p.scripts.test.replace(/ --test-timeout=\d+/, flag);
+  writeFileSync(join(d, "mac/package.json"), JSON.stringify(p));
+};
 const plants = {
   "word cap": (d) => writeFileSync(join(d, "README.md"), readFileSync(join(d, "README.md"), "utf8") + " word".repeat(400)),
   "no picture in a top-level doc": (d) => writeFileSync(join(d, "docs/NOTES.md"), "# Notes\n\nJust words.\n"),
   "image outside reference/ or docs/img/": (d) => cpSync(join(d, "package.json"), join(d, "shot.webp")),
+  "node --test without --test-timeout": testTimeout(""),
+  "--test-timeout=0, which is none": testTimeout(" --test-timeout=0"),
+  "--test-timeout past 2^31 - 1 ms": testTimeout(" --test-timeout=2147483648"),
+  "--test-timeout with a space, not =": testTimeout(" --test-timeout 300000"),
+  "--test-timeout with no number": testTimeout(" --test-timeout="),
   "banned dependency": (d) => { const p = JSON.parse(readFileSync(join(d, "package.json"), "utf8")); p.dependencies = { next: "1" }; writeFileSync(join(d, "package.json"), JSON.stringify(p)); },
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
