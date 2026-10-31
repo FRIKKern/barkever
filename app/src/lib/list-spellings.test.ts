@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {board, ticked} from './board.ts'
+import {board, findLine, ticked} from './board.ts'
 import {blockText, isBlank, nestedOf, wikilinks, type Block, type Inline, type Note} from './model.ts'
 import {shelve} from './notebooks.ts'
 
@@ -89,19 +89,24 @@ test('a checklist item whose children are not a list of objects still ticks, and
   }
 })
 
-test('a list whose items are not an array reads as a list with no lines, top level or nested, and a tick beside it still ticks', () => {
-  const good: Block = {id: 'good', type: 'list', task: true, items: [{text: 'tick me'}]}
-  for (const items of ['x', {a: 1}, 5]) {
-    const top = {id: 't', type: 'list', task: true, items} as unknown as Block
-    const nested: Block = {id: 'l', type: 'list', items: [{content: [text('Pier')], children: [{id: 'c', type: 'list', items} as unknown as Block]}]}
-    assert.equal(blockText(top), '')
-    assert.equal(blockText(nested), 'Pier')
-    assert.deepEqual(wikilinks([top, nested]), [])
-    const tasks = board([note([good, top, nested])], shelve([{id: 'a', name: 'A', parent: null}]), () => undefined).columns.flatMap((c) => c.cards.flatMap((card) => card.tasks))
-    assert.deepEqual(tasks.map((t) => t.text), ['tick me'])
-    const after = ticked([good, top, nested], tasks[0]!.box)
-    assert.equal((after[0]!.items![0] as {checked?: boolean}).checked, true)
-    assert.equal(after[1], top)
-    assert.equal(isBlank(note([top])), false)
+const BAD_ITEMS: [string, unknown][] = [['a string', 'x'], ['an object', {a: 1}], ['a number', 5], ['true', true], ['null', null], ['missing', undefined]]
+
+for (const [type] of SPELLINGS) {
+  for (const [shape, items] of BAD_ITEMS) {
+    test(`${type} with items ${shape} reads no lines, top level or nested; the note is kept unless the items are empty; a tick beside it still ticks`, () => {
+      const good: Block = {id: 'good', type: 'list', task: true, items: [{text: 'tick me'}]}
+      const bad = {id: 'b', type, task: true, ...(items === undefined ? {} : {items})} as unknown as Block
+      for (const [block, words, blank] of [[bad, '', items == null], [under(bad), 'Pier', false]] as const) {
+        assert.equal(blockText(block), words)
+        assert.deepEqual(wikilinks([block]), [])
+        assert.equal(isBlank(note([block])), blank)
+        const tasks = board([note([good, block])], shelve([{id: 'a', name: 'A', parent: null}]), () => undefined).columns.flatMap((c) => c.cards.flatMap((card) => card.tasks))
+        assert.deepEqual(tasks.map((t) => t.text), ['tick me'])
+        assert.deepEqual(findLine([good, block], tasks[0]!.box), {block: 'good', item: 0})
+        const after = ticked([good, block], tasks[0]!.box)
+        assert.equal((after[0]!.items![0] as {checked?: boolean}).checked, true)
+        assert.deepEqual(after[1], block)
+      }
+    })
   }
-})
+}
