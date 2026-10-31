@@ -59,3 +59,17 @@ test('one channel to the other tabs, however often it is asked', () => {
   answersHeard()
   assert.equal(opened.length, 1)
 })
+
+test('a message on the channel that is not true or false is no answer', {timeout: 5000}, async () => {
+  const other = new Tab('barkever-reach')
+  const count = fired()
+  const before = answersHeard()
+  const heard = new Promise((done) => page.addEventListener(ANSWERED, done, {once: true}))
+  other.postMessage({ok: true})
+  other.postMessage('yes')
+  other.postMessage(true)
+  await heard
+  assert.equal(answersHeard(), before + 1)
+  assert.equal(count(), 1)
+  other.close()
+})

@@ -22,7 +22,7 @@ function hear(ok: boolean) {
 function otherTabs() {
   if (!tabs) {
     tabs = new BroadcastChannel('barkever-reach')
-    tabs.onmessage = (e: MessageEvent<boolean>) => hear(e.data)
+    tabs.onmessage = (e: MessageEvent<unknown>) => typeof e.data === 'boolean' && hear(e.data)
   }
   return tabs
 }

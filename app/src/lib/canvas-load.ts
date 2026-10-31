@@ -50,6 +50,8 @@ export class Outdated extends Error {}
 
 const CANVAS_CONTRACT = '1.20.0'
 
+export const retryIn = (tries: number) => Math.min(60_000, 2000 * 2 ** tries)
+
 export function atLeast(version: string | undefined, want: string): boolean {
   const [a, b] = [version ?? '', want].map((v) => v.split('.').map(Number))
   const i = b.findIndex((n, k) => a[k] !== n)

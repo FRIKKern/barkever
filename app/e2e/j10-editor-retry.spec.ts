@@ -57,6 +57,20 @@ function holdEditorFiles(page: Page) {
   return {routed, asked, release}
 }
 
+function failEditorFiles(page: Page, times: number) {
+  let release!: () => void
+  const held = new Promise<void>((done) => (release = done))
+  const failed: number[] = []
+  const asked = page.waitForRequest('**/editor-files')
+  const routed = page.route('**/editor-files', async (route) => {
+    if (!failed.length) await held
+    if (failed.length >= times) return route.continue()
+    failed.push(Date.now())
+    await route.abort()
+  })
+  return {routed, asked, release, failed}
+}
+
 async function editableWith(page: Page, words: string) {
   await expect(canvas(page).locator('[contenteditable="true"]')).toBeVisible({timeout: 10_000})
   await expect(canvas(page)).toHaveCount(1)
@@ -118,13 +132,68 @@ test('a load that fails after a note switch arms one retry, for the open note', 
 })
 
 test('Barkpark answers while the editor is still loading: when that load fails, it loads again at once', async ({page}) => {
-  const {routed, asked, release} = holdEditorFiles(page)
+  const {routed, asked, release, failed} = failEditorFiles(page, 1)
   await routed
   await page.goto('/?n=fx-note-04')
   await asked
   await barkparkAnswers(page)
+  const again = page.waitForRequest('**/editor-files')
   release()
+  await again
+  expect(Date.now() - failed[0]).toBeLessThan(1500)
   await editableWith(page, LIGHTHOUSE)
+})
+
+async function loadFailsAfterTheAnswer(page: Page, times: number) {
+  const files = failEditorFiles(page, times)
+  await files.routed
+  await page.goto('/?n=fx-note-02')
+  await files.asked
+  await firstAnswer(page)
+  await row(page, 'Lighthouse app: brief').click()
+  await expect(page.getByTestId('title')).toHaveValue('Lighthouse app: brief')
+  const answers = await page.evaluate(() => (window as unknown as Seen).answers())
+  files.release()
+  await expect(page.getByTestId('body')).toContainText(CANT_REACH)
+  return {failed: files.failed, answers}
+}
+
+test('one failed editor load while Barkpark keeps answering: the note turns editable with no new answer', async ({page}) => {
+  const {failed, answers} = await loadFailsAfterTheAnswer(page, 1)
+  await editableWith(page, LIGHTHOUSE)
+  expect(failed).toHaveLength(1)
+  expect(await page.evaluate(() => (window as unknown as Seen).answers())).toBe(answers)
+})
+
+test('the stream reconnects but Barkpark never says welcome: the note still turns editable', async ({page, context}) => {
+  let reconnected = false
+  await page.route('**/editor-files', (route) => (reconnected ? route.continue() : route.abort()))
+  await page.goto('/?n=fx-note-04')
+  await expect(page.getByTestId('body')).toContainText(CANT_REACH)
+  await firstAnswer(page)
+  const answers = await page.evaluate(() => (window as unknown as Seen).answers())
+  await page.route('**/api/listen**', (route) => route.fulfill({status: 200, contentType: 'text/event-stream', body: ': no welcome\n\n'}))
+  const reconnect = page.waitForRequest('**/api/listen**')
+  await context.setOffline(true)
+  await context.setOffline(false)
+  await reconnect
+  reconnected = true
+  await expect(canvas(page).locator('[contenteditable="true"]')).toBeVisible({timeout: 30_000})
+  expect(await page.evaluate(() => (window as unknown as Seen).answers())).toBe(answers)
+})
+
+test('while the editor can’t load it asks again after 2 s, then 4 s; an answer asks at once', async ({page}) => {
+  const {failed} = await loadFailsAfterTheAnswer(page, 9)
+  await expect.poll(() => failed.length, {timeout: 15_000}).toBe(3)
+  const [first, second, third] = failed
+  expect(second - first).toBeGreaterThanOrEqual(1900)
+  expect(second - first).toBeLessThan(3900)
+  expect(third - second).toBeGreaterThanOrEqual(3900)
+  await expect.poll(() => armed(page)).toBe(1)
+  const answered = Date.now()
+  await barkparkAnswers(page)
+  await expect.poll(() => failed.length, {timeout: 3000}).toBe(4)
+  expect(failed[3] - answered).toBeLessThan(3000)
 })
 
 test('an editor too old for Barkever arms no retry', async ({page}) => {

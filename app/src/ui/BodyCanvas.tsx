@@ -1,6 +1,6 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
 import {useNavigate} from '@tanstack/react-router'
-import {linkAtCaret, loadCanvas, Outdated, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {linkAtCaret, loadCanvas, Outdated, readTyping, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
@@ -135,16 +135,24 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         if (gone) return
         setState({live: false, blocked: e.message})
         if (e instanceof Outdated) return
-        if (answersHeard() > heard) load()
-        else addEventListener(ANSWERED, load, {once: true})
+        if (answersHeard() > heard) return load()
+        addEventListener(ANSWERED, load, {once: true})
+        waiting = setTimeout(load, retryIn(tries++))
       },
     )
-    const load = () => mount(answersHeard())
+    let tries = 0
+    let waiting: ReturnType<typeof setTimeout> | undefined
+    const load = () => {
+      clearTimeout(waiting)
+      removeEventListener(ANSWERED, load)
+      mount(answersHeard())
+    }
     load()
     addEventListener('pagehide', flush)
     return () => {
       gone = true
       clearTimeout(flushing)
+      clearTimeout(waiting)
       removeEventListener('pagehide', flush)
       removeEventListener(ANSWERED, load)
       flush()
