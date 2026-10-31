@@ -77,7 +77,8 @@ function pace({ dir, bin }, ...args) {
   const r = spawnSync(process.execPath, [PACE, ...args], { cwd: dir, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HEAVY_DIR: heavy } });
   assert.equal(r.status, 0, r.stderr);
   const rows = Object.fromEntries(r.stdout.split("\n").filter((l) => l.startsWith("| ")).map((l) => l.split(" | ").map((c) => c.replace(/^\| | \|$/g, ""))).map(([k, v, p]) => [k, { now: v, prev: p }]));
-  return { rows, last: () => JSON.parse(readFileSync(join(dir, "pace", "snapshots.jsonl"), "utf8").trim().split("\n").at(-1)) };
+  const header = r.stdout.split("\n")[0];
+  return { rows, header, stdout: r.stdout, last: () => JSON.parse(readFileSync(join(dir, "pace", "snapshots.jsonl"), "utf8").trim().split("\n").at(-1)) };
 }
 
 test("commits count by reaching main after the last snapshot head, whatever their dates", () => {
@@ -87,9 +88,29 @@ test("commits count by reaching main after the last snapshot head, whatever thei
   assert.equal(rows["journeys touched"].now, "J01 J02");
 });
 
-test("--since counts from the head of the last snapshot taken at or before it", () => {
-  const { rows } = pace(world(), "--since", "2026-10-31T10:30:00.000Z");
+test("--since starts the whole window at the last snapshot taken at or before it, and prints that start", () => {
+  const { rows, header, stdout } = pace(world(), "--since", "2026-10-31T10:30:00.000Z");
+  assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
+  assert.match(stdout, /--since 2026-10-31T10:30:00\.000Z starts at the snapshot taken at 2026-10-31T10:00:00\.000Z/);
   assert.equal(rows.commits.now, "3");
+  assert.equal(rows["tasks closed"].now, "3");
+  assert.equal(rows["barkpark PRs merged"].now, "3");
+});
+
+test("--since before every commit on main counts them all, from that time", () => {
+  const { rows, header } = pace(world(), "--since", "2000-01-01T00:00:00.000Z");
+  assert.match(header, /^pace 2000-01-01T00:00:00\.000Z → /);
+  assert.equal(rows.commits.now, "4");
+});
+
+test("--since before the first snapshot but after a commit gives unknown commits over that window", () => {
+  const { rows, header } = pace(world(), "--since", "2026-10-31T09:30:00.000Z");
+  assert.match(header, /^pace 2026-10-31T09:30:00\.000Z → /);
+  assert.equal(rows.commits.now, "unknown");
+});
+
+test("without --since the window starts at the last snapshot", () => {
+  assert.match(pace(world()).header, new RegExp(`^pace ${SNAPSHOT_AT.replace(/\./g, "\\.")} → `));
 });
 
 test("nothing landed since the last snapshot head gives 0 commits and no journeys", () => {

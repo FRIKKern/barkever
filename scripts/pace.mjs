@@ -23,13 +23,23 @@ const json = (out) => { try { return out === null ? null : JSON.parse(out); } ca
 
 const snapshots = existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 const flag = process.argv.indexOf("--since");
-const since = flag > 0 ? process.argv[flag + 1] : snapshots.at(-1)?.at ?? new Date(Date.now() - 6 * 3600e3).toISOString();
-const base = snapshots.filter((s) => Date.parse(s.at) <= Date.parse(since)).at(-1);
+const asked = flag > 0 ? process.argv[flag + 1] : null;
+const base = asked ? snapshots.filter((s) => Date.parse(s.at) <= Date.parse(asked)).at(-1) : snapshots.at(-1);
+const since = base?.at ?? asked ?? new Date(Date.now() - 6 * 3600e3).toISOString();
 const now = new Date().toISOString();
 
+function range() {
+  if (base?.head) {
+    const from = run("git", ["rev-parse", "--verify", "--quiet", `${base.head}^{commit}`])?.trim();
+    return from ? `${from}..main` : null;
+  }
+  const dates = run("git", ["log", "--first-parent", "--format=%cI", "main"]);
+  return asked && dates !== null && dates.trim().split("\n").every((d) => Date.parse(d) >= Date.parse(asked)) ? "main" : null;
+}
+
 function commits() {
-  const from = base?.head && run("git", ["rev-parse", "--verify", "--quiet", `${base.head}^{commit}`])?.trim();
-  const out = from ? run("git", ["log", "--first-parent", `${from}..main`, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]) : null;
+  const span = range();
+  const out = span ? run("git", ["log", "--first-parent", span, "--format=%x1e%h%x1f%aI%x1f%s", "--numstat"]) : null;
   if (out === null) return null;
   return out.split("\x1e").filter((r) => r.trim()).map((rec) => {
     const [head, ...rest] = rec.trim().split("\n");
@@ -113,6 +123,7 @@ const row = (k, v, p) => console.log(`| ${k} | ${v} | ${p ?? "–"} |`);
 const of = (section, f) => (section === null ? "unknown" : section === undefined ? undefined : f(section));
 const tiers = (byTier) => ["hard", "standard", "light"].map((t) => byTier[t] ?? 0).join("/");
 console.log(`pace ${since} → ${now} (${snap.hours} h, main ${snap.head})\n`);
+if (asked && asked !== since) console.log(`--since ${asked} starts at the snapshot taken at ${since}: commits only have a known landing time from a snapshot head\n`);
 console.log("| Metric | Now | Previous |\n|---|---|---|");
 const both = (k, section, f) => row(k, of(snap[section], f), prev && of(prev[section], f));
 both("commits", "commits", (c) => c.count);
