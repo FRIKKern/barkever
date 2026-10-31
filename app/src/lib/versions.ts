@@ -1,10 +1,11 @@
 import type {Conflict} from './model.ts'
+import {older} from '../replica/merge.ts'
 
 export type Group = {latest: Conflict; earlier: Conflict[]}
 
 type Lane = {by?: string; parts: Set<string>; copies: Conflict[]}
 
-const newest = (a: Conflict, b: Conflict) => b.at.localeCompare(a.at) || b._key.localeCompare(a._key)
+const newest = (a: Conflict, b: Conflict) => older(b, a)
 
 export function groups(all: Conflict[]): Group[] {
   const lanes: Lane[] = []

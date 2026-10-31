@@ -76,3 +76,50 @@ test('Keep this over a main that moved since it was shown keeps the moved text a
   assert.deepEqual(texts(out), ['a:copy text', 'b:two'])
   assert.deepEqual(out.conflicts?.map((c) => [c._key.split('~')[0], blockText(c.body!.blocks[0])]), [['local-k', 'B typed this a moment ago']])
 })
+
+const local = () => `local-${crypto.randomUUID()}~x`
+const shuffled = <T>(xs: T[]) => xs.map((x) => [Math.random(), x] as const).sort((a, b) => a[0] - b[0]).map(([, x]) => x)
+const rounds = <T>(make: () => T) => new Set(Array.from({length: 50}, () => JSON.stringify(make()))).size
+
+test('two copies made in the same millisecond show the same latest run after run, whatever their random keys', () => {
+  const shown = () => {
+    const g = groups(shuffled([copy(local(), 1, 'A', ['body:a'], 'T', [p('a', 'A1')]), copy(local(), 1, 'A', ['body:a'], 'T', [p('a', 'A2')])]))
+    return g.map((x) => [blockText(x.latest.body!.blocks[0]), x.earlier.map((c) => blockText(c.body!.blocks[0]))])
+  }
+  assert.equal(rounds(shown), 1)
+  assert.deepEqual(shown(), [['A2', ['A1']]])
+})
+
+test('two lanes made in the same millisecond come in the same order run after run', () => {
+  const order = () => groups(shuffled([copy(local(), 1, 'A', ['body:a'], 'T', [p('a', 'A1')]), copy(local(), 1, 'B', ['body:a'], 'T', [p('a', 'B1')])])).map((x) => x.latest.by)
+  assert.equal(rounds(order), 1)
+})
+
+test('identical copies made in the same millisecond collapse to the same writer run after run', () => {
+  const kept = () => collapse(shuffled([copy(local(), 1, 'A', ['body:a'], 'x', [p('a', 'same')]), copy(local(), 1, 'B', ['body:a'], 'x', [p('a', 'same')])]), main).map((c) => c.by)
+  assert.equal(rounds(kept), 1)
+})
+
+test('Keep this returns copies already collapsed against its new main, with the kept copy gone', () => {
+  const k1 = copy('k1', 1, 'A', ['body:a'], 'Main', [p('a', 'same')])
+  const k2 = copy('k2', 2, 'B', ['body:a'], 'Main', [p('a', 'same')])
+  const k3 = copy('k3', 3, 'C', ['body:b'], 'Main', [p('b', 'C two')])
+  const k4 = copy('k4', 4, 'D', ['title'], 'D title', [])
+  for (const key of ['k1', 'k2', 'k3', 'k4']) {
+    const out = keepOn({...main, conflicts: [k1, k2, k3, k4]}, key)
+    assert.deepEqual(collapse(out.conflicts ?? [], out), out.conflicts ?? [], key)
+    assert.ok(!out.conflicts?.some((c) => c._key === key), key)
+  }
+})
+
+test('copy order edge forms: no copies, one copy, an empty time, and words compared by code unit, not by locale', () => {
+  assert.deepEqual(groups([]), [])
+  assert.deepEqual(collapse([], main), [])
+  const one = copy('k1', 1, 'A', ['body:a'], 'T', [p('a', 'A1')])
+  assert.deepEqual(groups([one]), [{latest: one, earlier: []}])
+  const blank = {...copy('k0', 0, 'A', ['body:a'], 'T', [p('a', 'A0')]), at: ''}
+  assert.deepEqual(groups([blank, one]).map((x) => [x.latest._key, x.earlier.map((c) => c._key)]), [['k1', ['k0']]])
+  const latest = () => blockText(groups(shuffled([copy(local(), 1, 'A', ['body:a'], 'T', [p('a', 'z')]), copy(local(), 1, 'A', ['body:a'], 'T', [p('a', 'é')])]))[0].latest.body!.blocks[0])
+  assert.equal(rounds(latest), 1)
+  assert.equal(latest(), 'é')
+})

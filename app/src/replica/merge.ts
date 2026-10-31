@@ -80,13 +80,14 @@ const marked = (s: string) => `${s.length.toString(36)}.${digest(s)}.${digest(`~
 const mark = (n: NoteDoc | Conflict, p: string) => marked(`${p}\n${canon(part(n, p))}`)
 const typedFrom = (c: Conflict, typed: Set<string>) => heldParts(c).every((p) => carried(p) && typed.has(mark(c, p)))
 const organized = (n: Pick<NoteDoc, 'tags' | 'notebook'>, clash: string[]) => ({...(clash.includes('tags') && {tags: n.tags ?? []}), ...(clash.includes('notebook') && {notebook: n.notebook ?? null})})
-const before = (a: Conflict, b: Conflict) => a.at < b.at || (a.at === b.at && a._key < b._key)
+const units = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0)
+export const older = (a: Conflict, b: Conflict) => units(a.at, b.at) || units(canon({...a, _key: ''}), canon({...b, _key: ''})) || units(a._key, b._key)
 const text = (c: Conflict) => canon(heldParts(c).sort().map((p) => [p, part(c, p)]))
 
 export function collapse(all: Conflict[], main: NoteDoc): Conflict[] {
   const first = new Map<string, Conflict>()
   const texts = new Map(all.map((c) => [c, text(c)]))
-  for (const [c, t] of texts) if (!first.has(t) || before(c, first.get(t)!)) first.set(t, c)
+  for (const [c, t] of texts) if (!first.has(t) || older(c, first.get(t)!) < 0) first.set(t, c)
   return all.filter((c) => first.get(texts.get(c)!) === c && !holds(c, main))
 }
 
