@@ -50,7 +50,8 @@ test("a base other than main is read from the first plain argument, and Go rows 
   assert.match(listed.stdout, /b\.go:2/);
   assert.doesNotMatch(listed.stdout, /a\.mjs/);
   const r = arms(dir, "trunk", "--run", "true");
-  assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent \(1 arm rows in TS\/JS\)/);
+  assert.match(r.stdout, /No operator mutant: each of these needs a hand mutant\.\n\n- b\.go:2 \(branch\)/);
+  assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent, 0 do not parse; 1 of 2 arm rows have no operator mutant/);
 });
 
 test("only likely-equivalent survivors pass, and --strict fails them", () => {
@@ -58,15 +59,16 @@ test("only likely-equivalent survivors pass, and --strict fails them", () => {
   const r = arms(dir, "--run", KILLS, "main");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /Likely equivalent:[\s\S]*\| a\.mjs:2 \| `\?\?` → `\\\|\\\|` in `a \?\? \[\]` \| survived \|/);
-  assert.match(r.stdout, /mutants: 6 run, 5 killed, 0 survived, 1 likely equivalent \(2 arm rows in TS\/JS\)/);
+  assert.match(r.stdout, /mutants: 6 run, 5 killed, 0 survived, 1 likely equivalent, 0 do not parse; 0 of 2 arm rows have no operator mutant/);
   const strict = arms(dir, "main", "--run", KILLS, "--strict");
   assert.equal(strict.status, 1);
-  assert.match(strict.stdout, /mutants: 6 run, 5 killed, 1 survived \(2 arm rows/);
+  assert.match(strict.stdout, /mutants: 6 run, 5 killed, 1 survived, 0 do not parse; 0 of 2/);
 });
 
 test("a real survivor fails the run and shows in the main table", () => {
   const r = arms(repo(), "main", "--run", "true");
   assert.equal(r.status, 1);
+  assert.match(r.stdout, /^\| a\.mjs:1 \| fallback \|/m);
   assert.match(r.stdout, /\| a\.mjs:1 \| swap `a \\\|\\\| b` \| survived \|/);
   assert.match(r.stdout, /mutants: 6 run, 0 killed, 5 survived, 1 likely equivalent/);
 });
@@ -77,4 +79,15 @@ test("it refuses to mutate a file with uncommitted changes", () => {
   const r = arms(dir, "main", "--run", "true");
   assert.equal(r.status, 2);
   assert.match(r.stderr, /commit first/);
+});
+
+test("a command that fails on the clean tree stops the run before any mutant, and writes nothing", () => {
+  for (const cmd of ["false", "nosuchcmd-xyz", "exit 3"]) {
+    const dir = repo();
+    const r = arms(dir, "main", "--run", cmd);
+    assert.equal(r.status, 2, cmd);
+    assert.match(r.stderr, /fails on the clean tree/, cmd);
+    assert.doesNotMatch(r.stdout, /^mutants:/m, cmd);
+    assert.equal(execFileSync("git", ["status", "--porcelain"], { cwd: dir, encoding: "utf8" }), "", cmd);
+  }
 });

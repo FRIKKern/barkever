@@ -148,9 +148,12 @@ const restore = () => {
   live = null;
 };
 let child = null;
+const stop = () => {
+  if (child) try { process.kill(-child.pid, "SIGKILL"); } catch {}
+};
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
   process.on(sig, () => {
-    child?.kill("SIGTERM");
+    stop();
     restore();
     process.exit(130);
   });
@@ -159,16 +162,28 @@ process.on("exit", restore);
 const runOnce = (cmd, timeout) =>
   new Promise((resolve) => {
     let out = "";
-    child = spawn("sh", ["-c", cmd], { stdio: ["ignore", "pipe", "pipe"] });
+    child = spawn("sh", ["-c", cmd], { stdio: ["ignore", "pipe", "pipe"], detached: true });
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
-    const timer = setTimeout(() => child.kill("SIGKILL"), timeout);
-    child.on("close", (code, signal) => {
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      stop();
+    }, timeout);
+    child.on("close", (code) => {
       clearTimeout(timer);
       child = null;
-      resolve({ code, signal, out });
+      resolve({ code, timedOut, out });
     });
   });
+
+export async function baseline(cmd, { timeout = 600_000 } = {}) {
+  const { code, timedOut, out } = await runOnce(cmd, timeout);
+  return code === 0 && !timedOut ? null : out.trim().split("\n").slice(-20).join("\n") || (timedOut ? "timed out" : `exit ${code}`);
+}
+
+const verdict = (m, { code, timedOut, out }) =>
+  timedOut ? "killed (timeout)" : code === 0 ? (m.likely ? "survived, likely equivalent" : "survived") : /SyntaxError|TS1\d{3}/.test(out) && !killers(out).length ? "does not parse" : "killed";
 
 export async function mutate(rows, cmd, { timeout = 600_000 } = {}) {
   const results = [];
@@ -180,9 +195,9 @@ export async function mutate(rows, cmd, { timeout = 600_000 } = {}) {
       live = { path, original };
       try {
         writeFileSync(path, [...lines.slice(0, n - 1), m.line, ...lines.slice(n)].join("\n"));
-        const { code, signal, out } = await runOnce(cmd, timeout);
-        const why = code === 0 ? (m.likely ? "survived, likely equivalent" : "survived") : signal === "SIGKILL" ? "killed (timeout)" : /SyntaxError|TS1\d{3}/.test(out) && !killers(out).length ? "killed (does not parse)" : "killed";
-        results.push({ where, label: m.label, why, by: killers(out).slice(0, 2).join("; ") });
+        const run = await runOnce(cmd, timeout);
+        const why = verdict(m, run);
+        results.push({ where, label: m.label, why, by: killers(run.out).slice(0, 2).join("; ") });
         console.error(`${why.padEnd(24)} ${where} ${m.label}`);
       } finally {
         restore();

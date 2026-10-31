@@ -1,11 +1,11 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { killers, mutate, mutantsOf } from "./mutate.mjs";
+import { baseline, killers, mutate, mutantsOf } from "./mutate.mjs";
 
 const lines = (s) => mutantsOf(s).map((m) => m.line);
 
@@ -77,7 +77,7 @@ test("Ctrl-C mid-run stops the command and restores the file", async () => {
   const dir = mkdtempSync(join(tmpdir(), "mutate-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
-  const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 30'))`], { stdio: "ignore" });
+  const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 30.271'))`], { stdio: "ignore" });
   while (readFileSync(file, "utf8").includes("===")) await new Promise((r) => setTimeout(r, 20));
   runner.kill("SIGINT");
   const [code] = await once(runner, "exit");
@@ -119,4 +119,39 @@ test("killers keeps a name with a colon inside it, and drops a header ending in 
 test("a label still reads when the call is unclosed or the comparison has no left side", () => {
   assert.deepEqual(mutantsOf("k.startsWith(p").map((m) => m.label), ["`.startsWith(` → `.includes(` in `k.startsWith(p`"]);
   assert.deepEqual(mutantsOf("=== b").map((m) => m.label), ["`===` → `!==` in `=== b`"]);
+});
+
+test("a hung command times out on time, its children with it", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const file = join(dir, "f.mjs");
+  writeFileSync(file, "export const x = a === b\n");
+  const t0 = Date.now();
+  const [r] = await mutate([{ where: `${file}:1` }], "sleep 30; true", { timeout: 500 });
+  assert.equal(r.why, "killed (timeout)");
+  assert.ok(Date.now() - t0 < 5000, `${Date.now() - t0} ms`);
+});
+
+test("Ctrl-C leaves no test process behind", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const file = join(dir, "f.mjs");
+  writeFileSync(file, "export const x = a === b\n");
+  const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 31.4159; true'))`], { stdio: "ignore" });
+  while (spawnSync("pgrep", ["-f", "sleep 31.4159"]).status !== 0) await new Promise((r) => setTimeout(r, 20));
+  runner.kill("SIGINT");
+  await once(runner, "exit");
+  await new Promise((r) => setTimeout(r, 200));
+  assert.notEqual(spawnSync("pgrep", ["-f", "sleep 31.4159"]).status, 0);
+});
+
+test("a mutant the parser rejects is its own bucket, not killed", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const file = join(dir, "f.mjs");
+  writeFileSync(file, "export const x = a === b\n");
+  assert.deepEqual((await mutate([{ where: `${file}:1` }], "echo 'SyntaxError: Unexpected token'; exit 1")).map((r) => r.why), ["does not parse"]);
+});
+
+test("baseline is null on a green command and carries the last lines of a red one", async () => {
+  assert.equal(await baseline("true"), null);
+  assert.equal(await baseline("echo one; echo two; exit 1"), "one\ntwo");
+  assert.equal(await baseline("exit 4"), "exit 4");
 });

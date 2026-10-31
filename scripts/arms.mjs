@@ -34,28 +34,34 @@ for (const text of diff.split("\n")) {
   }
 }
 
-if (cmd) await runMutants();
-
 const rank = (r) => ["fallback", "guard"].indexOf(r.arm) >>> 0;
 console.log(`| where | arm | code | mutant | test that fails |\n|---|---|---|---|---|`);
 for (const r of rows.sort((a, b) => rank(a) - rank(b))) console.log(`| ${r.where} | ${r.arm} | \`${r.src.replaceAll("|", "\\|")}\` | | |`);
 const count = (arm) => rows.filter((r) => r.arm === arm).length;
 console.log(`\narms: ${rows.length} new (${count("fallback")} fallback, ${count("guard")} guard). Each row needs a mutant and the named test that kills it; a guard also needs boundary mutants (a neighbour value, off by one, a flipped sign); a fallback with no killing test gets cut.`);
 
+if (cmd) await runMutants();
+
 async function runMutants() {
-  const { mutate } = await import("./mutate.mjs");
+  const { baseline, mutate } = await import("./mutate.mjs");
   const top = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
   const targets = rows.filter((r) => /\.(tsx?|mjs|js)$/.test(r.where.split(":")[0])).map((r) => ({ where: resolve(top, r.where) }));
   const files = [...new Set(targets.map((t) => t.where.slice(0, t.where.lastIndexOf(":"))))];
   const dirty = files.length && execFileSync("git", ["status", "--porcelain", "--", ...files], { encoding: "utf8", cwd: top }).trim();
   if (dirty) { console.error(`arms --run: commit first, these files have changes:\n${dirty}`); process.exit(2); }
+  const red = await baseline(cmd);
+  if (red) { console.error(`arms --run: the command fails on the clean tree, so no mutant can be judged:\n${red}`); process.exit(2); }
   const results = await mutate(targets, cmd);
   const short = (w) => w.slice(top.length + 1);
-  const table = (rs) => rs.map((r) => `| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | ${r.why} | ${r.by.replaceAll("|", "\\|")} |`).join("\n");
-  const likely = results.filter((r) => r.why === "survived, likely equivalent");
-  const survived = results.filter((r) => r.why === "survived" || (strict && likely.includes(r)));
-  console.log(`| where | mutant | result | killed by |\n|---|---|---|---|\n${table(results.filter((r) => !likely.includes(r)))}`);
-  if (likely.length) console.log(`\nLikely equivalent: \`?? []\` or \`?? {}\` → \`||\` differs only when the value is '', 0 or false. ${strict ? "Counted (--strict)." : "Not counted; --strict counts them."}\n\n| where | mutant | result |\n|---|---|---|\n${likely.map((r) => `| ${short(r.where)} | ${r.label.replaceAll("|", "\\|")} | survived |`).join("\n")}`);
-  console.log(`\nmutants: ${results.length} run, ${results.length - survived.length - (strict ? 0 : likely.length)} killed, ${survived.length} survived${strict ? "" : `, ${likely.length} likely equivalent`} (${targets.length} arm rows in TS/JS)`);
+  const pipe = (t) => t.replaceAll("|", "\\|");
+  const is = (why) => results.filter((r) => r.why === why || (why === "killed" && r.why.startsWith("killed")));
+  const likely = is("survived, likely equivalent");
+  const survived = [...is("survived"), ...(strict ? likely : [])];
+  const unparsed = is("does not parse");
+  const bare = rows.filter((r) => !results.some((x) => short(x.where) === r.where));
+  console.log(`\n| where | mutant | result | killed by |\n|---|---|---|---|\n${results.filter((r) => !likely.includes(r)).map((r) => `| ${short(r.where)} | ${pipe(r.label)} | ${r.why} | ${pipe(r.by)} |`).join("\n")}`);
+  if (likely.length) console.log(`\nLikely equivalent: \`?? []\` or \`?? {}\` → \`||\` differs only when the value is '', 0 or false. ${strict ? "Counted (--strict)." : "Not counted; --strict counts them."}\n\n| where | mutant | result |\n|---|---|---|\n${likely.map((r) => `| ${short(r.where)} | ${pipe(r.label)} | survived |`).join("\n")}`);
+  if (bare.length) console.log(`\nNo operator mutant: each of these needs a hand mutant.\n\n${bare.map((r) => `- ${r.where} (${r.arm}) \`${pipe(r.src)}\``).join("\n")}`);
+  console.log(`\nmutants: ${results.length} run, ${is("killed").length} killed, ${survived.length} survived${strict ? "" : `, ${likely.length} likely equivalent`}, ${unparsed.length} do not parse; ${bare.length} of ${rows.length} arm rows have no operator mutant`);
   process.exit(survived.length ? 1 : 0);
 }
