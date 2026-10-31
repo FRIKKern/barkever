@@ -145,12 +145,16 @@ test('Barkpark answers while the editor is still loading: when that load fails, 
   await editableWith(page, LIGHTHOUSE)
 })
 
+const noMoreWelcomes = (page: Page) =>
+  page.route('**/api/listen**', (route) => route.fulfill({status: 200, contentType: 'text/event-stream', body: ': no welcome\n\n'}))
+
 async function loadFailsAfterTheAnswer(page: Page, times: number) {
   const files = failEditorFiles(page, times)
   await files.routed
   await page.goto('/?n=fx-note-02')
   await files.asked
   await firstAnswer(page)
+  await noMoreWelcomes(page)
   await row(page, 'Lighthouse app: brief').click()
   await expect(page.getByTestId('title')).toHaveValue('Lighthouse app: brief')
   const answers = await page.evaluate(() => (window as unknown as Seen).answers())
@@ -182,7 +186,7 @@ test('the stream reconnects but Barkpark never says welcome: the note still turn
   await expect(page.getByTestId('body')).toContainText(CANT_REACH)
   await firstAnswer(page)
   const answers = await page.evaluate(() => (window as unknown as Seen).answers())
-  await page.route('**/api/listen**', (route) => route.fulfill({status: 200, contentType: 'text/event-stream', body: ': no welcome\n\n'}))
+  await noMoreWelcomes(page)
   const reconnect = page.waitForRequest('**/api/listen**')
   await context.setOffline(true)
   await context.setOffline(false)
@@ -192,7 +196,7 @@ test('the stream reconnects but Barkpark never says welcome: the note still turn
   expect(await page.evaluate(() => (window as unknown as Seen).answers())).toBe(answers)
 })
 
-test('while the editor can’t load it asks again after 2 s; an answer asks at once and the next try waits 8 s', async ({page}) => {
+test('while the editor can’t load it asks again after 2 s; an answer asks at once and the next try waits 8 s, even when the stream drops', async ({page, context}) => {
   const {failed} = await loadFailsAfterTheAnswer(page, 99)
   await expect.poll(() => failed.length, {timeout: 10_000}).toBe(2)
   expect(failed[1] - failed[0]).toBeGreaterThanOrEqual(1900)
@@ -202,6 +206,8 @@ test('while the editor can’t load it asks again after 2 s; an answer asks at o
   await barkparkAnswers(page)
   await expect.poll(() => failed.length, {timeout: 3000}).toBe(3)
   expect(failed[2] - answered).toBeLessThan(1500)
+  await context.setOffline(true)
+  await context.setOffline(false)
   await page.waitForTimeout(5000)
   expect(failed).toHaveLength(3)
 })
