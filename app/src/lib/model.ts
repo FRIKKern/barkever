@@ -14,7 +14,12 @@ export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (
 
 export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : contentOf(it))
 
-export const nestedOf = (it: Item): Block[] => (it as {children?: Block[]}).children ?? []
+const LISTS = ['list', 'bulletList', 'bullet_list', 'bulleted-list', 'bulleted_list', 'ordered-list', 'numbered_list']
+const NUMBERED = ['ordered-list', 'numbered_list']
+
+const asList = (b: Block): Block => (b.type !== 'list' && LISTS.includes(b.type) && Array.isArray(b.items) ? {...b, type: 'list', ordered: b.ordered === true || NUMBERED.includes(b.type)} : b)
+
+export const nestedOf = (it: Item): Block[] => ((it as {children?: Block[]}).children ?? []).map(asList)
 
 export const leafText = (x: Inline): string | undefined => x.value || x.text
 
@@ -75,7 +80,7 @@ export function hitLine(n: Note, words: string[], title: Title): string | undefi
   return b && shownText(b, title)
 }
 
-const EMPTYABLE = new Set(['paragraph', 'heading', 'list', 'blockquote', 'text', 'strong', 'em', 'underline', 'strikethrough', 'code'])
+const EMPTYABLE = new Set(['paragraph', 'heading', 'blockquote', 'text', 'strong', 'em', 'underline', 'strikethrough', 'code', ...LISTS])
 const NAMES = new Set(['id', 'type', '_key', '_type'])
 const FLAGS = new Set(['level', 'task', 'ordered', 'checked'])
 

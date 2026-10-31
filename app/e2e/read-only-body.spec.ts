@@ -31,3 +31,23 @@ test('the read-only body draws each shape: h2 and h3, done and open lines of eve
   await expect(body.locator('ul.tasks > li:not(.done) .li-t')).toHaveText(['Open line', 'String line', 'Array line'])
   expect(errors).toEqual([])
 })
+
+test('the read-only body draws a nested list in every spelling the canvas reads: numbered_list and ordered-list as numbered, bulletList as bullets', async ({page}) => {
+  const id = `note-read-only-lists-${Date.now()}`
+  created.push(id)
+  const nested = (cid: string, type: string, words: string) => ({id: cid, type, items: [[text(words)]]})
+  const blocks = [
+    {id: 'l', type: 'list', items: [{content: [text('Pier')], children: [nested('n', 'numbered_list', 'Numbered rope'), nested('o', 'ordered-list', 'Ordered rope'), nested('b', 'bulletList', 'Bullet rope')]}]},
+  ]
+  const doc = {_id: id, _type: 'note', title: 'Read-only list spellings', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: doc}]})})
+  expect(res.status).toBe(200)
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.addInitScript(oldEditor)
+  await page.goto(`/?n=${id}`)
+  const pier = page.getByTestId('body').locator('li', {hasText: 'Pier'})
+  await expect(pier.locator(':scope > ol > li')).toHaveText(['Numbered rope', 'Ordered rope'], {timeout: 30_000})
+  await expect(pier.locator(':scope > ul > li')).toHaveText(['Bullet rope'])
+  expect(errors).toEqual([])
+})
