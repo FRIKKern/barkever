@@ -2,6 +2,7 @@ import {expect, test, type Locator, type Page} from '@playwright/test'
 import {lineKey, lineOf, type Spot} from '../src/lib/board'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {serverNote} from './devices'
+import {focusSettled, lineAtCaret} from './caret'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
 
@@ -310,7 +311,10 @@ test('J06 nested only: an untitled note whose only words sit in a nested checkli
   await page.keyboard.press('Enter')
   await page.keyboard.press('Tab')
   await page.keyboard.type(NESTED)
+  await expect.poll(() => lineAtCaret(page)).toBe(NESTED)
   await page.keyboard.press('ArrowUp')
+  await expect.poll(() => lineAtCaret(page), 'the caret moved up to the parent line').toBe('x')
+  await focusSettled(page)
   await page.keyboard.press('End')
   await page.keyboard.press('Backspace')
   await expect(page.getByTestId('canvas').locator('[data-type="taskList"] li p')).toHaveText(['', NESTED])
