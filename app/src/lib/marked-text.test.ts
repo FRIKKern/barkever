@@ -26,6 +26,12 @@ test('every mark reads as its words: bold, italic, nested, code, underline, stri
   assert.equal(blockText(list), 'Bold item · Italic item')
 })
 
+test('a node reads its own words, and its marked words only when its own are empty', () => {
+  const own = {type: 'text', value: 'Knot', children: [text('ignored')]}
+  const emptied = {type: 'strong', text: '', children: [text('Rope ')]}
+  assert.equal(blockText({id: 'p', type: 'paragraph', content: [emptied, own]}), 'Rope Knot')
+})
+
 test('the list line, the search hit line, the backlink line and the link card read marked words', () => {
   assert.equal(snippet(shed, title), LINE)
   assert.equal(hitLine(shed, ['chain'], title), LINE)
