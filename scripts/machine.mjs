@@ -35,6 +35,12 @@ export function machine() {
   const strays = procs
     .filter((p) => p.ppid === 1 && p.cpu > 20 && days(p.etime) >= 1 && /\/(var\/folders|tmp|dev-caches)\//.test(p.cmd))
     .map((p) => `${p.pid} ${p.cpu}% ${p.etime} ${p.cmd.slice(0, 120)}`);
+  const parent = new Map(procs.map((p) => [p.pid, p.ppid]));
+  const slotPids = new Set(existsSync(HEAVY_DIR) ? run("sh", ["-c", `cat ${HEAVY_DIR}/slot-* 2>/dev/null`]).split("\n").map((l) => +l.split(" ")[0]).filter(Boolean) : []);
+  const inHeavy = (pid) => { for (let p = pid; p > 1; p = parent.get(p) ?? 1) if (slotPids.has(p)) return true; return false; };
+  const burners = procs
+    .filter((p) => /^(\S*\/)?yes$/.test(p.cmd) && !inHeavy(p.pid))
+    .map((p) => `${p.pid} ${p.cpu}% ${p.etime} parent ${p.ppid}`);
   const runs = existsSync(`${HEAVY_DIR}/runs.jsonl`)
     ? readFileSync(`${HEAVY_DIR}/runs.jsonl`, "utf8").trim().split("\n").filter(Boolean).slice(-50).map((l) => JSON.parse(l))
     : [];
@@ -44,7 +50,7 @@ export function machine() {
   return {
     cores, memGb: Math.round(totalmem() / 2 ** 30), load1, load5, load15, loadPerCore,
     swapUsedPct, memFreePct: freePct, diskFreeGb: disk ? Math.round(+disk[3] / 1048576) : null,
-    byKind, strays, heavyRuns: runs, computeBound: bound,
+    byKind, strays, burners, heavyRuns: runs, computeBound: bound,
   };
 }
 
