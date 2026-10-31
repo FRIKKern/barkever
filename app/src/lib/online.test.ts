@@ -10,6 +10,11 @@ function quiet(name: string) {
   opened.push(tab)
   return tab
 }
+const loose = (name: string) => {
+  const tab = new Tab(name)
+  setTimeout(() => tab.close(), 4000).unref()
+  return tab
+}
 Object.assign(globalThis, {dispatchEvent: page.dispatchEvent.bind(page), BroadcastChannel: quiet})
 const {ANSWERED, answersHeard, reached} = await import('./online.ts')
 
@@ -30,7 +35,7 @@ test('a failure is no answer', () => {
 })
 
 test('Barkpark answering the tab that syncs counts here, fires once, and tells the other tabs', {timeout: 5000}, async () => {
-  const other = new Tab('barkever-reach')
+  const other = loose('barkever-reach')
   const told = nextMessage(other)
   const count = fired()
   const before = answersHeard()
@@ -42,7 +47,7 @@ test('Barkpark answering the tab that syncs counts here, fires once, and tells t
 })
 
 test('an answer another tab heard counts here', {timeout: 5000}, async () => {
-  const other = new Tab('barkever-reach')
+  const other = loose('barkever-reach')
   const count = fired()
   const before = answersHeard()
   const heard = new Promise((done) => page.addEventListener(ANSWERED, done, {once: true}))
@@ -61,7 +66,7 @@ test('one channel to the other tabs, however often it is asked', () => {
 })
 
 test('a message on the channel that is not true or false is no answer', {timeout: 5000}, async () => {
-  const other = new Tab('barkever-reach')
+  const other = loose('barkever-reach')
   const count = fired()
   const before = answersHeard()
   const heard = new Promise((done) => page.addEventListener(ANSWERED, done, {once: true}))
