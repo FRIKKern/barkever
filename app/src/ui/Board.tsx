@@ -1,6 +1,7 @@
 import {forwardRef, useImperativeHandle, useRef} from 'react'
 import {Link} from '@tanstack/react-router'
 import {summary} from '../lib/board'
+import {tick} from '../replica/local'
 import {Icon} from './icons'
 import type {World} from './world'
 
@@ -42,13 +43,17 @@ export const Board = forwardRef<BoardHandle, Props>(function Board({w, onMenu}, 
                     {card.title}
                   </Link>
                   {card.tasks.map((t, i) => (
-                    <Link key={i} className={`tk${t.done ? ' done' : ''}${t.depth ? ' sub' : ''}`} to="/" search={{n: card.note, line: t.line}} title="Open at this line" data-testid="task">
-                      <span className="cb" role="img" aria-label={t.done ? 'done' : 'to do'} />
-                      <span className="tt">{t.text}</span>
-                      <span className="go" aria-hidden>
-                        ↗ line
-                      </span>
-                    </Link>
+                    <div key={i} className={`tk${t.done ? ' done' : ''}${t.depth ? ' sub' : ''}`}>
+                      <button type="button" className="cb" role="checkbox" aria-checked={t.done} aria-label={t.text} onClick={() => void tick(card.note, t.box)}>
+                        <i />
+                      </button>
+                      <Link className="tl" to="/" search={{n: card.note, line: t.line}} title="Open at this line" data-testid="task">
+                        <span className="tt">{t.text}</span>
+                        <span className="go" aria-hidden>
+                          ↗ line
+                        </span>
+                      </Link>
+                    </div>
                   ))}
                 </div>
               ))}

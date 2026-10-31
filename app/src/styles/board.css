@@ -10,11 +10,14 @@
 .card-t { display: block; font-size: var(--fs-m); font-weight: var(--fw-bold); margin-bottom: var(--sp-1); }
 .card-t:hover { color: var(--c-accent); }
 .tk { position: relative; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-m); padding: 3px 0; color: var(--c-text); }
+.tk .tl { flex: 1; min-width: 0; display: flex; align-items: center; color: inherit; }
 .tk.sub { padding-left: var(--sp-5); }
-.tk .cb { flex: none; display: grid; place-items: center; width: var(--icon); height: var(--icon); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
-.tk.done .cb { background: var(--c-accent); border-color: var(--c-accent); }
-.tk.done .cb::after { content: ""; width: var(--dot); height: var(--sp-1); border: var(--sp-hair) solid var(--c-on-accent); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+.tk .cb { flex: none; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.tk .cb i { display: grid; place-items: center; width: var(--icon); height: var(--icon); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
+.tk .cb:hover i { border-color: var(--c-accent); }
+.tk.done .cb i { background: var(--c-accent); border-color: var(--c-accent); }
+.tk.done .cb i::after { content: ""; width: var(--dot); height: var(--sp-1); border: var(--sp-hair) solid var(--c-on-accent); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
 .tk .tt { min-width: 0; }
 .tk.done .tt { color: var(--c-muted); text-decoration: line-through; }
 .tk .go { position: absolute; right: 0; opacity: 0; color: var(--c-muted); font-size: var(--fs-s); padding: 0 var(--sp-1); border-radius: var(--r-s); background: var(--c-surface); }
-.tk:hover .go, .tk:focus-visible .go { opacity: 1; color: var(--c-accent); }
+.tk .tl:hover .go, .tk .tl:focus-visible .go { opacity: 1; color: var(--c-accent); }

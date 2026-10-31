@@ -1,12 +1,13 @@
 import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db'
 import {toRow, type NoteDoc} from './note'
-import {move, tagsTo} from './organize'
+import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
 import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
 import {emptyParagraph, type Block} from '../lib/model'
+import type {Spot} from '../lib/board'
 
 const now = () => new Date().toISOString()
 
@@ -59,6 +60,8 @@ export const editTitle = (id: string, shown: string, title: string) => journaled
 export const moveNote = (id: string, from: string | null, to: string) => edit(id, (n, server) => typed(n, server, ...move(n, from, to)))
 
 export const retag = (id: string, shown: string[], tags: string[]) => edit(id, (n, server) => typed(n, server, ...tagsTo(shown, tags)))
+
+export const tick = (id: string, box: Spot) => edit(id, (n, server) => typed(n, server, ...tickAt(n, box)))
 
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 

@@ -2,7 +2,7 @@ import {inlineText, itemContent, itemText, nestedOf, UNTITLED, type Block, type 
 import type {Shelf} from './notebooks.ts'
 import {newest} from './search.ts'
 
-export type Task = {line: string; text: string; done: boolean; depth: number}
+export type Task = {line: string; box: Spot; text: string; done: boolean; depth: number}
 export type Card = {note: string; title: string; block: string; tasks: Task[]}
 export type Column = {notebook: string | null; name: string; cards: Card[]; open: number; done: number}
 export type Board = {columns: Column[]; open: number; done: number; lists: number}
@@ -41,13 +41,21 @@ export function findLine(blocks: Block[], line?: string): Spot | 'gone' | undefi
 
 const done = (it: Item) => typeof it === 'object' && !Array.isArray(it) && it.checked === true
 
-function tasksIn(items: Item[], line: (i: number) => string, depth: number, title: Title): Task[] {
-  return items.flatMap((it, i) => {
+function tasksIn(list: Block, line: (i: number) => string, depth: number, title: Title): Task[] {
+  return (list.items ?? []).flatMap((it, i) => {
     const text = itemText(it, title).trim()
-    const own = text ? [{line: line(i), text, done: done(it), depth}] : []
-    const nested = nestedOf(it).filter(isChecklist).flatMap((b) => tasksIn(b.items ?? [], () => line(i), depth + 1, title))
+    const own = text ? [{line: line(i), box: {block: list.id, item: i}, text, done: done(it), depth}] : []
+    const nested = nestedOf(it).filter(isChecklist).flatMap((b) => tasksIn(b, () => line(i), depth + 1, title))
     return [...own, ...nested]
   })
+}
+
+const flip = (it: Item): Item => (typeof it === 'object' && !Array.isArray(it) ? {...it, checked: !done(it)} : {content: itemContent(it), checked: true})
+
+const tickUnder = (it: Item, box: Spot): Item => (typeof it === 'object' && !Array.isArray(it) && it.children ? {...it, children: ticked(it.children, box)} : it)
+
+export function ticked(blocks: Block[], box: Spot): Block[] {
+  return blocks.map((b) => (b.type === 'list' && b.items ? {...b, items: b.items.map((it, i) => tickUnder(b.id === box.block && i === box.item ? flip(it) : it, box))} : b))
 }
 
 function keysOf(block: string, items: Item[]): string[] {
@@ -60,7 +68,7 @@ function cardsOf(n: Note, title: Title): Card[] {
     .filter(isChecklist)
     .map((b) => {
       const keys = keysOf(b.id, b.items ?? [])
-      return {note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b.items ?? [], (i) => keys[i], 0, title)}
+      return {note: n.id, title: n.title || UNTITLED, block: b.id, tasks: tasksIn(b, (i) => keys[i], 0, title)}
     })
     .filter((c) => c.tasks.length)
 }

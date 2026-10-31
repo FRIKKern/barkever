@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {board, findLine, lineKey, lineOf, summary, textSum} from './board.ts'
+import {board, findLine, lineKey, lineOf, summary, textSum, ticked} from './board.ts'
 import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
 import {indexLinks} from './links.ts'
 import {blockText, type Block, type Inline, type Item, type Note, type Notebook} from './model.ts'
@@ -201,4 +201,39 @@ test('a plain-text checklist line is searchable and has body text', () => {
   const n = note('n', [checklist('c', [{text: 'Renew the passport'}])], {title: 'Trip'})
   assert.equal(blockText(n.blocks[0]), 'Renew the passport')
   assert.deepEqual(find([n], 'passport').notes.map((x) => x.id), ['n'])
+})
+
+test('each row ticks its own line: the box flips that item and nothing else, top level or nested, and a second tick puts it back', () => {
+  const inner = checklist('inner', [{text: 'deep'}, {text: 'deeper', checked: true}])
+  const blocks: Block[] = [
+    {id: 'p', type: 'paragraph', content: text('intro')},
+    checklist('c', [{text: 'one', checked: true}, {content: text('two'), children: [inner]}, {text: 'three'}]),
+    checklist('d', [{text: 'four'}]),
+    {id: 'l', type: 'list', items: [text('bullet')]},
+  ]
+  const tasks = board([note('n', blocks)], shelve([nb('a')]), () => undefined).columns[0].cards.flatMap((c) => c.tasks)
+  assert.deepEqual(tasks.map((t) => [t.text, t.box]), [['one', {block: 'c', item: 0}], ['two', {block: 'c', item: 1}], ['deep', {block: 'inner', item: 0}], ['deeper', {block: 'inner', item: 1}], ['three', {block: 'c', item: 2}], ['four', {block: 'd', item: 0}]])
+  for (const t of tasks) {
+    const after = board([note('n', ticked(blocks, t.box))], shelve([nb('a')]), () => undefined).columns[0].cards.flatMap((c) => c.tasks)
+    assert.deepEqual(after.map((x) => x.done), tasks.map((x) => (x === t ? !x.done : x.done)), t.text)
+    assert.deepEqual(after.map((x) => x.line), tasks.map((x) => x.line), t.text)
+    assert.deepEqual(ticked(ticked(blocks, t.box), t.box).map((b) => JSON.stringify(b).replaceAll(',"checked":false', '')), blocks.map((b) => JSON.stringify(b)), t.text)
+  }
+  const once = ticked(blocks, {block: 'inner', item: 0})
+  assert.deepEqual([once[0], once[2], once[3]], [blocks[0], blocks[2], blocks[3]])
+  assert.deepEqual(ticked(blocks, {block: 'nowhere', item: 0}), blocks)
+  assert.deepEqual(ticked(blocks, {block: 'c', item: 9}), blocks)
+})
+
+test('ticking an inline-array or bare-string line stores it as content with checked, same words and same key', () => {
+  const blocks = [checklist('c', [[...text('array')], 'bare'])]
+  assert.deepEqual(ticked(blocks, {block: 'c', item: 0})[0].items, [{content: text('array'), checked: true}, 'bare'])
+  assert.deepEqual(ticked(blocks, {block: 'c', item: 1})[0].items, [[...text('array')], {content: text('bare'), checked: true}])
+  const keys = (bs: Block[]) => board([note('n', bs)], shelve([nb('a')]), () => undefined).columns[0].cards[0].tasks.map((t) => t.line)
+  assert.deepEqual(keys(ticked(ticked(blocks, {block: 'c', item: 0}), {block: 'c', item: 1})), keys(blocks))
+})
+
+test('a list block with no items is left as it is', () => {
+  const bare: Block = {id: 'c', type: 'list', task: true}
+  assert.equal(ticked([bare], {block: 'c', item: 0})[0], bare)
 })

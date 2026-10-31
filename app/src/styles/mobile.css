@@ -28,4 +28,5 @@
   .cols { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; }
   .tk { padding: var(--sp-1) 0; }
   .tk .go { display: none; }
+  .tk .cb { width: var(--h-tap); height: var(--h-tap); margin: 0 calc((var(--icon) - var(--h-tap)) / 2); }
 }
