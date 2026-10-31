@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { HEAVY_DIR } from "./machine.mjs";
 
 const slots = process.env.HEAVY_SLOTS ?? "3";
@@ -16,35 +16,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const owner = process.env.HEAVY_OWNER ?? execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const slotPath = (i) => `${HEAVY_DIR}/slot-${i}`;
 
-function holder(slot) {
+function holder(slot, i) {
   try {
     const [pid, ...rest] = readFileSync(slot, "utf8").split(" ");
-    return { pid: Number(pid), owner: rest.join(" ") };
+    return { pid: Number(pid), owner: rest.join(" "), at: statSync(slot, { bigint: true }).birthtimeNs, i };
   } catch { return null; }
 }
 
 const command = (pid) => { try { return execFileSync("ps", ["-ww", "-o", "command=", "-p", String(pid)], { encoding: "utf8" }).trim(); } catch { return ""; } };
 
-function crowded() {
-  const live = Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i))).filter((h) => h && h.pid !== process.pid && alive(h.pid));
+const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i), i)).filter((h) => h && h.pid !== process.pid && alive(h.pid));
+const before = (me) => (h) => h.at < me.at || (h.at === me.at && h.i < me.i);
+
+function crowded(live) {
   if (live.some((h) => h.owner === owner)) return true;
   const landers = live.filter((h) => PREPUSH.test(command(h.pid))).length;
   return !lander && landers > 0 && live.length - landers >= 1;
 }
 
 function take() {
+  if (crowded(held())) return null;
   for (let i = 0; i < SLOTS; i++) {
     const slot = slotPath(i);
-    try {
-      writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" });
-      if (!crowded()) return slot;
-      unlinkSync(slot);
-      return null;
-    }
+    try { writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" }); }
     catch {
       const h = holder(slot);
       if (h && !alive(h.pid)) { try { unlinkSync(slot); } catch {} i -= 1; }
+      continue;
     }
+    const me = holder(slot, i);
+    if (me && !crowded(held().filter(before(me)))) return slot;
+    try { unlinkSync(slot); } catch {}
+    return null;
   }
   return null;
 }
@@ -53,7 +56,7 @@ mkdirSync(HEAVY_DIR, { recursive: true });
 const asked = Date.now();
 let slot = take();
 if (!slot) console.error(`heavy: waiting (one slot per worktree, ${SLOTS} in all)`);
-while (!slot) { await sleep(2000 + Math.random() * 500); slot = take(); }
+while (!slot) { await sleep(2000); slot = take(); }
 const started = Date.now();
 const release = () => { if (holder(slot)?.pid === process.pid) try { unlinkSync(slot); } catch {} };
 

@@ -38,7 +38,7 @@ async function within(ms, ok) {
   for (const end = Date.now() + ms; Date.now() < end; await sleep(100)) if (ok()) return true;
   return ok();
 }
-const POLL = 2500;
+const POLL = 2000;
 const started = (dir, ...ps) => within(5000, () => ps.every((p) => holds(dir, p)));
 const waits = async (dir, p) => { await sleep(POLL + 1000); return !holds(dir, p); };
 
@@ -66,6 +66,15 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const pair = [run(dir, "a", "job"), run(dir, "b", "job")];
     await sleep(2 * POLL + 1000);
     assert.equal(pair.filter((p) => holds(dir, p)).length, 1);
+  });
+
+  test("four runs asking at the same moment beside a prepush: exactly one starts, on its first try", async () => {
+    const dir = slots();
+    assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
+    const racers = ["a", "b", "c", "d"].map((o) => run(dir, o, "job"));
+    assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), "one starts before the first poll");
+    await sleep(POLL + 1000);
+    assert.equal(racers.filter((p) => holds(dir, p)).length, 1);
   });
 
   test("a waiting run starts when the prepush ends", async () => {
