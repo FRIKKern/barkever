@@ -254,7 +254,7 @@ test('codex signs in through a link to the owner login in CODEX_HOME, else in ~/
   await assert.rejects(ask(carousel, {...only, env: env(fake, {HOME: bare})}), /^Error: codex: fake codex: not signed in$/)
 })
 
-test('with the AI switch off the bridge refuses every ask before any binary runs, other origins cannot flip it, and it survives a restart', async () => {
+test('with the AI switch off the bridge refuses every ask before any binary runs, other origins and anything but true cannot flip it on, and it survives a restart', async () => {
   const fake = fakeBin()
   const file = join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json')
   const origin = 'http://127.0.0.1:4100'
@@ -265,6 +265,10 @@ test('with the AI switch off the bridge refuses every ask before any binary runs
   assert.deepEqual(await handle(from(`${origin}/`), carousel), {error: AI_OFF})
   flip(from('http://127.0.0.1:4101/'), true)
   assert.deepEqual(await askHandler(origin, aiSwitch(file), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))(from(`${origin}/`), carousel), {error: AI_OFF})
+  for (const junk of ['false', 'true', 1, {}]) {
+    flip(from(`${origin}/`), junk)
+    assert.deepEqual(await handle(from(`${origin}/`), carousel), {error: AI_OFF})
+  }
   assert.equal(fake.calls().length, 0)
   flip(from(`${origin}/`), true)
   assert.equal(((await handle(from(`${origin}/`), carousel)) as {provider: string}).provider, 'claude')
