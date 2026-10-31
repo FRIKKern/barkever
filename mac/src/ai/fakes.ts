@@ -38,7 +38,26 @@ export function ownerHome() {
   return home
 }
 
+const UNIT = !!process.env.NODE_TEST_CONTEXT
+
 const running = (pid: number, dir: string) => spawnSync('ps', ['-o', 'command=', '-p', String(pid)], {encoding: 'utf8'}).stdout.includes(dir)
+
+const kill = (pid: number) => {
+  try {
+    process.kill(pid, 'SIGKILL')
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'ESRCH') throw e
+  }
+}
+
+const pidsIn = (dir: string) => (existsSync(join(dir, 'pids')) ? readFileSync(join(dir, 'pids'), 'utf8').split('\n').filter(Boolean).map(Number) : [])
+
+const reap = (dir: string) => pidsIn(dir).filter((pid) => running(pid, dir)).forEach(kill)
+
+if (UNIT) {
+  const parent = process.ppid
+  setInterval(() => process.ppid !== parent && process.exit(1), 200).unref()
+}
 
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'barkever-fake-bin-'))
@@ -50,6 +69,6 @@ export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> 
   const calls = (): FakeCall[] => read('calls.jsonl').map((l) => JSON.parse(l))
   const termed = () => read('sigterm').map(Number)
   const trapped = (): Record<string, number> => Object.fromEntries(read('trapped').map((l) => l.split(' ')).map(([cli, pid]) => [cli, Number(pid)]))
-  after(() => read('pids').map(Number).filter((pid) => running(pid, dir)).forEach((pid) => process.kill(pid, 'SIGKILL')))
+  if (UNIT) after(() => reap(dir))
   return {dir, home: ownerHome(), behave, calls, termed, trapped}
 }
