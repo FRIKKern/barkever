@@ -1,7 +1,7 @@
 import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -77,6 +77,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), "one starts before the first poll");
     await sleep(POLL + 1000);
     assert.equal(racers.filter((p) => holds(dir, p)).length, 1);
+    assert.equal(readdirSync(dir).filter((f) => f.startsWith("slot-")).length, 2, "the losers left no slot files");
   });
 
   test("twenty rounds of four runs asking at once beside a prepush: in every round one starts on its first try", async () => {
@@ -90,6 +91,18 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
       assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), `round ${round}: nobody started before the first poll`);
       racers.forEach((p) => stop(p));
     }
+  });
+
+  test("a run whose worktree already holds a slot never writes a slot file while it waits", async () => {
+    const dir = slots();
+    assert.ok(await started(dir, run(dir, "tree", "job")));
+    const writes = [];
+    const watcher = watch(dir, (_, name) => name?.startsWith("slot-") && writes.push(name));
+    const twin = runWith({ HEAVY_TEST_MARK: join(dir, "ran-twin") }, bin, dir, "tree", "job");
+    await sleep(POLL + 1000);
+    watcher.close();
+    assert.ok(!existsSync(join(dir, "ran-twin")), "the twin waits");
+    assert.deepEqual(writes, []);
   });
 
   test("a waiting run starts when the prepush ends", async () => {
