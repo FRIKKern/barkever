@@ -2,7 +2,7 @@ import {expect, test, type BrowserContext, type Page} from '@playwright/test'
 import {ACCOUNT, cli, sessionToken} from './account'
 import {prefIds as ids} from './fixtures-cleanup'
 import {capture, servedFiles, serverSecrets} from './leaks'
-import {exactLeaks, leaks} from './needles'
+import {exactLeaks, leaks, masked} from './needles'
 
 const session = async (context: BrowserContext) => (await context.cookies()).find((c) => c.name === 'bk_session')
 
@@ -45,9 +45,9 @@ test.describe('signed out', () => {
     expect(pageCookie.includes('bk_session')).toBe(false)
     const served = await servedFiles(page)
     expect(served.built).toBeGreaterThan(0)
-    expect(served.files.filter(({want, status, type}) => !want || status !== 200 || !type.includes(want)).map(({p, status, type, want}) => `${p} ${status} ${type} (want ${want})`)).toEqual([])
+    expect(served.files.filter(({want, status, type}) => !want || status !== 200 || !type.includes(want)).map(({p, status, type, want}) => masked(needles, `${p} ${status} ${type} (want ${want})`))).toEqual([])
     const {seen, unreadable, streams} = await received()
-    expect(unreadable).toEqual([])
+    expect(unreadable.map((u) => masked(needles, u))).toEqual([])
     const scan = (where: string, text: string) => leaks(needles, where, text, [cookie!.value])
     const hits = [
       ...exactLeaks(needles, 'cookie value', cookie!.value),

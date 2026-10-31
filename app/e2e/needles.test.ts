@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {randomBytes} from 'node:crypto'
 import {seal} from '../src/server/seal.ts'
-import {leaks, secretNames, secretNeedles} from './needles.ts'
+import {leaks, masked, secretNames, secretNeedles} from './needles.ts'
 
 const FAKE_TOKEN = `bppat_${'A'.repeat(43)}`
 const SHAPED_COOKIE =
@@ -41,4 +41,13 @@ test('10 000 sealed session cookies: the shape scan never hits the cookie the se
   const raw = cookies.filter((c) => leaks([], 'h', setCookie(c)).length).length
   t.diagnostic(`${raw} of 10000 cookies match the bp token shape on their own`)
   assert.deepEqual(cookies.filter((c) => leaks([], 'h', setCookie(c), [c]).length), [])
+})
+
+test('a needle or a bp token shape in a label is masked, so a failure never prints it', () => {
+  const needles = [{name: 'A_SECRET', value: 'synthetic-secret-for-the-mask-0001'}]
+  const path = `200 /assets/synthetic-secret-for-the-mask-0001/${FAKE_TOKEN}.js`
+  const at = '200 /assets/<A_SECRET #73869e2c>/<bp token shape>.js'
+  const labels = [...leaks(needles, path, `synthetic-secret-for-the-mask-0001 ${FAKE_TOKEN}`), masked(needles, `${path}: socket hang up at ${path}`)]
+  assert.deepEqual(labels, [`${at}: A_SECRET`, `${at}: a bp token shape`, `${at}: socket hang up at ${at}`])
+  assert.equal(masked([{name: 'bp CLI token', value: FAKE_TOKEN}], `GET /x/${FAKE_TOKEN}`), 'GET /x/<bp CLI token #c0439f2c>')
 })
