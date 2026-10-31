@@ -212,6 +212,18 @@ test('while the editor can’t load it asks again after 2 s; an answer asks at o
   expect(failed).toHaveLength(3)
 })
 
+test('two answers back to back while the editor waits: one try each, and one retry armed after', async ({page}) => {
+  const {failed} = await loadFailsAfterTheAnswer(page, 99)
+  await expect.poll(() => failed.length, {timeout: 10_000}).toBe(2)
+  await expect.poll(() => armed(page)).toBe(1)
+  await barkparkAnswers(page)
+  await barkparkAnswers(page)
+  await expect.poll(() => failed.length, {timeout: 3000}).toBe(4)
+  await page.waitForTimeout(1500)
+  expect(failed).toHaveLength(4)
+  expect(await armed(page)).toBe(1)
+})
+
 test('an editor too old for Barkever arms no retry', async ({page}) => {
   await page.addInitScript(oldEditor)
   await page.goto('/?n=fx-note-04')
