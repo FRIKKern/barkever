@@ -60,11 +60,11 @@ function tasksIn(list: Block, line: (i: number) => string, depth: number, title:
 
 const flip = (it: Item): Item => (typeof it === 'object' && !Array.isArray(it) ? {...it, checked: !done(it)} : {content: itemContent(it), checked: true})
 
-const tickUnder = (it: Item, at: Line): Item => (typeof it === 'object' && !Array.isArray(it) && it.children ? {...it, children: tickAll(it.children, at)} : it)
+const tickUnder = (it: Item, at: Line): Item => (typeof it === 'object' && !Array.isArray(it) && Array.isArray(it.children) ? {...it, children: tickAll(it.children, at)} : it)
 
 function tickAll(blocks: Block[], at: Line): Block[] {
   return blocks.map((b) => {
-    if (!b.items) return b
+    if (!b?.items) return b
     const hit = b.id === at.block ? itemIn(b, at) : undefined
     return {...b, items: b.items.map((it, i) => tickUnder(i === hit ? flip(it) : it, at))}
   })

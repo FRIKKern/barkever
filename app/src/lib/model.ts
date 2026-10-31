@@ -12,14 +12,19 @@ export const UNTITLED = 'Untitled'
 
 export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (x.content?.length ? x.content : x.text ? [{type: 'text', value: x.text}] : [])
 
-export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : contentOf(it))
+const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
+
+export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : isObject(it) ? contentOf(it) : [])
 
 const LISTS = ['list', 'bulletList', 'bullet_list', 'bulleted-list', 'bulleted_list', 'ordered-list', 'numbered_list']
 const NUMBERED = ['ordered-list', 'numbered_list']
 
 const asList = (b: Block): Block => (b.type !== 'list' && LISTS.includes(b.type) && Array.isArray(b.items) ? {...b, type: 'list', ordered: b.ordered === true || NUMBERED.includes(b.type)} : b)
 
-export const nestedOf = (it: Item): Block[] => ((it as {children?: Block[]}).children ?? []).map(asList)
+export function nestedOf(it: Item): Block[] {
+  const children = isObject(it) ? it.children : undefined
+  return Array.isArray(children) ? children.filter(isObject).map((c) => asList(c as Block)) : []
+}
 
 export const leafText = (x: Inline): string | undefined => x.value || x.text
 

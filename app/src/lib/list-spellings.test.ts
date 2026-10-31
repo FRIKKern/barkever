@@ -52,3 +52,39 @@ test('a nested bulletList checklist makes board tasks, and its box ticks it', ()
   assert.equal(((after[0]!.items![0] as {children: Block[]}).children[0]!.items![0] as {checked?: boolean}).checked, true)
   assert.equal((after[0]!.items![0] as {children: Block[]}).children[0]!.type, 'bulletList')
 })
+
+test('every bad form of a nested child reads as a pinned shape, never a crash', () => {
+  const kid = (child: unknown) => nestedOf(under(child).items![0]!)[0]
+  for (const type of [undefined, '', 5, 'Bullet_List', 'ordered_list', 'b'.repeat(100_000)]) assert.equal(kid({id: 'c', type, items: [[text('x')]]})!.type, type)
+  for (const items of ['x', {a: 1}, undefined]) assert.equal(kid({id: 'c', type: 'bulletList', items})!.type, 'bulletList')
+  assert.equal(blockText(under({id: 'c', type: 'bulletList', items: []})), 'Pier')
+  assert.equal(blockText(under({id: 'c', type: 'bulletList', items: Array.from({length: 20_000}, () => [text('r')])})).length, 'Pier'.length + 20_000 * ' · r'.length)
+  for (const ordered of ['true', 1, null]) assert.equal(kid({id: 'c', type: 'bulletList', ordered, items: []})!.ordered, false)
+  assert.equal(kid({id: 'c', type: 'numbered_list', ordered: false, items: []})!.ordered, true)
+  assert.deepEqual(nestedOf(under({id: 'c', type: 'list', ordered: true, items: [[text('a')]]}).items![0]!)[0]!.ordered, kid({id: 'c', type: 'ordered-list', items: [[text('a')]]})!.ordered)
+})
+
+test('children that are not a list of objects, and an item that is not an object, read as no nested list', () => {
+  for (const children of [null, {a: 1}, 'x', 5]) {
+    const list: Block = {id: 'l', type: 'list', items: [{content: [text('Pier')], children} as never]}
+    assert.deepEqual(nestedOf(list.items![0]!), [])
+    assert.equal(blockText(list), 'Pier')
+    assert.deepEqual(wikilinks([list]), [])
+  }
+  assert.deepEqual(nestedOf({content: [], children: [null, 's', [], 5, {id: 'c', type: 'bulletList', items: [[text('kept')]]}]} as never).map((c) => c.type), ['list'])
+  for (const it of [null, 5, true]) {
+    assert.deepEqual(nestedOf(it as never), [])
+    assert.equal(blockText({id: 'l', type: 'list', items: [it as never, [text('after')]]}), 'after')
+  }
+  assert.equal(isBlank(note([{id: 'l', type: 'list', items: [null as never, {content: [], children: [null, [], ''] as never}]}])), true)
+})
+
+test('a checklist item whose children are not a list of objects still ticks, and keeps those children as stored', () => {
+  for (const children of [null, {a: 1}, 'x', [null, 's', 5]]) {
+    const blocks: Block[] = [{id: 'c', type: 'list', task: true, items: [{text: 'parent', children} as never, {text: 'two'}]}]
+    const tasks = board([note(blocks)], shelve([{id: 'a', name: 'A', parent: null}]), () => undefined).columns.flatMap((c) => c.cards.flatMap((card) => card.tasks))
+    const after = ticked(blocks, tasks[1]!.box)
+    assert.equal((after[0]!.items![1] as {checked?: boolean}).checked, true)
+    assert.deepEqual((after[0]!.items![0] as {children: unknown}).children, children)
+  }
+})
