@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const {createInterface} = require('node:readline')
 const {behavior, hangs, record, refusal, reply} = require('./answer.cjs')
+const hang = hangs('claude')
 
 const args = process.argv.slice(2)
 const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
@@ -24,7 +25,7 @@ createInterface({input: process.stdin}).on('line', (line) => {
   if (m.type !== 'user') return
   const prompt = m.message.content.map((c) => c.text).join('')
   record('claude', {args, system, prompt})
-  if (hangs('claude')) return
+  if (hang) return
   if (behavior('claude') === 'quiet') process.exit(0)
   if (behavior('claude') === 'limit') {
     out({...base(), type: 'result', subtype: 'success', is_error: true, result: 'Claude AI usage limit reached', total_cost_usd: 0, usage: {}})

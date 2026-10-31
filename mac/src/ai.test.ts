@@ -167,21 +167,23 @@ test('a request too long to send is refused before any call', async () => {
 const SDK_GRACE_MS = 8000
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms))
 const dead = (pid: number) => assert.throws(() => process.kill(pid, 0), /ESRCH/)
+const HANG_TIMEOUT_MS = 2000
 
-test('a CLI that never answers, even one that traps SIGTERM, is rejected at the timeout and killed after a grace period', {timeout: 20_000}, async () => {
+test('a CLI that never answers, even one that traps SIGTERM, is rejected at the timeout and killed after a grace period', {timeout: 30_000}, async () => {
   const fake = fakeBin({claude: 'hang', codex: 'hang'})
-  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake), timeoutMs: 500})
+  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake), timeoutMs: HANG_TIMEOUT_MS})
   const started = Date.now()
-  const took = await Promise.all(both(fake.dir).map(async (p) => (await assert.rejects(p.run(call()), new RegExp(`^Error: ${p.name} gave no answer in 0.5 s$`)), Date.now() - started)))
-  assert.ok(Math.max(...took) < 1500, `took ${took} ms`)
-  const pid = (cli: string) => fake.calls().find((c) => c.cli === cli)!.pid
+  const took = await Promise.all(both(fake.dir).map(async (p) => (await assert.rejects(p.run(call()), new RegExp(`^Error: ${p.name} gave no answer in ${HANG_TIMEOUT_MS / 1000} s$`)), Date.now() - started)))
+  assert.ok(Math.max(...took) < HANG_TIMEOUT_MS + 1000, `took ${took} ms`)
+  const trapped = fake.trapped()
+  for (const cli of ['codex', 'claude']) assert.ok(trapped[cli], `fake ${cli} had not trapped SIGTERM when the ${HANG_TIMEOUT_MS / 1000} s timeout fired: it started slower than the timeout`)
   await wait(300)
-  assert.ok(fake.termed().includes(pid('codex')))
-  assert.doesNotThrow(() => process.kill(pid('codex'), 0))
+  assert.ok(fake.termed().includes(trapped.codex))
+  assert.doesNotThrow(() => process.kill(trapped.codex, 0))
   await wait(GRACE_MS)
-  dead(pid('codex'))
+  dead(trapped.codex)
   await wait(SDK_GRACE_MS - GRACE_MS)
-  dead(pid('claude'))
+  dead(trapped.claude)
 })
 
 test('installed lists claude then codex, whichever are on the path', () => {

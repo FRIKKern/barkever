@@ -2,6 +2,7 @@
 const {readdirSync, readFileSync, writeFileSync} = require('node:fs')
 const {join, relative} = require('node:path')
 const {behavior, hangs, record, refusal, reply} = require('./answer.cjs')
+const hang = hangs('codex')
 
 const args = process.argv.slice(2)
 const joined = args.join(' ')
@@ -25,7 +26,7 @@ const system = JSON.parse(args.find((a) => a.startsWith('developer_instructions=
 const prompt = readFileSync(0, 'utf8')
 const links = readdirSync(process.env.HOME, {recursive: true, withFileTypes: true}).filter((d) => d.isSymbolicLink()).map((d) => relative(process.env.HOME, join(d.parentPath, d.name)))
 record('codex', {args, system, prompt, links})
-if (hangs('codex')) return
+if (hang) return
 const wrong = refusal('codex', args, flags, ['schema.json'])
 out({type: 'thread.started', thread_id: 'fake'})
 if (wrong) {
