@@ -2,6 +2,7 @@ import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {canvas, created, leave, newNote, serverNote, status, synced} from './devices'
 import {oldEditor} from './old-editor'
+import {clickCaret} from './caret'
 
 test.describe.configure({mode: 'serial', timeout: 120_000})
 test.afterAll(() => deleteNotes(created))
@@ -98,7 +99,7 @@ test('J05 marks: bold, italic and code words show in the list line, search, the 
   await expect(page.getByTestId('graph-tip')).toContainText(LINE)
   await page.screenshot({path: test.info().outputPath('j05-marks-dark-1440.png'), animations: 'disabled'})
 
-  await canvas(page).locator('p', {hasText: 'Check the chains.'}).click({position: {x: 10, y: 10}})
+  await clickCaret(canvas(page).locator('p', {hasText: 'Check the chains.'}), {x: 10, y: 10})
   await page.keyboard.press('End')
   await page.keyboard.type(' See [[Harbor sh')
   await expect(page.locator('.bp-wikilink-item').first()).toContainText(SHED)

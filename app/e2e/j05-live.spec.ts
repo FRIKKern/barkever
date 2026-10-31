@@ -1,6 +1,7 @@
 import {expect, test, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {oldEditor} from './old-editor'
+import {clickCaret} from './caret'
 
 test.describe.configure({mode: 'serial', timeout: 150_000})
 
@@ -65,7 +66,7 @@ const caretBy = (page: Page, n: number) =>
 async function caretAt(page: Page, text: string, edge: 'start' | 'end', steps: number) {
   const line = page.getByTestId('canvas').locator('p', {hasText: text})
   const box = (await line.boundingBox())!
-  await line.click({position: {x: box.width - 2, y: box.height / 2}})
+  await clickCaret(line, {x: box.width - 2, y: box.height / 2})
   if (edge === 'start') await page.keyboard.press('ControlOrMeta+ArrowLeft', {delay: HUMAN_KEY_MS})
   for (let i = 0; i < steps; i++) await page.keyboard.press(edge === 'start' ? 'ArrowRight' : 'ArrowLeft', {delay: HUMAN_KEY_MS})
 }
@@ -132,7 +133,7 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link, th
   await expect.poll(() => opened(page)).toBe(source)
   expect(JSON.stringify((await onServer(source))?.body)).toBe(stored)
 
-  await other.getByTestId('canvas').locator('p', {hasText: 'low water'}).click({position: {x: 10, y: 10}})
+  await clickCaret(other.getByTestId('canvas').locator('p', {hasText: 'low water'}), {x: 10, y: 10})
   await other.keyboard.press('End')
   await other.keyboard.type(' See [[Pier wa')
   await expect(other.locator('.bp-wikilink-item').first()).toContainText(SOURCE)

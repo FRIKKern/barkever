@@ -1,6 +1,7 @@
 import {expect, test, type Browser, type Page} from '@playwright/test'
 import {deleteNotes} from './fixtures-cleanup'
 import {SESSION_FILE} from './account'
+import {clickCaret, focusSettled} from './caret'
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
@@ -25,8 +26,8 @@ async function typeAtEnd(page: Page, text: string) {
   const last = editable.locator('> [data-bp-id]').last()
   await last.waitFor({state: 'attached'})
   const box = await last.boundingBox()
-  if (box?.height) await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2)
-  else await editable.focus()
+  if (box?.height) await clickCaret(last, {x: box.width - 2, y: box.height / 2})
+  else await editable.focus().then(() => focusSettled(page))
   await page.keyboard.press('End')
   await page.keyboard.type(text)
 }

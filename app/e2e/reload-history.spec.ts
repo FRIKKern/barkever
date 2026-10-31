@@ -2,6 +2,7 @@ import {expect, test, type Page} from '@playwright/test'
 import {ORIGIN, build, serve, stop} from './own-server'
 import {DATASET} from './fixtures-cleanup'
 import {HISTORY, HISTORY_EVENTS, dropNote, ensureHistory, noteText} from './history'
+import {clickCaret} from './caret'
 
 test.describe.configure({mode: 'serial', timeout: 300_000})
 
@@ -26,12 +27,11 @@ async function open(page: Page) {
   await expect(canvas(page).locator('[contenteditable="true"] > [data-bp-id]').first()).toBeAttached()
 }
 
-async function typeAtEnd(page: Page, text: string) {
+async function caretAtEnd(page: Page) {
   const last = canvas(page).locator('[contenteditable="true"] > [data-bp-id]').last()
   const box = (await last.boundingBox())!
-  await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2)
+  await clickCaret(last, {x: box.width - 2, y: box.height / 2})
   await page.keyboard.press('End')
-  await page.keyboard.type(text)
 }
 
 async function firstSaveAfterReload(page: Page, beforeReload: () => Promise<void>): Promise<number> {
@@ -39,15 +39,17 @@ async function firstSaveAfterReload(page: Page, beforeReload: () => Promise<void
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto(`${ORIGIN}/?n=${NOTE}`)
   await open(page)
-  await typeAtEnd(page, ` Before ${Date.now()}.`)
+  await caretAtEnd(page)
+  await page.keyboard.insertText(` Before ${Date.now()}.`)
   await expect(page.getByTestId('save-status')).toHaveText('Saved', {timeout: 15_000})
   await expect(page.getByTestId('sync-status')).toHaveText('Synced', {timeout: 15_000})
   await beforeReload()
   await page.reload()
   await open(page)
   const mark = `After ${Date.now()}.`
+  await caretAtEnd(page)
   const t0 = performance.now()
-  await typeAtEnd(page, ` ${mark}`)
+  await page.keyboard.insertText(` ${mark}`)
   await expect.poll(() => noteText(NOTE), {timeout: 60_000, intervals: [25]}).toContain(mark)
   const ms = Math.round(performance.now() - t0)
   test.info().annotations.push({type: 'first save after reload', description: `${ms} ms, ${HISTORY}`})
