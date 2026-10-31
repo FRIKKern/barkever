@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 
@@ -14,6 +14,7 @@ function copy() {
   for (const f of tracked) {
     try { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(root, f), join(dir, f)); } catch {}
   }
+  for (const m of ["node_modules", "app/node_modules"]) symlinkSync(join(root, m), join(dir, m));
   execFileSync("git", ["init", "-q"], { cwd: dir });
   return dir;
 }
@@ -32,6 +33,7 @@ const plants = {
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
   "Barkpark path outside app/src/server": (d) => { mkdirSync(join(d, "app/src/routes"), { recursive: true }); writeFileSync(join(d, "app/src/routes/planted.ts"), "fetch('/v1/data/query')\n"); },
+  "type error in app/e2e": (d) => writeFileSync(join(d, "app/e2e/planted.ts"), "export const n: number = 'not a number'\n"),
   "Barkpark URL outside app/src/server": (d) => { mkdirSync(join(d, "app/src/lib"), { recursive: true }); writeFileSync(join(d, "app/src/lib/planted.ts"), "const u = 'https://guerrilla.barkpark.cloud'\n"); },
 };
 for (const [name, plant] of Object.entries(plants)) {

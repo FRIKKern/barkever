@@ -73,6 +73,9 @@ for (const f of files.filter((f) => f.startsWith("app/src/") && !f.startsWith("a
   });
 }
 
+try { execFileSync("app/node_modules/.bin/tsc", ["--noEmit", "-p", "app"], { encoding: "utf8" }); }
+catch (e) { for (const line of (e.stdout || e.message).trim().split("\n")) fail("tsc -p app", line); }
+
 if (errors.length) {
   console.error(`check-repo: ${errors.length} problem(s)\n` + errors.map((e) => `  ✗ ${e}`).join("\n"));
   process.exit(1);
