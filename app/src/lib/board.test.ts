@@ -145,10 +145,11 @@ test('a save at 5000 notes with 30 lines each reuses every other note and costs 
   assert.ok(runs[2] < coldMs / 4, `median ${runs[2].toFixed(1)} ms, cold ${coldMs.toFixed(1)} ms`)
 })
 
-test('every item shape counts: inline arrays, content and plain text; a blank line is no task but keeps its place', () => {
-  const b = board([note('n', [checklist('c', [[...text('array')], {content: text('content'), checked: true}, {text: 'plain'}, {content: text('  ')}, {text: 'last'}])])], shelve([nb('a')]), () => undefined)
-  assert.deepEqual(lines(b), ['n c:0 0 o array', 'n c:1 0 x content', 'n c:2 0 o plain', 'n c:4 0 o last'])
-  assert.deepEqual([b.open, b.done, b.lists], [3, 1, 1])
+test('every item shape counts: inline arrays, content, plain text and a bare string; a blank line is no task but keeps its place', () => {
+  const b = board([note('n', [checklist('c', [[...text('array')], {content: text('content'), checked: true}, {text: 'plain'}, {content: text('  ')}, {text: 'last'}, 'bare'])])], shelve([nb('a')]), () => undefined)
+  assert.deepEqual(lines(b), ['n c:0 0 o array', 'n c:1 0 x content', 'n c:2 0 o plain', 'n c:4 0 o last', 'n c:5 0 o bare'])
+  assert.deepEqual([b.open, b.done, b.lists], [4, 1, 1])
+  assert.equal(textSum('bare'), textSum({text: 'bare'}))
 })
 
 test('only checked: true is done', () => {
