@@ -6,7 +6,7 @@ import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET, barkpark, deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {freePort} from '../src/port.ts'
 import {launchDriven, launchPlain, signIn} from './launch.ts'
-import {keepTraceOnFailure} from './trace.ts'
+import {keepScreenshotOnFailure} from './failure-shot.ts'
 
 test.describe.configure({mode: 'serial'})
 
@@ -16,7 +16,7 @@ const NOTE = 'Harbor redesign: sitemap'
 
 const created: string[] = []
 test.afterAll(() => deleteNotes(created))
-test.afterEach(({}, info) => keepTraceOnFailure(info))
+test.afterEach(({}, info) => keepScreenshotOnFailure(info))
 
 const rows = (page: Page) => page.getByTestId('note-row')
 const noteId = (page: Page) => new URL(page.url()).searchParams.get('n')
@@ -66,6 +66,8 @@ const kept = (page: Page) =>
 let origin = ''
 
 test('criterion 0 + 2: the app serves itself; sign in, list, open, edit; Cmd-N and File › New Note; nothing secret on disk', async ({}, info) => {
+  const {trace, screenshot, video} = info.project.use
+  expect({trace, screenshot, video, pageSnapshot: process.env.PLAYWRIGHT_NO_COPY_PROMPT}, 'a failing run writes no trace, video or page snapshot').toEqual({trace: 'off', screenshot: 'off', video: 'off', pageSnapshot: '1'})
   const app = await launchDriven(DATA)
   const page = await app.firstWindow()
   await signIn(page)
@@ -85,11 +87,9 @@ test('criterion 0 + 2: the app serves itself; sign in, list, open, edit; Cmd-N a
   await page.screenshot({path: info.outputPath('mac-online.png')})
 
   const jar = await app.evaluate(({session}) => session.defaultSession.cookies.get({name: 'bk_session'}))
-  expect(jar).toHaveLength(1)
-  expect(jar[0]).toMatchObject({session: true, httpOnly: true})
-  expect(jar[0]!.expirationDate).toBeUndefined()
+  expect(jar.map(({session, httpOnly, expirationDate}) => ({session, httpOnly, expirationDate}))).toEqual([{session: true, httpOnly: true, expirationDate: undefined}])
   const v = await vault(app)
-  expect(v.session).toBe(jar[0]!.value)
+  expect(v.session === jar[0]!.value, 'the vault holds the session cookie the jar has').toBe(true)
   expect(v.secret.length).toBeGreaterThanOrEqual(32)
 
   await app.close()
@@ -121,9 +121,9 @@ test('criterion 2: the next launch is signed in from the vault; after sign-out i
   const first = await launchPlain(DATA, 'mock')
   await expect(rows(first.page).first()).toBeVisible({timeout: 30_000})
   expect(new URL(first.page.url()).origin).toBe(origin)
-  expect(await cookieInJar(first.browser)).toMatchObject({session: true})
+  expect((await cookieInJar(first.browser))?.session).toBe(true)
   await signOut(first.page)
-  expect(await cookieInJar(first.browser)).toBeUndefined()
+  expect(Boolean(await cookieInJar(first.browser)), 'after sign-out the jar has no session cookie').toBe(false)
   await first.quit()
 
   const after = await launchPlain(DATA, 'mock')
@@ -142,7 +142,7 @@ test('criterion 2 on the real Keychain: sign in, quit, relaunch signed in, cooki
 
   const again = await launchPlain(data, 'real')
   await expect(rows(again.page).first()).toBeVisible({timeout: 30_000})
-  expect((await cookieInJar(again.browser))?.value).toBe(cookie.value)
+  expect((await cookieInJar(again.browser))?.value === cookie.value, 'the relaunch restores the same session cookie').toBe(true)
   await signOut(again.page)
   await again.quit()
 })

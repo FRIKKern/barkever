@@ -4,7 +4,7 @@ import {createRequire} from 'node:module'
 import {fileURLToPath} from 'node:url'
 import {ACCOUNT} from '../../app/e2e/account.ts'
 import {DATASET} from '../../app/e2e/fixtures-cleanup.ts'
-import {traced} from './trace.ts'
+import {watched} from './failure-shot.ts'
 
 const ELECTRON = createRequire(import.meta.url)('electron') as string
 const MAC = fileURLToPath(new URL('..', import.meta.url))
@@ -16,7 +16,7 @@ const appEnv = (data: string, env: Record<string, string>) => ({...(process.env 
 
 export async function launchDriven(data: string) {
   const app = await electron.launch({args: [MAC], env: appEnv(data, {})})
-  await traced(app.context())
+  watched(app.context())
   return app
 }
 
@@ -41,7 +41,7 @@ export async function launchPlain(data: string, keychain: Keychain, env: Record<
   const http = await devtools(child)
   await expect.poll(() => loaded(http), {timeout: 30_000}).toBe(true)
   const browser = await chromium.connectOverCDP(http)
-  await traced(browser.contexts()[0]!)
+  watched(browser.contexts()[0]!)
   const page = browser.contexts()[0]!.pages()[0]!
   await page.waitForLoadState()
   return {
