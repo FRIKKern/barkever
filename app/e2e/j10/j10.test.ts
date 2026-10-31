@@ -89,6 +89,7 @@ async function typeTitleByHand(page: Page, w: Writer, note: string, text: string
 }
 
 test('J10: an hour offline on two clients, reconnect, both replicas equal the server in under 10 s', async ({browser}, info) => {
+  if (info.repeatEachIndex) throw new Error('J10 seeds one dataset per run, so a repeat starts on a used one. Run it N separate times: for i in $(seq N); do node scripts/heavy.mjs pnpm --filter @barkever/app j10 || break; done')
   const dataset = j10Dataset()
   const seed = Number(process.env.J10_SEED ?? 1010)
   const start = drafts(fixtures())
