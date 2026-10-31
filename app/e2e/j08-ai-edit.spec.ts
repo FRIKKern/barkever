@@ -1,6 +1,8 @@
 import {expect, test, type Page} from '@playwright/test'
+import {clickCaret} from './caret'
+import {device, synced} from './devices'
 import {deleteNotes} from './fixtures-cleanup'
-import {aiEdit, block, content, copyKickoff, runEdit, selectBlocks, settled, stored, withText} from './j08-edit'
+import {aiEdit, block, content, copyKickoff, runEdit, selectBlocks, settled, stored, withText, type Stored} from './j08-edit'
 
 type Sent = {instruction: string; note: {id: string; title: string}; blocks: {id: string; text: string}[]; notes: {id: string; title: string; text: string}[]}
 
@@ -102,6 +104,11 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   await page.keyboard.press('z')
   await page.keyboard.press('ControlOrMeta')
   await page.keyboard.press('Shift+ControlOrMeta+z')
+  for (const field of ['title', 'tag-add']) {
+    await page.getByTestId(field).focus()
+    await page.keyboard.press('ControlOrMeta+z')
+    await page.evaluate(() => (document.activeElement as HTMLElement).blur())
+  }
   await page.waitForTimeout(500)
   expect(content(await stored(id))).toBe(expected)
   await expect(page.getByTestId('ai-undo')).toBeVisible()
@@ -172,6 +179,59 @@ test('J08 AI Edit is gone while the AI switch is off', async ({page}) => {
   await page.getByTestId('ai-switch').uncheck()
   await expect(page.getByTestId('ai-edit')).toHaveCount(0)
   expect(await edits(page)).toEqual([])
+})
+
+const textOf = (d: Stored, id: string) => d.body.blocks.find((b) => b.id === id)!.content!.map((c) => c.value).join('')
+
+async function remoteTypes(b: Page, id: string, which: 'p0' | 'p1', text: string) {
+  await b.goto(`/?n=${id}`)
+  const el = b.getByTestId('canvas').locator(`[data-bp-id="${block(id, which)}"]`)
+  await expect(el).toBeVisible({timeout: 20_000})
+  const box = (await el.boundingBox())!
+  await clickCaret(el, {x: box.width - 2, y: box.height / 2})
+  await b.keyboard.press('End')
+  await b.keyboard.type(text)
+  await b.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await synced(b)
+}
+
+const reaches = (page: Page, text: string) => expect.poll(() => page.getByTestId('canvas').evaluate((el) => el.textContent), {timeout: 30_000}).toContain(text)
+
+test('J08 another device typing into a block under review keeps its words: accepting the AI change parks theirs in a conflict copy', async ({page, browser, baseURL}) => {
+  test.setTimeout(120_000)
+  const id = await openCopy(page, 'remote-accept')
+  await runEdit(page, 'Tighten this')
+  await expect(page.getByTestId('ai-change')).toHaveCount(2)
+  const other = await device(browser, baseURL!)
+  await remoteTypes(other, id, 'p0', ' REMOTE-P0.')
+  await reaches(page, 'REMOTE-P0')
+  await page.getByTestId('ai-change').nth(0).getByTestId('ai-accept').click()
+  await settled(page)
+  await synced(page)
+  const doc = await stored(id)
+  expect(textOf(doc, block(id, 'p0'))).toBe(P0)
+  expect(JSON.stringify((doc as unknown as {conflicts?: unknown[]}).conflicts ?? [])).toContain('REMOTE-P0')
+  await other.context().close()
+})
+
+test('J08 one undo takes back only the AI change: words another device typed meanwhile stay', async ({page, browser, baseURL}) => {
+  test.setTimeout(120_000)
+  const id = await openCopy(page, 'remote-undo')
+  await runEdit(page, 'Tighten this')
+  await page.getByTestId('ai-change').nth(0).getByTestId('ai-accept').click()
+  await settled(page)
+  const other = await device(browser, baseURL!)
+  await remoteTypes(other, id, 'p1', ' REMOTE-P1.')
+  await reaches(page, 'REMOTE-P1')
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.getByTestId('ai-bar')).toHaveCount(0)
+  await settled(page)
+  await synced(page)
+  const doc = await stored(id)
+  expect(textOf(doc, block(id, 'p0'))).toBe('Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.')
+  expect(textOf(doc, block(id, 'p1'))).toBe('Owner: Ola Testesen. Deadline end of quarter. REMOTE-P1.')
+  await expect(page.getByTestId('canvas')).toContainText('REMOTE-P1')
+  await other.context().close()
 })
 
 for (const [width, height, label] of [[1440, 900, '✨ AI Edit'], [390, 844, '✨']] as const)

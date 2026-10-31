@@ -1,19 +1,22 @@
 import {expect, test} from '@playwright/test'
-import {mkdtempSync} from 'node:fs'
-import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {deleteNotes} from '../../app/e2e/fixtures-cleanup.ts'
 import {block, content, copyKickoff, runEdit, selectBlocks, settled, stored, withText} from '../../app/e2e/j08-edit.ts'
 import {fakeBin} from '../src/ai/fakes.ts'
-import {launchPlain, signIn} from './launch.ts'
+import {launchPlain, quitAll, signIn} from './launch.ts'
+import {dropProfiles, profile} from './profiles.ts'
 
 const P0 = 'Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.'
 const created: string[] = []
-test.afterAll(() => deleteNotes(created))
+test.afterAll(async () => {
+  await quitAll()
+  dropProfiles()
+  await deleteNotes(created)
+})
 
 test('J08 in the Mac app: AI Edit runs fake claude on the selection, writes only the accepted change, the undo button restores it, and the switch stops it', async ({}, info) => {
   const fake = fakeBin()
-  const data = mkdtempSync(join(tmpdir(), 'barkever-mac-e2e-'))
+  const data = profile()
   const id = await copyKickoff('mac')
   created.push(id)
   const run = await launchPlain(data, 'mock', {PATH: `${fake.dir}:${process.env.PATH}`, CODEX_HOME: join(fake.home, '.codex'), ANTHROPIC_API_KEY: 'e2e-not-a-key', CLAUDECODE: '1'})
