@@ -14,7 +14,7 @@ function copy() {
   for (const f of tracked) {
     try { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(root, f), join(dir, f)); } catch {}
   }
-  for (const m of ["node_modules", "app/node_modules"]) symlinkSync(join(root, m), join(dir, m));
+  for (const m of ["node_modules", "app/node_modules", "mac/node_modules"]) symlinkSync(join(root, m), join(dir, m));
   execFileSync("git", ["init", "-q"], { cwd: dir });
   return dir;
 }
@@ -34,6 +34,8 @@ const plants = {
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
   "Barkpark path outside app/src/server": (d) => { mkdirSync(join(d, "app/src/routes"), { recursive: true }); writeFileSync(join(d, "app/src/routes/planted.ts"), "fetch('/v1/data/query')\n"); },
   "type error in app/e2e": (d) => writeFileSync(join(d, "app/e2e/planted.ts"), "export const n: number = 'not a number'\n"),
+  "type error in mac/e2e": (d) => writeFileSync(join(d, "mac/e2e/planted.ts"), "export const n: number = 'not a number'\n"),
+  "type error in mac/src": (d) => writeFileSync(join(d, "mac/src/planted.ts"), "export const n: number = 'not a number'\n"),
   "Barkpark URL outside app/src/server": (d) => { mkdirSync(join(d, "app/src/lib"), { recursive: true }); writeFileSync(join(d, "app/src/lib/planted.ts"), "const u = 'https://guerrilla.barkpark.cloud'\n"); },
 };
 for (const [name, plant] of Object.entries(plants)) {
