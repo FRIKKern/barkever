@@ -23,7 +23,12 @@ const json = (out) => { try { return out === null ? null : JSON.parse(out); } ca
 
 const snapshots = existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 const flag = process.argv.indexOf("--since");
-const asked = flag > 0 ? process.argv[flag + 1] : null;
+const arg = process.argv[flag + 1];
+if (flag > 0 && Number.isNaN(Date.parse(arg))) {
+  console.error("usage: node scripts/pace.mjs [--since <time, e.g. 2026-10-31T10:30:00Z>] [--write]");
+  process.exit(2);
+}
+const asked = flag > 0 ? new Date(arg).toISOString() : null;
 const base = asked ? snapshots.filter((s) => Date.parse(s.at) <= Date.parse(asked)).at(-1) : snapshots.at(-1);
 const since = base?.at ?? asked ?? new Date(Date.now() - 6 * 3600e3).toISOString();
 const now = new Date().toISOString();

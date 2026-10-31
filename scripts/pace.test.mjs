@@ -27,14 +27,16 @@ const CHILDREN = [
   { doc_id: "task-after", title: "fixture", lifecycle_status: "done", updated_at: "2999-01-01T00:00:00Z" },
   { doc_id: "task-at", title: "fixture", lifecycle_status: "done", updated_at: SNAPSHOT_AT },
   { doc_id: "task-before", title: "fixture", lifecycle_status: "done", updated_at: "2026-10-31T11:00:00.000Z" },
+  { doc_id: "task-between", title: "fixture", lifecycle_status: "done", updated_at: "2026-10-31T10:15:00.000Z" },
 ];
 const PRS = [
   { number: 1, title: "after", mergedAt: "2999-01-01T00:00:00Z", additions: 1, deletions: 1 },
   { number: 2, title: "at", mergedAt: SNAPSHOT_AT, additions: 1, deletions: 1 },
   { number: 3, title: "before", mergedAt: "2026-10-31T11:00:00.000Z", additions: 1, deletions: 1 },
+  { number: 4, title: "between", mergedAt: "2026-10-31T10:15:00.000Z", additions: 1, deletions: 1 },
 ];
 
-function world({ bp = "ok", gh = "ok", head, missesTotal = 2 } = {}) {
+function world({ bp = "ok", gh = "ok", head, missesTotal = 2, earlierAt = EARLIER_AT } = {}) {
   const dir = mkdtempSync(join(temp, "world-"));
   const git = (env, ...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir, env: { ...process.env, ...env } });
   const at = (date) => ({ GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date });
@@ -51,7 +53,7 @@ function world({ bp = "ok", gh = "ok", head, missesTotal = 2 } = {}) {
 
   mkdirSync(join(dir, "pace"));
   writeFileSync(join(dir, "pace", "snapshots.jsonl"), [
-    snapshot(EARLIER_AT, earlier, 1),
+    snapshot(earlierAt, earlier, 1),
     snapshot(SNAPSHOT_AT, head === "tip" ? tip : head ?? base, missesTotal),
   ].join("\n") + "\n");
   writeFileSync(join(dir, "pace", "misses.jsonl"), [
@@ -68,17 +70,26 @@ function world({ bp = "ok", gh = "ok", head, missesTotal = 2 } = {}) {
     refused: `echo '{"ok":false,"error":"fixture refusal"}'`,
   }[bp];
   fake("bp", bpBody);
-  fake("gh", gh === "ok" ? `echo '${JSON.stringify(PRS)}'` : "exit 1");
+  fake("gh", gh === "ok" ? `echo "$@" >> '${join(dir, "gh-args")}'\necho '${JSON.stringify(PRS)}'` : "exit 1");
   return { dir, bin };
 }
 
-function pace({ dir, bin }, ...args) {
+function paceRun({ dir, bin }, env, ...args) {
   const heavy = mkdtempSync(join(temp, "heavy-"));
-  const r = spawnSync(process.execPath, [PACE, ...args], { cwd: dir, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HEAVY_DIR: heavy } });
+  return spawnSync(process.execPath, [PACE, ...args], { cwd: dir, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HEAVY_DIR: heavy, ...env } });
+}
+
+function window(header) {
+  const [, start, end, hours] = header.match(/^pace (\S+) → (\S+) \((\S+) h,/);
+  return { start, hours: +hours, expected: +((Date.parse(end) - Date.parse(start)) / 3600e3).toFixed(2) };
+}
+
+function pace(w, ...args) {
+  const r = paceRun(w, {}, ...args);
   assert.equal(r.status, 0, r.stderr);
   const rows = Object.fromEntries(r.stdout.split("\n").filter((l) => l.startsWith("| ")).map((l) => l.split(" | ").map((c) => c.replace(/^\| | \|$/g, ""))).map(([k, v, p]) => [k, { now: v, prev: p }]));
   const header = r.stdout.split("\n")[0];
-  return { rows, header, stdout: r.stdout, last: () => JSON.parse(readFileSync(join(dir, "pace", "snapshots.jsonl"), "utf8").trim().split("\n").at(-1)) };
+  return { rows, header, stdout: r.stdout, last: () => JSON.parse(readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8").trim().split("\n").at(-1)) };
 }
 
 test("commits count by reaching main after the last snapshot head, whatever their dates", () => {
@@ -93,8 +104,40 @@ test("--since starts the whole window at the last snapshot taken at or before it
   assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
   assert.match(stdout, /--since 2026-10-31T10:30:00\.000Z starts at the snapshot taken at 2026-10-31T10:00:00\.000Z/);
   assert.equal(rows.commits.now, "3");
-  assert.equal(rows["tasks closed"].now, "3");
-  assert.equal(rows["barkpark PRs merged"].now, "3");
+  assert.equal(rows["tasks closed"].now, "4");
+  assert.equal(rows["barkpark PRs merged"].now, "4");
+  const { hours, expected } = window(header);
+  assert.equal(hours, expected);
+});
+
+test("--since searches Barkpark merges from the snapped start's date", () => {
+  const w = world({ earlierAt: "2026-10-30T23:00:00.000Z" });
+  pace(w, "--since", "2026-10-31T00:30:00.000Z");
+  assert.match(readFileSync(join(w.dir, "gh-args"), "utf8"), /merged:>=2026-10-30 /);
+});
+
+for (const [name, args] of [["garbage", ["--since", "garbage"]], ["a flag", ["--since", "--write"]], ["nothing", ["--since"]]]) {
+  test(`--since followed by ${name} is a usage error that writes nothing`, () => {
+    const w = world();
+    const before = readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8");
+    const r = paceRun(w, {}, ...args, "--write");
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /usage/);
+    assert.equal(readFileSync(join(w.dir, "pace", "snapshots.jsonl"), "utf8"), before);
+  });
+}
+
+test("--since without milliseconds at a snapshot is that snapshot, with no snap note", () => {
+  const { header, stdout } = pace(world(), "--since", "2026-10-31T10:00:00Z");
+  assert.match(header, /^pace 2026-10-31T10:00:00\.000Z → /);
+  assert.doesNotMatch(stdout, /starts at the snapshot/);
+});
+
+test("a --since with no zone is local time everywhere, snapshot pick and window alike", () => {
+  const r = paceRun(world(), { TZ: "Europe/Oslo" }, "--since", "2026-10-31T11:30:00");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^pace 2026-10-31T10:00:00\.000Z → /);
+  assert.match(r.stdout, /--since 2026-10-31T10:30:00\.000Z starts at the snapshot taken at 2026-10-31T10:00:00\.000Z/);
 });
 
 test("--since before every commit on main counts them all, from that time", () => {
