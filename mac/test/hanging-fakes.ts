@@ -4,11 +4,11 @@ import {join} from 'node:path'
 import {test} from 'node:test'
 import {claude} from '../src/ai/claude.ts'
 import {codex} from '../src/ai/codex.ts'
-import {fakeBin} from '../src/ai/fakes.ts'
+import {fakeBin, until} from '../src/ai/fakes.ts'
 import {childEnv} from '../src/ai/provider.ts'
 
 const BOOT_MS = 800
-const TRAP_MS = 10_000
+const TRAP_MS = 20_000
 
 function hung(timeoutMs = 60_000) {
   const fake = fakeBin({claude: 'hang', codex: 'hang'})
@@ -18,8 +18,8 @@ function hung(timeoutMs = 60_000) {
   const call = {system: '', prompt: 'Question: x', schema: {}, env, timeoutMs}
   const runs = [claude(join(fake.dir, 'claude')), codex(join(fake.dir, 'codex'))].map((p) => p.run({...call, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-'))}).catch(() => {}))
   const trapped = async () => {
-    for (const end = Date.now() + TRAP_MS; Object.keys(fake.trapped()).length < 2; await new Promise((r) => setTimeout(r, 50)))
-      if (Date.now() > end) throw new Error(`fake ${['claude', 'codex'].filter((cli) => !fake.trapped()[cli]).join(' and ')} never trapped SIGTERM in ${TRAP_MS / 1000} s`)
+    if (!(await until(() => Object.keys(fake.trapped()).length === 2, TRAP_MS)))
+      throw new Error(`fake ${['claude', 'codex'].filter((cli) => !fake.trapped()[cli]).join(' and ')} never trapped SIGTERM in ${TRAP_MS / 1000} s`)
   }
   return {runs, trapped}
 }

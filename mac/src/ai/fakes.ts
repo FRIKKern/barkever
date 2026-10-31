@@ -53,6 +53,11 @@ const runningFrom = (dir: string) => spawnSync('ps', ['-Ao', 'pid=,command='], {
 
 const reap = (dir: string) => runningFrom(dir).forEach(kill)
 
+export const until = async (ok: () => boolean, ms: number) => {
+  for (const end = Date.now() + ms; !ok() && Date.now() < end; ) await new Promise((r) => setTimeout(r, 50))
+  return ok()
+}
+
 export const PARENT_WATCH = join(FAKES, 'parent-watch.cjs')
 
 if (UNIT) createRequire(import.meta.url)(PARENT_WATCH)
