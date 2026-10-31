@@ -8,9 +8,10 @@ const usage = (why) => { console.error(`arms: ${why}\nusage: node scripts/arms.m
 if (runAt >= 0 && !cmd) usage("--run needs a test command");
 const strict = args.includes("--strict");
 const timeoutAt = args.indexOf("--timeout");
+if (args.some((a) => a.startsWith("--timeout="))) usage("--timeout takes its value after a space: --timeout <ms>");
 const ms = timeoutAt < 0 ? "600000" : args[timeoutAt + 1];
-if (!/^[1-9]\d*$/.test(ms)) usage(`--timeout needs a whole number of ms above 0, got ${ms ?? "nothing"}`);
 const timeout = Number(ms);
+if (!/^[1-9]\d*$/.test(ms) || timeout > 2 ** 31 - 1) usage(`--timeout needs a whole number of ms from 1 to ${2 ** 31 - 1}, got ${ms ?? "nothing"}`);
 const base = args.find((a, i) => !a.startsWith("--") && ![runAt, timeoutAt].some((f) => f >= 0 && i === f + 1)) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;

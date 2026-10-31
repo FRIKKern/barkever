@@ -38,8 +38,8 @@ test("--run with no command is a usage error, first or last", () => {
   assert.equal(arms(repo(), "--run").status, 2);
 });
 
-test("a --timeout that is not a whole number of ms above 0 is a usage error naming --timeout, before the command runs", () => {
-  for (const bad of [["--timeout", "abc"], ["--timeout"], ["--timeout", "0"], ["--timeout", "-5"], ["--timeout", "1.5"]]) {
+test("a --timeout that is not a whole number of ms from 1 to 2147483647, or is written --timeout=, is a usage error naming --timeout, before the command runs", () => {
+  for (const bad of [["--timeout", "abc"], ["--timeout"], ["--timeout", "0"], ["--timeout", "-5"], ["--timeout", "1.5"], ["--timeout", "2147483648"], ["--timeout=500"], ["--timeout=abc"], ["--timeout="]]) {
     const dir = repo();
     const r = arms(dir, "main", "--run", "touch ran", ...bad);
     assert.equal(r.status, 2, bad.join(" "));
@@ -52,6 +52,7 @@ test("a --timeout that is not a whole number of ms above 0 is a usage error nami
   const r = arms(repo(), "main", "--timeout", "--run", "exit 0");
   assert.equal(r.status, 2);
   assert.match(r.stderr, /--timeout .* got --run/);
+  assert.doesNotMatch(arms(repo(), "main", "--run", "exit 0", "--timeout", "2147483647").stderr, /usage:/);
 });
 
 test("a base other than main is read from the first plain argument, and Go rows are listed but not mutated", () => {
