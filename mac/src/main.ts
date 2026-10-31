@@ -3,7 +3,7 @@ import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {budget, DAILY_TOKENS} from './ai/budget.ts'
 import {childEnv} from './ai/provider.ts'
-import {askHandler, installed, switchHandler} from './ai/serve.ts'
+import {askHandler, editHandler, installed, switchHandler} from './ai/serve.ts'
 import {aiSwitch} from './ai/switch.ts'
 import {installMenu} from './menu.ts'
 import {HOST, installPort} from './port.ts'
@@ -57,7 +57,9 @@ async function start() {
   const spend = budget(join(data, 'ai-budget.json'), DAILY_TOKENS)
   const power = aiSwitch(join(data, 'ai-switch.json'))
   ipcMain.handle('barkever:ai', switchHandler(origin, power))
-  ipcMain.handle('barkever:ask', askHandler(origin, power, () => ({providers: installed(tools), budget: spend, env: childEnv(process.env, tools)})))
+  const ai = () => ({providers: installed(tools), budget: spend, env: childEnv(process.env, tools)})
+  ipcMain.handle('barkever:ask', askHandler(origin, power, ai))
+  ipcMain.handle('barkever:edit', editHandler(origin, power, ai))
   await keepSession(origin, vault)
   open(origin)
   app.on('activate', () => BrowserWindow.getAllWindows().length || open(origin))

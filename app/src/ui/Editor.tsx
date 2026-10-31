@@ -10,6 +10,11 @@ import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
+import {bridge} from '../lib/ask'
+import {editable} from '../lib/ai-edit'
+import {AiBar, AiBody, AiEditButton, AiPrompt} from './AiEdit'
+import {useAi} from './local-prefs'
+import {useAiEdit} from './use-ai-edit'
 import {BodyCanvas, type BodyHandle} from './BodyCanvas'
 import {ConflictView} from './ConflictView'
 import type {BackStep} from './history'
@@ -30,6 +35,17 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
   const body = useRef<BodyHandle>(null)
   const keys = useRef(0)
   const lastKey = useRef(0)
+  const [aiOn] = useAi()
+  const edit = useAiEdit(note, body)
+  const [picked, setPicked] = useState<string[]>([])
+  const [prompting, setPrompting] = useState(false)
+
+  useEffect(() => {
+    if (prompting) return
+    const onSelect = () => setPicked(body.current?.selected() ?? [])
+    document.addEventListener('selectionchange', onSelect)
+    return () => document.removeEventListener('selectionchange', onSelect)
+  }, [prompting])
 
   useEffect(
     () =>
@@ -58,6 +74,12 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
   }
 
   const label = LABEL[status]
+  const canEdit = !!bridge() && aiOn
+  const ready = !edit.run && !prompting && editable(note.blocks, picked).length > 0
+  const run = (instruction: string) => {
+    setPrompting(false)
+    void edit.start(instruction, picked)
+  }
   const remove = () => {
     void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}))
   }
@@ -76,6 +98,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           {scopeName(back.to, w.shelf)}
         </Link>
         <span className={`saved ${status}`}>{label}</span>
+        {canEdit && <AiEditButton icon ready={ready} onOpen={() => setPrompting(true)} />}
       </div>
       <div className="bar ed-bar">
         <div className="crumb">
@@ -86,6 +109,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           <span className={`saved ${status}`} data-testid="save-status" aria-live="polite">
             {label}
           </span>
+          {canEdit && <AiEditButton ready={ready} onOpen={() => setPrompting(true)} />}
           <button className="icon-btn" onClick={() => star(qc, note.id, !starred)} aria-pressed={starred} title={starred ? 'Remove from Shortcuts' : 'Add to Shortcuts'} data-testid="star">
             <Icon name="star" />
           </button>
@@ -97,6 +121,8 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           </button>
         </div>
       </div>
+      {prompting && <AiPrompt onRun={run} onCancel={() => setPrompting(false)} />}
+      {edit.run && <AiBar w={w} s={s} edit={{...edit, run: edit.run}} />}
       <div className="ed-scroll">
         <article className="doc">
           <textarea
@@ -121,7 +147,10 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
             </span>
           </div>
           <ConflictView note={note} onKeep={() => (lastKey.current = 0)} />
-          <BodyCanvas note={note} s={s} handle={body} linker={linker} />
+          {edit.run && <AiBody s={s} edit={{...edit, run: edit.run}} title={linker.title} />}
+          <div hidden={!!edit.run}>
+            <BodyCanvas note={note} s={s} handle={body} linker={linker} />
+          </div>
         </article>
       </div>
     </main>

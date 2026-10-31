@@ -1,6 +1,6 @@
 import {expect, type Page} from '@playwright/test'
+import {readFileSync} from 'node:fs'
 import {barkpark, DATASET} from './fixtures-cleanup.ts'
-import {fixtures} from './seed.ts'
 
 export type Stored = {_id: string; _rev: string; title: string; tags: string[]; links: {_ref: string}[]; body: {blocks: {id: string; content?: {type: string; value?: string}[]}[]}}
 
@@ -8,7 +8,7 @@ export const block = (id: string, n: 'p0' | 'p1') => `${id}-${n}`
 
 export async function copyKickoff(tag: string): Promise<string> {
   const id = `j08-${tag}-${Date.now()}`
-  const src = structuredClone(fixtures().find((d) => d._id === 'fx-note-00')!) as unknown as Stored
+  const src = readFileSync(new URL('../../fixtures/notes.ndjson', import.meta.url), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Stored).find((d) => d._id === 'fx-note-00')!
   const body = JSON.parse(JSON.stringify(src.body).replaceAll('fx-note-00-', `${id}-`))
   const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: {...src, _id: id, title: `AI Edit ${tag}`, body}}]})})
   if (!res.ok) throw new Error(`Barkpark mutate ${res.status}`)
@@ -47,8 +47,10 @@ export async function selectBlocks(page: Page, from: string, to: string) {
   )
 }
 
+export const aiEdit = (page: Page) => page.getByTestId('ai-edit').filter({visible: true})
+
 export async function runEdit(page: Page, instruction: string) {
-  await page.getByTestId('ai-edit').click()
+  await aiEdit(page).click()
   await page.getByLabel('What should AI change?').fill(instruction)
   await page.keyboard.press('Enter')
 }

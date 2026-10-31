@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useState, useSyncExternalStore} from 'react'
 import {bridge} from '../lib/ask'
 import {THEME_KEY} from '../styles/tokens'
 
@@ -39,17 +39,23 @@ export function useRail(): [boolean | null, () => void] {
   return [rail, toggle]
 }
 
+const aiWatchers = new Set<() => void>()
+let aiOn = true
+
+const setAiOn = (on: boolean) => {
+  aiOn = on
+  void bridge()?.setAi(on)
+  aiWatchers.forEach((w) => w())
+}
+
+const watchAi = (w: () => void) => (aiWatchers.add(w), () => void aiWatchers.delete(w))
+
 export function useAi(): [boolean, () => void] {
-  const [on, setOn] = useState(true)
-  useEffect(() => {
-    const saved = read(AI_KEY) !== 'off'
-    setOn(saved)
-    void bridge()?.setAi(saved)
-  }, [])
+  const on = useSyncExternalStore(watchAi, () => aiOn, () => true)
+  useEffect(() => setAiOn(read(AI_KEY) !== 'off'), [])
   const toggle = useCallback(() => {
-    write(AI_KEY, on ? 'off' : 'on')
-    void bridge()?.setAi(!on)
-    setOn(!on)
-  }, [on])
+    write(AI_KEY, aiOn ? 'off' : 'on')
+    setAiOn(!aiOn)
+  }, [])
   return [on, toggle]
 }

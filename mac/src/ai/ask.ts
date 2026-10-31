@@ -10,7 +10,7 @@ export type Asked = Answer & {provider: string; model: string; tokens: number; c
 
 export const MAX_REQUEST = 120_000
 const MIN_QUOTE = 8
-const TIMEOUT_MS = 90_000
+export const TIMEOUT_MS = 90_000
 
 const SYSTEM = [
   'You answer a question using only the notes given between <notes> and </notes>, one JSON object per note.',
@@ -45,12 +45,16 @@ const wholeWords = (quote: string) => new RegExp(`(?<![\\p{L}\\p{N}])${escape(sq
 const isAnswer = (d: Answer) =>
   typeof d?.found === 'boolean' && typeof d.answer === 'string' && Array.isArray(d.citations) && d.citations.every((c) => typeof c?.id === 'string' && typeof c.quote === 'string')
 
-export function checked(data: unknown, notes: AskNote[]): Answer {
-  if (!isAnswer(data as Answer)) throw new Error('the answer has the wrong shape')
-  const {found, answer, citations} = data as Answer
+export function citedIn(citations: Citation[], notes: AskNote[]) {
   const text = new Map(notes.map((n) => [n.id, squash(`${n.title}\n${n.text}`)]))
   const bad = citations.find((c) => squash(c.quote).length < MIN_QUOTE || !wholeWords(c.quote).test(text.get(c.id) ?? ''))
   if (bad) throw new Error(`cited “${bad.quote}”, which is not in note ${bad.id}`)
+}
+
+export function checked(data: unknown, notes: AskNote[]): Answer {
+  if (!isAnswer(data as Answer)) throw new Error('the answer has the wrong shape')
+  const {found, answer, citations} = data as Answer
+  citedIn(citations, notes)
   const marks = [...answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]))
   if (marks.some((n) => n < 1 || n > citations.length)) throw new Error('the answer points at a citation it does not have')
   if (found && !marks.length) throw new Error('the answer cites no note')

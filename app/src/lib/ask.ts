@@ -1,11 +1,12 @@
 import {blockText, type Note} from './model.ts'
 import {find, newest} from './search.ts'
+import type {EditReply, EditRequest} from './ai-edit.ts'
 
 export type AskNote = {id: string; title: string; text: string}
 export type Citation = {id: string; quote: string}
 export type Asked = {found: boolean; answer: string; citations: Citation[]; provider: string; model: string; tokens: number; costUsd: number | null; read: number}
 export type AskReply = Asked | {error: string}
-type Bridge = {ask(req: {question: string; notes: AskNote[]}): Promise<AskReply>; setAi(on: boolean): Promise<void>}
+type Bridge = {ask(req: {question: string; notes: AskNote[]}): Promise<AskReply>; edit(req: EditRequest): Promise<EditReply>; setAi(on: boolean): Promise<void>}
 
 export const bridge = () => (globalThis as {barkever?: Bridge}).barkever
 

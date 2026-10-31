@@ -1,6 +1,6 @@
 import {expect, test, type Page} from '@playwright/test'
 import {deleteNotes} from './fixtures-cleanup'
-import {block, content, copyKickoff, runEdit, selectBlocks, settled, stored, withText} from './j08-edit'
+import {aiEdit, block, content, copyKickoff, runEdit, selectBlocks, settled, stored, withText} from './j08-edit'
 
 type Sent = {instruction: string; note: {id: string; title: string}; blocks: {id: string; text: string}[]; notes: {id: string; title: string; text: string}[]}
 
@@ -117,7 +117,7 @@ test('J08 AI Edit rejected in full leaves the stored note byte-identical', async
 
 test('J08 AI Edit is gone while the AI switch is off', async ({page}) => {
   await openCopy(page, 'off')
-  await expect(page.getByTestId('ai-edit')).toBeEnabled()
+  await expect(aiEdit(page)).toBeEnabled()
   await page.getByTestId('ask-tab').click()
   await page.getByTestId('ai-switch').uncheck()
   await expect(page.getByTestId('ai-edit')).toHaveCount(0)

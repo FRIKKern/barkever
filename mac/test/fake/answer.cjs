@@ -74,9 +74,16 @@ function answerFor(prompt) {
   return {found: true, answer: hits.map((h, i) => `${h.n.title} [${i + 1}]`).join(', ') + '.', citations: hits.map((h) => ({id: h.n.id, quote: h.quote}))}
 }
 
+const section = (prompt, tag) => (new RegExp(`<${tag}>\\n([\\s\\S]*?)\\n</${tag}>`).exec(prompt)?.[1] ?? '').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+
+function editFor(prompt) {
+  const [note] = section(prompt, 'notes')
+  return {changes: section(prompt, 'selection').map((b) => ({block: b.id, after: `Tightened. ${b.text}`})), citations: [{id: note.id, quote: note.title}]}
+}
+
 function reply(cli, prompt) {
   const b = behavior(cli)
-  return typeof b === 'object' ? b.reply : answerFor(prompt)
+  return typeof b === 'object' ? b.reply : prompt.startsWith('Edit: ') ? editFor(prompt) : answerFor(prompt)
 }
 
 module.exports = {behavior, hangs, record, refusal, reply}

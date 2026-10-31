@@ -3,13 +3,13 @@ import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, readTyping, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
-import {wikilinks, type Note} from '../lib/model'
+import {wikilinks, type Block, type Note} from '../lib/model'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
-export type BodyHandle = {focus: () => void}
+export type BodyHandle = {focus: () => void; blocks: () => Block[]; show: (blocks: Block[]) => void; selected: () => string[]}
 type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker}
 
 const FLUSH_MS = 40
@@ -30,7 +30,22 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const id = note.id
 
   const focusCanvas = () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
-  useImperativeHandle(handle, () => ({focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true))}), [])
+  const selected = () => {
+    const sel = getSelection()
+    const r = sel?.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null
+    if (!r || !canvas.current?.contains(r.commonAncestorContainer)) return []
+    return [...canvas.current.querySelectorAll('[data-bp-id]')].filter((el) => r.intersectsNode(el)).map((el) => el.getAttribute('data-bp-id')!)
+  }
+  useImperativeHandle(
+    handle,
+    () => ({
+      focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true)),
+      blocks: () => (flush(), structuredClone(canvas.current?.blocks ?? latest.current.blocks)),
+      show: (blocks) => canvas.current?.applyServerBlocks(blocks),
+      selected,
+    }),
+    [],
+  )
 
   const flush = () => {
     if (!canvas.current) return
