@@ -99,7 +99,7 @@ test("a mutant that hangs the tests counts as killed once --timeout passes", () 
   git("add", ".");
   git("commit", "-qm", "t");
   const t0 = Date.now();
-  const r = arms(dir, "HEAD~1", "--timeout", "500", "--run", "grep -q '!==' t.mjs && sleep 30.7; exit 0");
+  const r = arms(dir, "--timeout", "500", "HEAD~1", "--run", "grep -q '!==' t.mjs && sleep 30.7; exit 0");
   assert.ok(Date.now() - t0 < 10_000, `${Date.now() - t0} ms`);
   assert.match(r.stdout, /\| t\.mjs:1 \| `===` → `!==` in `a === 1` \| killed \(timeout\) \|/);
   assert.match(r.stdout, /mutants: 1 run, 1 killed, 0 survived/);
