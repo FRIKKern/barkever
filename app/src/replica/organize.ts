@@ -9,7 +9,7 @@ export const move = (n: NoteDoc, from: string | null, to: string): Change => [{n
 
 export const tagsTo = (shown: string[], tags: string[]): Change => [{tags: shown}, {tags}]
 
-export const tickAt = (n: NoteDoc, box: Spot): Change => [{body: n.body}, {body: n.body && {...n.body, blocks: ticked(n.body.blocks, box)}}]
+export const tickAt = (n: NoteDoc, box: Spot): NoteDoc => ({...n, body: n.body && {...n.body, blocks: ticked(n.body.blocks, box)}})
 
 const sameTag = (a: string) => (b: string) => a.toLowerCase() === b.toLowerCase()
 

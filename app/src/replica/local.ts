@@ -61,7 +61,7 @@ export const moveNote = (id: string, from: string | null, to: string) => edit(id
 
 export const retag = (id: string, shown: string[], tags: string[]) => edit(id, (n, server) => typed(n, server, ...tagsTo(shown, tags)))
 
-export const tick = (id: string, box: Spot) => edit(id, (n, server) => typed(n, server, ...tickAt(n, box)))
+export const tick = (id: string, box: Spot) => edit(id, (n) => tickAt(n, box))
 
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 

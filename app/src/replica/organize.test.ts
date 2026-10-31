@@ -50,10 +50,9 @@ test('a typed tag matches an existing one in any case, keeps its stored spelling
 test('a tick changes only that line of the body, and a note with no body stays as it is', () => {
   const list = {id: 'c', type: 'list', task: true, items: [{text: 'Pump', checked: false}, {text: 'Oil'}]}
   const n: NoteDoc = {...server, body: {blocks: [{id: 'p', type: 'paragraph', content: []}, list]}}
-  const [shown, after] = tickAt(n, {block: 'c', item: 1})
-  assert.deepEqual(shown, {body: n.body})
-  assert.deepEqual(after, {body: {blocks: [n.body!.blocks[0], {...list, items: [{text: 'Pump', checked: false}, {text: 'Oil', checked: true}]}]}})
-  assert.deepEqual(changed(local(n, tickAt(n, {block: 'c', item: 1}))), ['body'])
+  const after = tickAt(n, {block: 'c', item: 1})
+  assert.deepEqual(after.body, {blocks: [n.body!.blocks[0], {...list, items: [{text: 'Pump', checked: false}, {text: 'Oil', checked: true}]}]})
+  assert.deepEqual(NOTE_FIELDS.filter((f) => !same(after[f], n[f])), ['body'])
   const none: NoteDoc = {...server, body: undefined}
-  assert.deepEqual(tickAt(none, {block: 'c', item: 0}), [{body: undefined}, {body: undefined}])
+  assert.deepEqual(tickAt(none, {block: 'c', item: 0}), none)
 })

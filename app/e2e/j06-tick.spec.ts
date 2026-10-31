@@ -70,6 +70,15 @@ test('J06 tick: a row box on the board ticks and unticks its line in the note, n
   await box(card, OIL).click({clickCount: 3})
   await expect(box(card, OIL)).toHaveAttribute('aria-checked', 'true')
   await expect.poll(async () => ticks(await serverNote(id)), {timeout: 15_000}).toEqual([`o ${PUMP}`, `x ${OIL}`, `  x ${RAG}`])
+  await box(card, PUMP).evaluate((b: HTMLElement) => {
+    b.click()
+    b.click()
+  })
+  await box(card, PUMP).click()
+  await expect.poll(async () => ticks(await serverNote(id)), {timeout: 15_000}).toEqual([`x ${PUMP}`, `x ${OIL}`, `  x ${RAG}`])
+  await synced(page)
+  await expect(box(card, PUMP)).toHaveAttribute('aria-checked', 'true')
+  expect((await serverNote(id))?.conflicts ?? []).toEqual([])
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({colorScheme: scheme})
     await card.scrollIntoViewIfNeeded()
