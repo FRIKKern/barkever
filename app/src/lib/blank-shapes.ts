@@ -11,6 +11,7 @@ export const HOLDING: [string, Block[]][] = [
   ['only an inline with neither value nor children', [{id: 'p', type: 'paragraph', content: [{type: 'tag'}]}]],
   ['a heading whose text is empty and whose content holds words', [{id: 'h', type: 'heading', level: 2, text: '', content: [text('Winter plan')]}]],
   ['a heading saved empty once, then given bold words', [{id: 'h', type: 'heading', level: 1, text: '', content: [{type: 'strong', children: [text('Buy rope')]}]}]],
+  ['a text leaf whose value is the number 0', [{id: 'p', type: 'paragraph', content: [{type: 'text', value: 0} as never]}]],
   ['a block of a type nobody knows', [{id: 'x', type: 'callout'}]],
 ]
 

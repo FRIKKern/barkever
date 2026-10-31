@@ -13,6 +13,7 @@ const TYPES = ['paragraph', 'heading', 'list', 'blockquote', 'text', 'strong', '
 const WORDS = ['', ' ', '\n\t', 'rope', ' knot ']
 const KEYS = ['value', 'text', 'children', 'content', 'items', 'docId', 'target', 'alias', 'href', 'caption', 'level', 'checked', 'ordered', 'task', 'src']
 const NAMES = new Set(['id', 'type', '_key', '_type'])
+const FLAGS = new Set(['level', 'task', 'ordered', 'checked'])
 
 function tree(seed: number): Block[] {
   const r = rng(seed)
@@ -32,12 +33,12 @@ function tree(seed: number): Block[] {
   return Array.from({length: 1 + Math.floor(r() * 3)}, (_, i) => ({id: `b${i}`, ...node(3)}) as Block)
 }
 
-const hasText = (x: unknown): boolean =>
-  typeof x === 'string' ? !!x.trim() : Array.isArray(x) ? x.some(hasText) : !!x && typeof x === 'object' && Object.entries(x).some(([k, v]) => !NAMES.has(k) && hasText(v))
+const hasText = (x: unknown, key = ''): boolean =>
+  typeof x === 'string' ? !!x.trim() : typeof x === 'number' ? !FLAGS.has(key) : Array.isArray(x) ? x.some((v) => hasText(v, key)) : !!x && typeof x === 'object' && Object.entries(x).some(([k, v]) => !NAMES.has(k) && hasText(v, k))
 
 const note = (blocks: Block[]): Note => ({id: 'n', title: '', notebook: null, tags: [], blocks, links: [], updatedAt: '', rev: '', conflicts: [], gen: 0})
 
-test('3000 random block trees: a note that stores any text anywhere is never blank, and some trees are blank', () => {
+test('3000 random block trees: a note that stores any text or number anywhere (0 included, outside the level and check flags) is never blank, and some trees are blank', () => {
   let blank = 0
   for (let seed = 1; seed <= 3000; seed++) {
     const blocks = tree(seed)
@@ -47,7 +48,7 @@ test('3000 random block trees: a note that stores any text anywhere is never bla
   assert.ok(blank > 30, `only ${blank} blank trees: the generator no longer reaches blank notes`)
 })
 
-test('300 random block trees in notes made here: the app-start sweep never drops one that stores any text', async () => {
+test('300 random block trees in notes made here: the app-start sweep never drops one that stores any text or number', async () => {
   for (let seed = 1; seed <= 300; seed++) {
     const d = newDevice('dev-me')
     use(d)
