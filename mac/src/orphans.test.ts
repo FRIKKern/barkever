@@ -17,7 +17,7 @@ const trapped = (dir: string) => readdirSync(dir).filter((d) => d.startsWith('ba
 const until = async (ok: () => boolean, ms: number) => {
   for (const end = Date.now() + ms; !ok() && Date.now() < end; ) await new Promise((r) => setTimeout(r, 100))
 }
-const sleeper = spawn('node', ['-e', 'setInterval(() => {}, 1000)'], {detached: true, stdio: 'ignore'})
+const sleeper = spawn('node', ['-e', 'const p = process.ppid; setInterval(() => (process.ppid !== p || process.ppid === 1) && process.exit(), 200)'], {stdio: 'ignore'})
 sleeper.unref()
 after(() => {
   for (const pid of [...alive(root), ...orphaned(), sleeper.pid!]) spawnSync('kill', ['-9', String(pid)])
@@ -25,9 +25,10 @@ after(() => {
 })
 
 for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
-  test(`fake claude and codex that hang die with their test, whether it fails, times out or passes, and with their run when it gets ${signal}`, {timeout: 60_000}, async () => {
+  test(`fake claude and codex that hang die with their test, whether it fails, times out or passes, and with their run when it gets ${signal}`, {timeout: 60_000}, async (t) => {
     const dir = mkdtempSync(join(root, `${signal}-`))
     const run = spawn('node', ['--test', '--experimental-strip-types', FIXTURE], {env: {...outside, TMPDIR: `${dir}/`}, stdio: ['ignore', 'pipe', 'ignore']})
+    t.after(() => run.kill('SIGKILL'))
     let out = ''
     run.stdout.on('data', (d) => (out += d))
     const exited = new Promise((done) => run.on('exit', done))
@@ -53,4 +54,19 @@ test('the pid left alone is still running', () => {
 test('fakeBin outside node:test registers no hook, so a Playwright worker gets no test harness', () => {
   const run = spawnSync('node', ['--experimental-strip-types', '--input-type=module', '-e', `const {fakeBin} = await import(${JSON.stringify(FAKES)}); fakeBin(); console.log('made')`], {env: {...outside, TMPDIR: `${root}/`}, encoding: 'utf8'})
   assert.deepEqual([run.status, run.stdout.trim()], [0, 'made'])
+})
+
+test('a hang fake whose parent is gone before it loads still exits', async () => {
+  const fake = fakeBin({codex: 'hang'})
+  spawnSync('sh', ['-c', `node -e 'require(process.argv[1]).hangs("codex")' ${join(fake.dir, 'answer.cjs')} &`], {stdio: 'ignore'})
+  await until(() => alive(fake.dir).length === 0, 1500)
+  assert.deepEqual(alive(fake.dir), [])
+})
+
+test('a test file whose runner is gone before it loads fakes.ts still exits', async () => {
+  const mark = join(root, 'late-loader')
+  spawnSync('sh', ['-c', `NODE_TEST_CONTEXT=child node --experimental-strip-types -e 'import(process.argv[1]); setInterval(() => {}, 1000)' ${FAKES} ${mark} &`], {stdio: 'ignore', env: outside})
+  await new Promise((r) => setTimeout(r, 300))
+  await until(() => alive(mark).length === 0, 1500)
+  assert.deepEqual(alive(mark), [])
 })

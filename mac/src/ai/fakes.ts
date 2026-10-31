@@ -56,7 +56,7 @@ const reap = (dir: string) => pidsIn(dir).filter((pid) => running(pid, dir)).for
 
 if (UNIT) {
   const parent = process.ppid
-  setInterval(() => process.ppid !== parent && process.exit(1), 200).unref()
+  setInterval(() => (process.ppid !== parent || process.ppid === 1) && process.exit(1), 200).unref()
 }
 
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
