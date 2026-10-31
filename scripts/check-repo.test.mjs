@@ -1,16 +1,19 @@
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync } from "node:fs";
+import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
+
+const temp = mkdtempSync(join(tmpdir(), "check-repo-"));
+after(() => rmSync(temp, { recursive: true, force: true }));
 
 const root = new URL("..", import.meta.url).pathname;
 const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8" })
   .split("\n").filter((f) => f && !f.startsWith("app/node_modules"));
 
 function copy() {
-  const dir = mkdtempSync(join(tmpdir(), "check-repo-"));
+  const dir = mkdtempSync(join(temp, "copy-"));
   for (const f of tracked) {
     try { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(root, f), join(dir, f)); } catch {}
   }

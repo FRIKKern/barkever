@@ -1,11 +1,14 @@
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { baseline, killers, mutate, mutantsOf } from "./mutate.mjs";
+
+const temp = mkdtempSync(join(tmpdir(), "mutate-"));
+after(() => rmSync(temp, { recursive: true, force: true }));
 
 const lines = (s) => mutantsOf(s).map((m) => m.line);
 
@@ -60,7 +63,7 @@ test("killers reads node tap, node spec and vitest failure names", () => {
 });
 
 test("each mutant runs once, the file comes back after every run, and a survivor is reported", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   const body = "export const pick = (a, b) => a || b\n";
   writeFileSync(file, body);
@@ -74,7 +77,7 @@ test("each mutant runs once, the file comes back after every run, and a survivor
 });
 
 test("Ctrl-C mid-run stops the command and restores the file", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 30.271'))`], { stdio: "ignore" });
@@ -86,7 +89,7 @@ test("Ctrl-C mid-run stops the command and restores the file", async () => {
 });
 
 test("a surviving ?? [] → || is reported as likely equivalent, the rest as survived", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const all = (a) => a ?? []\n");
   assert.deepEqual((await mutate([{ where: `${file}:1` }], "true")).map((r) => r.why), ["survived, likely equivalent", "survived", "survived"]);
@@ -122,7 +125,7 @@ test("a label still reads when the call is unclosed or the comparison has no lef
 });
 
 test("a hung command times out on time, its children with it", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   const t0 = Date.now();
@@ -132,7 +135,7 @@ test("a hung command times out on time, its children with it", async () => {
 });
 
 test("Ctrl-C leaves no test process behind", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 31.4159; true'))`], { stdio: "ignore" });
@@ -144,7 +147,7 @@ test("Ctrl-C leaves no test process behind", async () => {
 });
 
 test("a mutant the parser rejects is its own bucket, not killed", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   assert.deepEqual((await mutate([{ where: `${file}:1` }], "echo 'SyntaxError: Unexpected token'; exit 1")).map((r) => r.why), ["does not parse"]);
@@ -157,7 +160,7 @@ test("baseline is null on a green command and carries the last lines of a red on
 });
 
 test("a test process that ignores SIGTERM still dies on timeout", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   const t0 = Date.now();

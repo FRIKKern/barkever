@@ -1,14 +1,17 @@
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const temp = mkdtempSync(join(tmpdir(), "arms-"));
+after(() => rmSync(temp, { recursive: true, force: true }));
 
 const ARMS = new URL("./arms.mjs", import.meta.url).pathname;
 
 function repo() {
-  const dir = mkdtempSync(join(tmpdir(), "arms-"));
+  const dir = mkdtempSync(join(temp, "repo-"));
   const git = (...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
   git("init", "-q", "-b", "main");
   writeFileSync(join(dir, "a.mjs"), "export const x = 1\n");

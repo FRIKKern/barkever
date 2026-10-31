@@ -1,9 +1,12 @@
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const temp = mkdtempSync(join(tmpdir(), "pace-"));
+after(() => rmSync(temp, { recursive: true, force: true }));
 
 const PACE = new URL("./pace.mjs", import.meta.url).pathname;
 const SNAPSHOT_AT = "2026-10-31T12:00:00.000Z";
@@ -32,7 +35,7 @@ const PRS = [
 ];
 
 function world({ bp = "ok", gh = "ok", head, missesTotal = 2 } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "pace-"));
+  const dir = mkdtempSync(join(temp, "world-"));
   const git = (env, ...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir, env: { ...process.env, ...env } });
   const at = (date) => ({ GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date });
   const short = () => execFileSync("git", ["rev-parse", "--short", "main"], { cwd: dir, encoding: "utf8" }).trim();
@@ -70,7 +73,7 @@ function world({ bp = "ok", gh = "ok", head, missesTotal = 2 } = {}) {
 }
 
 function pace({ dir, bin }, ...args) {
-  const heavy = mkdtempSync(join(tmpdir(), "pace-heavy-"));
+  const heavy = mkdtempSync(join(temp, "heavy-"));
   const r = spawnSync(process.execPath, [PACE, ...args], { cwd: dir, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HEAVY_DIR: heavy } });
   assert.equal(r.status, 0, r.stderr);
   const rows = Object.fromEntries(r.stdout.split("\n").filter((l) => l.startsWith("| ")).map((l) => l.split(" | ").map((c) => c.replace(/^\| | \|$/g, ""))).map(([k, v, p]) => [k, { now: v, prev: p }]));
