@@ -33,14 +33,14 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const selected = () => {
     const sel = getSelection()
     const r = sel?.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null
-    if (!r || !canvas.current?.contains(r.commonAncestorContainer)) return []
-    return [...canvas.current.querySelectorAll('[data-bp-id]')].filter((el) => r.intersectsNode(el)).map((el) => el.getAttribute('data-bp-id')!)
+    if (!r) return []
+    return [...host.current!.querySelectorAll('[data-bp-id]')].filter((el) => r.intersectsNode(el)).map((el) => el.getAttribute('data-bp-id')!)
   }
   useImperativeHandle(
     handle,
     () => ({
       focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true)),
-      blocks: () => (flush(), structuredClone(canvas.current?.blocks ?? latest.current.blocks)),
+      blocks: () => (flush(), structuredClone(canvas.current!.blocks)),
       show: (blocks) => canvas.current?.applyServerBlocks(blocks),
       selected,
     }),

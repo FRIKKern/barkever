@@ -11,4 +11,6 @@ test('a word diff marks what went and what came, in reading order, and joins run
   assert.equal(marked('same  text', 'same text'), 'same text')
   assert.equal(marked('', 'new words'), '{+new words+}')
   assert.equal(marked('old words', ''), '[-old words-]')
+  assert.equal(marked('a b', 'x a b'), '{+x+} a b')
+  assert.equal(marked('x a b', 'a b'), '[-x-] a b')
 })

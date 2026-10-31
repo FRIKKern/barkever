@@ -4,8 +4,10 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {budget} from './ai/budget.ts'
+import {MAX_REQUEST} from './ai/ask.ts'
 import {EDIT_SCHEMA, EDIT_SYSTEM, checkedEdit, edit, editPrompt, type EditRequest} from './ai/edit.ts'
 import {fakeBin} from './ai/fakes.ts'
+import {NONE} from './ai/first-answer.ts'
 import {childEnv} from './ai/provider.ts'
 import {OTHER_ORIGIN, editHandler, installed, switchHandler} from './ai/serve.ts'
 import {AI_OFF, aiSwitch} from './ai/switch.ts'
@@ -38,6 +40,7 @@ test('a proposal may only change selected blocks, each once, must cite a sent no
   assert.throws(() => checkedEdit({changes: [{block: 'p0', after: 'a'}], citations: []}, REQ), /the edit cites no note/)
   assert.deepEqual(checkedEdit({changes: [], citations: []}, REQ), {changes: [], citations: []})
   assert.throws(() => checkedEdit({changes: [{block: 'p0'}], citations: []}, REQ), /the edit has the wrong shape/)
+  assert.throws(() => checkedEdit({changes: [], citations: [{id: 'fx-note-00'}]}, REQ), /the edit has the wrong shape/)
 })
 
 test('an edit runs fake claude on the selection and reports what it used; when claude fails, codex answers', async () => {
@@ -53,11 +56,18 @@ test('an edit runs fake claude on the selection and reports what it used; when c
   assert.deepEqual(fake.calls().map((c) => c.cli), ['claude', 'claude', 'codex'])
 })
 
-test('an edit too long to send is refused before any call', async () => {
+test('an edit of exactly the longest request is sent, and one character more is refused before any call', async () => {
   const fake = fakeBin()
-  const huge = {...REQ, notes: [{...REQ.notes[0], text: 'x'.repeat(130_000)}]}
-  await assert.rejects(edit(huge, {providers: installed(fake.dir), budget: roomy(), env: env(fake)}), /too long to send/)
+  const sized = (n: number) => {
+    const req = {...REQ, notes: [{...REQ.notes[0], text: ''}]}
+    return {...req, notes: [{...req.notes[0], text: 'x'.repeat(n - JSON.stringify(req).length)}]}
+  }
+  const ai = {providers: installed(fake.dir), budget: roomy(), env: env(fake)}
+  assert.equal(JSON.stringify(sized(MAX_REQUEST)).length, MAX_REQUEST)
+  await assert.rejects(edit(sized(MAX_REQUEST + 1), ai), /too long to send/)
   assert.equal(fake.calls().length, 0)
+  assert.equal((await edit(sized(MAX_REQUEST), ai)).provider, 'claude')
+  assert.equal(fake.calls().length, 1)
 })
 
 test('the edit handler answers only its own origin and refuses while the AI switch is off, before any binary runs', async () => {
@@ -71,4 +81,5 @@ test('the edit handler answers only its own origin and refuses while the AI swit
   assert.equal(fake.calls().length, 0)
   switchHandler(origin, aiSwitch(file))(from(`${origin}/`), true)
   assert.equal(((await handle(from(`${origin}/`), REQ)) as {provider: string}).provider, 'claude')
+  assert.deepEqual(await editHandler(origin, aiSwitch(file), () => ({providers: [], budget: roomy(), env: env(fake)}))(from(`${origin}/`), REQ), {error: NONE})
 })

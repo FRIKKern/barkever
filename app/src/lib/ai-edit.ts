@@ -16,4 +16,4 @@ export const editable = (blocks: Block[], ids: string[]): EditBlock[] => blocks.
 export const editRequest = (note: Note, instruction: string, blocks: EditBlock[]): EditRequest => ({instruction, note: {id: note.id, title: note.title}, blocks, notes: [asked(note)]})
 
 export const rewrite = (blocks: Block[], c: Change): Block[] =>
-  blocks.map((b) => (b.id !== c.block ? b : b.content || !b.text ? {...b, content: [{type: 'text', value: c.after}]} : {...b, text: c.after}))
+  blocks.map((b) => (b.id !== c.block ? b : b.content ? {...b, content: [{type: 'text', value: c.after}]} : {...b, text: c.after}))

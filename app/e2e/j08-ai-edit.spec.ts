@@ -21,6 +21,8 @@ function stubBridge(page: Page) {
         ask: async () => ({error: 'not in this test'}),
         edit: async (req: Sent) => {
           w.edits.push(req)
+          if (req.instruction === 'throw') throw new Error('the Mac app went away')
+          if (req.instruction === 'error') return {error: 'claude: fake claude: not signed in · codex: fake codex: not signed in'}
           const [a, b] = req.blocks.map((x) => x.id)
           return {
             changes: [
@@ -78,13 +80,17 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   await expect(changes).toHaveCount(2)
   await expect(changes.nth(0).locator('del')).toHaveText(['site', 'clear'])
   await expect(changes.nth(1).locator('ins')).toHaveText(['Due'])
-  await page.screenshot({path: test.info().outputPath(`j08-diff-dark-${page.viewportSize()!.width}.png`), animations: 'disabled'})
+  expect(await changes.nth(0).locator('p').textContent()).toBe('Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.')
+  await expect(page.getByTestId('ai-bar')).toContainText('2 changes2 to review')
   expect(content(await stored(id))).toBe(content(before))
 
   await changes.nth(0).getByTestId('ai-accept').click()
   await changes.nth(1).getByTestId('ai-reject').click()
   await expect(changes.nth(0)).toContainText('Accepted')
   await expect(changes.nth(1)).toContainText('Rejected')
+  expect(await changes.nth(0).locator('p').textContent()).toBe(P0)
+  expect(await changes.nth(1).locator('p').textContent()).toBe('Owner: Ola Testesen. Deadline end of quarter.')
+  await expect(page.getByTestId('ai-bar')).toContainText('2 changesall reviewed')
   const expected = withText(before, block(id, 'p0'), P0)
   await expect.poll(async () => content(await stored(id)), {timeout: 15_000}).toBe(expected)
   await settled(page)
@@ -92,6 +98,11 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   await expect(page.getByTestId('canvas')).toContainText(P0)
   await expect(page.getByTestId('canvas')).toContainText('Owner: Ola Testesen. Deadline end of quarter.')
 
+  await expect(page.getByTestId('ai-undo')).toBeVisible()
+  await page.keyboard.press('z')
+  await page.keyboard.press('Shift+ControlOrMeta+z')
+  await page.waitForTimeout(500)
+  expect(content(await stored(id))).toBe(expected)
   await expect(page.getByTestId('ai-undo')).toBeVisible()
   await page.keyboard.press('ControlOrMeta+z')
   await expect.poll(async () => content(await stored(id)), {timeout: 15_000}).toBe(content(before))
@@ -104,10 +115,16 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
 test('J08 AI Edit rejected in full leaves the stored note byte-identical', async ({page}) => {
   const id = await openCopy(page, 'reject')
   const before = await stored(id)
-  await runEdit(page, 'Tighten this')
+  await aiEdit(page).click()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Tighten this')
+  await page.keyboard.press('Enter')
+  expect((await edits(page)).map((e) => e.instruction)).toEqual(['Tighten this'])
   await expect(page.getByTestId('ai-change')).toHaveCount(2)
   await page.getByTestId('ai-reject-all').click()
   await expect(page.getByTestId('ai-change').filter({hasText: 'Rejected'})).toHaveCount(2)
+  await expect(page.getByTestId('ai-undo')).toHaveCount(0)
+  await page.keyboard.press('ControlOrMeta+z')
   await page.getByTestId('ai-done').click()
   await expect(page.getByTestId('ai-bar')).toHaveCount(0)
   await settled(page)
@@ -115,11 +132,61 @@ test('J08 AI Edit rejected in full leaves the stored note byte-identical', async
   await expect(page.getByTestId('canvas')).toContainText('one clear call to action')
 })
 
+test('J08 Accept all after one reject stores only the rest', async ({page}) => {
+  const id = await openCopy(page, 'all')
+  const before = await stored(id)
+  await runEdit(page, 'Tighten this')
+  await page.getByTestId('ai-change').nth(0).getByTestId('ai-reject').click()
+  await page.getByTestId('ai-accept-all').click()
+  await expect(page.getByTestId('ai-change').nth(1)).toContainText('Accepted')
+  const expected = withText(before, block(id, 'p1'), P1)
+  await expect.poll(async () => content(await stored(id)), {timeout: 15_000}).toBe(expected)
+  await settled(page)
+  expect(content(await stored(id))).toBe(expected)
+})
+
+test('J08 AI Edit that fails says why and writes nothing', async ({page}) => {
+  const id = await openCopy(page, 'fail')
+  const before = await stored(id)
+  await runEdit(page, 'throw')
+  await expect(page.getByTestId('ai-error')).toHaveText('AI Edit failed. the Mac app went away')
+  await expect(page.getByTestId('ai-change')).toHaveCount(0)
+  await page.getByTestId('ai-done').click()
+  await selectBlocks(page, block(id, 'p0'), block(id, 'p1'))
+  await runEdit(page, 'error')
+  await expect(page.getByTestId('ai-error')).toHaveText('AI Edit failed. claude: fake claude: not signed in · codex: fake codex: not signed in')
+  await page.getByTestId('ai-done').click()
+  await settled(page)
+  expect(JSON.stringify(await stored(id))).toBe(JSON.stringify(before))
+})
+
 test('J08 AI Edit is gone while the AI switch is off', async ({page}) => {
-  await openCopy(page, 'off')
+  const id = await openCopy(page, 'off')
+  await expect(aiEdit(page)).toBeEnabled()
+  await page.getByTestId('title').click()
+  await expect(aiEdit(page)).toBeDisabled()
+  await selectBlocks(page, block(id, 'p0'), block(id, 'p0'))
   await expect(aiEdit(page)).toBeEnabled()
   await page.getByTestId('ask-tab').click()
   await page.getByTestId('ai-switch').uncheck()
   await expect(page.getByTestId('ai-edit')).toHaveCount(0)
   expect(await edits(page)).toEqual([])
 })
+
+for (const [width, height, label] of [[1440, 900, '✨ AI Edit'], [390, 844, '✨']] as const)
+  for (const scheme of ['light', 'dark'] as const)
+    test(`J08 AI Edit diff at ${width} in ${scheme} fits and keeps its buttons whole`, async ({page}) => {
+      await page.setViewportSize({width, height})
+      await page.emulateMedia({colorScheme: scheme})
+      await openCopy(page, `shot-${width}-${scheme}`)
+      await expect(aiEdit(page)).toHaveText(label)
+      await runEdit(page, 'Tighten this')
+      await expect(page.getByTestId('ai-change')).toHaveCount(2)
+      for (const el of [page.getByTestId('ai-bar'), page.getByTestId('ai-change').first(), page.getByTestId('ai-reject-all')]) {
+        const box = (await el.boundingBox())!
+        expect(box.x).toBeGreaterThanOrEqual(0)
+        expect(box.x + box.width).toBeLessThanOrEqual(width)
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      await page.screenshot({path: test.info().outputPath(`j08-diff-${scheme}-${width}.png`), animations: 'disabled'})
+    })

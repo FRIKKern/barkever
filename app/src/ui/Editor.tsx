@@ -42,7 +42,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
 
   useEffect(() => {
     if (prompting) return
-    const onSelect = () => setPicked(body.current?.selected() ?? [])
+    const onSelect = () => setPicked(body.current!.selected())
     document.addEventListener('selectionchange', onSelect)
     return () => document.removeEventListener('selectionchange', onSelect)
   }, [prompting])

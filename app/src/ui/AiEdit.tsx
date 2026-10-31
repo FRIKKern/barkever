@@ -66,7 +66,7 @@ export function AiBar({w, s, edit}: {w: World; s: Search; edit: Edit}) {
   const r = run.reply
   const all = run.items.map((_, i) => i)
   const pending = run.items.filter((x) => x.status === 'pending').length
-  const title = (id: string) => w.lib.notes.find((n) => n.id === id)?.title ?? id
+  const title = (id: string) => w.lib.notes.find((n) => n.id === id)!.title
   return (
     <div className="ai-head" data-testid="ai-bar">
       <div className="aibar">
@@ -121,7 +121,7 @@ export function AiBody({s, edit, title}: {s: Search; edit: Edit; title: (id?: st
 export function AiEditButton({ready, onOpen, icon}: {ready: boolean; onOpen: () => void; icon?: boolean}) {
   return (
     <button
-      className={icon ? 'icon-btn ai-btn' : 'btn ai-btn'}
+      className="btn ai-btn"
       disabled={!ready}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onOpen}
