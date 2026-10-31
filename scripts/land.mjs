@@ -36,7 +36,10 @@ step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "mai
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir);
 step("npm run check", "npm", ["run", "check"], dir);
 if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: checkpoint secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
-else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
+else {
+  step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir);
+  step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
+}
 step("push the branch", "git", ["push", "-q", "origin", branch], dir);
 if (trail) step(`link to trail ${trail}`, "entire", ["trail", "link", trail, "--branch", branch], dir);
 step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
