@@ -1,5 +1,3 @@
-import {createHash} from 'node:crypto'
-
 export type Needle = {name: string; value: string}
 
 const SHORTEST_SECRET = 16
@@ -14,10 +12,8 @@ export function secretNeedles(names: string[], env: Record<string, string | unde
   return {needles: set.filter(({value}) => value.length >= SHORTEST_SECRET), short: set.filter(({value}) => value.length < SHORTEST_SECRET).map(({name}) => name)}
 }
 
-const fingerprint = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 8)
-
 export const masked = (needles: Needle[], label: string) =>
-  needles.reduce((l, {name, value}) => l.replaceAll(value, `<${name} #${fingerprint(value)}>`), label).replace(TOKEN_SHAPES, '<bp token shape>')
+  needles.reduce((l, {name, value}) => l.replaceAll(value, `<${name}>`), label).replace(TOKEN_SHAPES, '<bp token shape>')
 
 export const exactLeaks = (needles: Needle[], where: string, text: string) => needles.filter((n) => text.includes(n.value)).map((n) => `${masked(needles, where)}: ${n.name}`)
 

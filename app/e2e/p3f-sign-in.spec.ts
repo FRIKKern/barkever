@@ -4,6 +4,8 @@ import {prefIds as ids} from './fixtures-cleanup'
 import {capture, servedFiles, serverSecrets} from './leaks'
 import {exactLeaks, leaks, masked} from './needles'
 
+const FAKE_TOKEN = `bpcanary_${'Z'.repeat(43)}`
+
 const session = async (context: BrowserContext) => (await context.cookies()).find((c) => c.name === 'bk_session')
 
 async function signIn(page: Page, password: string) {
@@ -16,11 +18,13 @@ test.describe('signed out', () => {
   test.use({storageState: {cookies: [], origins: []}})
 
   test('P3f: sign in lists your notes at the URL you wanted, no token reaches the page, sign out ends the session', async ({page, context, browser, baseURL}) => {
+    const {trace, screenshot, video} = test.info().project.use
+    expect({trace, screenshot, video, pageSnapshot: process.env.PLAYWRIGHT_NO_COPY_PROMPT}, 'a failing run writes no trace, image or page snapshot').toEqual({trace: 'off', screenshot: 'off', video: 'off', pageSnapshot: '1'})
     const received = await capture(page, async () => (await session(context))?.value)
 
     await page.goto('/?n=fx-note-01')
     await expect(page).toHaveURL(/\/sign-in\?redirect=%2F%3Fn%3Dfx-note-01$/)
-    expect(await (await page.request.get('/?n=fx-note-01')).text()).not.toContain('Harbor redesign')
+    expect((await (await page.request.get('/?n=fx-note-01')).text()).includes('Harbor redesign')).toBe(false)
 
     await signIn(page, 'not-the-password')
     await expect(page.getByRole('alert')).toHaveText('That email and password don’t match.')
@@ -31,6 +35,9 @@ test.describe('signed out', () => {
     await expect(page).toHaveURL(/\/\?n=fx-note-01$/)
     await expect(page.getByTestId('title')).toHaveValue('Harbor redesign: sitemap')
     expect(await page.getByTestId('note-row').count()).toBeGreaterThanOrEqual(50)
+    const unreadableStream = `/es-canary-${FAKE_TOKEN}`
+    await page.route(`**${unreadableStream}`, (r) => r.fulfill({status: 200, headers: {'content-type': 'text/event-stream'}, body: 'data: x\n\n'}))
+    await page.evaluate((u) => fetch(u).then((r) => r.text()), unreadableStream)
 
     const cookie = await session(context)
     expect(cookie?.httpOnly).toBe(true)
@@ -47,7 +54,7 @@ test.describe('signed out', () => {
     expect(served.built).toBeGreaterThan(0)
     expect(served.files.filter(({want, status, type}) => !want || status !== 200 || !type.includes(want)).map(({p, status, type, want}) => masked(needles, `${p} ${status} ${type} (want ${want})`))).toEqual([])
     const {seen, unreadable, streams} = await received()
-    expect(unreadable.map((u) => masked(needles, u))).toEqual([])
+    expect(unreadable.map((u) => masked(needles, u))).toEqual([expect.stringMatching(/^200 \/es-canary-<bp token shape> stream: the stream ended after \d+ characters without a welcome$/)])
     const scan = (where: string, text: string) => leaks(needles, where, text, [cookie!.value])
     const hits = [
       ...exactLeaks(needles, 'cookie value', cookie!.value),

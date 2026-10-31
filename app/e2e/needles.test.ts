@@ -46,8 +46,8 @@ test('10 000 sealed session cookies: the shape scan never hits the cookie the se
 test('a needle or a bp token shape in a label is masked, so a failure never prints it', () => {
   const needles = [{name: 'A_SECRET', value: 'synthetic-secret-for-the-mask-0001'}]
   const path = `200 /assets/synthetic-secret-for-the-mask-0001/${FAKE_TOKEN}.js`
-  const at = '200 /assets/<A_SECRET #73869e2c>/<bp token shape>.js'
+  const at = '200 /assets/<A_SECRET>/<bp token shape>.js'
   const labels = [...leaks(needles, path, `synthetic-secret-for-the-mask-0001 ${FAKE_TOKEN}`), masked(needles, `${path}: socket hang up at ${path}`)]
   assert.deepEqual(labels, [`${at}: A_SECRET`, `${at}: a bp token shape`, `${at}: socket hang up at ${at}`])
-  assert.equal(masked([{name: 'bp CLI token', value: FAKE_TOKEN}], `GET /x/${FAKE_TOKEN}`), 'GET /x/<bp CLI token #c0439f2c>')
+  assert.equal(masked([{name: 'bp CLI token', value: FAKE_TOKEN}], `GET /x/${FAKE_TOKEN}`), 'GET /x/<bp CLI token>')
 })
