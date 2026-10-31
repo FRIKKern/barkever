@@ -4,9 +4,11 @@ import { resolve } from "node:path";
 const args = process.argv.slice(2);
 const runAt = args.indexOf("--run");
 const cmd = runAt < 0 ? null : args[runAt + 1];
-if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>" [--strict]]'); process.exit(2); }
+if (runAt >= 0 && !cmd) { console.error('usage: node scripts/arms.mjs [base] [--run "<test command>" [--strict] [--timeout <ms>]]'); process.exit(2); }
 const strict = args.includes("--strict");
-const base = args.find((a, i) => !a.startsWith("--") && (runAt < 0 || i !== runAt + 1)) ?? "main";
+const timeoutAt = args.indexOf("--timeout");
+const timeout = timeoutAt < 0 ? 600_000 : Number(args[timeoutAt + 1]);
+const base = args.find((a, i) => !a.startsWith("--") && ![runAt, timeoutAt].some((f) => f >= 0 && i === f + 1)) ?? "main";
 const code = /\.(tsx?|mjs|js|exs?|go)$/;
 const isTest = /(^|\/)(test|tests)\/|\.(test|spec)\.|_test\.(exs|go)$/;
 
@@ -49,9 +51,9 @@ async function runMutants() {
   const files = [...new Set(targets.map((t) => t.where.slice(0, t.where.lastIndexOf(":"))))];
   const dirty = files.length && execFileSync("git", ["status", "--porcelain", "--", ...files], { encoding: "utf8", cwd: top }).trim();
   if (dirty) { console.error(`arms --run: commit first, these files have changes:\n${dirty}`); process.exit(2); }
-  const red = await baseline(cmd);
+  const red = await baseline(cmd, { timeout });
   if (red) { console.error(`arms --run: the command fails on the clean tree, so no mutant can be judged:\n${red}`); process.exit(2); }
-  const results = await mutate(targets, cmd);
+  const results = await mutate(targets, cmd, { timeout });
   const short = (w) => w.slice(top.length + 1);
   const pipe = (t) => t.replaceAll("|", "\\|");
   const is = (why) => results.filter((r) => r.why === why || (why === "killed" && r.why.startsWith("killed")));

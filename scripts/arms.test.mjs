@@ -42,7 +42,7 @@ test("a base other than main is read from the first plain argument, and Go rows 
   const dir = repo();
   const git = (...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
   git("branch", "trunk", "work");
-  writeFileSync(join(dir, "b.go"), "package b\nfunc f(a int) bool { if a == 1 { return true }; return false }\n");
+  writeFileSync(join(dir, "b.go"), "package b\nfunc f(a, b bool) bool { if a || b { return true }; return false }\n");
   writeFileSync(join(dir, "c.mjs"), "export const z = (a) => a || 3\n");
   git("add", ".");
   git("commit", "-qm", "more");
@@ -50,7 +50,7 @@ test("a base other than main is read from the first plain argument, and Go rows 
   assert.match(listed.stdout, /b\.go:2/);
   assert.doesNotMatch(listed.stdout, /a\.mjs/);
   const r = arms(dir, "trunk", "--run", "true");
-  assert.match(r.stdout, /No operator mutant: each of these needs a hand mutant\.\n\n- b\.go:2 \(branch\)/);
+  assert.match(r.stdout, /No operator mutant: each of these needs a hand mutant\.\n\n- b\.go:2 \(fallback\)/);
   assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent, 0 do not parse; 1 of 2 arm rows have no operator mutant/);
 });
 
@@ -82,7 +82,7 @@ test("it refuses to mutate a file with uncommitted changes", () => {
 });
 
 test("a command that fails on the clean tree stops the run before any mutant, and writes nothing", () => {
-  for (const cmd of ["false", "nosuchcmd-xyz", "exit 3"]) {
+  for (const cmd of ["false", "nosuchcmd-xyz", "exit 3", "node --test nosuch.test.mjs", `node -e "process.exit(1)"`]) {
     const dir = repo();
     const r = arms(dir, "main", "--run", cmd);
     assert.equal(r.status, 2, cmd);
@@ -90,4 +90,18 @@ test("a command that fails on the clean tree stops the run before any mutant, an
     assert.doesNotMatch(r.stdout, /^mutants:/m, cmd);
     assert.equal(execFileSync("git", ["status", "--porcelain"], { cwd: dir, encoding: "utf8" }), "", cmd);
   }
+});
+
+test("a mutant that hangs the tests counts as killed once --timeout passes", () => {
+  const dir = repo();
+  const git = (...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
+  writeFileSync(join(dir, "t.mjs"), "export const t = (a) => (a === 1 ? 1 : 0)\n");
+  git("add", ".");
+  git("commit", "-qm", "t");
+  const t0 = Date.now();
+  const r = arms(dir, "HEAD~1", "--timeout", "500", "--run", "grep -q '!==' t.mjs && sleep 30.7; exit 0");
+  assert.ok(Date.now() - t0 < 10_000, `${Date.now() - t0} ms`);
+  assert.match(r.stdout, /\| t\.mjs:1 \| `===` → `!==` in `a === 1` \| killed \(timeout\) \|/);
+  assert.match(r.stdout, /mutants: 1 run, 1 killed, 0 survived/);
+  assert.equal(r.status, 0);
 });

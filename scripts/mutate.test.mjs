@@ -155,3 +155,15 @@ test("baseline is null on a green command and carries the last lines of a red on
   assert.equal(await baseline("echo one; echo two; exit 1"), "one\ntwo");
   assert.equal(await baseline("exit 4"), "exit 4");
 });
+
+test("a test process that ignores SIGTERM still dies on timeout", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  const file = join(dir, "f.mjs");
+  writeFileSync(file, "export const x = a === b\n");
+  const t0 = Date.now();
+  const [r] = await mutate([{ where: `${file}:1` }], `sh -c 'trap "" TERM; sleep 30.9'`, { timeout: 500 });
+  assert.equal(r.why, "killed (timeout)");
+  assert.ok(Date.now() - t0 < 5000);
+  await new Promise((r) => setTimeout(r, 200));
+  assert.notEqual(spawnSync("pgrep", ["-f", "sleep 30.9"]).status, 0);
+});
