@@ -1,4 +1,4 @@
-# 0031 Codex's login stays in the owner's auth.json file
+# 0032 Codex's login stays in the owner's auth.json file
 
 Accepted 2026-10-31. Supersedes the login part of [0030](0030-codex-runs-as-exec-not-sdk.md).
 
