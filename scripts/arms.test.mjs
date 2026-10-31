@@ -53,6 +53,7 @@ test("a --timeout that is not a whole number of ms from 1 to 2147483647, or is w
   assert.equal(r.status, 2);
   assert.match(r.stderr, /--timeout .* got --run/);
   assert.doesNotMatch(arms(repo(), "main", "--run", "exit 0", "--timeout", "2147483647").stderr, /usage:/);
+  assert.doesNotMatch(arms(repo(), "main", "--run", "true --timeout=5").stderr, /usage:/);
 });
 
 test("a base other than main is read from the first plain argument, and Go rows are listed but not mutated", () => {
