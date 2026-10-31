@@ -155,7 +155,7 @@ function useHeldOrder(notes: Note[], rows: RefObject<HTMLDivElement | null>): No
     const el = rows.current!
     let press: AbortController | undefined
     const down = (e: PointerEvent) => {
-      if (e.button !== 0 || !e.isPrimary) return
+      if (e.button !== 0) return
       press?.abort()
       const mine = (press = new AbortController())
       setHeld(latest.current)
