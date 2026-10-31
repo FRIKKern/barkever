@@ -4,7 +4,7 @@ import {appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync} from 'no
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {after, test} from 'node:test'
-import {fakeBin} from './ai/fakes.ts'
+import {PARENT_WATCH, fakeBin} from './ai/fakes.ts'
 
 const FIXTURE = new URL('../test/hanging-fakes.ts', import.meta.url).pathname
 const FAKES = new URL('./ai/fakes.ts', import.meta.url).pathname
@@ -17,7 +17,7 @@ const trapped = (dir: string) => readdirSync(dir).filter((d) => d.startsWith('ba
 const until = async (ok: () => boolean, ms: number) => {
   for (const end = Date.now() + ms; !ok() && Date.now() < end; ) await new Promise((r) => setTimeout(r, 100))
 }
-const sleeper = spawn('node', ['-e', 'const p = process.ppid; setInterval(() => (process.ppid !== p || process.ppid === 1) && process.exit(), 200)'], {stdio: 'ignore'})
+const sleeper = spawn('node', ['--require', PARENT_WATCH, '-e', 'setInterval(() => {}, 1000)'], {stdio: 'ignore'})
 sleeper.unref()
 after(() => {
   for (const pid of [...alive(root), ...orphaned(), sleeper.pid!]) spawnSync('kill', ['-9', String(pid)])
@@ -27,7 +27,7 @@ after(() => {
 for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
   test(`fake claude and codex that hang die with their test, whether it fails, times out or passes, and with their run when it gets ${signal}`, {timeout: 60_000}, async (t) => {
     const dir = mkdtempSync(join(root, `${signal}-`))
-    const run = spawn('node', ['--test', '--experimental-strip-types', FIXTURE], {env: {...outside, TMPDIR: `${dir}/`}, stdio: ['ignore', 'pipe', 'ignore']})
+    const run = spawn('node', ['--require', PARENT_WATCH, '--test', '--experimental-strip-types', FIXTURE], {env: {...outside, TMPDIR: `${dir}/`}, stdio: ['ignore', 'pipe', 'ignore']})
     t.after(() => run.kill('SIGKILL'))
     let out = ''
     run.stdout.on('data', (d) => (out += d))

@@ -3,8 +3,7 @@ const {basename, join} = require('node:path')
 
 const HERE = __dirname
 appendFileSync(join(HERE, 'pids'), `${process.pid}\n`)
-const parent = process.ppid
-setInterval(() => (process.ppid !== parent || process.ppid === 1) && process.exit(1), 200).unref()
+require('./parent-watch.cjs')
 const FORBIDDEN = /API_KEY|AUTH_TOKEN|OAUTH_TOKEN|^CLAUDECODE$|^CLAUDE_CODE_SSE_PORT$|^OPENAI_|^CODEX_(?!HOME$)/
 
 function behavior(cli) {

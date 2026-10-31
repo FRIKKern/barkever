@@ -1,4 +1,5 @@
 import {spawnSync} from 'node:child_process'
+import {createRequire} from 'node:module'
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
@@ -54,10 +55,9 @@ const pidsIn = (dir: string) => (existsSync(join(dir, 'pids')) ? readFileSync(jo
 
 const reap = (dir: string) => pidsIn(dir).filter((pid) => running(pid, dir)).forEach(kill)
 
-if (UNIT) {
-  const parent = process.ppid
-  setInterval(() => (process.ppid !== parent || process.ppid === 1) && process.exit(1), 200).unref()
-}
+export const PARENT_WATCH = join(FAKES, 'parent-watch.cjs')
+
+if (UNIT) createRequire(import.meta.url)(PARENT_WATCH)
 
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'barkever-fake-bin-'))
