@@ -59,7 +59,7 @@ function refusal(cli, args, flags, own = []) {
   if (behavior(cli) === 'fail') return `fake ${cli}: not signed in`
 }
 
-const hangs = (cli) => behavior(cli) === 'hang' && (process.on('SIGTERM', () => appendFileSync(join(HERE, 'sigterm'), `${process.pid}\n`)), appendFileSync(join(HERE, 'trapped'), `${cli} ${process.pid}\n`), setInterval(() => {}, 1000))
+const hangs = (cli) => behavior(cli) === 'hang' && (process.on('SIGTERM', () => appendFileSync(join(HERE, 'sigterm'), `${process.pid} ${Date.now()}\n`)), appendFileSync(join(HERE, 'trapped'), `${cli} ${process.pid}\n`), setInterval(() => {}, 1000))
 
 const WORD = /[\p{L}\p{N}]{4,}/gu
 

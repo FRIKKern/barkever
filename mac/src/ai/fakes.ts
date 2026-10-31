@@ -70,7 +70,7 @@ export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> 
   behave(behavior)
   const read = (file: string) => (existsSync(join(dir, file)) ? readFileSync(join(dir, file), 'utf8').trim().split('\n') : [])
   const calls = (): FakeCall[] => read('calls.jsonl').map((l) => JSON.parse(l))
-  const termed = () => read('sigterm').map(Number)
+  const termed = () => Object.fromEntries(read('sigterm').map((l) => l.split(' ').map(Number)))
   const trapped = (): Record<string, number> => Object.fromEntries(read('trapped').map((l) => l.split(' ')).map(([cli, pid]) => [cli, Number(pid)]))
   if (UNIT) after(() => reap(dir))
   return {dir, home: ownerHome(), behave, calls, termed, trapped}

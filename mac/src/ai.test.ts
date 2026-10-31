@@ -185,9 +185,10 @@ test('a CLI that never answers, even one that traps SIGTERM, is rejected at the 
   assert.ok(Math.max(...took) < HANG_TIMEOUT_MS + 1000, `took ${took} ms`)
   const trapped = fake.trapped()
   for (const cli of ['codex', 'claude']) assert.ok(trapped[cli], `fake ${cli} had not trapped SIGTERM when the ${HANG_TIMEOUT_MS / 1000} s timeout fired: it started slower than the timeout`)
-  assert.ok(await until(() => fake.termed().includes(trapped.codex), GRACE_MS), 'fake codex never logged its SIGTERM')
-  assert.ok(!gone(trapped.codex), 'fake codex died of a SIGTERM it traps')
+  assert.ok(await until(() => !!fake.termed()[trapped.codex], GRACE_MS), 'fake codex never logged its SIGTERM')
   assert.ok(await until(() => gone(trapped.codex), GRACE_MS + 5000), 'fake codex outlived its SIGKILL')
+  const graced = Date.now() - fake.termed()[trapped.codex]
+  assert.ok(graced >= GRACE_MS / 2, `fake codex was killed ${graced} ms after its SIGTERM, inside the ${GRACE_MS} ms grace`)
   assert.ok(await until(() => gone(trapped.claude), SDK_GRACE_MS + 5000), 'fake claude outlived its SIGKILL')
 })
 
