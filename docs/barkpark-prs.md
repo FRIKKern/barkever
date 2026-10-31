@@ -34,7 +34,7 @@ Each row is a bug a reviewer found that the builder could have found first.
 | **Run locally every step of every job your diff touches**, and every gate that passed on the previous head (boundary, census, doc budgets, repo-papers freshness, format, prod compile) | #24743: Boundary gate red after the push; #24761: ran doc budgets but not repo-papers freshness |
 | Docs and the PR body claim only what a test or your own probe proves | #24750: "replaying changes nothing"; #24743: cited a probe nobody ran |
 
-Put the table in the PR body, with one line per row: what you tried and what happened.
+Put the table in the PR body, with one line per row: what you tried and what happened. The body also says "Barkever" and carries a `Task: <id>` line: pace.mjs counts merged PRs by `barkever in:body`, and Barkpark CI refuses a PR with no active task.
 
 ## Flow
 
