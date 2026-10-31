@@ -8,10 +8,10 @@ const reviewed = flag("--reviewed");
 if (!branch || branch === "main") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha> [--trail <n>]"); process.exit(2); }
 
 const git = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-const step = (label, cmd, args, cwd) => {
+const step = (label, cmd, args, cwd, undo = () => "") => {
   console.error(`land: ${label}`);
   try { execFileSync(cmd, args, { cwd, stdio: "inherit" }); }
-  catch { console.error(`land: ${label} failed; main is untouched`); process.exit(1); }
+  catch { console.error(`land: ${label} failed${undo()}; main is untouched`); process.exit(1); }
 };
 
 const here = git(["rev-parse", "--show-toplevel"]);
@@ -33,7 +33,12 @@ if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(r
 }
 
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
-step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir);
+const abortRebase = () => {
+  const conflicts = git(["diff", "--name-only", "--diff-filter=U"], dir).replaceAll("\n", ", ");
+  git(["rebase", "--abort"], dir);
+  return ` on ${conflicts}; rebase aborted, ${branch} is back at ${head.slice(0, 10)}`;
+};
+step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
 step("npm run check", "npm", ["run", "check"], dir);
 if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: checkpoint secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
 else {
