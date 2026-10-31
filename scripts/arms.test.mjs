@@ -48,9 +48,10 @@ test("a --timeout that is not a whole number of ms above 0 is a usage error nami
     assert.doesNotMatch(r.stderr, /clean tree/, bad.join(" "));
     assert.equal(existsSync(join(dir, "ran")), false, bad.join(" "));
   }
+  assert.match(arms(repo(), "main", "--run", "exit 0", "--timeout").stderr, /got nothing/);
   const r = arms(repo(), "main", "--timeout", "--run", "exit 0");
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /--timeout/);
+  assert.match(r.stderr, /--timeout .* got --run/);
 });
 
 test("a base other than main is read from the first plain argument, and Go rows are listed but not mutated", () => {
