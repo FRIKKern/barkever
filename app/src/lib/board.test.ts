@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 import {board, findLine, lineKey, lineOf, summary, textSum} from './board.ts'
 import {toNote, toNotebook, type BpNote, type BpNotebook} from './note-docs.ts'
 import {indexLinks} from './links.ts'
-import {blockText, type Block, type Item, type Note, type Notebook} from './model.ts'
+import {blockText, type Block, type Inline, type Item, type Note, type Notebook} from './model.ts'
 import {shelve} from './notebooks.ts'
 import {find} from './search.ts'
 
@@ -54,6 +54,18 @@ test('a line key names the block, the item, a sum of its stored words and which 
   for (const x of long) assert.equal(lineOf(`b:0:${x}:0`)?.sum, x)
   const bad = [undefined, '', 'abc', 'b:1:a', ':1:a:0', 'b::a:0', 'b:1::0', 'b:1:a:', 'b:-1:a:0', 'b:1.5:a:0', 'b: 1:a:0', 'b:1234567:a:0', 'b:1:ABC:0', 'b:1:12345678:0', 'b:1:a b:0', 'b:1:a:-1', 'b:1:a:1234567', 'b:1:a:x']
   for (const x of bad) assert.equal(lineOf(x), undefined, String(x))
+})
+
+test('a bold or italic line is a task with its words, and its link finds it after a line is added above', () => {
+  const wrap = (type: string, ...children: Inline[]): Inline => ({type, children})
+  const rope = {content: [wrap('strong', ...text('Buy')), ...text(' rope')]}
+  const chain = {content: [wrap('em', ...text('Oil'), wrap('strong', ...text(' the chain')))], checked: true}
+  const b = board([note('n', [checklist('c', [{text: 'Weigh'}, rope, chain])])], shelve([nb('a')]), () => undefined)
+  const tasks = b.columns[0].cards[0].tasks
+  assert.deepEqual(tasks.map((t) => [t.text, t.done]), [['Weigh', false], ['Buy rope', false], ['Oil the chain', true]])
+  assert.equal(textSum(rope), textSum({text: 'Buy rope'}))
+  const later = [checklist('c', [{text: 'New'}, {text: 'Weigh'}, rope, chain])]
+  assert.deepEqual(tasks.map((t) => findLine(later, t.line)), [{block: 'c', item: 1}, {block: 'c', item: 2}, {block: 'c', item: 3}])
 })
 
 test('the sum reads stored words only: a tick, a renamed link target or a new item shape keep it; new words change it', () => {

@@ -121,6 +121,7 @@ test('J06 plan: checklist lines are cards on the Tasks board; a card opens its n
   await expect(task(page, SUB)).toHaveClass(/\bsub\b/)
   await expect(task(page, TASK)).not.toHaveClass(/\bsub\b/)
   await expect(task(page, TASK)).toHaveAccessibleName(`to do ${TASK}`)
+  await expect(task(page, TASK).getByRole('img', {name: 'to do', exact: true})).toBeVisible()
   await expect(page.locator('.cols').getByRole('checkbox')).toHaveCount(0)
   expect(await page.locator('.cols .cb').evaluateAll((boxes) => boxes.filter((b) => (b as HTMLElement).tabIndex >= 0).length)).toBe(0)
   const parentLine = new URL(await task(page, TASK).getAttribute('href') ?? '', 'http://x').searchParams.get('line')
@@ -142,6 +143,7 @@ test('J06 plan: checklist lines are cards on the Tasks board; a card opens its n
   await tallied(page, {open: before.open + 1, done: before.done + 1, lists: before.lists + 1})
   await expect(task(page, TASK)).toHaveClass(/\bdone\b/)
   await expect(task(page, TASK)).toHaveAccessibleName(`done ${TASK}`)
+  await expect(task(page, TASK).getByRole('img', {name: 'done', exact: true})).toBeVisible()
   await page.getByTestId('task-card').filter({hasText: TITLE}).getByRole('link', {name: TITLE}).click()
   expect(search(page)).toEqual({n: id})
   await page.goBack()
@@ -202,7 +204,7 @@ test.describe('with the editor blocked', () => {
   })
 })
 
-test('J06 remote: a line added above moves the mark with its own line, twins too; a checklist deleted while the board is open takes its card, and its old link says the line is gone', async ({page}) => {
+test('J06 remote: a line added above moves the mark with its own line, twins and a bold line too; a checklist deleted while the board is open takes its card, and its old link says the line is gone', async ({page}) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await page.emulateMedia({colorScheme: 'dark'})
@@ -210,9 +212,10 @@ test('J06 remote: a line added above moves the mark with its own line, twins too
   created.push(id)
   const block = 'rl"] , body { display: none } [a="'
   const item = (value: string) => ({content: [{type: 'text', value}], checked: false})
-  const body = (items?: ReturnType<typeof item>[]) => ({blocks: [{id: `${id}-p0`, type: 'paragraph', content: [{type: 'text', value: 'Ship it Friday.'}]}, ...(items ? [{id: block, type: 'list', task: true, items}] : [])]})
+  const pack = {content: [{type: 'strong', children: [{type: 'text', value: 'Pack'}]}, {type: 'text', value: ' the box'}], checked: false}
+  const body = (items?: unknown[]) => ({blocks: [{id: `${id}-p0`, type: 'paragraph', content: [{type: 'text', value: 'Ship it Friday.'}]}, ...(items ? [{id: block, type: 'list', task: true, items}] : [])]})
   const write = async (mutations: unknown[]) => expect((await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations})})).ok).toBe(true)
-  await write([{createOrReplace: {_id: id, _type: 'note', title: REMOTE, notebook: {_type: 'reference', _ref: 'fx-nb-inbox'}, tags: [], links: [], body: body([item('Print the label'), item('Pack the box'), item('Print the label')])}}, {publish: {id, type: 'note'}}])
+  await write([{createOrReplace: {_id: id, _type: 'note', title: REMOTE, notebook: {_type: 'reference', _ref: 'fx-nb-inbox'}, tags: [], links: [], body: body([item('Print the label'), pack, item('Print the label')])}}, {publish: {id, type: 'note'}}])
 
   await page.goto('/?view=tasks')
   await expect(task(page, 'Print the label')).toHaveCount(2, {timeout: 30_000})
@@ -223,7 +226,7 @@ test('J06 remote: a line added above moves the mark with its own line, twins too
   await atLine(page, old)
   await expect(page.locator('body')).toBeVisible()
 
-  await write([{patch: {id, type: 'note', set: {body: body([item('Find the address'), item('Print the label'), item('Pack the box'), item('Print the label')])}}}])
+  await write([{patch: {id, type: 'note', set: {body: body([item('Find the address'), item('Print the label'), pack, item('Print the label')])}}}])
   await expect(page.getByTestId('canvas').locator('[data-type="taskList"] li p')).toHaveText(['Find the address', 'Print the label', 'Pack the box', 'Print the label'], {timeout: 15_000})
   expect(search(page).line).toBe(old)
   await atLine(page, {block, item: 3})
@@ -231,6 +234,12 @@ test('J06 remote: a line added above moves the mark with its own line, twins too
 
   await page.goBack()
   await expect(page.getByTestId('task-card').filter({hasText: REMOTE}).getByTestId('task')).toHaveText([/Find the address/, /Print the label/, /Pack the box/, /Print the label/])
+  const bold = await linkOf(task(page, 'Pack the box'))
+  expect(spotOf(bold)).toMatchObject({block, item: 2, nth: 0})
+  await task(page, 'Pack the box').click()
+  await atLine(page, bold)
+  await expect(lineAt(page, bold).locator('p strong')).toHaveText('Pack')
+  await page.goBack()
   const before = await tally(page)
   await write([{patch: {id, type: 'note', set: {body: body()}}}])
   await expect(page.getByTestId('task-card').filter({hasText: REMOTE})).toHaveCount(0, {timeout: 15_000})
