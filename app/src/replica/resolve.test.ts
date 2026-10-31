@@ -131,3 +131,10 @@ test('Keep this removes the kept copy even when the main moved since it was show
     assert.ok(!out.conflicts?.some((c) => c._key === 'k1'), k1.clash[0])
   }
 })
+
+test('copies identical but for their key keep one latest whatever the order', () => {
+  const twin = (key: string) => copy(key, 1, 'A', ['body:a'], 'T', [p('a', 'x')])
+  const latest = () => groups(shuffled([twin('local-b~1'), twin('local-a~1')]))[0].latest._key
+  assert.equal(rounds(latest), 1)
+  assert.equal(latest(), 'local-b~1')
+})
