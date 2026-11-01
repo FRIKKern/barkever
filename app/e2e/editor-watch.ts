@@ -18,7 +18,7 @@ const watch = () => {
   document.addEventListener('selectionchange', () => say(`caret ${caret()}`))
   type Tr = {docChanged: boolean; selection: {head: number}; meta: Record<string, unknown>}
   type View = {state: {selection: {head: number}}; dispatch(tr: Tr): void; updateState(state: unknown): void; watched?: boolean}
-  const from = () => (new Error().stack ?? '').split('\n').slice(3, 6).map((l) => l.trim().replace(/\(?https?:\/\/[^/]+/, '(')).join(' < ')
+  const from = (frames = 3) => (new Error().stack ?? '').split('\n').slice(3, 3 + frames).map((l) => l.trim().replace(/\(?https?:\/\/[^/]+/, '(')).join(' < ')
   const watchView = () => {
     const view = (document.querySelector('[contenteditable="true"]') as (Element & {editor?: {view?: View}}) | null)?.editor?.view
     if (!view || view.watched) return
@@ -35,11 +35,12 @@ const watch = () => {
     }
   }
   document.addEventListener('keydown', (e) => (watchView(), say(`key ${e.key}`)), true)
+  Error.stackTraceLimit = 16
   for (const name of ['collapse', 'setPosition', 'setBaseAndExtent', 'extend', 'addRange', 'removeAllRanges', 'selectAllChildren'] as const) {
     const was = Selection.prototype[name] as (...a: unknown[]) => void
     Selection.prototype[name] = function (this: Selection, ...a: unknown[]) {
       const out = was.apply(this, a)
-      say(`selection.${name} caret ${caret()} from ${from()}`)
+      say(`selection.${name} caret ${caret()} from ${from(12)}`)
       return out
     } as never
   }
