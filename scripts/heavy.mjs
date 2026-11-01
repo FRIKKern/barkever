@@ -82,7 +82,7 @@ function take() {
 
 mkdirSync(HEAVY_DIR, { recursive: true });
 let child;
-process.on("exit", () => rmSync(wantPath, { force: true }));
+process.on("exit", () => { try { rmSync(wantPath, { force: true }); } catch (e) { if (e.code !== "ENOTDIR") throw e; } });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => (child ? child.kill(sig) : process.exit(sig === "SIGINT" ? 130 : 143)));
 const asked = Date.now();
 const born = want();

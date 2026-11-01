@@ -265,12 +265,31 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     });
   }
 
+  test("a stale want-file left under the asking run's own pid does not put it ahead of an older waiter", async () => {
+    const { dir, one, two } = await prepushAndOne();
+    const go = join(dir, "go");
+    const stale = spawn("sh", ["-c", 'echo stale > "$0/want-$$"; touch "$0/staled"; while [ ! -e "$1" ]; do sleep 0.05; done; exec "$2" "$3" job', dir, go, process.execPath, heavy], { env: env(dir, "x"), detached: true, stdio: "ignore" });
+    groups.push(stale);
+    assert.ok(await within(3000, () => existsSync(join(dir, "staled"))));
+    rmSync(join(dir, `want-${two.pid}`));
+    const older = runWith({ HEAVY_TEST_MARK: join(dir, "ran-older") }, bin, dir, "w", "job");
+    assert.ok(await within(3000, () => wants(dir).includes(`want-${older.pid}`)), "the older waiter is queued");
+    stop(two);
+    writeFileSync(go, "");
+    await sleep(500);
+    stop(one, "SIGTERM");
+    assert.ok(await within(POLL + 2000, () => existsSync(join(dir, "ran-older"))), "the older waiter starts");
+    assert.ok(!existsSync(mark(dir, "x")), "the run with the stale want-file waits");
+  });
+
   for (const signal of ["SIGTERM", "SIGINT"]) {
     test(`a run leaves no want-file once it starts, and a waiter stopped by ${signal} removes its own`, async () => {
       const { dir, two } = await prepushAndOne();
       assert.deepEqual(wants(dir), [`want-${two.pid}`]);
       stop(two, signal);
       assert.ok(await within(3000, () => wants(dir).length === 0));
+      assert.ok(await within(3000, () => two.exitCode !== null), "the waiter exits");
+      assert.equal(two.exitCode, signal === "SIGINT" ? 130 : 143);
     });
   }
 
@@ -304,6 +323,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.equal(asker.exitCode, 1);
     assert.equal(two.exitCode, 1);
     assert.match(stderr, new RegExp(`heavy: ${dir} is gone`));
+    assert.doesNotMatch(stderr, /Error|\n\s+at /, "no stack trace");
   });
 
   test("a run whose HEAVY_DIR is removed while its command runs still exits with the command's code", async () => {
