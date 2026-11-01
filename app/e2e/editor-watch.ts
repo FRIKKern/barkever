@@ -22,9 +22,8 @@ const watch = () => {
   addEventListener('barkpark-answered', () => say('answered'))
   customElements.whenDefined('bp-paper-canvas').then(() => {
     const proto = customElements.get('bp-paper-canvas')!.prototype as Record<string, (...a: unknown[]) => unknown>
-    for (const name of ['applyServerBlocks', 'acknowledgeOps', 'flushPendingChanges', 'connectedCallback', 'disconnectedCallback']) {
+    for (const name of ['applyServerBlocks', 'acknowledgeOps', 'flushPendingChanges']) {
       const was = proto[name]
-      if (!was) continue
       proto[name] = function (this: unknown, ...a: unknown[]) {
         const what = name === 'applyServerBlocks' ? ` ${(a[1] as {mode?: string} | undefined)?.mode ?? 'remote'} ${words(a[0])}` : name === 'acknowledgeOps' ? ` ${JSON.stringify(a)}` : ''
         say(`${name}${what} caret ${caret()} lines ${lines()}`)
