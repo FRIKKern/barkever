@@ -1,0 +1,13 @@
+diff --git a/app/e2e/editor-watch.ts b/app/e2e/editor-watch.ts
+index 529e2e6..4461b81 100644
+--- a/app/e2e/editor-watch.ts
++++ b/app/e2e/editor-watch.ts
+@@ -95,6 +95,8 @@ let watched: Page | undefined
+ 
+ export async function watchEditor(page: Page) {
+   watched = page
++  const bundle = process.env.CANVAS_BUNDLE
++  if (bundle) await page.context().route('**/bp-paper-editor.bundle.js', (r) => r.fulfill({path: bundle, contentType: 'text/javascript'}))
+   await page.addInitScript(watch)
+ }
+ 

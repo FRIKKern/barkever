@@ -19,8 +19,8 @@ ArrowUp moves the DOM caret ───────────┤ selectionchange
 
 **Why.** All three keep the move. B2 is upstream's own fix, so nothing is copied or patched.
 
-**Costs.** 1.42.7–1.42.9 ride along; review-24788 read the diff and checked our decorations and widgets.
+**Costs.** 1.42.7–1.42.9 ride along; review-24788 read the diff and checked our widgets; B's suite covers each node decoration (B.md).
 
-**Limits.** The e2e greens used a spike-only local bundle, unthrottled. Criterion 1 of task-15fb10381c98b141 is rerun on the deployed canvas, 10x under 4x CPU and 10x without. `__focus_resync_queued_mounted` replaces the shared test, whose precondition fails on 1.42.9.
+**Limits.** The e2e greens used a spike-only local bundle, unthrottled. Criterion 1 of task-15fb10381c98b141 is still owed: once Barkpark deploys, 10x under 4x CPU and 10x without. `__focus_resync_queued_mounted` replaces the shared test, whose precondition fails on 1.42.9.
 
 **Instead of.** [A](../../spikes/j06-focus-resync/A.md), [B1](../../spikes/j06-focus-resync/B.md). Verdict: [JUDGE.md](../../spikes/j06-focus-resync/JUDGE.md). Task: task-8ee0303670720913.
