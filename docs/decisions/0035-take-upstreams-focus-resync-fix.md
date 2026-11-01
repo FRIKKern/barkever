@@ -1,4 +1,4 @@
-# 0034 Take upstream's focus-resync fix
+# 0035 Take upstream's focus-resync fix
 
 Accepted 2026-11-01. Barkpark bumps prosemirror-view 1.42.6 → 1.42.9.
 

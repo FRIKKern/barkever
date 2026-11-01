@@ -17,7 +17,7 @@ copy rule ───── G copy-rule-ancestry  ✗ lost (464 lost seeds / 10k)
              └─ H copy-rule-never-drop ◐ won + 3 fixes (copy-rule-judge) ──► decision 0027
 
 focus resync ── I j06-focus-resync/A  ✗ lost (copies PM's focus handler)
-             └─ J j06-focus-resync/B  ✅ won: prosemirror-view 1.42.9 ──► decision 0034
+             └─ J j06-focus-resync/B  ✅ won: prosemirror-view 1.42.9 ──► decision 0035
 ```
 
 | Spike | Question | Verdict | Report |
