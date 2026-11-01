@@ -85,7 +85,11 @@ const asked = Date.now();
 const born = want();
 let slot = take();
 if (!slot) console.error(`heavy: waiting (one slot per worktree, ${SLOTS} in all)`);
-while (!slot) { await sleep(2000); slot = take(); }
+while (!slot) {
+  await sleep(2000);
+  if (!statSync(HEAVY_DIR, { throwIfNoEntry: false })?.isDirectory()) { console.error(`heavy: ${HEAVY_DIR} is gone; not waiting for a slot that cannot be written`); process.exit(1); }
+  slot = take();
+}
 rmSync(wantPath, { force: true });
 const started = Date.now();
 const release = () => { if (holder(slot)?.pid === process.pid) try { unlinkSync(slot); } catch {} };
@@ -94,6 +98,6 @@ child = spawn(cmd, args, { stdio: "inherit" });
 child.on("exit", (code, signal) => {
   release();
   const record = { at: new Date().toISOString(), cwd: process.cwd(), cmd: [cmd, ...args].join(" "), waitedS: Math.round((started - asked) / 1000), ranS: Math.round((Date.now() - started) / 1000), code: code ?? signal };
-  appendFileSync(`${HEAVY_DIR}/runs.jsonl`, JSON.stringify(record) + "\n");
+  try { appendFileSync(`${HEAVY_DIR}/runs.jsonl`, JSON.stringify(record) + "\n"); } catch {}
   process.exit(code ?? 1);
 });

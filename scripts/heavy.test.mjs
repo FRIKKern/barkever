@@ -199,7 +199,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const second = run(dir, "b", "job");
     assert.ok(await started(dir, second));
     stop(first, "SIGTERM");
-    await within(3000, () => first.exitCode !== null || first.signalCode !== null);
+    assert.ok(await within(3000, () => first.exitCode !== null || first.signalCode !== null), "the first run exits");
     assert.equal(readFileSync(join(dir, "slot-0"), "utf8").split(" ")[0], String(second.pid));
   });
 
@@ -273,6 +273,32 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(replaced, "the asker took the ghost's slot");
     assert.ok(await waits(dir, asker), "the asker does not run");
     assert.equal(readFileSync(join(dir, "slot-1"), "utf8"), theirs);
+  });
+
+  for (const gone of ["removed", "replaced by a file"]) test(`a waiting run whose HEAVY_DIR is ${gone} exits 1 naming the dir instead of polling forever`, async () => {
+    const { dir, two } = await prepushAndOne();
+    let stderr = "";
+    const asker = spawn(process.execPath, [heavy, "job"], { env: env(dir, "c"), detached: true, stdio: ["ignore", "ignore", "pipe"] });
+    groups.push(asker);
+    asker.stderr.on("data", (d) => (stderr += d));
+    assert.ok(await within(3000, () => wants(dir).length === 2), "both waiters are queued");
+    rmSync(dir, { recursive: true, force: true });
+    if (gone !== "removed") writeFileSync(dir, "");
+    assert.ok(await within(POLL + 2000, () => asker.exitCode !== null && two.exitCode !== null), "both waiters exit");
+    assert.equal(asker.exitCode, 1);
+    assert.equal(two.exitCode, 1);
+    assert.match(stderr, new RegExp(`heavy: ${dir} is gone`));
+  });
+
+  test("a run whose HEAVY_DIR is removed while its command runs still exits with the command's code", async () => {
+    const dir = slots();
+    const holder = sleeper();
+    const p = runWith({ HEAVY_TEST_PID: String(holder.pid) }, bin, dir, "a", "job");
+    assert.ok(await started(dir, p));
+    rmSync(dir, { recursive: true, force: true });
+    stop(holder);
+    assert.ok(await within(3000, () => p.exitCode !== null), "the run exits");
+    assert.equal(p.exitCode, 0);
   });
 
   const once = (slotsEnv, ...cmd) => {
