@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { HEAVY_DIR } from "./machine.mjs";
 
 const slots = process.env.HEAVY_SLOTS ?? "3";
@@ -16,6 +16,7 @@ const alive = (h) => (h.pid > 0 ? signals(h.pid) : Date.now() - Number(h.at / 10
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const owner = process.env.HEAVY_OWNER ?? execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const slotPath = (i) => `${HEAVY_DIR}/slot-${i}`;
+const wantPath = `${HEAVY_DIR}/want-${process.pid}`;
 
 function holder(slot) {
   try {
@@ -29,14 +30,36 @@ const command = (pid) => { try { return execFileSync("ps", ["-ww", "-o", "comman
 const held = () => Array.from({ length: SLOTS }, (_, i) => holder(slotPath(i))).filter((h) => h && h.pid !== process.pid && alive(h));
 const before = (me) => (h) => h.at < me.at;
 
-function crowded(live) {
-  if (live.some((h) => h.owner === owner)) return true;
+function room(live) {
   const landers = live.filter((h) => PREPUSH.test(command(h.pid))).length;
-  return !lander && landers > 0 && live.length - landers >= 1;
+  return landers ? Math.min(SLOTS - live.length, 1 - (live.length - landers)) : SLOTS - live.length;
+}
+
+const crowded = (live, queue = 0) => live.some((h) => h.owner === owner) || (!lander && room(live) <= queue);
+
+function waiting() {
+  let names = [];
+  try { names = readdirSync(HEAVY_DIR); } catch {}
+  return names.flatMap((name) => {
+    const pid = Number(name.match(/^want-(\d+)$/)?.[1]);
+    if (!pid || pid === process.pid) return [];
+    if (!signals(pid)) { try { unlinkSync(`${HEAVY_DIR}/${name}`); } catch {} return []; }
+    if (!/\bheavy\.mjs\b/.test(command(pid))) return [];
+    try { return [{ owner: readFileSync(`${HEAVY_DIR}/${name}`, "utf8"), at: statSync(`${HEAVY_DIR}/${name}`, { bigint: true }).birthtimeNs }]; } catch { return []; }
+  });
+}
+
+const ahead = (live) => waiting().filter((w) => w.at < born && !live.some((h) => h.owner === w.owner)).length;
+
+function want() {
+  rmSync(wantPath, { force: true });
+  writeFileSync(wantPath, owner);
+  return statSync(wantPath, { bigint: true }).birthtimeNs;
 }
 
 function take() {
-  if (crowded(held())) return null;
+  const live = held();
+  if (crowded(live, ahead(live))) return null;
   for (let i = 0; i < SLOTS; i++) {
     const slot = slotPath(i);
     try { writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" }); }
@@ -46,23 +69,28 @@ function take() {
       continue;
     }
     const me = holder(slot);
-    if (me && !crowded(held().filter(before(me)))) return slot;
-    try { unlinkSync(slot); } catch {}
+    const mine = () => holder(slot)?.pid === process.pid;
+    if (me && !crowded(held().filter(before(me))) && mine()) return slot;
+    if (mine()) try { unlinkSync(slot); } catch {}
     return null;
   }
   return null;
 }
 
 mkdirSync(HEAVY_DIR, { recursive: true });
+let child;
+process.on("exit", () => rmSync(wantPath, { force: true }));
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => (child ? child.kill(sig) : process.exit(sig === "SIGINT" ? 130 : 143)));
 const asked = Date.now();
+const born = want();
 let slot = take();
 if (!slot) console.error(`heavy: waiting (one slot per worktree, ${SLOTS} in all)`);
 while (!slot) { await sleep(2000); slot = take(); }
+rmSync(wantPath, { force: true });
 const started = Date.now();
 const release = () => { if (holder(slot)?.pid === process.pid) try { unlinkSync(slot); } catch {} };
 
-const child = spawn(cmd, args, { stdio: "inherit" });
-for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
+child = spawn(cmd, args, { stdio: "inherit" });
 child.on("exit", (code, signal) => {
   release();
   const record = { at: new Date().toISOString(), cwd: process.cwd(), cmd: [cmd, ...args].join(" "), waitedS: Math.round((started - asked) / 1000), ranS: Math.round((Date.now() - started) / 1000), code: code ?? signal };

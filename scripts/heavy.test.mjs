@@ -13,10 +13,17 @@ for (const tool of ["npm", "pnpm", "job"]) {
   writeFileSync(join(bin, tool), '#!/bin/sh\ntouch "$HEAVY_TEST_MARK"\nwhile kill -0 "$HEAVY_TEST_PID" 2>/dev/null; do sleep 0.2; done\n');
   chmodSync(join(bin, tool), 0o755);
 }
-const noPs = join(top, "no-ps");
-mkdirSync(noPs);
-writeFileSync(join(noPs, "ps"), "#!/bin/sh\nexit 1\n");
-chmodSync(join(noPs, "ps"), 0o755);
+writeFileSync(join(bin, "brief"), '#!/bin/sh\necho >> "$HEAVY_TEST_MARK"\nsleep 1.5\n');
+chmodSync(join(bin, "brief"), 0o755);
+const fakePs = (name, body) => {
+  const dir = join(top, name);
+  mkdirSync(dir);
+  writeFileSync(join(dir, "ps"), `#!/bin/sh\n${body}\n`);
+  chmodSync(join(dir, "ps"), 0o755);
+  return dir;
+};
+const noPs = fakePs("no-ps", "exit 1");
+const slowPs = fakePs("slow-ps", 'sleep 1\nexec /bin/ps "$@"');
 const mark = (dir, owner) => join(dir, `ran-${owner}`);
 const { HEAVY_SLOTS, ...inherited } = process.env;
 const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
@@ -34,6 +41,11 @@ const runWith = (extra, path, dir, owner, ...cmd) => {
   return p;
 };
 const run = (...a) => runOn(bin, ...a);
+const sleeper = () => {
+  const p = spawn("sleep", ["60"], { detached: true, stdio: "ignore" });
+  groups.push(p);
+  return p;
+};
 
 const holds = (dir, p) => existsSync(p.mark);
 async function within(ms, ok) {
@@ -43,6 +55,9 @@ async function within(ms, ok) {
 const POLL = 2000;
 const started = (dir, ...ps) => within(5000, () => ps.every((p) => holds(dir, p)));
 const waits = async (dir, p) => { await sleep(POLL + 1000); return !holds(dir, p); };
+const firstTry = (dir, ...ps) => within(POLL - 500, () => ps.every((p) => holds(dir, p)));
+const wants = (dir) => readdirSync(dir).filter((f) => f.startsWith("want-"));
+const gonePid = () => spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
 
 async function prepushAndOne() {
   const dir = slots();
@@ -147,14 +162,13 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
   test("a dead holder in a higher slot than the free one does not count beside a prepush", async () => {
     const dir = slots();
     assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
-    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
-    writeFileSync(join(dir, "slot-2"), `${gone} ghost`);
+    writeFileSync(join(dir, "slot-2"), `${gonePid()} ghost`);
     assert.ok(await started(dir, run(dir, "a", "job")));
   });
 
   test("when every slot holds a dead pid, the asker takes one over and starts", async () => {
     const dir = slots();
-    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
+    const gone = gonePid();
     for (const i of [0, 1, 2]) writeFileSync(join(dir, `slot-${i}`), `${gone} ghost`);
     assert.ok(await started(dir, run(dir, "a", "job")));
   });
@@ -196,6 +210,70 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
       assert.ok(await within(POLL + 2000, () => holds(held.dir, held.two)));
     });
   }
+
+  test("beside a prepush, a waiter starts before a back-to-back looper's next run", async () => {
+    const dir = slots();
+    assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
+    const looped = mark(dir, "loop");
+    const looper = spawn("sh", ["-c", 'while kill -0 "$HEAVY_TEST_PID" 2>/dev/null; do "$0" "$1" brief; done', process.execPath, heavy], { env: env(dir, "loop"), detached: true, stdio: "ignore" });
+    groups.push(looper);
+    const loops = () => (existsSync(looped) ? readFileSync(looped, "utf8").length : 0);
+    assert.ok(await within(5000, () => loops() === 1), "the looper's first run starts");
+    const waiter = run(dir, "w", "job");
+    assert.ok(await within(POLL + 2500, () => holds(dir, waiter)), "the waiter starts");
+    assert.equal(loops(), 1, "the looper ran again before the waiter");
+  });
+
+  test("runs asking at once while slots are free all start on their first try", async () => {
+    const dir = slots();
+    assert.ok(await firstTry(dir, run(dir, "a", "job"), run(dir, "b", "job"), run(dir, "c", "job")));
+  });
+
+  test("a waiter whose worktree holds a slot does not hold up other runs", async () => {
+    const dir = slots();
+    const two = { HEAVY_SLOTS: "2" };
+    assert.ok(await started(dir, runWith(two, bin, dir, "tree", "job")));
+    const twin = runWith({ ...two, HEAVY_TEST_MARK: join(dir, "ran-twin") }, bin, dir, "tree", "job");
+    assert.ok(await within(3000, () => wants(dir).includes(`want-${twin.pid}`)), "the twin waits in the queue");
+    assert.ok(await firstTry(dir, runWith(two, bin, dir, "b", "job")));
+  });
+
+  for (const [label, name] of [["a dead pid", () => `want-${gonePid()}`], ["pid 0", () => "want-0"], ["no pid", () => "want-abc"], ["a live pid that is not a heavy run", () => `want-${sleeper().pid}`]]) {
+    test(`a want-file naming ${label} never holds up the queue`, async () => {
+      const dir = slots();
+      assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
+      const stale = name();
+      writeFileSync(join(dir, stale), "stale");
+      assert.ok(await firstTry(dir, run(dir, "a", "job")));
+      if (label === "a dead pid") assert.ok(!wants(dir).includes(stale), "the dead pid's want-file is removed");
+    });
+  }
+
+  for (const signal of ["SIGTERM", "SIGINT"]) {
+    test(`a run leaves no want-file once it starts, and a waiter stopped by ${signal} removes its own`, async () => {
+      const { dir, two } = await prepushAndOne();
+      assert.deepEqual(wants(dir), [`want-${two.pid}`]);
+      stop(two, signal);
+      assert.ok(await within(3000, () => wants(dir).length === 0));
+    });
+  }
+
+  test("a run whose slot file is replaced while it checks the other holders counts as a lost race: it waits and leaves the new file", async () => {
+    const dir = slots();
+    const two = { HEAVY_SLOTS: "2" };
+    assert.ok(await started(dir, runWith(two, bin, dir, "other", "job")));
+    writeFileSync(join(dir, "slot-1"), `${gonePid()} ghost`);
+    const asker = runWith(two, slowPs, dir, "x", "job");
+    const theirs = `${process.pid} thief`;
+    const replaced = await within(5000, () => {
+      if (!existsSync(join(dir, "slot-1")) || !readFileSync(join(dir, "slot-1"), "utf8").startsWith(`${asker.pid} `)) return false;
+      writeFileSync(join(dir, "slot-1"), theirs);
+      return true;
+    });
+    assert.ok(replaced, "the asker took the ghost's slot");
+    assert.ok(await waits(dir, asker), "the asker does not run");
+    assert.equal(readFileSync(join(dir, "slot-1"), "utf8"), theirs);
+  });
 
   const once = (slotsEnv, ...cmd) => {
     const e = env(slots(), "a");
