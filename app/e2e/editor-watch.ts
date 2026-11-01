@@ -16,7 +16,25 @@ const watch = () => {
     return JSON.stringify(el?.closest('[contenteditable="true"] p')?.textContent ?? document.activeElement?.tagName ?? null)
   }
   document.addEventListener('selectionchange', () => say(`caret ${caret()}`))
-  document.addEventListener('keydown', (e) => say(`key ${e.key}`), true)
+  type Tr = {docChanged: boolean; selection: {head: number}; meta: Record<string, unknown>}
+  type View = {state: {selection: {head: number}}; dispatch(tr: Tr): void; updateState(state: unknown): void; watched?: boolean}
+  const from = () => (new Error().stack ?? '').split('\n').slice(3, 6).map((l) => l.trim().replace(/\(?https?:\/\/[^/]+/, '(')).join(' < ')
+  const watchView = () => {
+    const view = (document.querySelector('[contenteditable="true"]') as (Element & {editor?: {view?: View}}) | null)?.editor?.view
+    if (!view || view.watched) return
+    view.watched = true
+    const dispatch = view.dispatch
+    view.dispatch = function (this: View, tr: Tr) {
+      say(`dispatch sel ${this.state.selection.head}→${tr.selection.head}${tr.docChanged ? ' doc' : ''} meta [${Object.keys(tr.meta)}] caret ${caret()} from ${from()}`)
+      return dispatch.call(this, tr)
+    }
+    const updateState = view.updateState
+    view.updateState = function (this: View, state: unknown) {
+      say(`updateState sel ${this.state.selection.head}→${(state as View['state']).selection.head} caret ${caret()}`)
+      return updateState.call(this, state)
+    }
+  }
+  document.addEventListener('keydown', (e) => (watchView(), say(`key ${e.key}`)), true)
   document.addEventListener('focusin', (e) => say(`focus ${(e.target as Element).tagName}`), true)
   document.addEventListener('bp-canvas-ops', (e) => say(`ops ${JSON.stringify((e as CustomEvent).detail)} lines ${lines()}`), true)
   addEventListener('barkpark-answered', () => say('answered'))
