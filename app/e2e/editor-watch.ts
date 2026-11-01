@@ -24,14 +24,14 @@ const watch = () => {
     if (!view || view.watched) return
     view.watched = true
     const dispatch = view.dispatch
-    view.dispatch = function (this: View, tr: Tr) {
-      say(`dispatch sel ${this.state.selection.head}→${tr.selection.head}${tr.docChanged ? ' doc' : ''} meta [${Object.keys(tr.meta)}] caret ${caret()} from ${from()}`)
-      return dispatch.call(this, tr)
+    view.dispatch = (tr: Tr) => {
+      say(`dispatch sel ${view.state.selection.head}→${tr.selection.head}${tr.docChanged ? ' doc' : ''} meta [${Object.keys(tr.meta)}] caret ${caret()} from ${from()}`)
+      return dispatch.call(view, tr)
     }
     const updateState = view.updateState
-    view.updateState = function (this: View, state: unknown) {
-      say(`updateState sel ${this.state.selection.head}→${(state as View['state']).selection.head} caret ${caret()}`)
-      return updateState.call(this, state)
+    view.updateState = (state: unknown) => {
+      say(`updateState sel ${view.state.selection.head}→${(state as View['state']).selection.head} caret ${caret()}`)
+      return updateState.call(view, state)
     }
   }
   document.addEventListener('keydown', (e) => (watchView(), say(`key ${e.key}`)), true)
