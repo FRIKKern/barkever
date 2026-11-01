@@ -35,6 +35,14 @@ const watch = () => {
     }
   }
   document.addEventListener('keydown', (e) => (watchView(), say(`key ${e.key}`)), true)
+  for (const name of ['collapse', 'setPosition', 'setBaseAndExtent', 'extend', 'addRange', 'removeAllRanges', 'selectAllChildren'] as const) {
+    const was = Selection.prototype[name] as (...a: unknown[]) => void
+    Selection.prototype[name] = function (this: Selection, ...a: unknown[]) {
+      const out = was.apply(this, a)
+      say(`selection.${name} caret ${caret()} from ${from()}`)
+      return out
+    } as never
+  }
   document.addEventListener('focusin', (e) => say(`focus ${(e.target as Element).tagName}`), true)
   document.addEventListener('bp-canvas-ops', (e) => say(`ops ${JSON.stringify((e as CustomEvent).detail)} lines ${lines()}`), true)
   addEventListener('barkpark-answered', () => say('answered'))
