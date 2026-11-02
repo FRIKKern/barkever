@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {toNote, type BpNote} from './note-docs.ts'
-import {checked, editRequest, editable, newProblems, rewrite, verdict, type Change, type Edited} from './ai-edit.ts'
+import {checked, editRequest, editable, newProblems, reason, rewrite, verdict, type Change, type Edited} from './ai-edit.ts'
 import type {Block} from './model.ts'
 
 const kickoff = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((d) => d._id === 'fx-note-00').map((d) => toNote(d as BpNote))[0]
@@ -102,6 +102,13 @@ test('added errors refuse the edit with their reason; old ones only warn, and th
   assert.deepEqual(verdict({added, old: []}, reply), {reply: {error: 'The change would break this note: 9 is above 6 at /blocks/0/level'}, old: null})
   assert.deepEqual(verdict({added: [], old: added}, reply), {reply, old: '9 is above 6 at /blocks/0/level'})
   assert.deepEqual(verdict({added: [], old: []}, reply), {reply, old: null})
+})
+
+test('a reason names five problems and counts the rest', () => {
+  const many = newProblems([], [1, 2, 3, 4, 5, 6, 7].map((n) => deep(`h${n}`))).added
+  assert.equal(reason(many), [0, 1, 2, 3, 4].map((i) => `9 is above 6 at /blocks/${i}/level`).join('; ') + ' and 2 more')
+  assert.match(reason(many.slice(0, 6)), / and 1 more$/)
+  assert.equal(reason(many.slice(0, 5)), [0, 1, 2, 3, 4].map((i) => `9 is above 6 at /blocks/${i}/level`).join('; '))
 })
 
 test('a text edit on a broken note keeps its diff and names the old problem; a clean note names none', () => {

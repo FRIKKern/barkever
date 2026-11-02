@@ -64,7 +64,12 @@ export function newProblems(pre: Block[], after: Block[]): Problems {
   return {added, old}
 }
 
-export const reason = (errors: ValidationError[]) => errors.map((e) => `${e.message} at ${e.path}`).join('; ')
+const named = 5
+
+export const reason = (errors: ValidationError[]) => {
+  const shown = errors.slice(0, named).map((e) => `${e.message} at ${e.path}`).join('; ')
+  return errors.length > named ? `${shown} and ${errors.length - named} more` : shown
+}
 
 export function verdict({added, old}: Problems, reply: Edited): {reply: EditReply; old: string | null} {
   if (added.length) return {reply: {error: `The change would break this note: ${reason(added)}`}, old: null}
