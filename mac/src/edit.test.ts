@@ -74,6 +74,14 @@ test('a proposal may not add an email address that neither the instruction, the 
   assert.deepEqual(checkedEdit({changes: [{block: 'p0', after: 'Goals: faster pages on react@18.3.1.'}], citations: cite}, REQ).changes.length, 1)
 })
 
+test('the email check reads a request near the longest one in linear time', () => {
+  for (const run of ['a'.repeat(110_000), 'a.'.repeat(55_000), `x@${'a-'.repeat(55_000)}`, `x@${'a.'.repeat(55_000)}1`]) {
+    const start = performance.now()
+    assert.throws(() => checkedEdit({changes: [{block: 'p1', after: `Owner: Ola Testesen. Author: ${SIGN}`}], citations: cite}, {...REQ, notes: [{...REQ.notes[0], text: `${REQ.notes[0].text}\n${run}`}]}), LEAK)
+    assert.ok(performance.now() - start < 1000, `${run.slice(0, 6)}… took ${Math.round(performance.now() - start)} ms`)
+  }
+})
+
 test('an edit tells the model to add no name or email it was not given; a provider that signs its edit with its login is passed over, and when both sign the edit fails naming both', async () => {
   const fake = fakeBin({claude: {sign: SIGN}})
   const a = await edit(REQ, {providers: installed(fake.dir), budget: roomy(), env: env(fake)})

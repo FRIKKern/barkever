@@ -32,7 +32,7 @@ export const EDIT_SCHEMA = {
   },
 }
 
-const EMAIL = /[\w.%+-]+@(?:[\w-]+\.)+[a-z]{2,}(?![\w-])/gi
+const EMAIL = /(?<![\w.%+-])[\w.%+-]+@(?:[\w-]+\.)+[a-z]{2,}(?![\w-])/gi
 
 const emails = (texts: string[]) => new Set(texts.flatMap((t) => t.match(EMAIL) ?? []).map((e) => e.toLowerCase()))
 
