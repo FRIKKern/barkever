@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {budget} from './ai/budget.ts'
-import {MAX_REQUEST} from './ai/ask.ts'
+import {MAX_REQUEST, NO_IDENTITY} from './ai/ask.ts'
 import {EDIT_SCHEMA, EDIT_SYSTEM, checkedEdit, edit, editPrompt, type EditRequest} from './ai/edit.ts'
 import {fakeBin} from './ai/fakes.ts'
 import {NONE} from './ai/first-answer.ts'
@@ -54,6 +54,29 @@ test('an edit runs fake claude on the selection and reports what it used; when c
   fake.behave({claude: 'fail'})
   assert.equal((await edit(REQ, {providers: installed(fake.dir), budget: roomy(), env: env(fake)})).provider, 'codex')
   assert.deepEqual(fake.calls().map((c) => c.cli), ['claude', 'claude', 'codex'])
+})
+
+const SIGN = 'ada.fjell@example.test'
+const LEAK = /the edit adds an email address that is not in the note or the request/
+
+test('a proposal may not add an email address that neither the instruction, the selection nor the notes contain', () => {
+  const signed = {changes: [{block: 'p1', after: `Owner: Ola Testesen. Author: ${SIGN}`}], citations: cite}
+  assert.throws(() => checkedEdit(signed, REQ), LEAK)
+  assert.throws(() => checkedEdit({changes: [{block: 'p0', after: 'Mail ola@example.test about faster pages.'}], citations: cite}, REQ), LEAK)
+  const typedInNote = {...REQ, notes: [{...REQ.notes[0], text: `${REQ.notes[0].text}\nContact: Ada.Fjell@Example.test`}]}
+  assert.deepEqual(checkedEdit(signed, typedInNote).changes, signed.changes)
+  assert.deepEqual(checkedEdit(signed, {...REQ, instruction: `Credit ${SIGN} as author`}).changes, signed.changes)
+  assert.deepEqual(checkedEdit({changes: [{block: 'p1', after: 'Owner: @ola. Deadline end of quarter.'}], citations: cite}, REQ).changes.length, 1)
+})
+
+test('an edit tells the model to add no name or email it was not given; a provider that signs its edit with its login is passed over, and when both sign the edit fails naming both', async () => {
+  const fake = fakeBin({claude: {sign: SIGN}})
+  const a = await edit(REQ, {providers: installed(fake.dir), budget: roomy(), env: env(fake)})
+  assert.equal(a.provider, 'codex')
+  assert.deepEqual(a.changes, REQ.blocks.map((b) => ({block: b.id, after: `Tightened. ${b.text}`})))
+  assert.ok(fake.calls().every((c) => c.system.includes(NO_IDENTITY)))
+  fake.behave({claude: {sign: SIGN}, codex: {sign: SIGN}})
+  await assert.rejects(edit(REQ, {providers: installed(fake.dir), budget: roomy(), env: env(fake)}), new RegExp(`^Error: claude: ${LEAK.source} · codex: ${LEAK.source}$`))
 })
 
 test('an edit of exactly the longest request is sent, and one character more is refused before any call', async () => {

@@ -12,7 +12,7 @@ const ROOT = resolve(import.meta.dirname, '../..')
 const OUT = join(ROOT, 'docs/f04')
 
 const SYSTEM = `You write documents in PortableDoc, a JSON block format: an object with a "blocks" array.
-The portable-doc tools: validate checks a doc against the spec, explain turns its errors into plain words, apply_ops edits a doc. render is switched off in this run.
+The portable-doc tools: validate checks a doc against the spec, explain turns its errors into plain words, apply_ops edits a doc.
 Write the document the user asks for. Validate it. If validate reports errors, use explain, fix them and validate again.
 Use made-up names only, never a real person, email or account.
 Answer only with a doc that validate accepted, unchanged.`
@@ -26,7 +26,7 @@ const SCHEMA = {
   additionalProperties: false,
 }
 
-const TOOLS = ['validate', 'explain', 'apply_ops', 'render']
+const TOOLS = ['validate', 'explain', 'apply_ops']
 
 type Prompt = {id: string; prompt: string}
 type Run = {
@@ -179,7 +179,7 @@ const report = `# F04: AI-written docs through the PortableDoc MCP server
 \`\`\`
 fixtures/f04/prompts.json ──► claude ${claudeVersion}, owner login, decision 0007 sandbox
                                (no API keys, temp cwd, no settings, strict MCP, no built-in tools)
-                               └─► portable-doc-mcp @ ${PIN.slice(0, 7)}: validate · explain · apply_ops · render (off)
+                               └─► portable-doc-mcp @ ${PIN.slice(0, 7)}: validate · explain · apply_ops
 final doc ──► @portable-doc/validate @ ${PIN.slice(0, 7)}  +  Barkpark.PortableDoc.Validate @ ${barkpark.slice(0, 10)}
 \`\`\`
 

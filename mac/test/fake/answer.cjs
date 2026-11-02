@@ -77,14 +77,16 @@ function answerFor(prompt) {
 
 const section = (prompt, tag) => (new RegExp(`<${tag}>\\n([\\s\\S]*?)\\n</${tag}>`).exec(prompt)?.[1] ?? '').split('\n').filter(Boolean).map((l) => JSON.parse(l))
 
-function editFor(prompt) {
+function editFor(prompt, sign) {
   const [note] = section(prompt, 'notes')
-  return {changes: section(prompt, 'selection').map((b) => ({block: b.id, after: `Tightened. ${b.text}`})), citations: [{id: note.id, quote: note.title}]}
+  const signed = sign ? ` Author: ${sign}` : ''
+  return {changes: section(prompt, 'selection').map((b) => ({block: b.id, after: `Tightened. ${b.text}${signed}`})), citations: [{id: note.id, quote: note.title}]}
 }
 
 function reply(cli, prompt) {
   const b = behavior(cli)
-  return typeof b === 'object' ? b.reply : prompt.startsWith('Edit: ') ? editFor(prompt) : answerFor(prompt)
+  if (typeof b === 'object' && 'reply' in b) return b.reply
+  return prompt.startsWith('Edit: ') ? editFor(prompt, b.sign) : answerFor(prompt)
 }
 
 module.exports = {behavior, hangs, record, refusal, reply}
