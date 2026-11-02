@@ -32,7 +32,11 @@ export const EDIT_SCHEMA = {
   },
 }
 
-const EMAIL = /[\w.%+-]+@[\w-]+(?:\.[\w-]+)+/g
+const EMAIL = /[\w.%+-]+@(?:[\w-]+\.)+[a-z]{2,}(?![\w-])/gi
+
+const emails = (texts: string[]) => new Set(texts.flatMap((t) => t.match(EMAIL) ?? []).map((e) => e.toLowerCase()))
+
+const sentTexts = ({instruction, note, blocks, notes}: EditRequest) => [instruction, note.title, ...blocks.map((b) => b.text), ...notes.flatMap((n) => [n.title, n.text])]
 
 const lines = (xs: object[]) => xs.map((x) => JSON.stringify(x)).join('\n')
 
@@ -51,8 +55,8 @@ export function checkedEdit(data: unknown, req: EditRequest): Proposal {
   citedIn(citations, req.notes)
   const real = changes.filter((c) => c.after.trim() !== before.get(c.block)!.trim())
   if (real.length && !citations.length) throw new Error('the edit cites no note')
-  const sent = JSON.stringify(req).toLowerCase()
-  if (real.some((c) => (c.after.match(EMAIL) ?? []).some((e) => !sent.includes(e.toLowerCase())))) throw new Error('the edit adds an email address that is not in the note or the request')
+  const sent = emails(sentTexts(req))
+  if ([...emails(real.map((c) => c.after))].some((e) => !sent.has(e))) throw new Error('the edit adds an email address that is not in the note or the request')
   return {changes: real, citations}
 }
 

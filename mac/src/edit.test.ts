@@ -67,6 +67,11 @@ test('a proposal may not add an email address that neither the instruction, the 
   assert.deepEqual(checkedEdit(signed, typedInNote).changes, signed.changes)
   assert.deepEqual(checkedEdit(signed, {...REQ, instruction: `Credit ${SIGN} as author`}).changes, signed.changes)
   assert.deepEqual(checkedEdit({changes: [{block: 'p1', after: 'Owner: @ola. Deadline end of quarter.'}], citations: cite}, REQ).changes.length, 1)
+  const noteHolds = (text: string) => ({...REQ, notes: [{...REQ.notes[0], text}]})
+  assert.throws(() => checkedEdit(signed, noteHolds('Contact: bob.ada.fjell@example.test')), LEAK)
+  assert.throws(() => checkedEdit(signed, noteHolds(`Contact: ${SIGN}ing.org`)), LEAK)
+  assert.deepEqual(checkedEdit(signed, noteHolds(`Owner: Ola Testesen.\n${SIGN}`)).changes, signed.changes)
+  assert.deepEqual(checkedEdit({changes: [{block: 'p0', after: 'Goals: faster pages on react@18.3.1.'}], citations: cite}, REQ).changes.length, 1)
 })
 
 test('an edit tells the model to add no name or email it was not given; a provider that signs its edit with its login is passed over, and when both sign the edit fails naming both', async () => {
