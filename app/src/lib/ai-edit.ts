@@ -27,7 +27,7 @@ const problemsOf = (blocks: Block[]) => {
 const ownId = (x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) && typeof (x as {id?: unknown}).id === 'string' ? (x as {id: string}).id : '')
 
 const placeOf = (e: ValidationError, blocks: Block[]) => {
-  const steps = e.path.split('/').slice(1).map((s) => s.replaceAll('~1', '/').replaceAll('~0', '~'))
+  const steps = e.path.split('/').slice(1)
   let at: unknown = {blocks}
   let id = ''
   let from = 0
@@ -51,10 +51,12 @@ export function newProblems(pre: Block[], after: Block[]): Problems {
   const old: ValidationError[] = []
   for (const e of problemsOf(after)) {
     const place = placeOf(e, after)
-    const n = known.get(place) ?? 0
-    known.set(place, n - 1)
-    if (n > 0) old.push(e)
-    else added.push(e)
+    const n = known.get(place)
+    if (!n) added.push(e)
+    else {
+      known.set(place, n - 1)
+      old.push(e)
+    }
   }
   return {added, old}
 }

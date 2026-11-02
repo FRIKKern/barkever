@@ -54,6 +54,19 @@ test('an id-less broken block keys by its whole path, and errors are counted, no
   assert.deepEqual(newProblems([para('d'), para('d')], [para('d'), para('d'), para('d')]).added.map((e) => e.code), ['duplicate_block_id'])
 })
 
+test('an error the note has twice in one place stays old twice', () => {
+  const dup = [para('d'), para('d'), para('d')]
+  assert.deepEqual(newProblems(dup, dup), {added: [], old: newProblems([], dup).added})
+  assert.equal(newProblems([], dup).added.length, 2)
+})
+
+test('the broken block itself is the place when it has an id, and a blank id is no place', () => {
+  const pt = {id: 'pt', _type: 'block', children: []} as unknown as Block
+  assert.deepEqual(newProblems([pt], [para('z'), pt]).added, [])
+  const blank = {id: '', type: 'heading', level: 9, text: 'x'} as unknown as Block
+  assert.deepEqual(newProblems([blank], [para('z'), blank]).added.map((e) => e.path), ['/blocks/1/level'])
+})
+
 test('a fixed error is neither added nor old', () => {
   assert.deepEqual(newProblems([deep('h')], [para('h')]), {added: [], old: []})
 })
@@ -71,6 +84,9 @@ test('a text edit on a broken note keeps its diff and names the old problem; a c
   assert.deepEqual(checked([para('a'), deep('h')], reply), {reply, old: '9 is above 6 at /blocks/1/level'})
   assert.deepEqual(checked([para('a')], reply), {reply, old: null})
   assert.deepEqual(checked([deep('h')], {error: 'boom'}), {reply: {error: 'boom'}, old: null})
+  const fixable = {id: 'f', type: 'heading', level: 2, content: 5} as unknown as Block
+  assert.match(checked([fixable], edited([])).old!, /^expected array/)
+  assert.deepEqual(checked([fixable], edited([{block: 'f', after: 'Fixed.'}])).old, null)
 })
 
 test("every synthetic fixture note validates, so AI Edit warns on none of them", () => {
