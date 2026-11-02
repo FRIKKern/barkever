@@ -36,8 +36,11 @@ const placeOf = (e: ValidationError, blocks: Block[]) => {
     at = (at as Record<string, unknown> | undefined)?.[step]
   })
   if (ownId(at)) [id, from] = [ownId(at), steps.length]
-  return JSON.stringify([e.code, id, steps.slice(from)])
+  const rest = steps.slice(from)
+  return JSON.stringify([e.code, id, id ? rest.map(anyIndex) : rest])
 }
+
+const anyIndex = (step: string) => (/^\d+$/.test(step) ? '*' : step)
 
 export type Problems = {added: ValidationError[]; old: ValidationError[]}
 

@@ -67,6 +67,31 @@ test('the broken block itself is the place when it has an id, and a blank id is 
   assert.deepEqual(newProblems([blank], [para('z'), blank]).added.map((e) => e.path), ['/blocks/1/level'])
 })
 
+test('an item added above a broken list item leaves its error old; a second broken item adds one', () => {
+  const item = (value: string) => ({content: [{type: 'text', value}]})
+  const broken = {...item('b'), checked: 'yes'}
+  const list = (items: object[]) => ({id: 'l', type: 'list', ordered: false, items}) as unknown as Block
+  assert.deepEqual(newProblems([list([item('a'), broken])], [list([item('new'), item('a'), broken])]).added, [])
+  assert.equal(newProblems([list([item('a'), broken])], [list([broken, item('a'), broken])]).added.length, 1)
+})
+
+test('text typed before a broken inline node leaves its error old', () => {
+  const p = (content: object[]) => ({id: 'p', type: 'paragraph', content}) as unknown as Block
+  const untyped = {value: 'x'}
+  const {added, old} = newProblems([p([{type: 'text', value: 'a'}, untyped])], [p([{type: 'text', value: 'new'}, {type: 'text', value: 'a'}, untyped])])
+  assert.deepEqual([added, old.map((e) => [e.code, e.path])], [[], [['missing_required_field', '/blocks/0/content/2/type']]])
+})
+
+test('another code at the same place is added', () => {
+  const after = {...deep('h'), level: true} as unknown as Block
+  assert.deepEqual(newProblems([deep('h')], [after]).added.map((e) => [e.code, e.path]), [['wrong_field_type', '/blocks/0/level']])
+})
+
+test('a nested block with an id is followed when it moves to another section', () => {
+  const section = (id: string, blocks: Block[]) => ({id, type: 'section', blocks}) as unknown as Block
+  assert.deepEqual(newProblems([section('s1', [deep('k')]), section('s2', [])], [section('s1', []), section('s2', [deep('k')])]).added, [])
+})
+
 test('a fixed error is neither added nor old', () => {
   assert.deepEqual(newProblems([deep('h')], [para('h')]), {added: [], old: []})
 })
