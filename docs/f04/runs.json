@@ -1,0 +1,4018 @@
+{
+  "pin": "82be3a836686f111bfad835649138bac846008a9",
+  "barkpark": "6918c5247c67e11dd88619ebd65631e69bb06d41",
+  "claude": "2.1.316 (Claude Code)",
+  "runs": [
+    {
+      "id": "f04-01",
+      "prompt": "A packing list for a two-day hike: a title, a short intro paragraph and a checklist of eight items, three of them already packed.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 7,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 10,
+      "tokens": 20637,
+      "costUsd": 0.06371199999999999,
+      "seconds": 20,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Packing List: Two-Day Hike"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Everything needed for a weekend on the trail with one night out. Tick items off as they go into the pack so nothing gets left behind."
+          },
+          {
+            "id": "checklist",
+            "type": "list",
+            "items": [
+              {
+                "text": "Backpack (50 L)",
+                "checked": true
+              },
+              {
+                "text": "Tent and sleeping bag",
+                "checked": true
+              },
+              {
+                "text": "Sleeping pad",
+                "checked": false
+              },
+              {
+                "text": "Rain jacket and warm layer",
+                "checked": true
+              },
+              {
+                "text": "Stove, fuel and pot",
+                "checked": false
+              },
+              {
+                "text": "Food for two days",
+                "checked": false
+              },
+              {
+                "text": "Water bottles and filter",
+                "checked": false
+              },
+              {
+                "text": "Map, compass and headlamp",
+                "checked": false
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-02",
+      "prompt": "Meeting notes for a weekly design sync: date heading, attendees as a bullet list, three decisions, and an action list with owners.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5827,
+      "costUsd": 0.031423900000000005,
+      "seconds": 10,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Weekly Design Sync — 2 November 2026"
+          },
+          {
+            "id": "h-att",
+            "type": "heading",
+            "level": 2,
+            "text": "Attendees"
+          },
+          {
+            "id": "att",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Bolla (facilitator)",
+              "Design lead",
+              "Product manager",
+              "Frontend engineer",
+              "UX researcher"
+            ]
+          },
+          {
+            "id": "h-dec",
+            "type": "heading",
+            "level": 2,
+            "text": "Decisions"
+          },
+          {
+            "id": "dec",
+            "type": "list",
+            "style": "number",
+            "items": [
+              "Adopt the updated 8px spacing scale across all new components.",
+              "Ship the redesigned onboarding flow behind a feature flag for a two-week test.",
+              "Retire the legacy icon set; all new work uses the unified icon library."
+            ]
+          },
+          {
+            "id": "h-act",
+            "type": "heading",
+            "level": 2,
+            "text": "Action items"
+          },
+          {
+            "id": "act",
+            "type": "table",
+            "header": [
+              "Action",
+              "Owner",
+              "Due"
+            ],
+            "rows": [
+              [
+                "Update spacing tokens in the design system",
+                "Design lead",
+                "9 Nov"
+              ],
+              [
+                "Set up feature flag and analytics for onboarding test",
+                "Frontend engineer",
+                "9 Nov"
+              ],
+              [
+                "Draft research plan for onboarding test",
+                "UX researcher",
+                "12 Nov"
+              ],
+              [
+                "Audit screens still using legacy icons",
+                "Bolla",
+                "16 Nov"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-03",
+      "prompt": "A recipe for tomato soup: ingredients as a list, numbered steps, and a tip in a callout.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6261,
+      "costUsd": 0.038616,
+      "seconds": 15,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Tomato Soup"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "A simple, warming tomato soup that serves four and takes about 40 minutes."
+          },
+          {
+            "id": "ing-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Ingredients"
+          },
+          {
+            "id": "ingredients",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "2 tbsp olive oil",
+              "1 tbsp butter",
+              "1 large onion, chopped",
+              "3 garlic cloves, minced",
+              "1 carrot, finely chopped",
+              "800 g canned whole tomatoes (2 cans)",
+              "500 ml vegetable stock",
+              "1 tsp sugar",
+              "1 bay leaf",
+              "Salt and black pepper to taste",
+              "100 ml cream (optional)",
+              "Fresh basil, to serve"
+            ]
+          },
+          {
+            "id": "steps-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Steps"
+          },
+          {
+            "id": "steps",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Heat the olive oil and butter in a large pot over medium heat.",
+              "Add the onion and carrot and cook for 8–10 minutes until soft.",
+              "Stir in the garlic and cook for 1 minute until fragrant.",
+              "Add the tomatoes with their juice, the stock, sugar and bay leaf.",
+              "Bring to a boil, then simmer gently for 20 minutes.",
+              "Remove the bay leaf and blend the soup until smooth.",
+              "Stir in the cream if using, and season with salt and pepper.",
+              "Serve hot, topped with torn basil."
+            ]
+          },
+          {
+            "id": "tip",
+            "type": "callout",
+            "tone": "tip",
+            "text": "Roast the tomatoes, onion and garlic at 200 °C for 30 minutes before simmering for a deeper, sweeter flavour."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-04",
+      "prompt": "A one-page project brief for a small bakery website: goals, scope, out of scope, and a timeline table with three milestones.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6683,
+      "costUsd": 0.045200699999999996,
+      "seconds": 15,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Project Brief: Bakery Website"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "A simple, mobile-friendly website for a small neighbourhood bakery. It should show what the bakery sells, when it is open, and how to place pre-orders."
+          },
+          {
+            "id": "h2",
+            "type": "heading",
+            "level": 2,
+            "text": "Goals"
+          },
+          {
+            "id": "l1",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Help local customers find opening hours, location and contact details quickly.",
+              "Show the daily range of breads, pastries and cakes with photos.",
+              "Increase custom cake and large pre-orders through a simple enquiry form.",
+              "Give the owners a site they can update themselves without technical help."
+            ]
+          },
+          {
+            "id": "h3",
+            "type": "heading",
+            "level": 2,
+            "text": "Scope"
+          },
+          {
+            "id": "l2",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Five pages: Home, Menu, About, Custom Orders, Contact.",
+              "Responsive design for phones, tablets and desktop.",
+              "Pre-order and custom cake enquiry form sent by email.",
+              "Embedded map, opening hours and links to social media.",
+              "Simple content editing for menu items, prices and announcements.",
+              "Basic SEO setup and analytics."
+            ]
+          },
+          {
+            "id": "h4",
+            "type": "heading",
+            "level": 2,
+            "text": "Out of scope"
+          },
+          {
+            "id": "l3",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Online payments and a full e-commerce checkout.",
+              "Delivery scheduling or courier integration.",
+              "Loyalty programme or customer accounts.",
+              "Professional photography (the bakery supplies photos).",
+              "Ongoing content writing after launch."
+            ]
+          },
+          {
+            "id": "h5",
+            "type": "heading",
+            "level": 2,
+            "text": "Timeline"
+          },
+          {
+            "id": "t1",
+            "type": "table",
+            "header": [
+              "Milestone",
+              "Deliverables",
+              "Target date"
+            ],
+            "rows": [
+              [
+                "1. Design approved",
+                "Sitemap, wireframes and visual design signed off",
+                "Week 2"
+              ],
+              [
+                "2. Site built",
+                "All pages, enquiry form and editing set up on a staging site",
+                "Week 5"
+              ],
+              [
+                "3. Launch",
+                "Content loaded, testing done, site live and owners trained",
+                "Week 7"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-05",
+      "prompt": "A comparison of three note-taking habits as a table with columns for habit, effort and payoff, followed by a short recommendation.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 2,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 4,
+      "tokens": 9234,
+      "costUsd": 0.0401732,
+      "seconds": 16,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "Comparing Three Note-Taking Habits"
+          },
+          {
+            "type": "table",
+            "id": "t1",
+            "rows": [
+              [
+                "Habit",
+                "Effort",
+                "Payoff"
+              ],
+              [
+                "Daily journal",
+                "Low: 10 minutes at the end of the day",
+                "Better recall and reflection over time"
+              ],
+              [
+                "Zettelkasten (linked atomic notes)",
+                "High: each note must be written, worded in your own terms and linked",
+                "Ideas build on each other; strong for research and writing"
+              ],
+              [
+                "Meeting and lecture notes",
+                "Medium: capture during the session, tidy up afterwards",
+                "Clear record of decisions and action items"
+              ]
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "Recommendation"
+          },
+          {
+            "type": "paragraph",
+            "id": "p1",
+            "text": "Start with meeting and lecture notes, because they pay off right away for medium effort. Add a short daily journal once that habit sticks. Take on a Zettelkasten only if you write or research regularly enough to justify the higher effort."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-06",
+      "prompt": "Release notes for version 2.3 of a fictional to-do app: new features, fixes, and a warning callout about a changed shortcut.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6023,
+      "costUsd": 0.034612000000000004,
+      "seconds": 14,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Taskly 2.3 Release Notes"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Taskly 2.3 adds recurring subtasks, a focus mode, and smarter reminders. It also fixes a number of bugs reported since 2.2."
+          },
+          {
+            "id": "w1",
+            "type": "callout",
+            "tone": "warning",
+            "title": "Changed shortcut",
+            "text": "Quick Add is now Ctrl/Cmd + Shift + A. It used to be Ctrl/Cmd + N, which now creates a new list. Update any custom keymaps or habits."
+          },
+          {
+            "id": "h2",
+            "type": "heading",
+            "level": 2,
+            "text": "New features"
+          },
+          {
+            "id": "l1",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Recurring subtasks: subtasks can now repeat on their own schedule, separate from their parent task.",
+              "Focus mode: hide everything except today's tasks with a single click.",
+              "Smart reminders: Taskly suggests reminder times based on when you usually finish similar tasks.",
+              "Calendar export: sync any list to an iCal feed."
+            ]
+          },
+          {
+            "id": "h3",
+            "type": "heading",
+            "level": 2,
+            "text": "Fixes"
+          },
+          {
+            "id": "l2",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Fixed tasks that were due at midnight showing up on the wrong day.",
+              "Fixed a crash when dragging a task between lists while offline.",
+              "Dark mode now applies correctly to the settings panel.",
+              "Search results now include archived tasks when that filter is turned on."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-07",
+      "prompt": "A reading list of five fictional books with one line each, grouped under two headings: fiction and non-fiction.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5694,
+      "costUsd": 0.0299154,
+      "seconds": 13,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Reading List"
+          },
+          {
+            "id": "h2",
+            "type": "heading",
+            "level": 2,
+            "text": "Fiction"
+          },
+          {
+            "id": "l1",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "The Lantern Keeper's Daughter by Mira Holloway: a lighthouse keeper's child uncovers the secret signals her father sent to ships that never existed.",
+              "Salt and Iron by Teodor Vance: two rival blacksmiths in a drowned coastal town must forge a single gate to hold back the sea.",
+              "The Cartographer of Small Hours by Ines Marlowe: a mapmaker who charts only places that appear after midnight loses her way home."
+            ]
+          },
+          {
+            "id": "h3",
+            "type": "heading",
+            "level": 2,
+            "text": "Non-fiction"
+          },
+          {
+            "id": "l2",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "A Brief History of Forgotten Clocks by Dr. Alaric Penn: how timekeeping devices shaped village life before standard time zones.",
+              "The Quiet Garden by Solveig Arndt: a practical guide to growing slow, low-maintenance gardens that need almost no water."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-08",
+      "prompt": "A how-to for setting up a home herb garden in six numbered steps, with a closing paragraph.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6077,
+      "costUsd": 0.0358116,
+      "seconds": 12,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "How to Set Up a Home Herb Garden"
+          },
+          {
+            "type": "paragraph",
+            "id": "intro",
+            "text": "Fresh herbs are easy to grow at home, whether on a windowsill, a balcony, or a small garden bed. Follow these six steps to get started."
+          },
+          {
+            "type": "list",
+            "id": "steps",
+            "ordered": true,
+            "items": [
+              "Choose your location: pick a spot that gets at least six hours of direct sunlight a day, such as a south-facing window or a sunny patio.",
+              "Select your herbs: start with easy, versatile varieties like basil, parsley, chives, mint, thyme, and rosemary, and choose ones you actually cook with.",
+              "Pick containers with drainage: use pots at least 15 cm (6 in) deep with drainage holes, and give spreading herbs like mint their own pot.",
+              "Use quality potting mix: fill containers with a light, well-draining potting mix rather than garden soil, which compacts in pots.",
+              "Plant and water: set seedlings at the same depth they grew in their nursery pots, water thoroughly, then water again whenever the top 2–3 cm of soil feels dry.",
+              "Harvest and maintain: snip leaves regularly from the top to encourage bushy growth, pinch off flower buds, and feed lightly with a balanced fertilizer every four to six weeks."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "id": "closing",
+            "text": "With a sunny spot, good drainage, and regular harvesting, your herb garden will keep your kitchen stocked with fresh flavor all season long. Start small, learn what thrives in your space, and expand as your confidence grows."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-09",
+      "prompt": "A code snippet explainer: a heading, a paragraph, a JavaScript code block that sums an array, and a paragraph explaining it.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5329,
+      "costUsd": 0.0236202,
+      "seconds": 12,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 2,
+            "text": "Summing an Array in JavaScript"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Adding up all the numbers in an array is a common task. Here is a concise way to do it using the built-in reduce method."
+          },
+          {
+            "id": "c1",
+            "type": "code",
+            "language": "javascript",
+            "code": "const numbers = [1, 2, 3, 4, 5];\n\nconst sum = numbers.reduce((total, n) => total + n, 0);\n\nconsole.log(sum); // 15"
+          },
+          {
+            "id": "p2",
+            "type": "paragraph",
+            "text": "The reduce method walks through the array and calls the callback once per element. The callback receives the running total and the current number, and returns their sum, which becomes the total for the next step. The second argument, 0, is the starting value, so an empty array safely returns 0 instead of throwing an error."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-10",
+      "prompt": "A daily plan: morning, afternoon and evening sections, each with two or three tasks as a checklist.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 5,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 8,
+      "tokens": 24239,
+      "costUsd": 0.0672636,
+      "seconds": 19,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Daily Plan"
+          },
+          {
+            "id": "morning-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Morning"
+          },
+          {
+            "id": "morning-list",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Review today's calendar and priorities",
+                "checked": false
+              },
+              {
+                "text": "Answer urgent emails",
+                "checked": false
+              },
+              {
+                "text": "Deep work on the main project",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "afternoon-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Afternoon"
+          },
+          {
+            "id": "afternoon-list",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Team check-in meeting",
+                "checked": false
+              },
+              {
+                "text": "Follow up on open tasks",
+                "checked": false
+              },
+              {
+                "text": "Take a short walk",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "evening-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Evening"
+          },
+          {
+            "id": "evening-list",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Cook dinner",
+                "checked": false
+              },
+              {
+                "text": "Plan tomorrow's top three tasks",
+                "checked": false
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-11",
+      "prompt": "A glossary of six terms from gardening, each term bold followed by its meaning.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 8,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 11,
+      "tokens": 38408,
+      "costUsd": 0.1056269,
+      "seconds": 34,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Gardening Glossary"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Six common gardening terms and what they mean."
+          },
+          {
+            "id": "term-annual",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Annual",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — a plant that completes its whole life cycle, from seed to flower to seed, within a single growing season."
+              }
+            ]
+          },
+          {
+            "id": "term-perennial",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Perennial",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — a plant that lives for more than two years, often dying back in winter and regrowing from its roots in spring."
+              }
+            ]
+          },
+          {
+            "id": "term-mulch",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Mulch",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — a layer of material, such as bark, straw or compost, spread over the soil surface to retain moisture, suppress weeds and regulate soil temperature."
+              }
+            ]
+          },
+          {
+            "id": "term-deadheading",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Deadheading",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — removing spent or faded flowers from a plant to encourage more blooms and keep it tidy."
+              }
+            ]
+          },
+          {
+            "id": "term-hardening-off",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hardening off",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — gradually getting plants raised indoors used to outdoor conditions before planting them out permanently."
+              }
+            ]
+          },
+          {
+            "id": "term-compost",
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Compost",
+                "marks": [
+                  "bold"
+                ]
+              },
+              {
+                "type": "text",
+                "text": " — decomposed organic matter, such as kitchen scraps and garden waste, used to enrich soil with nutrients and improve its structure."
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-12",
+      "prompt": "A trip itinerary for three days in a fictional coastal town, one heading per day and a bullet list of plans.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6234,
+      "costUsd": 0.0380938,
+      "seconds": 18,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h0",
+            "level": 1,
+            "text": "Three Days in Saltmere Cove"
+          },
+          {
+            "type": "paragraph",
+            "id": "p0",
+            "text": "A relaxed itinerary for a long weekend in the fictional seaside town of Saltmere Cove."
+          },
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 2,
+            "text": "Day 1: Arrival and the Harbour"
+          },
+          {
+            "type": "list",
+            "id": "l1",
+            "style": "bullet",
+            "items": [
+              "Check in at the Gull's Rest Inn on Quay Street",
+              "Stroll the harbour wall and watch the fishing boats come in",
+              "Lunch of smoked mackerel at the Tidewater Café",
+              "Afternoon visit to the Saltmere Maritime Museum",
+              "Sunset drinks at the Lantern Tavern"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "Day 2: Cliffs and Coves"
+          },
+          {
+            "type": "list",
+            "id": "l2",
+            "style": "bullet",
+            "items": [
+              "Early breakfast at the inn",
+              "Hike the Coastal Path to Bellrock Lighthouse",
+              "Picnic lunch at Hollow Sands beach",
+              "Kayak tour of the sea caves at Wren Point",
+              "Seafood dinner at The Driftwood Table"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h3",
+            "level": 2,
+            "text": "Day 3: Market and Farewell"
+          },
+          {
+            "type": "list",
+            "id": "l3",
+            "style": "bullet",
+            "items": [
+              "Browse the Sunday market on Chapel Square",
+              "Pick up local honey and sea-salt fudge as souvenirs",
+              "Take the morning boat trip to spot seals on Gannet Isle",
+              "Farewell lunch at the Pier End Bakery",
+              "Check out and catch the afternoon train home"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-13",
+      "prompt": "A decision record: context, the options considered as a list, the decision, and the consequences.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6513,
+      "costUsd": 0.042770600000000006,
+      "seconds": 15,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "ADR-001: Adopt PostgreSQL as the primary datastore"
+          },
+          {
+            "id": "meta",
+            "type": "paragraph",
+            "text": "Status: Accepted · Date: 2026-11-02 · Author: Ada Fjell"
+          },
+          {
+            "id": "h-context",
+            "type": "heading",
+            "level": 2,
+            "text": "Context"
+          },
+          {
+            "id": "p-context",
+            "type": "paragraph",
+            "text": "Our service currently stores data across several ad-hoc stores, which makes transactions, reporting and backups difficult. We need a single primary datastore that supports relational data, strong consistency, and mature operational tooling, while staying within the team's existing expertise."
+          },
+          {
+            "id": "h-options",
+            "type": "heading",
+            "level": 2,
+            "text": "Options considered"
+          },
+          {
+            "id": "l-options",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "PostgreSQL: relational, ACID transactions, rich ecosystem, team familiarity.",
+              "MySQL: relational and widely supported, but weaker support for some features we rely on (e.g. JSONB, partial indexes).",
+              "MongoDB: flexible schema, but multi-document transactions and reporting are harder for our relational data.",
+              "Keep the current mixed setup: no migration cost now, but ongoing complexity and consistency problems."
+            ]
+          },
+          {
+            "id": "h-decision",
+            "type": "heading",
+            "level": 2,
+            "text": "Decision"
+          },
+          {
+            "id": "p-decision",
+            "type": "paragraph",
+            "text": "We will adopt PostgreSQL as the primary datastore for all new and migrated service data."
+          },
+          {
+            "id": "h-consequences",
+            "type": "heading",
+            "level": 2,
+            "text": "Consequences"
+          },
+          {
+            "id": "l-consequences",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Positive: one consistent transactional store simplifies application code, reporting and backups.",
+              "Positive: the team can rely on existing PostgreSQL knowledge and tooling.",
+              "Negative: existing data must be migrated, which requires planning and a cutover window.",
+              "Negative: schema changes need migrations and review, reducing some flexibility."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-14",
+      "prompt": "A budget overview for a fictional household month as a table with category, planned and spent columns, plus a short summary.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5202,
+      "costUsd": 0.021663500000000002,
+      "seconds": 7,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Household Budget — March"
+          },
+          {
+            "id": "t1",
+            "type": "table",
+            "rows": [
+              [
+                "Category",
+                "Planned",
+                "Spent"
+              ],
+              [
+                "Rent",
+                "1,200",
+                "1,200"
+              ],
+              [
+                "Groceries",
+                "450",
+                "512"
+              ],
+              [
+                "Utilities",
+                "180",
+                "164"
+              ],
+              [
+                "Transport",
+                "120",
+                "98"
+              ],
+              [
+                "Dining out",
+                "100",
+                "143"
+              ],
+              [
+                "Savings",
+                "300",
+                "300"
+              ],
+              [
+                "Total",
+                "2,350",
+                "2,417"
+              ]
+            ]
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Spending came in 67 over plan for the month. Groceries (+62) and dining out (+43) were the main overruns, partly offset by lower utilities (−16) and transport (−22). Rent and savings landed exactly on target."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-15",
+      "prompt": "A quote collection: three short made-up quotes with their fictional authors, each set apart as a quote.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 2,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 4,
+      "tokens": 8155,
+      "costUsd": 0.0296313,
+      "seconds": 11,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "A Small Collection of Quotes"
+          },
+          {
+            "type": "quote",
+            "id": "q1",
+            "text": "The tide keeps no calendar, yet it is never late.",
+            "attribution": "Maren Holloway, Letters from the Breakwater"
+          },
+          {
+            "type": "quote",
+            "id": "q2",
+            "text": "A lantern lit for one traveler shows the road to a hundred.",
+            "attribution": "Teodor Valk"
+          },
+          {
+            "type": "quote",
+            "id": "q3",
+            "text": "Write the first line badly; the second will thank you for it.",
+            "attribution": "Iris Fenwyck"
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-16",
+      "prompt": "A troubleshooting guide for a printer that won't print: symptoms, three checks as numbered steps, and when to call support.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 2,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 4,
+      "tokens": 10452,
+      "costUsd": 0.05475580000000001,
+      "seconds": 17,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "Troubleshooting: Printer Won't Print"
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "Symptoms"
+          },
+          {
+            "type": "list",
+            "id": "l1",
+            "style": "bullet",
+            "items": [
+              "You send a job, but nothing comes out.",
+              "The job sits in the print queue as \"Pending\" or \"Error\".",
+              "The printer shows as \"Offline\" on your computer.",
+              "The printer's display or status light shows a warning."
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h3",
+            "level": 2,
+            "text": "Three checks"
+          },
+          {
+            "type": "list",
+            "id": "l2",
+            "style": "number",
+            "items": [
+              "Check power and connection: make sure the printer is on, and the USB cable or Wi-Fi/network connection is working. Restart the printer and your computer.",
+              "Check paper, ink and toner: load paper, clear any paper jam, close all covers, and replace empty ink or toner cartridges.",
+              "Check the print queue and settings: cancel stuck jobs, make sure the correct printer is set as default and is not paused or set to \"Use Printer Offline\", then print a test page."
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h4",
+            "level": 2,
+            "text": "When to call support"
+          },
+          {
+            "type": "paragraph",
+            "id": "p1",
+            "text": "Call support if the printer still won't print after all three checks, if it shows an error code that does not clear after a restart, if it makes grinding or unusual noises, or if you see any physical damage. Have the printer model, serial number and any error code ready."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-17",
+      "prompt": "A workout plan for one week as a table of day, exercise and duration, plus a note about rest days.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5585,
+      "costUsd": 0.0280783,
+      "seconds": 11,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Weekly Workout Plan"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "A balanced one-week plan mixing cardio, strength and mobility."
+          },
+          {
+            "id": "t1",
+            "type": "table",
+            "rows": [
+              [
+                "Day",
+                "Exercise",
+                "Duration"
+              ],
+              [
+                "Monday",
+                "Full-body strength training",
+                "45 min"
+              ],
+              [
+                "Tuesday",
+                "Moderate running",
+                "30 min"
+              ],
+              [
+                "Wednesday",
+                "Rest day (light stretching optional)",
+                "—"
+              ],
+              [
+                "Thursday",
+                "Upper-body strength + core",
+                "40 min"
+              ],
+              [
+                "Friday",
+                "Cycling or swimming intervals",
+                "35 min"
+              ],
+              [
+                "Saturday",
+                "Lower-body strength + mobility",
+                "45 min"
+              ],
+              [
+                "Sunday",
+                "Rest day (easy walk optional)",
+                "—"
+              ]
+            ]
+          },
+          {
+            "id": "n1",
+            "type": "callout",
+            "text": "Rest days matter: muscles repair and grow during recovery. Take Wednesday and Sunday off from hard training, sleep well, stay hydrated, and keep any activity gentle, such as walking or stretching."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-18",
+      "prompt": "An onboarding checklist for a new team member, split into first day and first week, with a welcome paragraph.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5949,
+      "costUsd": 0.0340599,
+      "seconds": 12,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Welcome aboard: your onboarding checklist"
+          },
+          {
+            "id": "welcome",
+            "type": "paragraph",
+            "text": "Welcome to the team! We're glad you're here. This checklist will help you settle in during your first day and first week. Don't worry about getting through everything at once. Ask questions often, and lean on your onboarding buddy whenever you need help."
+          },
+          {
+            "id": "h-day",
+            "type": "heading",
+            "level": 2,
+            "text": "First day"
+          },
+          {
+            "id": "list-day",
+            "type": "list",
+            "style": "checklist",
+            "items": [
+              "Pick up your laptop and badge from IT",
+              "Log in and set up two-factor authentication",
+              "Join the team chat channels and the shared calendar",
+              "Meet your manager and your onboarding buddy",
+              "Read the employee handbook and the team charter",
+              "Have lunch with the team"
+            ]
+          },
+          {
+            "id": "h-week",
+            "type": "heading",
+            "level": 2,
+            "text": "First week"
+          },
+          {
+            "id": "list-week",
+            "type": "list",
+            "style": "checklist",
+            "items": [
+              "Set up your development environment and get access to the repositories",
+              "Ship a small first change, such as a docs fix or starter ticket",
+              "Have short 1:1 intro chats with each teammate",
+              "Attend the team rituals: standup, planning and retro",
+              "Review the product roadmap and current priorities",
+              "Agree on 30/60/90-day goals with your manager",
+              "End the week with a check-in with your buddy and share your feedback"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-19",
+      "prompt": "A FAQ page for a fictional bike-repair shop with five questions as headings and short answers.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6278,
+      "costUsd": 0.0389408,
+      "seconds": 13,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Frequently Asked Questions — Spoke & Sprocket Bike Repair"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Answers to the questions we hear most often at the shop."
+          },
+          {
+            "id": "q1",
+            "type": "heading",
+            "level": 2,
+            "text": "How long does a typical repair take?"
+          },
+          {
+            "id": "a1",
+            "type": "paragraph",
+            "text": "Most tune-ups and flat fixes are done the same day. Bigger jobs, like wheel builds or drivetrain overhauls, usually take two to three business days."
+          },
+          {
+            "id": "q2",
+            "type": "heading",
+            "level": 2,
+            "text": "Do I need an appointment?"
+          },
+          {
+            "id": "a2",
+            "type": "paragraph",
+            "text": "No. Walk-ins are welcome during opening hours, but booking ahead guarantees a slot for larger repairs."
+          },
+          {
+            "id": "q3",
+            "type": "heading",
+            "level": 2,
+            "text": "How much does a basic tune-up cost?"
+          },
+          {
+            "id": "a3",
+            "type": "paragraph",
+            "text": "Our basic tune-up is 650 NOK and covers brake and gear adjustment, tyre inflation, chain cleaning and a safety check. Parts are extra."
+          },
+          {
+            "id": "q4",
+            "type": "heading",
+            "level": 2,
+            "text": "Do you repair e-bikes?"
+          },
+          {
+            "id": "a4",
+            "type": "paragraph",
+            "text": "Yes. We service the mechanical parts of all e-bikes and can diagnose motors and batteries from most major brands."
+          },
+          {
+            "id": "q5",
+            "type": "heading",
+            "level": 2,
+            "text": "Is there a warranty on repairs?"
+          },
+          {
+            "id": "a5",
+            "type": "paragraph",
+            "text": "All labour is guaranteed for 30 days. If something we fixed isn't right, bring the bike back and we will adjust it free of charge."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-20",
+      "prompt": "A short essay outline about why cities need more trees: introduction, three arguments as headings with one paragraph each, conclusion.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6760,
+      "costUsd": 0.0464898,
+      "seconds": 19,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Why Cities Need More Trees"
+          },
+          {
+            "id": "intro-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Introduction"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "As cities grow denser and summers grow hotter, urban trees are often treated as decoration rather than infrastructure. This essay argues that trees are essential to healthy cities, offering measurable benefits for climate resilience, public health, and community life."
+          },
+          {
+            "id": "arg1-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Trees Cool Cities and Reduce Heat Risk"
+          },
+          {
+            "id": "arg1",
+            "type": "paragraph",
+            "text": "Paved surfaces and buildings absorb heat, creating urban heat islands that can be several degrees warmer than surrounding areas. Tree canopies provide shade and cool the air through evapotranspiration, lowering street temperatures, reducing energy demand for air conditioning, and protecting vulnerable residents during heatwaves."
+          },
+          {
+            "id": "arg2-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Trees Improve Public Health"
+          },
+          {
+            "id": "arg2",
+            "type": "paragraph",
+            "text": "Trees filter airborne pollutants, capture fine particulate matter, and absorb carbon dioxide. Access to green streets is also linked to lower stress, better mental health, and more physical activity, making trees a low-cost contributor to the wellbeing of city dwellers."
+          },
+          {
+            "id": "arg3-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Trees Strengthen Communities and Local Economies"
+          },
+          {
+            "id": "arg3",
+            "type": "paragraph",
+            "text": "Tree-lined streets invite walking, encourage people to linger, and make neighborhoods more attractive places to live and shop. Studies associate urban greenery with higher property values, stronger retail activity, and a greater sense of shared pride and safety in public spaces."
+          },
+          {
+            "id": "concl-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Conclusion"
+          },
+          {
+            "id": "concl",
+            "type": "paragraph",
+            "text": "Trees cool our streets, clean our air, and bring communities together. Planting and maintaining more of them, especially in underserved neighborhoods, is one of the simplest and most effective investments a city can make in its future."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-21",
+      "prompt": "A retrospective: what went well, what didn't, and what to try next, each as a bullet list.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 2,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 4,
+      "tokens": 9229,
+      "costUsd": 0.0389456,
+      "seconds": 15,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "Retrospective"
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "What went well"
+          },
+          {
+            "type": "list",
+            "id": "l1",
+            "style": "bullet",
+            "items": [
+              "Shipped the core features on schedule",
+              "Clear communication in daily stand-ups",
+              "Code reviews were fast and constructive"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h3",
+            "level": 2,
+            "text": "What didn't go well"
+          },
+          {
+            "type": "list",
+            "id": "l2",
+            "style": "bullet",
+            "items": [
+              "Requirements changed late in the sprint",
+              "Test environment was unstable",
+              "Too many unplanned interruptions"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h4",
+            "level": 2,
+            "text": "What to try next"
+          },
+          {
+            "type": "list",
+            "id": "l3",
+            "style": "bullet",
+            "items": [
+              "Freeze scope at sprint planning",
+              "Assign an owner for test environment health",
+              "Protect focus time with a no-meeting block"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-22",
+      "prompt": "A product spec for a fictional smart lamp: summary, requirements as a numbered list, and a table of three hardware parts.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6105,
+      "costUsd": 0.0359933,
+      "seconds": 14,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Lumo One Smart Lamp — Product Spec"
+          },
+          {
+            "id": "sum",
+            "type": "paragraph",
+            "text": "Lumo One is a Wi-Fi and Bluetooth smart desk lamp with tunable white and full-color light, app and voice control, and an adaptive circadian mode that shifts color temperature through the day."
+          },
+          {
+            "id": "h2req",
+            "type": "heading",
+            "level": 2,
+            "text": "Requirements"
+          },
+          {
+            "id": "req",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Brightness adjustable from 1% to 100% in 1% steps, max output 800 lumens.",
+              "Color temperature tunable from 2700K to 6500K, plus 16 million RGB colors.",
+              "Control via companion app, physical touch dial, and major voice assistants.",
+              "Connects over 2.4 GHz Wi-Fi and Bluetooth LE; supports Matter.",
+              "Standby power under 0.5 W.",
+              "Restores last state within 1 second after power loss.",
+              "Over-the-air firmware updates with automatic rollback on failure."
+            ]
+          },
+          {
+            "id": "h2hw",
+            "type": "heading",
+            "level": 2,
+            "text": "Hardware Parts"
+          },
+          {
+            "id": "hw",
+            "type": "table",
+            "rows": [
+              [
+                "Part",
+                "Component",
+                "Purpose"
+              ],
+              [
+                "Controller",
+                "ESP32-C6 SoC",
+                "Wi-Fi, Bluetooth LE, and Matter connectivity"
+              ],
+              [
+                "Light engine",
+                "RGBWW LED array, 12 W",
+                "Produces white and colored light"
+              ],
+              [
+                "Input",
+                "Capacitive touch dial with rotary encoder",
+                "Manual brightness and color control"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-23",
+      "prompt": "A study plan for learning basic Spanish over four weeks, one heading per week with goals.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 7574,
+      "costUsd": 0.0594162,
+      "seconds": 19,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Four-Week Basic Spanish Study Plan"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Study about 30–45 minutes a day, five or six days a week. Each week builds on the one before, so review earlier material as you go."
+          },
+          {
+            "id": "w1",
+            "type": "heading",
+            "level": 2,
+            "text": "Week 1: Sounds, Greetings and Survival Phrases"
+          },
+          {
+            "id": "w1-goals",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Learn the Spanish alphabet and how vowels and key consonants (ñ, ll, rr, j) are pronounced",
+              "Greet people and say goodbye: hola, buenos días, adiós, hasta luego",
+              "Introduce yourself: me llamo…, soy de…, mucho gusto",
+              "Count from 0 to 20",
+              "Use courtesy words: por favor, gracias, de nada, perdón"
+            ]
+          },
+          {
+            "id": "w2",
+            "type": "heading",
+            "level": 2,
+            "text": "Week 2: Nouns, Articles and the Verb Ser"
+          },
+          {
+            "id": "w2-goals",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Understand masculine and feminine nouns and the articles el, la, los, las, un, una",
+              "Conjugate ser in the present tense and use it to describe people and things",
+              "Learn 50 everyday nouns: family, food, home and classroom words",
+              "Make adjectives agree with nouns in gender and number",
+              "Count from 21 to 100"
+            ]
+          },
+          {
+            "id": "w3",
+            "type": "heading",
+            "level": 2,
+            "text": "Week 3: Regular Verbs and Everyday Actions"
+          },
+          {
+            "id": "w3-goals",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Conjugate regular -ar, -er and -ir verbs in the present tense",
+              "Use estar and tener, and know when to use estar instead of ser",
+              "Tell the time and name the days of the week and months",
+              "Ask simple questions with qué, dónde, cuándo, quién and cómo",
+              "Describe your daily routine in five to six sentences"
+            ]
+          },
+          {
+            "id": "w4",
+            "type": "heading",
+            "level": 2,
+            "text": "Week 4: Practical Conversation and Review"
+          },
+          {
+            "id": "w4-goals",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Use ir a + infinitive to talk about plans",
+              "Order food and drinks, ask for prices and ask for directions",
+              "Learn common irregular verbs: ir, hacer, querer, poder",
+              "Hold a five-minute conversation with a tutor, language partner or recording",
+              "Review all four weeks and take a short self-test on vocabulary and verbs"
+            ]
+          },
+          {
+            "id": "tips",
+            "type": "heading",
+            "level": 2,
+            "text": "Tips for Success"
+          },
+          {
+            "id": "tips-list",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Use flashcards with spaced repetition for vocabulary",
+              "Listen to Spanish podcasts or songs for 10 minutes a day",
+              "Speak out loud, even when you are alone",
+              "Keep a short journal in Spanish from Week 3 onward"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-24",
+      "prompt": "A shell command cheat sheet: a heading, a bash code block with five common commands, and a paragraph for each group.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6191,
+      "costUsd": 0.0366611,
+      "seconds": 20,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Shell Command Cheat Sheet"
+          },
+          {
+            "id": "code1",
+            "type": "code",
+            "language": "bash",
+            "code": "ls -la                      # list all files with details\ncd ~/projects               # change to a directory\ngrep -rn \"TODO\" src/        # search text recursively with line numbers\nfind . -name \"*.log\"        # find files by name\ntar -czf backup.tar.gz dir/ # create a gzipped archive"
+          },
+          {
+            "id": "p-nav",
+            "type": "paragraph",
+            "text": "Navigation: ls -la shows every file in the current directory, including hidden ones, with permissions, owner, size and modification time. cd moves you to another directory; cd on its own returns home and cd - jumps back to the previous one."
+          },
+          {
+            "id": "p-search",
+            "type": "paragraph",
+            "text": "Searching: grep -rn walks a directory tree and prints each matching line with its file name and line number. find locates files by name, type, size or age; quote the pattern so the shell does not expand it first."
+          },
+          {
+            "id": "p-archive",
+            "type": "paragraph",
+            "text": "Archiving: tar -czf bundles a directory into a single gzip-compressed file. Swap c for x (tar -xzf backup.tar.gz) to extract it, or use t to list the contents without unpacking."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-25",
+      "prompt": "A party planning note: guest count, a menu list, a shopping checklist and a reminder callout.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 3,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 6,
+      "tokens": 16409,
+      "costUsd": 0.0584026,
+      "seconds": 22,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "Party Planning Note"
+          },
+          {
+            "type": "paragraph",
+            "id": "p1",
+            "text": "Guest count: 24 confirmed (30 invited)."
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "Menu"
+          },
+          {
+            "type": "list",
+            "id": "l1",
+            "style": "bullet",
+            "items": [
+              "Bruschetta with tomato and basil",
+              "Grilled chicken skewers",
+              "Vegetable lasagna",
+              "Green salad",
+              "Chocolate cake"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h3",
+            "level": 2,
+            "text": "Shopping checklist"
+          },
+          {
+            "type": "list",
+            "id": "c1",
+            "style": "check",
+            "items": [
+              {
+                "text": "Tomatoes, basil, baguettes",
+                "checked": false
+              },
+              {
+                "text": "Chicken breasts and skewers",
+                "checked": false
+              },
+              {
+                "text": "Lasagna sheets, ricotta, vegetables",
+                "checked": false
+              },
+              {
+                "text": "Salad greens and dressing",
+                "checked": false
+              },
+              {
+                "text": "Cake ingredients",
+                "checked": false
+              },
+              {
+                "text": "Drinks and ice",
+                "checked": false
+              },
+              {
+                "text": "Napkins, plates and cups",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "type": "callout",
+            "id": "co1",
+            "tone": "warning",
+            "text": "Reminder: confirm dietary restrictions with guests by Friday and pick up the cake order Saturday morning."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-26",
+      "prompt": "A changelog with three entries, each a heading with the version and date and a bullet list of changes.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5494,
+      "costUsd": 0.0264417,
+      "seconds": 9,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Changelog"
+          },
+          {
+            "id": "v3h",
+            "type": "heading",
+            "level": 2,
+            "text": "v1.2.0 — 2026-10-28"
+          },
+          {
+            "id": "v3l",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Added dark mode support across all views",
+              "Added CSV export for reports",
+              "Fixed crash when opening empty projects"
+            ]
+          },
+          {
+            "id": "v2h",
+            "type": "heading",
+            "level": 2,
+            "text": "v1.1.0 — 2026-09-15"
+          },
+          {
+            "id": "v2l",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Added keyboard shortcuts for common actions",
+              "Improved search performance on large workspaces",
+              "Fixed timezone handling in scheduled tasks"
+            ]
+          },
+          {
+            "id": "v1h",
+            "type": "heading",
+            "level": 2,
+            "text": "v1.0.0 — 2026-08-01"
+          },
+          {
+            "id": "v1l",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Initial public release",
+              "Project and task management",
+              "User accounts and team invitations"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-27",
+      "prompt": "A lesson summary on the water cycle with four stages as headings and a short paragraph under each.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6270,
+      "costUsd": 0.0389028,
+      "seconds": 12,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "The Water Cycle: Lesson Summary"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "The water cycle is the continuous movement of water between the Earth's surface and the atmosphere. It is powered by energy from the Sun and by gravity, and it can be described in four main stages."
+          },
+          {
+            "id": "h-evap",
+            "type": "heading",
+            "level": 2,
+            "text": "1. Evaporation"
+          },
+          {
+            "id": "p-evap",
+            "type": "paragraph",
+            "text": "Heat from the Sun warms water in oceans, lakes and rivers, turning it from liquid into water vapour that rises into the air. Plants also release water vapour through their leaves, a process called transpiration."
+          },
+          {
+            "id": "h-cond",
+            "type": "heading",
+            "level": 2,
+            "text": "2. Condensation"
+          },
+          {
+            "id": "p-cond",
+            "type": "paragraph",
+            "text": "As water vapour rises, it cools in the colder air higher up. The vapour condenses into tiny droplets of liquid water around specks of dust, and these droplets gather together to form clouds."
+          },
+          {
+            "id": "h-prec",
+            "type": "heading",
+            "level": 2,
+            "text": "3. Precipitation"
+          },
+          {
+            "id": "p-prec",
+            "type": "paragraph",
+            "text": "When the droplets in clouds join together and become too heavy to stay in the air, they fall back to Earth as precipitation. Depending on the temperature, this can be rain, snow, sleet or hail."
+          },
+          {
+            "id": "h-coll",
+            "type": "heading",
+            "level": 2,
+            "text": "4. Collection"
+          },
+          {
+            "id": "p-coll",
+            "type": "paragraph",
+            "text": "Water that falls to the ground collects in oceans, lakes and rivers, or soaks into the soil to become groundwater. Some flows over the land as runoff. From here, the Sun warms the water again and the cycle begins once more."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-28",
+      "prompt": "A pros and cons list for working from home, two headings with five bullets each.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5176,
+      "costUsd": 0.0216002,
+      "seconds": 10,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h-pros",
+            "level": 2,
+            "text": "Pros"
+          },
+          {
+            "type": "list",
+            "id": "l-pros",
+            "style": "bullet",
+            "items": [
+              "No commute, saving time and money",
+              "Flexible schedule around personal needs",
+              "Fewer office interruptions for focused work",
+              "Comfortable, personalised workspace",
+              "Wider job opportunities regardless of location"
+            ]
+          },
+          {
+            "type": "heading",
+            "id": "h-cons",
+            "level": 2,
+            "text": "Cons"
+          },
+          {
+            "type": "list",
+            "id": "l-cons",
+            "style": "bullet",
+            "items": [
+              "Social isolation and less face-to-face contact",
+              "Blurred boundaries between work and home life",
+              "Household distractions",
+              "Harder spontaneous collaboration with colleagues",
+              "Home office and utility costs fall on you"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-29",
+      "prompt": "A moving-house checklist grouped by four weeks before, two weeks before and moving day.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6488,
+      "costUsd": 0.04336330000000001,
+      "seconds": 16,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Moving-House Checklist"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Work through these tasks in order so nothing is forgotten on the big day."
+          },
+          {
+            "id": "h-4w",
+            "type": "heading",
+            "level": 2,
+            "text": "Four weeks before"
+          },
+          {
+            "id": "list-4w",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Book a removal company or reserve a van",
+              "Start decluttering: sell, donate or recycle what you won't take",
+              "Collect boxes, tape, bubble wrap and markers",
+              "Notify your landlord or confirm completion dates",
+              "Arrange time off work for moving day",
+              "Research schools, doctors and dentists near the new home"
+            ]
+          },
+          {
+            "id": "h-2w",
+            "type": "heading",
+            "level": 2,
+            "text": "Two weeks before"
+          },
+          {
+            "id": "list-2w",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Redirect your post and update your address with banks, employer and insurers",
+              "Arrange to transfer or set up gas, electricity, water, internet and TV",
+              "Begin packing rooms and items you use least",
+              "Label every box with its contents and destination room",
+              "Use up frozen and perishable food",
+              "Arrange childcare and pet care for moving day",
+              "Confirm the date and time with the removal company"
+            ]
+          },
+          {
+            "id": "h-day",
+            "type": "heading",
+            "level": 2,
+            "text": "Moving day"
+          },
+          {
+            "id": "list-day",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "Pack an essentials box: documents, chargers, medicines, toiletries, kettle and snacks",
+              "Take meter readings at the old and new homes",
+              "Do a final walk-through: check cupboards, lofts and sheds",
+              "Lock windows and doors and hand over the keys",
+              "Check that all items arrived and note any damage",
+              "Unpack the essentials box and make up the beds first"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-30",
+      "prompt": "An interview guide with an intro paragraph and eight numbered questions.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5417,
+      "costUsd": 0.0254649,
+      "seconds": 11,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Interview Guide"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "This guide supports a conversation of about 45 minutes. Start by thanking the participant, explaining the purpose of the interview, and confirming consent to take notes or record. The questions below are a starting point: follow up on interesting answers, and don't worry about covering every question word for word."
+          },
+          {
+            "id": "questions",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Can you tell me a little about your role and what a typical week looks like for you?",
+              "What are the most important goals you are working toward right now?",
+              "Walk me through the last time you tackled this kind of task. What happened, step by step?",
+              "Which tools or resources do you rely on most, and why?",
+              "What is the most frustrating part of the process today?",
+              "Have you tried other ways of solving this problem? What worked and what didn't?",
+              "If you could change one thing about how this works, what would it be?",
+              "Is there anything we haven't talked about that you think is important for us to know?"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-31",
+      "prompt": "A status report: a one-line summary, progress as a table of workstream and status, and risks as bullets.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5384,
+      "costUsd": 0.0246679,
+      "seconds": 11,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Status Report"
+          },
+          {
+            "id": "summary",
+            "type": "paragraph",
+            "text": "Summary: The project is on track overall, with one workstream at risk due to a vendor delay."
+          },
+          {
+            "id": "progress-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Progress"
+          },
+          {
+            "id": "progress",
+            "type": "table",
+            "header": [
+              "Workstream",
+              "Status"
+            ],
+            "rows": [
+              [
+                "Design",
+                "Complete"
+              ],
+              [
+                "Backend",
+                "On track"
+              ],
+              [
+                "Frontend",
+                "On track"
+              ],
+              [
+                "Integrations",
+                "At risk"
+              ],
+              [
+                "QA",
+                "Not started"
+              ]
+            ]
+          },
+          {
+            "id": "risks-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Risks"
+          },
+          {
+            "id": "risks",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "Vendor API delivery is delayed, which may push the integrations milestone.",
+              "QA capacity is limited if testing starts later than planned.",
+              "Scope changes requested late could affect the release date."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-32",
+      "prompt": "A poem of three short stanzas about autumn, each stanza its own paragraph, under a title.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5177,
+      "costUsd": 0.021488100000000003,
+      "seconds": 13,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "October Leaving"
+          },
+          {
+            "id": "s1",
+            "type": "paragraph",
+            "text": "The maples loosen, one by one,\nTheir copper letters to the ground;\nThe light grows thin, the day is done\nBefore the evening makes a sound."
+          },
+          {
+            "id": "s2",
+            "type": "paragraph",
+            "text": "The geese write south across the grey,\nThe orchard smells of cider rain;\nThe garden folds itself away\nAnd sleeps beneath the windowpane."
+          },
+          {
+            "id": "s3",
+            "type": "paragraph",
+            "text": "So let the year go gold, then brown,\nLet frost come silver to the door;\nWhat autumn sets so gently down\nThe spring will gather up once more."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-33",
+      "prompt": "A care guide for a fictional houseplant: light, water, soil and common problems, each as a heading with text.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6882,
+      "costUsd": 0.0489567,
+      "seconds": 16,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Care Guide: The Silverleaf Moonfern"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "The Silverleaf Moonfern (Lunafilix argentea) is a fictional houseplant with feathery, silver-veined fronds that seem to glow faintly at dusk. It is forgiving once settled, but it has firm opinions about light and water."
+          },
+          {
+            "id": "h-light",
+            "type": "heading",
+            "level": 2,
+            "text": "Light"
+          },
+          {
+            "id": "p-light",
+            "type": "paragraph",
+            "text": "Give the Moonfern bright, indirect light, such as a spot a metre or two from an east- or north-facing window. Direct afternoon sun scorches the silver veins and turns them brown. In very low light the fronds stay green and lose their shimmer, so if the silver fades, move the plant somewhere brighter."
+          },
+          {
+            "id": "h-water",
+            "type": "heading",
+            "level": 2,
+            "text": "Water"
+          },
+          {
+            "id": "p-water",
+            "type": "paragraph",
+            "text": "Keep the soil evenly moist but never soggy. Water when the top two centimetres feel dry, usually once a week in summer and every ten to fourteen days in winter. Use room-temperature water, since cold water can shock the roots. The Moonfern also enjoys humidity, so mist it or set it on a tray of damp pebbles."
+          },
+          {
+            "id": "h-soil",
+            "type": "heading",
+            "level": 2,
+            "text": "Soil"
+          },
+          {
+            "id": "p-soil",
+            "type": "paragraph",
+            "text": "Use a light, airy mix that drains freely: roughly two parts peat-free potting compost, one part orchid bark and one part perlite. Always use a pot with drainage holes. Repot every two years in spring, going up only one pot size at a time."
+          },
+          {
+            "id": "h-problems",
+            "type": "heading",
+            "level": 2,
+            "text": "Common Problems"
+          },
+          {
+            "id": "p-problems",
+            "type": "paragraph",
+            "text": "Brown, crispy frond tips usually mean the air is too dry or the plant has been underwatered. Yellowing, limp fronds with soggy soil point to overwatering or poor drainage, so let the soil dry out a little and check the roots for rot. Fronds that lose their silver sheen need more light. Watch for spider mites in dry conditions: wipe the fronds with a damp cloth and raise the humidity."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-34",
+      "prompt": "A nested outline of a talk: three main points, each with two sub-points as an indented list.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5133,
+      "costUsd": 0.0208729,
+      "seconds": 7,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Talk Outline: Building Resilient Teams"
+          },
+          {
+            "id": "outline",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              {
+                "text": "Why resilience matters",
+                "items": [
+                  {
+                    "text": "The cost of burnout and turnover"
+                  },
+                  {
+                    "text": "Change as the normal state of work"
+                  }
+                ]
+              },
+              {
+                "text": "What resilient teams do differently",
+                "items": [
+                  {
+                    "text": "Psychological safety and open feedback"
+                  },
+                  {
+                    "text": "Shared ownership instead of heroics"
+                  }
+                ]
+              },
+              {
+                "text": "How to start tomorrow",
+                "items": [
+                  {
+                    "text": "Run a blameless retrospective"
+                  },
+                  {
+                    "text": "Make workload visible and negotiable"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-35",
+      "prompt": "A weekly meal plan as a table of seven days with lunch and dinner columns.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5391,
+      "costUsd": 0.024889599999999998,
+      "seconds": 8,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Weekly Meal Plan"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Lunch and dinner for each day of the week."
+          },
+          {
+            "id": "plan",
+            "type": "table",
+            "header": [
+              "Day",
+              "Lunch",
+              "Dinner"
+            ],
+            "rows": [
+              [
+                "Monday",
+                "Chicken Caesar wrap",
+                "Spaghetti bolognese"
+              ],
+              [
+                "Tuesday",
+                "Lentil soup with crusty bread",
+                "Salmon with roasted potatoes and green beans"
+              ],
+              [
+                "Wednesday",
+                "Greek salad with falafel",
+                "Chicken stir-fry with rice"
+              ],
+              [
+                "Thursday",
+                "Tuna sandwich and an apple",
+                "Vegetable curry with naan"
+              ],
+              [
+                "Friday",
+                "Leftover curry",
+                "Homemade pizza"
+              ],
+              [
+                "Saturday",
+                "Omelette with toast",
+                "Beef tacos"
+              ],
+              [
+                "Sunday",
+                "Roast chicken salad",
+                "Roast chicken with vegetables"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-36",
+      "prompt": "A safety checklist for a small workshop with a warning callout at the top and ten checks.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5509,
+      "costUsd": 0.0267979,
+      "seconds": 10,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Workshop Safety Checklist"
+          },
+          {
+            "id": "warn",
+            "type": "callout",
+            "tone": "warning",
+            "text": "Do not start any machine until every check below is complete. If a check fails, stop and fix it or tag the equipment out of service."
+          },
+          {
+            "id": "checks",
+            "type": "list",
+            "style": "checklist",
+            "items": [
+              "Safety glasses, hearing protection and dust mask are available and in good condition.",
+              "Fire extinguisher is charged, visible and within reach of the exit.",
+              "First-aid kit is stocked and its location is known to everyone present.",
+              "Floors and walkways are clear of offcuts, cords and spills.",
+              "Power cords and plugs are undamaged, and no outlet is overloaded.",
+              "Blade and bit guards are fitted and work on every power tool.",
+              "Emergency stop switches on stationary machines have been tested.",
+              "Dust collection or ventilation is running before cutting or sanding.",
+              "Flammable liquids and rags are stored in closed metal containers.",
+              "Loose clothing, jewellery and long hair are secured before work begins."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-37",
+      "prompt": "A book review of a made-up novel: rating line, summary, what worked, what didn't, and a closing verdict.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 7050,
+      "costUsd": 0.0511123,
+      "seconds": 18,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Review: The Lantern Keeper of Vessa Bay"
+          },
+          {
+            "id": "rating",
+            "type": "paragraph",
+            "text": "Rating: ★★★★☆ (4 out of 5) — Mireille Okonkwo-Hart, Harrow & Finch, 412 pages"
+          },
+          {
+            "id": "h-summary",
+            "type": "heading",
+            "level": 2,
+            "text": "Summary"
+          },
+          {
+            "id": "summary",
+            "type": "paragraph",
+            "text": "In a fishing town on the edge of a northern sea, seventeen-year-old Ilse Marrow inherits the lighthouse her grandmother kept for fifty years, along with a ledger of every ship the lamp ever guided home. When she finds entries for vessels that never existed, and dates that have not yet happened, Ilse starts to suspect the light was doing more than warning sailors off the rocks. Okonkwo-Hart follows her through one winter as the town's secrets and the sea's patience both start to run out."
+          },
+          {
+            "id": "h-worked",
+            "type": "heading",
+            "level": 2,
+            "text": "What Worked"
+          },
+          {
+            "id": "worked",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "The setting is superb. Vessa Bay feels lived-in, from the salt-rotted piers to the gossip at the net-mender's shop.",
+              "Ilse is a sharp, stubborn narrator whose grief is handled with restraint rather than melodrama.",
+              "The ledger entries scattered between chapters are a clever device, rewarding readers who pay close attention.",
+              "The prose is quietly lyrical without tipping into purple."
+            ]
+          },
+          {
+            "id": "h-didnt",
+            "type": "heading",
+            "level": 2,
+            "text": "What Didn't"
+          },
+          {
+            "id": "didnt",
+            "type": "list",
+            "style": "bullet",
+            "items": [
+              "The middle third sags. A subplot about a land developer adds little and stalls the momentum.",
+              "Several supporting characters, especially Ilse's cousin Tomas, are sketched too thinly to carry the emotional weight the ending asks of them.",
+              "The final reveal about the 'future ships' is explained a little too neatly, trading mystery for tidiness."
+            ]
+          },
+          {
+            "id": "h-verdict",
+            "type": "heading",
+            "level": 2,
+            "text": "Verdict"
+          },
+          {
+            "id": "verdict",
+            "type": "paragraph",
+            "text": "The Lantern Keeper of Vessa Bay is an atmospheric, moving debut that is easy to forgive for its uneven pacing. Read it on a stormy night with the lamp on. Recommended for fans of slow-burn literary mysteries with a touch of the uncanny."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-38",
+      "prompt": "A Python snippet that reads a CSV file, in a code block, with a heading and a short explanation before and after.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5300,
+      "costUsd": 0.023312700000000006,
+      "seconds": 8,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 2,
+            "text": "Reading a CSV File in Python"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Python's built-in csv module makes it easy to read tabular data. The snippet below opens a file and prints each row as a dictionary keyed by the column headers."
+          },
+          {
+            "id": "c1",
+            "type": "code",
+            "language": "python",
+            "code": "import csv\n\nwith open(\"data.csv\", newline=\"\", encoding=\"utf-8\") as f:\n    reader = csv.DictReader(f)\n    for row in reader:\n        print(row)\n"
+          },
+          {
+            "id": "p2",
+            "type": "paragraph",
+            "text": "DictReader uses the first line of the file as field names. Passing newline=\"\" lets the csv module handle line endings correctly, and the with statement closes the file automatically when the loop finishes."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-39",
+      "prompt": "Minutes of a fictional neighbourhood association meeting: agenda as a numbered list, discussion paragraphs and decisions.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 8182,
+      "costUsd": 0.0688452,
+      "seconds": 23,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Elmstead Neighbourhood Association — Minutes of the Autumn General Meeting"
+          },
+          {
+            "id": "p-meta",
+            "type": "paragraph",
+            "text": "Held on Tuesday 27 October 2026 at 19:00 in the Elmstead Community Hall. Present: 23 members. Chair: Ingrid Halvorsen. Minutes: Tomas Berg. Apologies received from 4 members."
+          },
+          {
+            "id": "h-agenda",
+            "type": "heading",
+            "level": 2,
+            "text": "Agenda"
+          },
+          {
+            "id": "agenda",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Welcome and approval of the previous minutes",
+              "Treasurer's report",
+              "Traffic calming on Birch Lane",
+              "Winter lighting festival",
+              "Community garden expansion",
+              "Any other business"
+            ]
+          },
+          {
+            "id": "h-disc",
+            "type": "heading",
+            "level": 2,
+            "text": "Discussion"
+          },
+          {
+            "id": "d1",
+            "type": "paragraph",
+            "text": "1. Welcome and previous minutes. The chair welcomed members, in particular three households new to the area. The minutes of the June meeting were read and approved without amendment."
+          },
+          {
+            "id": "d2",
+            "type": "paragraph",
+            "text": "2. Treasurer's report. Treasurer Amira Solberg reported a balance of 18,450 NOK, up from 14,200 NOK in June, largely thanks to the summer flea market. Members asked whether the hall rental fee would rise next year; the treasurer expects a modest increase of around 10 percent."
+          },
+          {
+            "id": "d3",
+            "type": "paragraph",
+            "text": "3. Traffic calming on Birch Lane. Several residents described cars cutting through Birch Lane at speed during the morning school run. Opinions differed between requesting speed bumps and asking for a seasonal 30 km/h limit. It was noted that the municipality prefers a written petition with signatures before considering either measure."
+          },
+          {
+            "id": "d4",
+            "type": "paragraph",
+            "text": "4. Winter lighting festival. The organising group proposed moving the festival from the square to the park to allow more stalls. Concerns were raised about accessibility of the park paths in icy conditions; the group will look into gritting and temporary lighting."
+          },
+          {
+            "id": "d5",
+            "type": "paragraph",
+            "text": "5. Community garden expansion. The garden committee reported a waiting list of eleven households for plots. A neighbouring strip of unused land owned by the housing cooperative could provide six additional plots if a lease can be agreed."
+          },
+          {
+            "id": "d6",
+            "type": "paragraph",
+            "text": "6. Any other business. A member asked that the notice board by the bus stop be repaired. Volunteers were requested for leaf clearing on 14 November."
+          },
+          {
+            "id": "h-dec",
+            "type": "heading",
+            "level": 2,
+            "text": "Decisions"
+          },
+          {
+            "id": "decisions",
+            "type": "list",
+            "ordered": false,
+            "items": [
+              "The minutes of the June meeting were approved.",
+              "The treasurer's report was accepted.",
+              "A petition for a 30 km/h limit on Birch Lane will be drafted by Lars Eide and circulated by 15 November.",
+              "The winter lighting festival will be held in the park on 12 December, subject to a satisfactory safety plan.",
+              "The garden committee is authorised to negotiate a lease with the housing cooperative, with a budget of up to 3,000 NOK per year.",
+              "Tomas Berg will arrange repair of the notice board."
+            ]
+          },
+          {
+            "id": "p-close",
+            "type": "paragraph",
+            "text": "The meeting closed at 20:45. The next meeting will be held on Tuesday 26 January 2027."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-40",
+      "prompt": "A gift ideas list for five fictional friends, one heading per friend with two ideas each.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5487,
+      "costUsd": 0.026730499999999997,
+      "seconds": 9,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "level": 1,
+            "text": "Gift Ideas"
+          },
+          {
+            "type": "heading",
+            "level": 2,
+            "text": "Maren"
+          },
+          {
+            "type": "list",
+            "items": [
+              "A pour-over coffee set",
+              "A hardcover field guide to Nordic birds"
+            ]
+          },
+          {
+            "type": "heading",
+            "level": 2,
+            "text": "Tobias"
+          },
+          {
+            "type": "list",
+            "items": [
+              "A beginner's woodcarving kit",
+              "Wool hiking socks"
+            ]
+          },
+          {
+            "type": "heading",
+            "level": 2,
+            "text": "Ingrid"
+          },
+          {
+            "type": "list",
+            "items": [
+              "A watercolour travel palette",
+              "A ticket to a local jazz concert"
+            ]
+          },
+          {
+            "type": "heading",
+            "level": 2,
+            "text": "Henrik"
+          },
+          {
+            "type": "list",
+            "items": [
+              "A cast-iron skillet",
+              "A puzzle board game for two"
+            ]
+          },
+          {
+            "type": "heading",
+            "level": 2,
+            "text": "Sigrid"
+          },
+          {
+            "type": "list",
+            "items": [
+              "A linen-bound journal",
+              "A small potted olive tree"
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-41",
+      "prompt": "A simple style guide: three rules for headings, three for lists, and an example section.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5773,
+      "costUsd": 0.0310075,
+      "seconds": 13,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Style Guide"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "A short set of rules for writing headings and lists consistently."
+          },
+          {
+            "id": "h2",
+            "type": "heading",
+            "level": 2,
+            "text": "Headings"
+          },
+          {
+            "id": "l1",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Use sentence case: capitalize only the first word and proper nouns.",
+              "Keep headings short, ideally under eight words.",
+              "Never skip levels: a level-3 heading must sit under a level-2 heading."
+            ]
+          },
+          {
+            "id": "h3",
+            "type": "heading",
+            "level": 2,
+            "text": "Lists"
+          },
+          {
+            "id": "l2",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Use a numbered list only when order matters; otherwise use bullets.",
+              "Keep items parallel: start each with the same part of speech.",
+              "End items with a period only if they are full sentences."
+            ]
+          },
+          {
+            "id": "h4",
+            "type": "heading",
+            "level": 2,
+            "text": "Example"
+          },
+          {
+            "id": "p2",
+            "type": "paragraph",
+            "text": "The following section follows all six rules."
+          },
+          {
+            "id": "h5",
+            "type": "heading",
+            "level": 3,
+            "text": "Setting up your workspace"
+          },
+          {
+            "id": "l3",
+            "type": "list",
+            "ordered": true,
+            "items": [
+              "Install the editor.",
+              "Open the project folder.",
+              "Run the setup script."
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-42",
+      "prompt": "A camping gear inventory as a table with item, owner and condition columns for eight items.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5126,
+      "costUsd": 0.020657599999999998,
+      "seconds": 17,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Camping Gear Inventory"
+          },
+          {
+            "id": "inventory",
+            "type": "table",
+            "header": [
+              "Item",
+              "Owner",
+              "Condition"
+            ],
+            "rows": [
+              [
+                "Tent (4-person)",
+                "Bolla",
+                "Good"
+              ],
+              [
+                "Sleeping bag",
+                "Ingrid",
+                "Excellent"
+              ],
+              [
+                "Camp stove",
+                "Erik",
+                "Fair"
+              ],
+              [
+                "Cooler",
+                "Bolla",
+                "Good"
+              ],
+              [
+                "Lantern",
+                "Sigrid",
+                "Needs repair"
+              ],
+              [
+                "Folding chairs (x4)",
+                "Erik",
+                "Good"
+              ],
+              [
+                "Water filter",
+                "Ingrid",
+                "Excellent"
+              ],
+              [
+                "Backpack (65L)",
+                "Sigrid",
+                "Worn"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-43",
+      "prompt": "A goals note for next quarter: three goals as headings, each with a measurable target and a checklist of first steps.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 4,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 7,
+      "tokens": 23426,
+      "costUsd": 0.0921184,
+      "seconds": 34,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Goals for next quarter"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Three goals for the quarter. Each has a measurable target and a checklist of first steps."
+          },
+          {
+            "id": "g1",
+            "type": "heading",
+            "level": 2,
+            "text": "Goal 1: Ship faster"
+          },
+          {
+            "id": "g1t",
+            "type": "paragraph",
+            "text": "Target: cut median lead time from merge to production from 5 days to 2 days by the end of the quarter."
+          },
+          {
+            "id": "g1c",
+            "type": "task-list",
+            "items": [
+              {
+                "text": "Measure the current lead time from the last 30 days of deploys",
+                "checked": false
+              },
+              {
+                "text": "Find the three slowest steps in the release pipeline",
+                "checked": false
+              },
+              {
+                "text": "Automate the manual sign-off for low-risk changes",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "g2",
+            "type": "heading",
+            "level": 2,
+            "text": "Goal 2: Improve reliability"
+          },
+          {
+            "id": "g2t",
+            "type": "paragraph",
+            "text": "Target: reach 99.9% monthly uptime and cut Sev-1 incidents from 4 to at most 1 per month."
+          },
+          {
+            "id": "g2c",
+            "type": "task-list",
+            "items": [
+              {
+                "text": "Set up an uptime dashboard with alerting",
+                "checked": false
+              },
+              {
+                "text": "Review the last quarter's incidents and list root causes",
+                "checked": false
+              },
+              {
+                "text": "Assign an owner to each recurring root cause",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "g3",
+            "type": "heading",
+            "level": 2,
+            "text": "Goal 3: Grow the user base"
+          },
+          {
+            "id": "g3t",
+            "type": "paragraph",
+            "text": "Target: grow weekly active users by 20%, from 10,000 to 12,000."
+          },
+          {
+            "id": "g3c",
+            "type": "task-list",
+            "items": [
+              {
+                "text": "Confirm the current WAU baseline in analytics",
+                "checked": false
+              },
+              {
+                "text": "Interview five recently churned users",
+                "checked": false
+              },
+              {
+                "text": "Draft and schedule a referral campaign",
+                "checked": false
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-44",
+      "prompt": "A short story opening of two paragraphs under a title, followed by a divider and an author's note.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6032,
+      "costUsd": 0.0352682,
+      "seconds": 17,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "The Lighthouse Keeper's Daughter"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "The storm came in sideways that October, the way the old fishermen said only the worst ones did. Maren watched it from the lamp room, her palms flat against the cold glass, counting the seconds between the flashes of lightning and the answering growl that rolled across the water. Below her, the great lens turned on its bath of mercury, steady as a heartbeat, throwing its white arm out over the waves every twelve seconds. Her father had kept that rhythm for thirty-one years. Tonight, for the first time, it was hers alone to keep."
+          },
+          {
+            "id": "p2",
+            "type": "paragraph",
+            "text": "She did not see the boat until it was almost on the rocks. A small thing, low in the water, with no lantern and no sail, only a single figure hunched at the oars and pulling as if the sea itself were chasing it. Maren pressed closer to the glass. The beam swept past, and in that half-second of light the figure looked up, straight at the tower, straight at her, as though it had known all along exactly where she would be standing."
+          },
+          {
+            "id": "div",
+            "type": "divider"
+          },
+          {
+            "id": "note-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Author's Note"
+          },
+          {
+            "id": "note",
+            "type": "paragraph",
+            "text": "This opening grew out of a summer spent on the coast, where an abandoned lighthouse stood at the end of a long breakwater. I kept wondering who had last climbed its stairs, and what they had seen from the top. Maren is my answer, or the beginning of one."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-45",
+      "prompt": "A checklist for publishing a blog post: draft, edit, images, links, schedule, with a tip callout.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 2,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 5,
+      "tokens": 11853,
+      "costUsd": 0.040935700000000005,
+      "seconds": 25,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Blog Post Publishing Checklist"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "Work through each step before you hit publish."
+          },
+          {
+            "id": "list",
+            "type": "list",
+            "style": "checklist",
+            "items": [
+              {
+                "text": "Draft: write the full post with a clear headline and structure",
+                "checked": false
+              },
+              {
+                "text": "Edit: proofread for spelling, grammar, tone and length",
+                "checked": false
+              },
+              {
+                "text": "Images: add a featured image, compress files and write alt text",
+                "checked": false
+              },
+              {
+                "text": "Links: check every link works and points to the right page",
+                "checked": false
+              },
+              {
+                "text": "Schedule: pick a publish date and time, then schedule the post",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "tip",
+            "type": "callout",
+            "tone": "tip",
+            "text": "Read the post aloud once before scheduling. Awkward sentences are much easier to hear than to see."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-46",
+      "prompt": "An event run-of-show as a table of time, item and owner for a two-hour fictional workshop.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5558,
+      "costUsd": 0.0274448,
+      "seconds": 11,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Run-of-Show: Lanternfield Design Sprint Workshop"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Fictional two-hour workshop, 13:00–15:00, Room Birch, Lanternfield Commons."
+          },
+          {
+            "id": "t1",
+            "type": "table",
+            "rows": [
+              [
+                "Time",
+                "Item",
+                "Owner"
+              ],
+              [
+                "13:00",
+                "Doors open, check-in and coffee",
+                "Mira Calloway"
+              ],
+              [
+                "13:10",
+                "Welcome and agenda overview",
+                "Tobias Renn"
+              ],
+              [
+                "13:20",
+                "Icebreaker: two-minute introductions",
+                "Ines Varga"
+              ],
+              [
+                "13:35",
+                "Keynote: Framing the problem",
+                "Dr. Halvor Quist"
+              ],
+              [
+                "14:00",
+                "Breakout session: idea sketching",
+                "Ines Varga"
+              ],
+              [
+                "14:30",
+                "Break",
+                "Mira Calloway"
+              ],
+              [
+                "14:40",
+                "Group share-out and feedback",
+                "Tobias Renn"
+              ],
+              [
+                "14:55",
+                "Wrap-up and next steps",
+                "Tobias Renn"
+              ],
+              [
+                "15:00",
+                "Close",
+                "Mira Calloway"
+              ]
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-47",
+      "prompt": "A summary of a fictional podcast episode: title, three key points, and a quote.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 2,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 4,
+      "tokens": 9447,
+      "costUsd": 0.04331,
+      "seconds": 15,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "h1",
+            "level": 1,
+            "text": "Episode 42: The Quiet Hours — Why Boredom Makes Us Creative"
+          },
+          {
+            "type": "paragraph",
+            "id": "p1",
+            "text": "In this episode of the fictional podcast Slow Signals, host Mara Lindqvist talks with cognitive researcher Dr. Tobias Renn about what happens in our minds when we stop filling every spare moment with input."
+          },
+          {
+            "type": "heading",
+            "id": "h2",
+            "level": 2,
+            "text": "Key points"
+          },
+          {
+            "type": "list",
+            "id": "l1",
+            "style": "numbered",
+            "items": [
+              "Boredom is a signal, not a failure: it tells the brain to look for something more meaningful to do.",
+              "Constant phone checking cuts off the mind-wandering that links unrelated ideas together.",
+              "Short, scheduled 'empty' periods, such as a walk without headphones, gave Renn's study participants more original ideas."
+            ]
+          },
+          {
+            "type": "quote",
+            "id": "q1",
+            "text": "The best ideas don't arrive when you're busy. They wait until you've run out of distractions.",
+            "attribution": "Dr. Tobias Renn"
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-48",
+      "prompt": "A home maintenance calendar with four seasons as headings and tasks as checklists.",
+      "model": "claude-opus-5-5",
+      "firstValidate": false,
+      "calls": {
+        "validate": 5,
+        "explain": 1,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 8,
+      "tokens": 24247,
+      "costUsd": 0.0835952,
+      "seconds": 35,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "Home Maintenance Calendar"
+          },
+          {
+            "id": "intro",
+            "type": "paragraph",
+            "text": "A season-by-season checklist to keep your home in good shape all year."
+          },
+          {
+            "id": "spring-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Spring"
+          },
+          {
+            "id": "spring-list",
+            "type": "list",
+            "items": [
+              {
+                "text": "Clean gutters and downspouts",
+                "checked": false
+              },
+              {
+                "text": "Inspect roof for winter damage",
+                "checked": false
+              },
+              {
+                "text": "Service the air conditioning system",
+                "checked": false
+              },
+              {
+                "text": "Check exterior paint and siding for cracks",
+                "checked": false
+              },
+              {
+                "text": "Test smoke and carbon monoxide detectors",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "summer-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Summer"
+          },
+          {
+            "id": "summer-list",
+            "type": "list",
+            "items": [
+              {
+                "text": "Clean and reseal the deck or patio",
+                "checked": false
+              },
+              {
+                "text": "Trim trees and shrubs away from the house",
+                "checked": false
+              },
+              {
+                "text": "Inspect window and door screens",
+                "checked": false
+              },
+              {
+                "text": "Clean the dryer vent",
+                "checked": false
+              },
+              {
+                "text": "Check for pests around the foundation",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "autumn-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Autumn"
+          },
+          {
+            "id": "autumn-list",
+            "type": "list",
+            "items": [
+              {
+                "text": "Clear leaves from gutters",
+                "checked": false
+              },
+              {
+                "text": "Service the furnace and replace filters",
+                "checked": false
+              },
+              {
+                "text": "Drain and store garden hoses; shut off outdoor taps",
+                "checked": false
+              },
+              {
+                "text": "Seal drafts around windows and doors",
+                "checked": false
+              },
+              {
+                "text": "Have the chimney swept and inspected",
+                "checked": false
+              }
+            ]
+          },
+          {
+            "id": "winter-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Winter"
+          },
+          {
+            "id": "winter-list",
+            "type": "list",
+            "items": [
+              {
+                "text": "Check pipes for freezing risk and insulate exposed ones",
+                "checked": false
+              },
+              {
+                "text": "Remove ice dams and heavy snow from the roof",
+                "checked": false
+              },
+              {
+                "text": "Test the sump pump",
+                "checked": false
+              },
+              {
+                "text": "Replace HVAC filters",
+                "checked": false
+              },
+              {
+                "text": "Inspect attic for leaks and condensation",
+                "checked": false
+              }
+            ]
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-49",
+      "prompt": "A JSON example document: a heading, a paragraph and a JSON code block showing a small fictional config file.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 5262,
+      "costUsd": 0.0227592,
+      "seconds": 8,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "h1",
+            "type": "heading",
+            "level": 1,
+            "text": "Example Config File"
+          },
+          {
+            "id": "p1",
+            "type": "paragraph",
+            "text": "Below is a small fictional configuration file for an imaginary service called Lumen. It sets the server port, logging level and a list of enabled features."
+          },
+          {
+            "id": "c1",
+            "type": "code",
+            "language": "json",
+            "code": "{\n  \"name\": \"lumen\",\n  \"version\": \"1.4.2\",\n  \"server\": {\n    \"host\": \"0.0.0.0\",\n    \"port\": 8080\n  },\n  \"logging\": {\n    \"level\": \"info\",\n    \"file\": \"logs/lumen.log\"\n  },\n  \"features\": [\"cache\", \"metrics\", \"dark-mode\"]\n}"
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    },
+    {
+      "id": "f04-50",
+      "prompt": "A personal values note: five values as headings, each with one sentence and an example, ending with a divider and a closing line.",
+      "model": "claude-opus-5-5",
+      "firstValidate": true,
+      "calls": {
+        "validate": 1,
+        "explain": 0,
+        "apply_ops": 0,
+        "render": 0
+      },
+      "turns": 3,
+      "tokens": 6154,
+      "costUsd": 0.0368382,
+      "seconds": 12,
+      "failure": null,
+      "doc": {
+        "blocks": [
+          {
+            "id": "title",
+            "type": "heading",
+            "level": 1,
+            "text": "My Personal Values"
+          },
+          {
+            "id": "v1-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Honesty"
+          },
+          {
+            "id": "v1-p",
+            "type": "paragraph",
+            "text": "I tell the truth even when it is uncomfortable. For example, I told my manager I had missed a deadline instead of making excuses."
+          },
+          {
+            "id": "v2-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Curiosity"
+          },
+          {
+            "id": "v2-p",
+            "type": "paragraph",
+            "text": "I keep asking questions and learning new things. For example, I spend Sunday mornings reading about a topic I know nothing about."
+          },
+          {
+            "id": "v3-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Kindness"
+          },
+          {
+            "id": "v3-p",
+            "type": "paragraph",
+            "text": "I treat people with warmth and patience, especially when they are struggling. For example, I check in on a friend who has gone quiet rather than waiting for them to reach out."
+          },
+          {
+            "id": "v4-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Responsibility"
+          },
+          {
+            "id": "v4-p",
+            "type": "paragraph",
+            "text": "I own my choices and follow through on my commitments. For example, when I promise to help a neighbour move, I show up on time."
+          },
+          {
+            "id": "v5-h",
+            "type": "heading",
+            "level": 2,
+            "text": "Balance"
+          },
+          {
+            "id": "v5-p",
+            "type": "paragraph",
+            "text": "I make room for rest, family and play alongside work. For example, I keep my phone off during dinner with my family."
+          },
+          {
+            "id": "div",
+            "type": "divider"
+          },
+          {
+            "id": "closing",
+            "type": "paragraph",
+            "text": "These values are my compass; I return to them whenever I need to find my way."
+          }
+        ]
+      },
+      "js": [],
+      "elixir": []
+    }
+  ]
+}
