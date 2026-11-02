@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState, type RefObject} from 'react'
 import {bridge} from '../lib/ask'
-import {editRequest, editable, rewrite, textOf, type Change, type EditReply, type Edited} from '../lib/ai-edit'
+import {checked, editRequest, editable, rewrite, textOf, type Change, type EditReply, type Edited} from '../lib/ai-edit'
 import type {Block, Note} from '../lib/model'
 import {markDirty, markSaved, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
@@ -8,7 +8,7 @@ import type {BodyHandle} from './BodyCanvas'
 
 export type Status = 'pending' | 'accepted' | 'rejected'
 export type Item = Change & {before: string; status: Status}
-export type Run = {instruction: string; pre: Block[]; reply?: EditReply; items: Item[]}
+export type Run = {instruction: string; pre: Block[]; reply?: EditReply; items: Item[]; old?: string | null}
 
 const itemsOf = (pre: Block[], r: Edited): Item[] => r.changes.map((c) => ({...c, before: textOf(pre.find((b) => b.id === c.block)!), status: 'pending'}))
 
@@ -32,8 +32,9 @@ export function useAiEdit(note: Note, body: RefObject<BodyHandle | null>) {
     const pre = body.current!.blocks()
     shown.current = pre
     setRun({instruction, pre, items: []})
-    const reply = await bridge()!.edit(editRequest(note, instruction, editable(pre, ids))).catch((e: Error): EditReply => ({error: e.message}))
-    setRun({instruction, pre, reply, items: 'error' in reply ? [] : itemsOf(pre, reply)})
+    const answer = await bridge()!.edit(editRequest(note, instruction, editable(pre, ids))).catch((e: Error): EditReply => ({error: e.message}))
+    const {reply, old} = checked(pre, answer)
+    setRun({instruction, pre, reply, old, items: 'error' in reply ? [] : itemsOf(pre, reply)})
   }
 
   const decide = async (picks: number[], status: Status) => {

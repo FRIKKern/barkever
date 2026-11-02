@@ -1,3 +1,4 @@
+import {validate, type ValidationError} from 'portable-doc/packages/validate/index.js'
 import {asked, type AskNote, type Citation} from './ask.ts'
 import {contentOf, inlineText, type Block, type Note} from './model.ts'
 
@@ -17,3 +18,52 @@ export const editRequest = (note: Note, instruction: string, blocks: EditBlock[]
 
 export const rewrite = (blocks: Block[], c: Change): Block[] =>
   blocks.map((b) => (b.id !== c.block ? b : b.content ? {...b, content: [{type: 'text', value: c.after}]} : {...b, text: c.after}))
+
+const problemsOf = (blocks: Block[]) => {
+  const r = validate({blocks})
+  return r.ok ? [] : r.errors
+}
+
+const ownId = (x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) && typeof (x as {id?: unknown}).id === 'string' ? (x as {id: string}).id : '')
+
+const placeOf = (e: ValidationError, blocks: Block[]) => {
+  const steps = e.path.split('/').slice(1).map((s) => s.replaceAll('~1', '/').replaceAll('~0', '~'))
+  let at: unknown = {blocks}
+  let id = ''
+  let from = 0
+  steps.forEach((step, i) => {
+    if (ownId(at)) [id, from] = [ownId(at), i]
+    at = (at as Record<string, unknown> | undefined)?.[step]
+  })
+  if (ownId(at)) [id, from] = [ownId(at), steps.length]
+  return JSON.stringify([e.code, id, steps.slice(from)])
+}
+
+export type Problems = {added: ValidationError[]; old: ValidationError[]}
+
+export function newProblems(pre: Block[], after: Block[]): Problems {
+  const known = new Map<string, number>()
+  for (const e of problemsOf(pre)) {
+    const place = placeOf(e, pre)
+    known.set(place, (known.get(place) ?? 0) + 1)
+  }
+  const added: ValidationError[] = []
+  const old: ValidationError[] = []
+  for (const e of problemsOf(after)) {
+    const place = placeOf(e, after)
+    const n = known.get(place) ?? 0
+    known.set(place, n - 1)
+    if (n > 0) old.push(e)
+    else added.push(e)
+  }
+  return {added, old}
+}
+
+export const reason = (errors: ValidationError[]) => errors.map((e) => `${e.message} at ${e.path}`).join('; ')
+
+export function verdict({added, old}: Problems, reply: Edited): {reply: EditReply; old: string | null} {
+  if (added.length) return {reply: {error: `The change would break this note: ${reason(added)}`}, old: null}
+  return {reply, old: old.length ? reason(old) : null}
+}
+
+export const checked = (pre: Block[], reply: EditReply) => ('error' in reply ? {reply, old: null} : verdict(newProblems(pre, reply.changes.reduce(rewrite, pre)), reply))

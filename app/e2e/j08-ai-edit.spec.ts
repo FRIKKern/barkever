@@ -48,8 +48,8 @@ function stubBridge(page: Page) {
   )
 }
 
-async function openCopy(page: Page, tag: string) {
-  const id = await copyKickoff(tag)
+async function openCopy(page: Page, tag: string, change?: Parameters<typeof copyKickoff>[1]) {
+  const id = await copyKickoff(tag, change)
   created.push(id)
   await stubBridge(page)
   await page.goto(`/?n=${id}`)
@@ -87,6 +87,7 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   await expect(changes.nth(1).locator('ins')).toHaveText(['Due'])
   expect(await changes.nth(0).locator('p').textContent()).toBe('Goals for the Harbor site redesign: faster pages, calmer navigation, one clear call to action.')
   await expect(page.getByTestId('ai-bar')).toContainText('2 changes2 to review')
+  await expect(page.getByTestId('ai-old-problems')).toHaveCount(0)
   expect(content(await stored(id))).toBe(content(before))
 
   await changes.nth(0).getByTestId('ai-accept').click()
@@ -123,6 +124,15 @@ test('J08 AI Edit shows a diff, writes nothing before accept, stores exactly the
   await expect(page.getByTestId('ai-bar')).toHaveCount(0)
   await settled(page)
   expect(content(await stored(id))).toBe(content(before))
+})
+
+test('J08 AI Edit on a note that already has a problem still shows the diff, with the problem named above it', async ({page}) => {
+  const id = await openCopy(page, 'old-problem', (blocks) => blocks.map((b) => (b.id.endsWith('-h') ? {...b, align: 5} : b)))
+  const at = (await stored(id)).body.blocks.findIndex((b) => b.id === `${id}-h`)
+  await runEdit(page, 'Tighten this')
+  await expect(page.getByTestId('ai-change')).toHaveCount(2)
+  await expect(page.getByTestId('ai-old-problems')).toHaveText(`This note already has problems: expected string, got 5 at /blocks/${at}/align`)
+  await expect(page.getByTestId('ai-error')).toHaveCount(0)
 })
 
 test('J08 AI Edit rejected in full leaves the stored note byte-identical', async ({page}) => {

@@ -25,6 +25,9 @@ importers:
       idb:
         specifier: 8.0.4
         version: 8.0.4
+      portable-doc:
+        specifier: github:FRIKKern/portable-doc#82be3a836686f111bfad835649138bac846008a9
+        version: https://codeload.github.com/FRIKKern/portable-doc/tar.gz/82be3a836686f111bfad835649138bac846008a9
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1772,6 +1775,11 @@ packages:
   plist@3.1.0:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
     engines: {node: '>=10.4.0'}
+
+  portable-doc@https://codeload.github.com/FRIKKern/portable-doc/tar.gz/82be3a836686f111bfad835649138bac846008a9:
+    resolution: {tarball: https://codeload.github.com/FRIKKern/portable-doc/tar.gz/82be3a836686f111bfad835649138bac846008a9}
+    version: 0.0.0
+    engines: {node: '>=22'}
 
   postcss@8.5.32:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
@@ -4091,6 +4099,8 @@ snapshots:
       '@xmldom/xmldom': 0.8.15
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
+
+  portable-doc@https://codeload.github.com/FRIKKern/portable-doc/tar.gz/82be3a836686f111bfad835649138bac846008a9: {}
 
   postcss@8.5.32:
     dependencies:

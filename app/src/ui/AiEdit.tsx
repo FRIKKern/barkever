@@ -105,6 +105,7 @@ export function AiBar({w, s, edit}: {w: World; s: Search; edit: Edit}) {
           )
         )}
       </div>
+      {run.old && <div className="aibar warn" data-testid="ai-old-problems"><b>This note already has problems:</b> {run.old}</div>}
     </div>
   )
 }

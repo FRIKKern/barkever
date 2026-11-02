@@ -11,6 +11,7 @@
 .aibar .ai-q { min-width: 0; overflow-wrap: anywhere; }
 .ai-src { padding: 0 var(--sp-half); border-radius: var(--r-s); background: var(--c-accent-soft); color: var(--c-accent); font-size: var(--fs-xs); font-weight: var(--fw-medium); }
 .ai-err b { color: var(--c-del-fg); }
+.aibar.warn { background: var(--c-surface); overflow-wrap: anywhere; }
 .chg { position: relative; margin: 0 calc(-1 * var(--sp-2)) var(--sp-3); padding: var(--sp-half) var(--sp-2); border-radius: var(--r-m); border: 1px solid var(--c-border); background: var(--c-surface); }
 .chg.pending { border-color: var(--c-faint); }
 .chg.accepted, .chg.rejected { border-style: dashed; }

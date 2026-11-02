@@ -6,10 +6,11 @@ export type Stored = {_id: string; _rev: string; title: string; tags: string[]; 
 
 export const block = (id: string, n: 'p0' | 'p1') => `${id}-${n}`
 
-export async function copyKickoff(tag: string): Promise<string> {
+export async function copyKickoff(tag: string, change: (b: Stored['body']['blocks']) => Stored['body']['blocks'] = (b) => b): Promise<string> {
   const id = `j08-${tag}-${Date.now()}`
   const src = readFileSync(new URL('../../fixtures/notes.ndjson', import.meta.url), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Stored).find((d) => d._id === 'fx-note-00')!
-  const body = JSON.parse(JSON.stringify(src.body).replaceAll('fx-note-00-', `${id}-`))
+  const copied = JSON.parse(JSON.stringify(src.body).replaceAll('fx-note-00-', `${id}-`)) as Stored['body']
+  const body = {...copied, blocks: change(copied.blocks)}
   const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: {...src, _id: id, title: `AI Edit ${tag}`, body}}]})})
   if (!res.ok) throw new Error(`Barkpark mutate ${res.status}`)
   return id
