@@ -82,6 +82,12 @@ test('text typed before a broken inline node leaves its error old', () => {
   assert.deepEqual([added, old.map((e) => [e.code, e.path])], [[], [['missing_required_field', '/blocks/0/content/2/type']]])
 })
 
+test('the same code on another field of the same block is added', () => {
+  const before = {...deep('h'), level: true} as unknown as Block
+  const after = {...deep('h'), level: 2, text: 5} as unknown as Block
+  assert.deepEqual(newProblems([before], [after]).added.map((e) => [e.code, e.path]), [['wrong_field_type', '/blocks/0/text']])
+})
+
 test('another code at the same place is added', () => {
   const after = {...deep('h'), level: true} as unknown as Block
   assert.deepEqual(newProblems([deep('h')], [after]).added.map((e) => [e.code, e.path]), [['wrong_field_type', '/blocks/0/level']])
