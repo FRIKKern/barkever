@@ -1,0 +1,339 @@
+{
+  "renderer": "barkever-blocks",
+  "compare": "dom",
+  "pack_stamp": "1ca9ca01d368484f4e7aa39003f9fb065595d29745f785d823154762b362be0b",
+  "ran_at_sha": "7b0419b226db5857385073f7dfab929ebe165128",
+  "rows": [
+    {
+      "type": "action",
+      "status": "missing"
+    },
+    {
+      "type": "api-endpoint",
+      "status": "missing"
+    },
+    {
+      "type": "arrayOf",
+      "status": "missing"
+    },
+    {
+      "type": "asciicast",
+      "status": "missing"
+    },
+    {
+      "type": "bar-chart",
+      "status": "missing"
+    },
+    {
+      "type": "blockquote",
+      "status": "fail",
+      "diff": [
+        "root > blockquote.bp-blockquote[0]: <p> != <blockquote>"
+      ]
+    },
+    {
+      "type": "byline",
+      "status": "missing"
+    },
+    {
+      "type": "callout",
+      "status": "missing"
+    },
+    {
+      "type": "card",
+      "status": "missing"
+    },
+    {
+      "type": "cards",
+      "status": "missing"
+    },
+    {
+      "type": "chart",
+      "status": "missing"
+    },
+    {
+      "type": "chat-approval",
+      "status": "missing"
+    },
+    {
+      "type": "chat-plan",
+      "status": "missing"
+    },
+    {
+      "type": "chat-question",
+      "status": "missing"
+    },
+    {
+      "type": "chat-thinking",
+      "status": "missing"
+    },
+    {
+      "type": "chat-todo",
+      "status": "missing"
+    },
+    {
+      "type": "chat-tool-diff",
+      "status": "missing"
+    },
+    {
+      "type": "code-tabs",
+      "status": "missing"
+    },
+    {
+      "type": "code",
+      "status": "missing"
+    },
+    {
+      "type": "codelist",
+      "status": "missing"
+    },
+    {
+      "type": "columns",
+      "status": "missing"
+    },
+    {
+      "type": "composite",
+      "status": "missing"
+    },
+    {
+      "type": "criteria-progress",
+      "status": "missing"
+    },
+    {
+      "type": "diagram",
+      "status": "missing"
+    },
+    {
+      "type": "diff",
+      "status": "missing"
+    },
+    {
+      "type": "divider",
+      "status": "missing"
+    },
+    {
+      "type": "duel",
+      "status": "missing"
+    },
+    {
+      "type": "embed",
+      "status": "missing"
+    },
+    {
+      "type": "equation",
+      "status": "missing"
+    },
+    {
+      "type": "expandable",
+      "status": "missing"
+    },
+    {
+      "type": "eyebrow",
+      "status": "missing"
+    },
+    {
+      "type": "field-boolean",
+      "status": "missing"
+    },
+    {
+      "type": "field-color",
+      "status": "missing"
+    },
+    {
+      "type": "field-datetime",
+      "status": "missing"
+    },
+    {
+      "type": "field-image",
+      "status": "missing"
+    },
+    {
+      "type": "field-number",
+      "status": "missing"
+    },
+    {
+      "type": "field-reference",
+      "status": "missing"
+    },
+    {
+      "type": "field-select",
+      "status": "missing"
+    },
+    {
+      "type": "field-slug",
+      "status": "missing"
+    },
+    {
+      "type": "field-string",
+      "status": "missing"
+    },
+    {
+      "type": "field-text",
+      "status": "missing"
+    },
+    {
+      "type": "figure",
+      "status": "missing"
+    },
+    {
+      "type": "filetree",
+      "status": "missing"
+    },
+    {
+      "type": "footnote",
+      "status": "missing"
+    },
+    {
+      "type": "form",
+      "status": "missing"
+    },
+    {
+      "type": "gauge-list",
+      "status": "missing"
+    },
+    {
+      "type": "heading",
+      "status": "pass"
+    },
+    {
+      "type": "heatmap",
+      "status": "missing"
+    },
+    {
+      "type": "image",
+      "status": "missing"
+    },
+    {
+      "type": "ingress",
+      "status": "missing"
+    },
+    {
+      "type": "lineage",
+      "status": "missing"
+    },
+    {
+      "type": "list",
+      "status": "fail",
+      "diff": [
+        "root > ul[0] > li[0] > span[0]: \"First point\" != <span>",
+        "root > ul[0] > li[1] > span[0]: \"Second point\" != <span>"
+      ]
+    },
+    {
+      "type": "localizedText",
+      "status": "missing"
+    },
+    {
+      "type": "note",
+      "status": "missing"
+    },
+    {
+      "type": "notes",
+      "status": "missing"
+    },
+    {
+      "type": "paper-links",
+      "status": "missing"
+    },
+    {
+      "type": "paragraph",
+      "status": "fail",
+      "diff": [
+        "root > p[0]: 1 children [#text] != 7 [#text,span,#text,a,#text,a,#text]",
+        "root > p[0] > #text[0]: \"A body paragraph with bold emphasis inside it, a marked link and a link node.\" != \"A body paragraph with \""
+      ]
+    },
+    {
+      "type": "pipeline",
+      "status": "missing"
+    },
+    {
+      "type": "pre-gate-badge",
+      "status": "missing"
+    },
+    {
+      "type": "pullquote",
+      "status": "missing"
+    },
+    {
+      "type": "questionnaire",
+      "status": "missing"
+    },
+    {
+      "type": "roadmap",
+      "status": "missing"
+    },
+    {
+      "type": "route",
+      "status": "missing"
+    },
+    {
+      "type": "section",
+      "status": "missing"
+    },
+    {
+      "type": "sheet",
+      "status": "missing"
+    },
+    {
+      "type": "stage",
+      "status": "missing"
+    },
+    {
+      "type": "stat-grid",
+      "status": "missing"
+    },
+    {
+      "type": "stat",
+      "status": "missing"
+    },
+    {
+      "type": "stats",
+      "status": "missing"
+    },
+    {
+      "type": "status-legend",
+      "status": "missing"
+    },
+    {
+      "type": "steps",
+      "status": "missing"
+    },
+    {
+      "type": "table",
+      "status": "missing"
+    },
+    {
+      "type": "tabs",
+      "status": "missing"
+    },
+    {
+      "type": "task-board",
+      "status": "missing"
+    },
+    {
+      "type": "task-detail",
+      "status": "missing"
+    },
+    {
+      "type": "task-list",
+      "status": "missing"
+    },
+    {
+      "type": "tasks",
+      "status": "missing"
+    },
+    {
+      "type": "terminal",
+      "status": "missing"
+    },
+    {
+      "type": "toc",
+      "status": "missing"
+    },
+    {
+      "type": "video",
+      "status": "missing"
+    }
+  ]
+}
