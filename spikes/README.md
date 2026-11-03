@@ -34,3 +34,5 @@ focus resync ── I j06-focus-resync/A  ✗ lost (copies PM's focus handler)
 | J | Take upstream's fix: prosemirror-view 1.42.9 (B2; B1 patch as fallback) | Won | [j06-focus-resync/B.md](j06-focus-resync/B.md), [j06-focus-resync/JUDGE.md](j06-focus-resync/JUDGE.md) |
 
 Spike code is evidence, not product code. Scripts read the token inside Node from `~/.config/barkpark/config.json` and never print it.
+
+These are records of what ran. Old machine paths were replaced when the repo moved to GitHub (decision 0036), so a few probes need their paths fixed before a re-run.

@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "sha-256 file hashes of the conformance pack"
+paths = ['''conformance/pack/goldens/stamp\.json''']

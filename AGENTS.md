@@ -29,7 +29,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 ```
 bp task get task-42e5633d742184c5 ─► next ready child ─► claim ─► unsure? rival spikes ─► judge
    ▲                                                                              │
-   └── close with evidence ◄── push (npm run prepush) ◄──────── ff main ◄──────┘
+   └── close with evidence ◄── push (npm run prepush) ◄──────── ff main ◄─────────┘
 ```
 
 Owner-only choices get a provisional pick from an independent judge, flagged for the owner. Pulse claims you hold (`bp task pulse`); leases last 45 minutes.
@@ -45,7 +45,7 @@ Owner-only choices get a provisional pick from an independent judge, flagged for
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
 - **guerrilla is shared** by every run and agent. A live probe is one timed call: no loops, no deletes or bulk writes without the lead.
-- **No secrets in prompts, files or output.** `npm run scan` checks every outgoing commit.
+- **No secrets in prompts, files or output.** `land.mjs` and `npm run prepush` scan outgoing commits; a plain `git push` runs nothing, so land.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
 - **Only the lead fast-forwards `main`.** Reviews go to the task and the verdict file.
 

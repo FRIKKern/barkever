@@ -42,9 +42,9 @@ pnpm mac        # the Mac app: same build, its own server inside
 ```sh
 npm run check     # repo guard: doc sizes, pictures, deps, secrets, Barkpark boundary
 pnpm -r test      # unit tests, chaos bot included
-pnpm e2e          # production build in Chrome
+pnpm e2e          # production build in Chrome; needs BARKEVER_E2E_* (app/.env.example)
 pnpm e2e:mac      # the Mac app
-npm run prepush   # all of the above + a secret scan of outgoing commits
+npm run prepush   # guard, tests, e2e + a secret scan of outgoing commits
 ```
 
 ## Read more
