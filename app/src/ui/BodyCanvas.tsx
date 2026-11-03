@@ -1,6 +1,6 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
 import {useNavigate} from '@tanstack/react-router'
-import {linkAtCaret, loadCanvas, Outdated, readTyping, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {linkAtCaret, loadCanvas, Outdated, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
@@ -30,7 +30,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
 
-  const focusCanvas = () => canvas.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
+  const focusCanvas = () => canvas.current?.focusSelection()
   const selected = () => {
     const sel = getSelection()
     const r = sel?.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null
@@ -50,7 +50,6 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
 
   const flush = () => {
     if (!canvas.current) return
-    readTyping(canvas.current)
     canvas.current.flushPendingChanges()
   }
 
@@ -163,7 +162,6 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
 
   useEffect(() => {
     if (!note.gen || !canvas.current) return
-    readTyping(canvas.current)
     canvas.current.applyServerBlocks(note.blocks)
   }, [note.gen])
 

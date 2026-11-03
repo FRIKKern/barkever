@@ -1,0 +1,131 @@
+{
+  "host": "Barkever",
+  "root": "..",
+  "minContract": "1.22.0",
+  "fleet": false,
+  "sources": [
+    "app/src/lib/canvas-load.ts",
+    "app/src/ui/BodyCanvas.tsx",
+    "app/src/styles/editor.css"
+  ],
+  "uses": {
+    "canvas": {
+      "DOM attribute": [
+        "data-bp-id",
+        "data-missing",
+        "data-wikilink",
+        "docid",
+        "target"
+      ],
+      "ancestor attribute": [
+        "data-strings"
+      ],
+      "attribute": [
+        "data-vocabulary",
+        "editable",
+        "mention-trigger"
+      ],
+      "event": [
+        "bp-canvas-open-link",
+        "bp-canvas-ops",
+        "bp-canvas-wikilink-click"
+      ],
+      "member": [
+        "acknowledgeOps",
+        "acknowledgedSaves",
+        "applyServerBlocks",
+        "blocks",
+        "flushKeepsSource",
+        "flushPendingChanges",
+        "focusSelection",
+        "identifyOpsRequest",
+        "linkPreviewSource",
+        "refreshWikilinks",
+        "wikilinkResolve",
+        "wikilinkSource"
+      ],
+      "tag": [
+        "bp-paper-canvas"
+      ]
+    },
+    "editor": {
+      "attribute": [
+        "editable"
+      ],
+      "member": [
+        "block",
+        "flushPendingChanges",
+        "focusSelection",
+        "wikilinkSource"
+      ],
+      "tag": [
+        "bp-paper-editor"
+      ]
+    },
+    "window": {
+      "global": [
+        "BP_PAPER_EDITOR_NO_INJECT"
+      ]
+    },
+    "both": {
+      "static": [
+        "CONTRACT_VERSION"
+      ]
+    },
+    "css": {
+      "token": [
+        "--bp-body-lh",
+        "--bp-body-size",
+        "--bp-evidence-pull",
+        "--bp-evidence-width",
+        "--bp-h2-lh",
+        "--bp-h2-size",
+        "--bp-h2-tracking",
+        "--bp-h2-weight",
+        "--bp-li-gap",
+        "--bp-para-margin-top",
+        "--bp-section-beat",
+        "--bp-section-gap",
+        "--bp-section-rule",
+        "--paper-accent",
+        "--paper-accent-soft",
+        "--paper-bg",
+        "--paper-bg-deep",
+        "--paper-chrome-bg",
+        "--paper-chrome-border",
+        "--paper-edit-hover",
+        "--paper-font-mono",
+        "--paper-font-sans",
+        "--paper-font-serif",
+        "--paper-font-ui",
+        "--paper-ink",
+        "--paper-ink-faint",
+        "--paper-ink-faint-line",
+        "--paper-ink-soft",
+        "--paper-picker-accent",
+        "--paper-picker-accent-soft",
+        "--paper-picker-bg",
+        "--paper-picker-chrome-bg",
+        "--paper-picker-chrome-border",
+        "--paper-picker-ink",
+        "--paper-picker-ink-faint",
+        "--paper-picker-ink-soft",
+        "--paper-picker-rule",
+        "--paper-picker-rule-soft",
+        "--paper-picker-shadow",
+        "--paper-reading-accent",
+        "--paper-rule"
+      ]
+    }
+  },
+  "internals": [
+    {
+      "names": [
+        "ProseMirror",
+        "[data-bp-id] > child",
+        "bp-paper-editor-body"
+      ],
+      "why": "Barkever's editor stylesheet and line marker intentionally bind to the canvas DOM until equivalent public styling and line-location seams exist."
+    }
+  ]
+}

@@ -10,6 +10,7 @@
     "check": "node scripts/check-repo.mjs && pnpm conformance",
     "conformance": "pnpm --filter @barkever/app exec tsx scripts/conformance.tsx && node --test --test-timeout=300000 conformance/conformance.test.mjs",
     "conformance:write": "CONFORMANCE_WRITE=1 pnpm --filter @barkever/app exec tsx scripts/conformance.tsx",
+    "hosts": "node --test --test-timeout=300000 --experimental-strip-types app/scripts/host-profile.test.ts",
     "fixtures": "node fixtures/build.mjs",
     "seed": "node fixtures/build.mjs && node scripts/seed-fixtures.mjs",
     "scan": "node scripts/scan-outgoing.mjs",

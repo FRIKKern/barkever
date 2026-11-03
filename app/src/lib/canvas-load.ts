@@ -17,15 +17,8 @@ export type CanvasElement = HTMLElement & {
   identifyOpsRequest(seq: number, requestId: string): void
   applyServerBlocks(blocks: Block[], o?: {mode: 'own'; requestId: string}): void
   flushPendingChanges(): boolean
+  focusSelection(): boolean
   acknowledgeOps(seq: number, ok: boolean): void
-}
-
-type Typed = HTMLElement & {editor?: {view?: {domObserver?: {forceFlush(): void; flush(): void}}}}
-
-export function readTyping(el: CanvasElement) {
-  const seen = el.querySelector<Typed>('[contenteditable="true"]')?.editor?.view?.domObserver
-  seen?.forceFlush()
-  seen?.flush()
 }
 
 const add = <T extends HTMLElement>(el: T) => (document.head.append(el), el)
@@ -48,7 +41,7 @@ let loading: Promise<void> | null = null
 
 export class Outdated extends Error {}
 
-const CANVAS_CONTRACT = '1.20.0'
+const CANVAS_CONTRACT = '1.22.0'
 
 export const retryIn = (tries: number) => Math.min(60_000, 2000 * 2 ** tries)
 
