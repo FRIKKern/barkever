@@ -16,7 +16,7 @@
 - Open with a diagram, a table or a screenshot. Words explain the picture.
 - If it has rows, it's a table. If it has flow, it's a diagram.
 - Cut every sentence a reader could skip. No intros, no recaps.
-- Every UI change shows before and after screenshots in its Trail.
+- Every UI change shows before and after screenshots on its task.
 - In the app, the same rule: show previews, thumbnails and visual diffs, not paragraphs. Empty states show what to do in one line.
 
 ## 2. Evidence
@@ -24,7 +24,7 @@
 - Unrun means unrun. Say which checks ran and where to see them.
 - Nobody approves their own journey. Tests guard silent failures; they don't sign off UX.
 - Predict the result, then run it. Unit tests and the real app both pass, or it isn't done.
-- Screenshots and recordings of runs go in the Trail or the Barkpark task, not in git. Only curated reference images live in `reference/` and `docs/img/`: each under 300 KB, all under 5 MB together (`npm run check` enforces it).
+- Screenshots and recordings of runs go on the Barkpark task, not in git. Only curated reference images live in `reference/` and `docs/img/`: each under 300 KB, all under 5 MB together (`npm run check` enforces it).
 
 ## 3. Speed budgets
 

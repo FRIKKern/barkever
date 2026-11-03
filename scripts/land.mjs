@@ -5,9 +5,8 @@ import { resolve } from "node:path";
 
 const [branch, ...rest] = process.argv.slice(2);
 const flag = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
-const trail = flag("--trail");
 const reviewed = flag("--reviewed");
-if (!branch || branch === "main") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha> [--trail <n>]"); process.exit(2); }
+if (!branch || branch === "main") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha>"); process.exit(2); }
 
 const git = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const step = (label, cmd, args, cwd, undo = () => "") => {
@@ -25,8 +24,8 @@ for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
 
 const touched = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
 const only = (pattern) => (files) => files.length > 0 && files.every((f) => pattern.test(f));
-const isText = only(/^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$/);
-const noAppEffect = only(/^(docs|pace|\.claude\/skills)\/|^[A-Z]+\.md$|^scripts\/(arms|hygiene|machine|milestones|pace)\.mjs$/);
+const isText = only(/^docs\/|^[A-Z]+\.md$/);
+const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/(arms|hygiene|machine)\.mjs$/);
 const head = git(["rev-parse", branch], dir);
 const samePatch = (sha) => { try { const patch = git(["diff", `main...${branch}`], dir); return patch !== "" && git(["diff", `main...${sha}`], dir) === patch; } catch { return false; } };
 if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(reviewed) || samePatch(reviewed)))) {
@@ -43,13 +42,11 @@ const abortRebase = () => {
 };
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
 step("npm run check", "npm", ["run", "check"], dir);
-if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: checkpoint secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
+if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
 else {
   step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir);
   step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
 }
-step("push the branch", "git", ["push", "-q", "origin", branch], dir);
-if (trail) step(`link to trail ${trail}`, "entire", ["trail", "link", trail, "--branch", branch], dir);
 step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
 step("push main", "git", ["push", "-q", "origin", "main"], main);
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);

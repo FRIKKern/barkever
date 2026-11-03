@@ -34,7 +34,7 @@ let imgTotal = 0;
 for (const f of files.filter((f) => IMG.has(extname(f).toLowerCase()))) {
   const size = statSync(f).size;
   imgTotal += size;
-  if (!/^(reference|docs\/img)\//.test(f)) fail(f, "images live in reference/ or docs/img/ (run evidence goes in the Trail)");
+  if (!/^(reference|docs\/img)\//.test(f)) fail(f, "images live in reference/ or docs/img/ (run evidence goes on the Barkpark task)");
   if (size > 300 * 1024) fail(f, `${Math.round(size / 1024)} KB, cap 300 KB`);
 }
 if (imgTotal > 5 * 1024 * 1024) fail("images", `${Math.round(imgTotal / 1024)} KB total, cap 5 MB`);

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { cpus, loadavg, totalmem } from "node:os";
+import { cpus, homedir, loadavg, totalmem } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const HEAVY_DIR = process.env.HEAVY_DIR ?? "~/.cache/heavy-slots";
+export const HEAVY_DIR = process.env.HEAVY_DIR ?? join(homedir(), ".cache", "heavy-slots");
 
 const BUCKETS = [
   ["claude", /\/claude\b/], ["chrome", /Chrom|chrome|headless_shell/], ["electron", /Electron/i],
@@ -18,7 +19,7 @@ export function machine() {
   const [load1, load5, load15] = loadavg().map((x) => +x.toFixed(1));
   const swap = run("sysctl", ["-n", "vm.swapusage"]).match(/total = ([\d.]+)M\s+used = ([\d.]+)M/);
   const freePct = Number(run("memory_pressure", []).match(/free percentage: (\d+)%/)?.[1] ?? NaN);
-  const disk = run("df", ["-k", "~"]).trim().split("\n").at(-1)?.split(/\s+/);
+  const disk = run("df", ["-k", homedir()]).trim().split("\n").at(-1)?.split(/\s+/);
   const procs = run("ps", ["-axo", "pid=,ppid=,pcpu=,rss=,etime=,command="]).trim().split("\n").map((l) => {
     const [pid, ppid, cpu, rss, etime, ...cmd] = l.trim().split(/\s+/);
     return { pid: +pid, ppid: +ppid, cpu: +cpu, rss: +rss, etime, cmd: cmd.join(" ") };

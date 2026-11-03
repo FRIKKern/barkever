@@ -48,5 +48,5 @@ Put the table in the PR body, with one line per row: what you tried and what hap
 - The reviewer sends its fix list straight to the builder by agent name, and copies the lead on the verdict only.
 - Criteria get stamped only after a PASS, with evidence that names the reviewer and the sha; a stamp before review is withdrawn.
 - A PASS freezes the branch. The builder pushes nothing more to it; new work goes in a follow-up PR from main. Every ask the lead has goes in the message that hands the branch to review.
-- The reviewer gives each finding a class and the earliest check that should have caught it. The lead logs it in `pace/misses.jsonl`.
+- The reviewer gives each finding a class and the earliest check that should have caught it.
 - The lead merges on PASS with `node scripts/merge-pr.mjs <n> <reviewed sha>`: it refuses a head the review did not see, waits for every check, and refuses any non-advisory fail. It refuses while a required check is red on main; `--fixes-main` is for the PR that fixes main, `--known-red <name>` for a named non-required check already red there.

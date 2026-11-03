@@ -1,6 +1,6 @@
 # Journeys
 
-A journey is a stable acceptance requirement, not a status. Every branch and Trail names one. Status lives in Barkpark.
+A journey is a stable acceptance requirement, not a status. Every branch names one. Status lives in Barkpark.
 
 ```
 capture ─► browse ─► find ─► organize ─► link ─► plan
