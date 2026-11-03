@@ -149,7 +149,6 @@ export function check(profile, surface, profileDir) {
   else if (a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] > b[2])))) errors.push(`minContract ${profile.minContract} is above the build's contract ${surface.contract}`);
   return errors;
 }
-
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [profilePath, surfacePath = path.join(path.dirname(fileURLToPath(import.meta.url)), "surface.json")] = process.argv.slice(2);
   if (!profilePath) {
