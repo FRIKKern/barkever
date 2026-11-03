@@ -169,4 +169,3 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (errors.length) process.exit(1);
   console.log(`PASS  ${profile.host}: every editor name its sources use is in its profile`);
 }
-

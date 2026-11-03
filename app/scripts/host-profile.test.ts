@@ -42,4 +42,3 @@ test('Barkever host profile rejects an undeclared member', () => {
     rmSync(dir, {recursive: true, force: true})
   }
 })
-
