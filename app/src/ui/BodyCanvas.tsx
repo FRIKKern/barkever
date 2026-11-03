@@ -1,6 +1,7 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
 import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, Outdated, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
+import {focusCanvas} from '../lib/canvas-focus'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
@@ -30,7 +31,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
 
-  const focusCanvas = () => canvas.current?.focusSelection()
+  const focusEditor = () => focusCanvas(canvas.current)
   const selected = () => {
     const sel = getSelection()
     const r = sel?.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null
@@ -40,7 +41,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   useImperativeHandle(
     handle,
     () => ({
-      focus: () => (canvas.current ? focusCanvas() : (wantFocus.current = true)),
+      focus: () => (canvas.current ? focusEditor() : (wantFocus.current = true)),
       blocks: () => (flush(), structuredClone(canvas.current!.blocks)),
       show: (blocks) => canvas.current?.applyServerBlocks(blocks),
       selected,
@@ -128,7 +129,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         host.current.append(el)
         canvas.current = el
         setState({live: true})
-        if (wantFocus.current) focusCanvas()
+        if (wantFocus.current) focusEditor()
       },
       (e: Error) => {
         if (gone) return

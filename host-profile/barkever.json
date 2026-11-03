@@ -1,9 +1,10 @@
 {
   "host": "Barkever",
   "root": "..",
-  "minContract": "1.22.0",
+  "minContract": "1.20.0",
   "fleet": false,
   "sources": [
+    "app/src/lib/canvas-focus.ts",
     "app/src/lib/canvas-load.ts",
     "app/src/ui/BodyCanvas.tsx",
     "app/src/styles/editor.css"

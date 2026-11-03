@@ -5,6 +5,7 @@ import path from 'node:path'
 import {spawnSync} from 'node:child_process'
 import test from 'node:test'
 import {fileURLToPath} from 'node:url'
+import {focusCanvas} from '../src/lib/canvas-focus.ts'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 const checker = path.join(repo, 'host-profile/check.mjs')
@@ -14,6 +15,13 @@ const run = (profile: string) => spawnSync(process.execPath, [checker, profile],
 test('Barkever host profile matches the pinned editor surface', () => {
   const result = run(profilePath)
   assert.equal(result.status, 0, result.stdout + result.stderr)
+})
+
+test('canvas focus uses the public seam and preserves the supported 1.20 fallback', () => {
+  const calls: string[] = []
+  focusCanvas({focusSelection: () => (calls.push('public'), true), querySelector: () => ({focus: () => calls.push('legacy')})})
+  focusCanvas({querySelector: (selector) => (assert.equal(selector, '.ProseMirror'), {focus: () => calls.push('legacy')})})
+  assert.deepEqual(calls, ['public', 'legacy'])
 })
 
 test('Barkever host profile rejects an undeclared member', () => {
