@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { HEAVY_DIR } from "./machine.mjs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const HEAVY_DIR = process.env.HEAVY_DIR ?? join(homedir(), ".cache", "heavy-slots");
 
 const slots = process.env.HEAVY_SLOTS ?? "3";
 if (!/^[1-9]\d?$/.test(slots)) { console.error(`heavy: HEAVY_SLOTS needs a whole number from 1 to 99, got ${JSON.stringify(slots)}`); process.exit(2); }

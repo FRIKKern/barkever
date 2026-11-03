@@ -14,6 +14,8 @@ const trees = git(["worktree", "list", "--porcelain"]).split("\n\n").map((b) => 
 const main = trees[0].dir;
 const dir = trees.find((t) => t.branch === name)?.dir ?? resolve(main, "..", "barkever-wt", name);
 
+const commonDir = (cwd) => { try { return git(["rev-parse", "--path-format=absolute", "--git-common-dir"], cwd); } catch { return null; } };
+if (existsSync(dir) && commonDir(dir) !== commonDir(main)) { console.error(`worktree: ${dir} is not a worktree of this repo; move it away first`); process.exit(1); }
 if (!existsSync(dir)) {
   const known = execFileSync("git", ["branch", "--list", name], { cwd: main, encoding: "utf8" }).trim();
   execFileSync("git", ["worktree", "add", "-q", dir, ...(known ? [name] : ["-b", name, "main"])], { cwd: main, stdio: "inherit" });

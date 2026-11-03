@@ -9,10 +9,10 @@ const reviewed = flag("--reviewed");
 if (!branch || branch === "main") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha>"); process.exit(2); }
 
 const git = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-const step = (label, cmd, args, cwd, undo = () => "") => {
+const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched") => {
   console.error(`land: ${label}`);
   try { execFileSync(cmd, args, { cwd, stdio: "inherit" }); }
-  catch { console.error(`land: ${label} failed${undo()}; main is untouched`); process.exit(1); }
+  catch { console.error(`land: ${label} failed${undo()}; ${state}`); process.exit(1); }
 };
 
 const here = git(["rev-parse", "--show-toplevel"]);
@@ -25,10 +25,10 @@ for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
 const touched = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
 const only = (pattern) => (files) => files.length > 0 && files.every((f) => pattern.test(f));
 const isText = only(/^docs\/|^[A-Z]+\.md$/);
-const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/(arms|hygiene|machine)\.mjs$/);
+const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/arms\.mjs$/);
 const head = git(["rev-parse", branch], dir);
 const samePatch = (sha) => { try { const patch = git(["diff", `main...${branch}`], dir); return patch !== "" && git(["diff", `main...${sha}`], dir) === patch; } catch { return false; } };
-if (!isText(touched) && !(reviewed && reviewed.length >= 7 && (head.startsWith(reviewed) || samePatch(reviewed)))) {
+if (!isText(touched) && !(reviewed && /^[0-9a-f]{7,40}$/.test(reviewed) && (head.startsWith(reviewed) || samePatch(reviewed)))) {
   console.error(`land: ${branch} is at ${head.slice(0, 10)}; pass --reviewed <the sha the reviewer passed>. A head that moved after review needs a delta review first`);
   process.exit(1);
 }
@@ -48,5 +48,5 @@ else {
   step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
 }
 step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
-step("push main", "git", ["push", "-q", "origin", "main"], main);
+step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "local main is ahead of origin; origin is untouched");
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);

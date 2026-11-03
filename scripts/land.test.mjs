@@ -13,7 +13,7 @@ const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd,
 const tops = [];
 after(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
-function repo(onMain, onBranch = (b) => write(b, "branch\n")) {
+function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", reviewedAs } = {}) {
   const top = mkdtempSync(join(tmpdir(), "land-"));
   tops.push(top);
   const origin = join(top, "origin.git");
@@ -22,9 +22,9 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n")) {
   git(top, "init", "-q", "--bare", "-b", "main", origin);
   git(top, "init", "-q", "-b", "main", main);
   mkdirSync(join(main, "scripts"));
-  for (const f of ["land.mjs", "worktree.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
+  for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
   writeFileSync(join(main, "a.txt"), "base\n");
-  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check: "exit 3" } }));
+  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check } }));
   git(main, "add", ".");
   git(main, "commit", "-qm", "base");
   git(main, "remote", "add", "origin", origin);
@@ -35,7 +35,7 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n")) {
   onMain(main);
   git(main, "push", "-q", "origin", "main");
   const reviewed = git(branch, "rev-parse", "HEAD");
-  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewed.slice(0, 7)], { cwd: main, env, encoding: "utf8" });
+  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top }, encoding: "utf8" });
   return { r, main, branch, reviewed, mainHead: git(main, "rev-parse", "HEAD") };
 }
 
@@ -75,4 +75,44 @@ test("a step after a clean rebase still fails as before", () => {
   const { r } = repo((m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "b.txt"); git(m, "commit", "-qm", "add b"); });
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /^land: npm run check failed; main is untouched$/m);
+});
+
+const docsOnly = (b) => { mkdirSync(join(b, "docs")); writeFileSync(join(b, "docs/x.md"), "x\n"); git(b, "add", "docs"); git(b, "commit", "-qm", "docs"); };
+
+for (const form of ["feature", "HEAD@{0}", "main", "abcdef"]) test(`--reviewed ${form} is refused`, () => {
+  const { r, main, mainHead } = repo(() => {}, undefined, { check: "exit 0", reviewedAs: form });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+  assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
+});
+
+test("a land sends main and nothing else, whatever else the repo holds", () => {
+  const { r, main } = repo((m) => {
+    git(m, "tag", "local-tag");
+    git(m, "branch", "junk");
+    git(m, "update-ref", "refs/entire/checkpoints/x", "HEAD");
+  }, docsOnly, { check: "exit 0" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(git(join(main, "..", "origin.git"), "for-each-ref", "--format=%(refname)"), "refs/heads/main");
+});
+
+test("a rejected push says local main moved and origin did not", () => {
+  const { r, main } = repo((m) => {
+    const hook = join(m, "..", "origin.git", "hooks", "pre-receive");
+    writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  }, docsOnly, { check: "exit 0" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: push main failed; local main is ahead of origin; origin is untouched$/m);
+  assert.notEqual(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+});
+
+test("worktree.mjs refuses a folder that belongs to another repo", () => {
+  const { main } = repo(() => {});
+  const stale = join(main, "..", "barkever-wt", "stale");
+  mkdirSync(stale, { recursive: true });
+  git(stale, "init", "-q");
+  const r = spawnSync("node", [join(main, "scripts/worktree.mjs"), "stale"], { cwd: main, env, encoding: "utf8" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /is not a worktree of this repo/);
+  assert.equal(git(main, "branch", "--list", "stale"), "");
 });
