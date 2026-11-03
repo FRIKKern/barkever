@@ -1,48 +1,59 @@
 # Barkever
 
-Notes and projects for visual thinkers. Evernote's calm three panes, built on Barkpark. Works offline and syncs when you're back online.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/hero-dark.webp">
+  <img alt="Barkever: sidebar, note list, editor and a map of a note's links" src="docs/img/hero-light.webp">
+</picture>
+
+**Notes and projects for visual thinkers.** Three calm panes on the web and on the Mac. It works offline, syncs when you're back, and its AI answers from your notes and cites them.
+
+| | |
+|---|---|
+| **Capture** | A new note and a cursor in under a second |
+| **Find** | Search, notebooks, tags, shortcuts and backlinks |
+| **Plan** | Checklists become tasks on a board, linked back to their line |
+| **Ask** | ✨ answers cite every note they used, on your own Claude or ChatGPT login |
+| **Edit with AI** | A visual diff you accept or reject, change by change |
+| **Offline** | An hour without a connection, then everything merges with nothing lost |
+
+## How it fits together
 
 ```
 ┌──────────── Barkever (one React app: web + Mac) ─────────────┐
 │ Sidebar       │ Note list          │ Editor            ✨ Ask │
-│ Search, +Note │ notebook · date    │ breadcrumb        panel  │
-│ Shortcuts     │ title              │ toolbar, AI Edit         │
-│ Recent, Tasks │ 2-line snippet     │ backlinks, tags          │
 └───────┬──────────────────────────────────────────────┬────────┘
         ▼                                              ▼
   local replica (IndexedDB) ◄─ sync ─► Barkpark   Mac app runs claude + codex
-  works offline                        "barkever"  on your own logins
+  works offline                                   on your own logins
 ```
+
+## Run it
+
+Node 22 and pnpm. It reads the synthetic `barkever/fixtures` dataset with your `bp` login, or with `app/.env.local` (see [app/.env.example](app/.env.example)).
+
+```sh
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm mac        # the Mac app: same build, its own server inside
+```
+
+## Test it
+
+```sh
+npm run check     # repo guard: doc sizes, pictures, deps, secrets, Barkpark boundary
+pnpm -r test      # unit tests, chaos bot included
+pnpm e2e          # production build in Chrome
+pnpm e2e:mac      # the Mac app
+npm run prepush   # all of the above + a secret scan of outgoing commits
+```
+
+## Read more
 
 | Read | For |
 |---|---|
-| [AGENTS.md](AGENTS.md) | How to work here |
 | [JOURNEYS.md](JOURNEYS.md) | What "works" means, J01–J10 |
 | [QUALITY.md](QUALITY.md) | Visual rules, evidence, speed budgets |
 | [docs/decisions/](docs/decisions/) | Why it's built this way |
 | [spikes/](spikes/) | Rival tests behind the unsure decisions |
 | [contracts/barkpark/](contracts/barkpark/) | Schemas, prefs keys, datasets |
-| [pace/](pace/) | Speed, compute and hygiene data; 6-hour reports |
-
-Plan: `/papers/barkever-plan` on guerrilla.barkpark.cloud. Work: `bp task get task-42e5633d742184c5`.
-
-Run the app (Node 22, pnpm). It reads `barkever/fixtures` with your `bp` login, or with `app/.env.local` (see [app/.env.example](app/.env.example)):
-
-```sh
-pnpm install
-pnpm dev        # http://localhost:3000 — lists the 50 fixture notes
-pnpm mac        # the Mac app: same build, its own server inside (decision 0020)
-```
-
-```sh
-npm run check     # repo guard: doc sizes, pictures, images, deps, secrets, Barkpark boundary
-npm run seed      # 50 synthetic notes → barkever/fixtures (never production)
-pnpm -r build     # typecheck + production build
-pnpm -r test      # unit tests, chaos bot included (2,000 seeds)
-npm run chaos     # chaos bot, 50,000 seeds: lost text, echo copies, convergence (QUALITY.md §4)
-pnpm e2e          # production build in Chrome: ≥ 50 notes
-pnpm e2e:mac      # the Mac app: sign-in, edit, offline relaunch, safeStorage
-npm run prepush   # all of the above + secret scan of Entire checkpoints
-node scripts/pace.mjs          # progress, machine load, hygiene since the last snapshot
-node scripts/heavy.mjs <cmd>   # run an e2e or suite in the shared 3-slot queue, one slot per worktree
-```
+| [AGENTS.md](AGENTS.md) | How to work here |
