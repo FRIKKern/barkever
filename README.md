@@ -7,7 +7,7 @@
 
 **Notes and projects for visual thinkers.** Three calm panes on the web and on the Mac. It works offline, syncs when you're back, and its AI answers from your notes and cites them.
 
-| | |
+| Journey | What you get |
 |---|---|
 | **Capture** | A new note and a cursor in under a second |
 | **Find** | Search, notebooks, tags, shortcuts and backlinks |
@@ -20,7 +20,7 @@
 
 ```
 ┌──────────── Barkever (one React app: web + Mac) ─────────────┐
-│ Sidebar       │ Note list          │ Editor            ✨ Ask │
+│ Sidebar       │ Note list          │ Editor              Ask │
 └───────┬──────────────────────────────────────────────┬────────┘
         ▼                                              ▼
   local replica (IndexedDB) ◄─ sync ─► Barkpark   Mac app runs claude + codex
