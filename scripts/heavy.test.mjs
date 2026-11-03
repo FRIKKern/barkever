@@ -1,7 +1,7 @@
 import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, watch, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -37,6 +37,16 @@ const runOn = (path, dir, owner, ...cmd) => runWith({}, path, dir, owner, ...cmd
 const runWith = (extra, path, dir, owner, ...cmd) => {
   const p = spawn(process.execPath, [heavy, ...cmd], { env: { ...env(dir, owner, path), ...extra }, detached: true, stdio: "ignore" });
   p.mark = mark(dir, owner);
+  groups.push(p);
+  return p;
+};
+const runObserved = (dir, owner, ...cmd) => {
+  const messages = join(dir, `messages-${owner}`);
+  const messagesFd = openSync(messages, "w");
+  const p = spawn(process.execPath, [heavy, ...cmd], { env: env(dir, owner), detached: true, stdio: ["ignore", "ignore", messagesFd] });
+  closeSync(messagesFd);
+  p.mark = mark(dir, owner);
+  p.messages = messages;
   groups.push(p);
   return p;
 };
@@ -102,8 +112,10 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     for (let round = 0; round < 20; round++) {
       const dir = slots();
       writeFileSync(join(dir, "slot-0"), `${prepush.pid} lander`);
-      const racers = ["a", "b", "c", "d"].map((o) => run(dir, o, "job"));
-      assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), `round ${round}: nobody started before the first poll`);
+      const racers = ["a", "b", "c", "d"].map((o) => runObserved(dir, o, "job"));
+      assert.ok(await within(10_000, () => racers.some((p) => holds(dir, p))), `round ${round}: nobody started`);
+      const winner = racers.find((p) => holds(dir, p));
+      assert.doesNotMatch(readFileSync(winner.messages, "utf8"), /heavy: waiting/, `round ${round}: the winner did not acquire on its first try`);
       racers.forEach((p) => stop(p));
     }
   });
@@ -185,10 +197,13 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
 
   test("a fresh slot file with no pid yet is a run mid-write: it holds the slot until it is 5 s old", async () => {
     const dir = slots();
-    writeFileSync(join(dir, "slot-0"), "");
+    const slot = join(dir, "slot-0");
+    writeFileSync(slot, "");
+    const born = statSync(slot, { bigint: true }).birthtimeNs;
     const asker = runWith({ HEAVY_SLOTS: "1" }, bin, dir, "a", "job");
-    assert.ok(await waits(dir, asker), "the asker waits beside a file that is still being written");
-    assert.ok(await within(5000, () => holds(dir, asker)), "and takes it over once it is a ghost");
+    assert.ok(await within(10_000, () => holds(dir, asker)), "the asker eventually takes over the empty slot");
+    const startedAfter = statSync(asker.mark, { bigint: true }).birthtimeNs - born;
+    assert.ok(startedAfter >= 5_000_000_000n, `the asker waited ${Number(startedAfter / 1_000_000n)} ms for the fresh slot to become a ghost`);
   });
 
   test("a run that ends removes only its own slot, not one another run took after its file was removed", async () => {
