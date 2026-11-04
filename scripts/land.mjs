@@ -50,3 +50,8 @@ else {
 step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
 step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "local main is ahead of origin; origin is untouched");
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);
+const publishRoadmap = `${main}/scripts/roadmap.mjs`;
+if (existsSync(publishRoadmap)) {
+  try { execFileSync("node", [publishRoadmap, "--publish"], { cwd: main, stdio: "inherit" }); }
+  catch { console.error("land: the land is done, but the roadmap did not refresh; run npm run roadmap:publish"); }
+}

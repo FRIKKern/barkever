@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="614" viewBox="0 0 1200 614" role="img" aria-labelledby="t d">
+<title id="t">Barkever journeys</title>
+<desc id="d">0 of 10 journeys signed off; 10 more have an end-to-end test but no sign-off.</desc>
+<style>
+svg{--bg:#f6f6f4;--card:#ffffff;--line:#e3e2dd;--ink:#1d1f23;--soft:#4a4d55;--faint:#b3b5ba;--ok:#4f8f62;--now:#3a62b5;--nowbg:#e4eaf7;--on:#ffffff}
+@media (prefers-color-scheme: dark){svg{--bg:#141518;--card:#1f2024;--line:#2c2e33;--ink:#e7e8eb;--soft:#b8bbc2;--faint:#565a62;--ok:#79b98b;--now:#84a3e6;--nowbg:#263149;--on:#10131a}}
+text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;fill:var(--ink)}
+.soft{fill:var(--soft)}.okt{fill:var(--ok)}.nowt{fill:var(--now)}.ont{fill:var(--on)}
+.caps{font-size:14px;font-weight:700;letter-spacing:1.6px}
+.bg{fill:var(--bg)}.card{fill:var(--card);stroke:var(--line)}.track{fill:var(--line)}
+.okf{fill:var(--ok)}.nowf{fill:var(--now)}.nowbg{fill:var(--nowbg)}
+.line{stroke:var(--line);fill:none}.okl{stroke:var(--ok);fill:none}.nowl{stroke:var(--now);fill:none}.faintl{stroke:var(--faint);fill:none;stroke-dasharray:4 7;stroke-linecap:round}
+.pulse{fill:var(--now);opacity:.18;transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.8);opacity:.3}100%{transform:scale(1.5);opacity:0}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+</style>
+<rect class="bg" width="1200" height="614" rx="16"/>
+<text x="48" y="74" font-size="42" font-weight="700">Ten journeys</text>
+<text x="48" y="106" font-size="19" class="soft">What the app has to do. A journey counts when a reviewer signs it off.</text>
+<text x="1152" y="74" font-size="42" font-weight="700" text-anchor="end">0<tspan class="soft" font-weight="400"> / 10</tspan></text>
+<text x="1152" y="100" font-size="16" class="soft" text-anchor="end">signed off</text>
+<rect x="48" y="150" width="209.6" height="196" rx="12" class="card"/>
+<rect x="48" y="150" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="66" y="186" font-size="16" class="caps soft">J01</text>
+<text x="239.60000000000002" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="66" y="216" font-size="21" font-weight="600">Capture</text>
+<text x="66" y="242" font-size="14.5" class="soft">Cmd-N gives a cursor</text>
+<text x="66" y="261" font-size="14.5" class="soft">in under 1 s</text>
+<text x="66" y="330" font-size="14" class="soft">P3 · 3 open tasks</text>
+<rect x="271.6" y="150" width="209.6" height="196" rx="12" class="card"/>
+<rect x="271.6" y="150" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="289.6" y="186" font-size="16" class="caps soft">J02</text>
+<text x="463.20000000000005" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="289.6" y="216" font-size="21" font-weight="600">Browse</text>
+<text x="289.6" y="242" font-size="14.5" class="soft">Sidebar → notebook →</text>
+<text x="289.6" y="261" font-size="14.5" class="soft">list → note</text>
+<text x="289.6" y="330" font-size="14" class="soft">P3 · 1 open task</text>
+<rect x="495.2" y="150" width="209.6" height="196" rx="12" class="card"/>
+<rect x="495.2" y="150" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="513.2" y="186" font-size="16" class="caps soft">J03</text>
+<text x="686.8" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="513.2" y="216" font-size="21" font-weight="600">Find</text>
+<text x="513.2" y="242" font-size="14.5" class="soft">Search finds notes by</text>
+<text x="513.2" y="261" font-size="14.5" class="soft">words in title or body</text>
+<text x="513.2" y="330" font-size="14" class="soft">P3 · no open tasks</text>
+<rect x="718.8" y="150" width="209.6" height="196" rx="12" class="card"/>
+<rect x="718.8" y="150" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="736.8" y="186" font-size="16" class="caps soft">J04</text>
+<text x="910.4" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="736.8" y="216" font-size="21" font-weight="600">Organize</text>
+<text x="736.8" y="242" font-size="14.5" class="soft">Notebooks, tags,</text>
+<text x="736.8" y="261" font-size="14.5" class="soft">shortcuts and recent</text>
+<text x="736.8" y="280" font-size="14.5" class="soft">notes, each one click</text>
+<text x="736.8" y="299" font-size="14.5" class="soft">from the sidebar</text>
+<text x="736.8" y="330" font-size="14" class="soft">P3 · 3 open tasks</text>
+<rect x="942.4" y="150" width="209.6" height="196" rx="12" class="card"/>
+<rect x="942.4" y="150" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="960.4" y="186" font-size="16" class="caps soft">J05</text>
+<text x="1134" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="960.4" y="216" font-size="21" font-weight="600">Link</text>
+<text x="960.4" y="242" font-size="14.5" class="soft">Link a note to another</text>
+<text x="960.4" y="330" font-size="14" class="soft">P3 · 1 open task</text>
+<rect x="48" y="360" width="209.6" height="196" rx="12" class="card"/>
+<rect x="48" y="360" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="66" y="396" font-size="16" class="caps soft">J06</text>
+<text x="239.60000000000002" y="396" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="66" y="426" font-size="21" font-weight="600">Plan</text>
+<text x="66" y="452" font-size="14.5" class="soft">Checklist items become</text>
+<text x="66" y="471" font-size="14.5" class="soft">tasks on a board</text>
+<text x="66" y="540" font-size="14" class="soft">P6 · no open tasks</text>
+<rect x="271.6" y="360" width="209.6" height="196" rx="12" class="card"/>
+<rect x="271.6" y="360" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="289.6" y="396" font-size="16" class="caps soft">J07</text>
+<text x="463.20000000000005" y="396" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="289.6" y="426" font-size="21" font-weight="600">Ask</text>
+<text x="289.6" y="452" font-size="14.5" class="soft">✨ answers from my</text>
+<text x="289.6" y="471" font-size="14.5" class="soft">notes, cites every</text>
+<text x="289.6" y="490" font-size="14.5" class="soft">note used, says &quot;not</text>
+<text x="289.6" y="509" font-size="14.5" class="soft">in your notes&quot; when…</text>
+<text x="289.6" y="540" font-size="14" class="soft">P5 · 1 open task</text>
+<rect x="495.2" y="360" width="209.6" height="196" rx="12" class="card"/>
+<rect x="495.2" y="360" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="513.2" y="396" font-size="16" class="caps soft">J08</text>
+<text x="686.8" y="396" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="513.2" y="426" font-size="21" font-weight="600">AI Edit</text>
+<text x="513.2" y="452" font-size="14.5" class="soft">Select → AI Edit →</text>
+<text x="513.2" y="471" font-size="14.5" class="soft">visual diff → accept</text>
+<text x="513.2" y="490" font-size="14.5" class="soft">or reject each change</text>
+<text x="513.2" y="509" font-size="14.5" class="soft">→ one-step undo</text>
+<text x="513.2" y="540" font-size="14" class="soft">P5 · no open tasks</text>
+<rect x="718.8" y="360" width="209.6" height="196" rx="12" class="card"/>
+<rect x="718.8" y="360" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="736.8" y="396" font-size="16" class="caps soft">J09</text>
+<text x="910.4" y="396" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="736.8" y="426" font-size="21" font-weight="600">Mac app</text>
+<text x="736.8" y="452" font-size="14.5" class="soft">Same app on a clean</text>
+<text x="736.8" y="471" font-size="14.5" class="soft">Mac account</text>
+<text x="736.8" y="540" font-size="14" class="soft">P4 · 2 open tasks</text>
+<rect x="942.4" y="360" width="209.6" height="196" rx="12" class="card"/>
+<rect x="942.4" y="360" width="209.6" height="6" rx="3" class="nowf"/>
+<text x="960.4" y="396" font-size="16" class="caps soft">J10</text>
+<text x="1134" y="396" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e runs</text>
+<text x="960.4" y="426" font-size="21" font-weight="600">Offline</text>
+<text x="960.4" y="452" font-size="14.5" class="soft">An hour offline:</text>
+<text x="960.4" y="471" font-size="14.5" class="soft">create, edit, delete</text>
+<text x="960.4" y="540" font-size="14" class="soft">P3 · 8 open tasks</text>
+<text x="48" y="594" font-size="14" class="soft">As of 2026-11-04. Sign-off comes from the Barkpark board; e2e runs means a spec is on main.</text>
+</svg>

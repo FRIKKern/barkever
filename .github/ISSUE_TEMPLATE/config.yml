@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report something
+    url: https://github.com/FRIKKern/barkpark/issues/new?title=Barkever%3A%20
+    about: Opens on the Barkpark board, which is public, so leave out real notes and private details. See docs/decisions/0037.

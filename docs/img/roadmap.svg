@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="899" viewBox="0 0 1200 899" role="img" aria-labelledby="t d">
+<title id="t">Barkever roadmap</title>
+<desc id="d">3 of 8 milestones done, 4 moving, 1 not started; 0 of 10 journeys signed off.</desc>
+<style>
+svg{--bg:#f6f6f4;--card:#ffffff;--line:#e3e2dd;--ink:#1d1f23;--soft:#4a4d55;--faint:#b3b5ba;--ok:#4f8f62;--now:#3a62b5;--nowbg:#e4eaf7;--on:#ffffff}
+@media (prefers-color-scheme: dark){svg{--bg:#141518;--card:#1f2024;--line:#2c2e33;--ink:#e7e8eb;--soft:#b8bbc2;--faint:#565a62;--ok:#79b98b;--now:#84a3e6;--nowbg:#263149;--on:#10131a}}
+text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;fill:var(--ink)}
+.soft{fill:var(--soft)}.okt{fill:var(--ok)}.nowt{fill:var(--now)}.ont{fill:var(--on)}
+.caps{font-size:14px;font-weight:700;letter-spacing:1.6px}
+.bg{fill:var(--bg)}.card{fill:var(--card);stroke:var(--line)}.track{fill:var(--line)}
+.okf{fill:var(--ok)}.nowf{fill:var(--now)}.nowbg{fill:var(--nowbg)}
+.line{stroke:var(--line);fill:none}.okl{stroke:var(--ok);fill:none}.nowl{stroke:var(--now);fill:none}.faintl{stroke:var(--faint);fill:none;stroke-dasharray:4 7;stroke-linecap:round}
+.pulse{fill:var(--now);opacity:.18;transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.8);opacity:.3}100%{transform:scale(1.5);opacity:0}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+</style>
+<rect class="bg" width="1200" height="899" rx="16"/>
+<text x="48" y="74" font-size="42" font-weight="700">Barkever</text>
+<text x="48" y="106" font-size="19" class="soft">Where the work stands. Drawn from the Barkpark board.</text>
+<text x="902" y="74" font-size="42" font-weight="700" text-anchor="end">3<tspan class="soft" font-weight="400"> / 8</tspan></text>
+<text x="902" y="100" font-size="16" class="soft" text-anchor="end">milestones done</text>
+<text x="1152" y="74" font-size="42" font-weight="700" text-anchor="end">0<tspan class="soft" font-weight="400"> / 10</tspan></text>
+<text x="1152" y="100" font-size="16" class="soft" text-anchor="end">journeys signed off</text>
+<path d="M92 250C193.6 250 193.6 250 295.2 250" class="okl" stroke-width="5"/>
+<path d="M295.2 250C396.79999999999995 250 396.79999999999995 250 498.4 250" class="okl" stroke-width="5"/>
+<path d="M498.4 250C600 250 600 194 701.5999999999999 194" class="nowl" stroke-width="5"/>
+<path d="M701.5999999999999 194C803.1999999999999 194 803.1999999999999 194 904.8 194" class="nowl" stroke-width="5"/>
+<path d="M498.4 250C600 250 600 306 701.5999999999999 306" class="nowl" stroke-width="5"/>
+<path d="M701.5999999999999 306C803.1999999999999 306 803.1999999999999 306 904.8 306" class="nowl" stroke-width="5"/>
+<path d="M904.8 194C1006.4 194 1006.4 250 1108 250" class="faintl" stroke-width="5"/>
+<path d="M904.8 306C1006.4 306 1006.4 250 1108 250" class="faintl" stroke-width="5"/>
+<circle cx="92" cy="250" r="24" class="okf"/>
+<text x="92" y="256" font-size="17" class="ont" font-weight="700" text-anchor="middle">P0</text>
+<text x="92" y="298" font-size="16" font-weight="600" text-anchor="middle">Ground</text>
+<circle cx="295.2" cy="250" r="24" class="okf"/>
+<text x="295.2" y="256" font-size="17" class="ont" font-weight="700" text-anchor="middle">P1</text>
+<text x="295.2" y="298" font-size="16" font-weight="600" text-anchor="middle">Platform</text>
+<circle cx="498.4" cy="250" r="24" class="okf"/>
+<text x="498.4" y="256" font-size="17" class="ont" font-weight="700" text-anchor="middle">P2</text>
+<text x="498.4" y="298" font-size="16" font-weight="600" text-anchor="middle">Prototype</text>
+<circle cx="701.5999999999999" cy="194" r="38" class="pulse"/>
+<circle cx="701.5999999999999" cy="194" r="24" class="card"/>
+<circle cx="701.5999999999999" cy="194" r="24" fill="none" class="line" stroke-width="6"/>
+<circle cx="701.5999999999999" cy="194" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="77.3 150.8" transform="rotate(-90 701.5999999999999 194)"/>
+<text x="701.5999999999999" y="200" font-size="17" font-weight="700" text-anchor="middle">P3</text>
+<text x="701.5999999999999" y="242" font-size="16" font-weight="600" text-anchor="middle">Web core</text>
+<text x="701.5999999999999" y="154" font-size="13" class="nowt" font-weight="700" text-anchor="middle">NOW</text>
+<circle cx="904.8" cy="194" r="24" class="card"/>
+<circle cx="904.8" cy="194" r="24" fill="none" class="line" stroke-width="6"/>
+<circle cx="904.8" cy="194" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="90.5 150.8" transform="rotate(-90 904.8 194)"/>
+<text x="904.8" y="200" font-size="17" font-weight="700" text-anchor="middle">P4</text>
+<text x="904.8" y="242" font-size="16" font-weight="600" text-anchor="middle">Mac app</text>
+<circle cx="701.5999999999999" cy="306" r="24" class="card"/>
+<circle cx="701.5999999999999" cy="306" r="24" fill="none" class="line" stroke-width="6"/>
+<circle cx="701.5999999999999" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="129.3 150.8" transform="rotate(-90 701.5999999999999 306)"/>
+<text x="701.5999999999999" y="312" font-size="17" font-weight="700" text-anchor="middle">P5</text>
+<text x="701.5999999999999" y="354" font-size="16" font-weight="600" text-anchor="middle">AI v1</text>
+<circle cx="904.8" cy="306" r="24" class="card"/>
+<circle cx="904.8" cy="306" r="24" fill="none" class="line" stroke-width="6"/>
+<circle cx="904.8" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="125.7 150.8" transform="rotate(-90 904.8 306)"/>
+<text x="904.8" y="312" font-size="17" font-weight="700" text-anchor="middle">P6</text>
+<text x="904.8" y="354" font-size="16" font-weight="600" text-anchor="middle">Projects</text>
+<circle cx="1108" cy="250" r="24" class="bg"/>
+<circle cx="1108" cy="250" r="24" class="faintl" stroke-width="3"/>
+<text x="1108" y="256" font-size="17" class="soft" font-weight="700" text-anchor="middle">P7</text>
+<text x="1108" y="298" font-size="16" class="soft" font-weight="600" text-anchor="middle">Later</text>
+<text x="48" y="396" font-size="16" class="caps okt">DONE</text>
+<text x="338" y="396" font-size="16" class="caps soft" text-anchor="end">3</text>
+<path d="M48 408H338" class="line"/>
+<text x="48" y="440" font-size="19" font-weight="600">✓ P0 Ground</text>
+<text x="48" y="464" font-size="16" class="soft">The rules, the journeys and the</text>
+<text x="48" y="485" font-size="16" class="soft">first push</text>
+<text x="48" y="506" font-size="14" class="soft">4 of 4 criteria stamped</text>
+<text x="48" y="542" font-size="19" font-weight="600">✓ P1 Platform</text>
+<text x="48" y="566" font-size="16" class="soft">Notes and notebooks have a home in</text>
+<text x="48" y="587" font-size="16" class="soft">Barkpark</text>
+<text x="48" y="608" font-size="14" class="soft">3 of 3 criteria stamped</text>
+<text x="48" y="644" font-size="19" font-weight="600">✓ P2 Prototype</text>
+<text x="48" y="668" font-size="16" class="soft">The look is picked from real options</text>
+<text x="48" y="689" font-size="14" class="soft">1 of 3 criteria stamped</text>
+<text x="370" y="396" font-size="16" class="caps nowt">NOT DONE YET · MOVING</text>
+<text x="830" y="396" font-size="16" class="caps soft" text-anchor="end">4</text>
+<path d="M370 408H830" class="line"/>
+<text x="370" y="440" font-size="19" font-weight="600">P3 Web core</text>
+<text x="830" y="440" font-size="15" font-weight="600" text-anchor="end">20 of 39 tasks</text>
+<text x="370" y="464" font-size="16" class="soft">Write, browse, find, organize and link, online or off</text>
+<rect x="370" y="479" width="460" height="7" rx="3.5" class="track"/>
+<rect x="370" y="479" width="235.9" height="7" rx="3.5" class="nowf"/>
+<text x="370" y="505" font-size="14" class="soft">0 of 5 criteria stamped</text>
+<text x="370" y="541" font-size="19" font-weight="600">P4 Mac app</text>
+<text x="830" y="541" font-size="15" font-weight="600" text-anchor="end">3 of 5 tasks</text>
+<text x="370" y="565" font-size="16" class="soft">A signed Mac app that updates itself</text>
+<rect x="370" y="580" width="460" height="7" rx="3.5" class="track"/>
+<rect x="370" y="580" width="276.0" height="7" rx="3.5" class="nowf"/>
+<text x="370" y="606" font-size="14" class="soft">0 of 3 criteria stamped</text>
+<text x="370" y="642" font-size="19" font-weight="600">P5 AI v1</text>
+<text x="830" y="642" font-size="15" font-weight="600" text-anchor="end">6 of 7 tasks</text>
+<text x="370" y="666" font-size="16" class="soft">Ask your notes, and edit with AI through a diff you</text>
+<text x="370" y="687" font-size="16" class="soft">accept</text>
+<rect x="370" y="702" width="460" height="7" rx="3.5" class="track"/>
+<rect x="370" y="702" width="394.3" height="7" rx="3.5" class="nowf"/>
+<text x="370" y="728" font-size="14" class="soft">0 of 3 criteria stamped</text>
+<text x="370" y="764" font-size="19" font-weight="600">P6 Projects</text>
+<text x="830" y="764" font-size="15" font-weight="600" text-anchor="end">5 of 6 tasks</text>
+<text x="370" y="788" font-size="16" class="soft">Checklists become tasks on a board</text>
+<rect x="370" y="803" width="460" height="7" rx="3.5" class="track"/>
+<rect x="370" y="803" width="383.3" height="7" rx="3.5" class="nowf"/>
+<text x="370" y="829" font-size="14" class="soft">0 of 2 criteria stamped</text>
+<text x="862" y="396" font-size="16" class="caps soft">NOT STARTED</text>
+<text x="1152" y="396" font-size="16" class="caps soft" text-anchor="end">1</text>
+<path d="M862 408H1152" class="line"/>
+<text x="862" y="440" font-size="19" font-weight="600">P7 Later</text>
+<text x="862" y="464" font-size="16" class="soft">Semantic search, meeting notes, an</text>
+<text x="862" y="485" font-size="16" class="soft">MCP server, reminders</text>
+<rect x="862" y="518" width="290" height="154" rx="12" class="nowbg"/>
+<text x="880" y="550" font-size="16" class="caps nowt">WHERE WE'RE HEADING</text>
+<text x="880" y="580" font-size="17">Every journey signed off, on</text>
+<text x="880" y="603" font-size="17">the web and in a signed Mac</text>
+<text x="880" y="626" font-size="17">app that updates itself. Then</text>
+<text x="880" y="649" font-size="17">the later list.</text>
+<text x="48" y="879" font-size="14" class="soft">As of 2026-11-04. A ring fills as tasks close. Plus 36 open upkeep tasks not tied to a milestone.</text>
+</svg>

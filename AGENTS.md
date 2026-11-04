@@ -7,6 +7,7 @@ Barkever is for visual thinkers. Everything you write follows that: lead with a 
 ```
 work + status ─► Barkpark tasks (bp)      goal: task-42e5633d742184c5
 plan          ─► Paper /papers/barkever-plan
+roadmap       ─► docs/ROADMAP.md: pictures and GitHub milestones drawn from bp, never by hand
 why           ─► docs/decisions/NNNN-*.md (supersede, never edit)
 what "works"  ─► JOURNEYS.md (J01–J10)
 how good      ─► QUALITY.md
@@ -22,7 +23,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 3. One journey per branch. Name it in the commit: `J03: …`.
 4. `npm run check` before every commit.
 5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, queued prepush, fast-forward and push `main`. No squash. Evidence on the task.
-6. Close with evidence: what ran, where to see it, screenshots for any UI change.
+6. Close with evidence: what ran, where to see it, screenshots for any UI change. Stamped with no land coming? `npm run roadmap:publish` on clean main.
 
 ## Long unattended runs
 

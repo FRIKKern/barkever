@@ -116,3 +116,20 @@ test("worktree.mjs refuses a folder that belongs to another repo", () => {
   assert.match(r.stderr, /is not a worktree of this repo/);
   assert.equal(git(main, "branch", "--list", "stale"), "");
 });
+
+test("a roadmap refresh that fails does not fail a land that already pushed", () => {
+  const run = repo((m) => {
+    writeFileSync(join(m, "scripts", "roadmap.mjs"), "process.exit(9)\n");
+    git(m, "add", "scripts/roadmap.mjs");
+    git(m, "commit", "-qm", "add roadmap");
+  }, (b) => {
+    mkdirSync(join(b, "docs"));
+    writeFileSync(join(b, "docs", "note.md"), "a note\n");
+    git(b, "add", "docs/note.md");
+    git(b, "commit", "-qm", "a note");
+  }, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.match(run.r.stdout, /landed feature on main/);
+  assert.match(run.r.stderr, /roadmap did not refresh/);
+  assert.equal(git(run.main, "rev-parse", "origin/main"), git(run.main, "rev-parse", "main"));
+});
