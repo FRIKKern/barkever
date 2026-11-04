@@ -13,12 +13,12 @@ function placeStations(milestones) {
   const depthOf = (m) => (depth[m.id] ??= m.after.length ? 1 + Math.max(...m.after.map((id) => depthOf(milestones.find((o) => o.id === id)))) : 0);
   milestones.forEach(depthOf);
   const deepest = Math.max(...Object.values(depth));
-  const step = (WIDTH - 2 * PAD - 2 * RADIUS - 40) / deepest;
+  const step = (WIDTH - 2 * PAD - 2 * RADIUS - 40) / Math.max(1, deepest);
   const at = {};
   for (const m of milestones) {
     const peers = milestones.filter((o) => depth[o.id] === depth[m.id]);
     const row = peers.indexOf(m);
-    const y = peers.length === 1 ? ROUTE_MID : ROUTE_MID + (row === 0 ? -ROUTE_SPREAD : ROUTE_SPREAD);
+    const y = ROUTE_MID + (2 * row - (peers.length - 1)) * ROUTE_SPREAD;
     at[m.id] = { x: PAD + RADIUS + 20 + depth[m.id] * step, y };
   }
   return at;
@@ -175,7 +175,7 @@ export function renderRoute(model) {
       ...rails,
       ...stations,
       ...lists,
-      say(PAD, height - 20, `As of ${model.asOf}. A ring fills as tasks close. Plus ${model.upkeepOpen} open upkeep tasks not tied to a milestone.`, { size: 14, cls: "soft" }),
+      say(PAD, height - 20, `As of ${model.asOf}. A ring fills as tasks close. Plus ${model.upkeepOpen} open tasks that name no milestone or journey.`, { size: 14, cls: "soft" }),
     ],
   });
 }

@@ -1,6 +1,6 @@
 # 0037 GitHub milestones mirror Barkpark
 
-Accepted 2026-11-04. Replaces "Instead of GitHub Issues" in 0010 for milestones only.
+Accepted 2026-11-04. Replaces "Instead of GitHub Issues" in 0010 for milestones only. Builds on 0036.
 
 ```
 Barkpark board ─► scripts/roadmap.mjs ─┬─► docs/img/roadmap.svg, journeys.svg
@@ -11,6 +11,6 @@ Barkpark board ─► scripts/roadmap.mjs ─┬─► docs/img/roadmap.svg, jou
 
 **Why.** The owner wants real milestones with a picture of done, not done and ahead. One issue per criterion makes GitHub's progress bar mean sign-off, not task churn. The Barkpark bridge already mirrors every task to FRIKKern/barkpark, so copying tasks here would be a third list.
 
-**Refresh.** `land.mjs` publishes after each land; `npm run roadmap:publish` does it by hand. No bot and no CI, unlike the sibling repos: a bot pushing to main can reject a land after its long prepush, and it would need a Barkpark token.
+**Refresh.** `land.mjs` publishes after each land; the lead can run `npm run roadmap:publish`. It pushes only the pictures, past check and scan, not prepush, and refuses while a land runs or main isn't level with origin. No bot and no CI, unlike the sibling repos: a bot pushing to main can reject a land after its long prepush, and it would need a Barkpark token.
 
 **Instead of.** Every task as an issue; a housekeeping Action; a hand-drawn picture.

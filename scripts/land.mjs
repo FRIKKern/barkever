@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const [branch, ...rest] = process.argv.slice(2);
@@ -18,6 +18,9 @@ const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched
 const here = git(["rev-parse", "--show-toplevel"]);
 const dir = execFileSync("node", [`${here}/scripts/worktree.mjs`, branch], { encoding: "utf8" }).trim().split("\n").at(-1);
 const main = git(["worktree", "list", "--porcelain"]).match(/^worktree (.+)$/m)[1];
+const landMark = `${main}/.git/land.pid`;
+writeFileSync(landMark, String(process.pid));
+process.on("exit", () => { if (existsSync(landMark) && readFileSync(landMark, "utf8") === String(process.pid)) rmSync(landMark); });
 for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
   if (git(["status", "--porcelain", "--untracked-files=no"], cwd)) { console.error(`land: uncommitted changes in the ${where} (${cwd})`); process.exit(1); }
 }
@@ -52,6 +55,6 @@ step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "loc
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);
 const publishRoadmap = `${main}/scripts/roadmap.mjs`;
 if (existsSync(publishRoadmap)) {
-  try { execFileSync("node", [publishRoadmap, "--publish"], { cwd: main, stdio: "inherit" }); }
+  try { execFileSync("node", [publishRoadmap, "--publish"], { cwd: main, stdio: "inherit", timeout: 600_000 }); }
   catch { console.error("land: the land is done, but the roadmap did not refresh; run npm run roadmap:publish"); }
 }

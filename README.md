@@ -21,7 +21,7 @@
 | AI edits as a visual diff you accept or reject | J08 | P5 |
 | Checklists become tasks on a board | J06 | P6 |
 
-[![Ten journeys, each with its sign-off and open tasks](docs/img/journeys.svg)](JOURNEYS.md)
+[![The journeys, each with its sign-off and open tasks](docs/img/journeys.svg)](JOURNEYS.md)
 
 ## How it fits together
 
@@ -57,6 +57,9 @@ contracts/   Barkpark schemas
 fixtures/    synthetic notes
 conformance/ PortableDoc goldens
 scripts/     guard, queue, land, roadmap
+host-profile/ editor host profile
+reference/   prototypes and references
+spikes/      rival tests
 ```
 
 ## Run it

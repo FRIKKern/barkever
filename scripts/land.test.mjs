@@ -1,7 +1,7 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -22,7 +22,7 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   git(top, "init", "-q", "--bare", "-b", "main", origin);
   git(top, "init", "-q", "-b", "main", main);
   mkdirSync(join(main, "scripts"));
-  for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
+  for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs", "secrets.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
   writeFileSync(join(main, "a.txt"), "base\n");
   writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check } }));
   git(main, "add", ".");
@@ -119,7 +119,7 @@ test("worktree.mjs refuses a folder that belongs to another repo", () => {
 
 test("a roadmap refresh that fails does not fail a land that already pushed", () => {
   const run = repo((m) => {
-    writeFileSync(join(m, "scripts", "roadmap.mjs"), "process.exit(9)\n");
+    writeFileSync(join(m, "scripts", "roadmap.mjs"), `const fs = require("node:fs");fs.writeFileSync("where.txt", process.cwd() + " " + process.argv[2] + " " + (fs.readFileSync(".git/land.pid", "utf8") === String(process.ppid)));process.exit(9)\n`.replace(/^/, "import { createRequire } from 'node:module';const require=createRequire(import.meta.url);"));
     git(m, "add", "scripts/roadmap.mjs");
     git(m, "commit", "-qm", "add roadmap");
   }, (b) => {
@@ -131,5 +131,7 @@ test("a roadmap refresh that fails does not fail a land that already pushed", ()
   assert.equal(run.r.status, 0, run.r.stderr);
   assert.match(run.r.stdout, /landed feature on main/);
   assert.match(run.r.stderr, /roadmap did not refresh/);
+  assert.equal(readFileSync(join(run.main, "where.txt"), "utf8"), `${realpathSync(run.main)} --publish true`);
+  assert.ok(!existsSync(join(run.main, ".git/land.pid")), "the land removes its mark when it ends");
   assert.equal(git(run.main, "rev-parse", "origin/main"), git(run.main, "rev-parse", "main"));
 });

@@ -24,7 +24,7 @@ function outgoing(commit, envLocal = `export X_TOKEN=${known}\nBARKEVER_E2E_EMAI
   execFileSync("git", ["init", "-q", "-b", "main", repo], { env });
   mkdirSync(join(repo, "scripts"));
   mkdirSync(join(repo, "app"));
-  cpSync(join(root, "scripts/scan-outgoing.mjs"), join(repo, "scripts/scan-outgoing.mjs"));
+  for (const f of ["scan-outgoing.mjs", "secrets.mjs"]) cpSync(join(root, "scripts", f), join(repo, "scripts", f));
   writeFileSync(join(repo, "app/.env.local"), envLocal);
   writeFileSync(join(repo, ".gitignore"), "app/.env.local\n");
   git("add", ".");

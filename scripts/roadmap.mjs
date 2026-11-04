@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { buildModel, readHeading, readJourneys, readPlan } from "./roadmap/model.mjs";
 import { renderRoute } from "./roadmap/route.mjs";
 import { renderJourneys } from "./roadmap/journeys.mjs";
-import { REPO, syncGithub } from "./roadmap/github.mjs";
+import { syncGithub } from "./roadmap/github.mjs";
 
 const GOAL = "task-42e5633d742184c5";
+const ORIGIN = /[:/]FRIKKern\/barkever(\.git)?$/i;
 const PICTURES = ["docs/img/roadmap.svg", "docs/img/journeys.svg"];
 const root = new URL("..", import.meta.url).pathname;
 const flags = new Set(process.argv.slice(2));
@@ -47,36 +49,66 @@ const previous = (path) => { try { return text(path); } catch { return ""; } };
 function draw(model) {
   const drawn = { [PICTURES[0]]: renderRoute(model), [PICTURES[1]]: renderJourneys(model) };
   const changed = PICTURES.filter((path) => withoutDate(previous(path)) !== withoutDate(drawn[path]));
+  const before = Object.fromEntries(changed.map((path) => [path, previous(path)]));
   for (const path of changed) writeFileSync(`${root}${path}`, drawn[path]);
-  return changed;
+  return { changed, before };
 }
 
-function commitAndPush(changed) {
-  git("add", ...changed);
-  git("commit", "-qm", "Roadmap: redraw from the Barkpark board");
+const head = () => git("rev-parse", "HEAD");
+
+function undoPictures(changed, before) {
+  try { git("reset", "-q", "--", ...changed); } catch { console.error("roadmap: could not unstage the pictures"); }
+  for (const path of changed) writeFileSync(`${root}${path}`, before[path]);
+}
+
+function commitAndPush({ changed, before }) {
+  const base = head();
+  let ours = null;
   try {
+    git("add", ...changed);
+    git("commit", "-qm", "Roadmap: redraw from the Barkpark board");
+    ours = head();
     execFileSync("node", ["scripts/check-repo.mjs"], { cwd: root, stdio: "inherit" });
     execFileSync("node", ["scripts/scan-outgoing.mjs"], { cwd: root, stdio: "inherit" });
     git("push", "-q", "origin", "main");
   } catch (error) {
-    git("reset", "-q", "--keep", "HEAD~1");
+    if (ours === null) undoPictures(changed, before);
+    else if (head() === ours) git("reset", "-q", "--keep", base);
+    else console.error("roadmap: main moved past the picture commit; left it in place");
     throw error;
   }
 }
 
-function publish() {
-  if (!git("remote", "get-url", "origin").includes(REPO)) { console.log(`roadmap: origin is not ${REPO}; nothing to publish`); return; }
-  if (git("symbolic-ref", "--short", "HEAD") !== "main") throw new Error("--publish runs on main");
-  if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("--publish needs a clean main");
-  const model = readModel();
-  const changed = draw(model);
-  if (changed.length) commitAndPush(changed);
-  console.log(`roadmap: ${changed.length} picture(s) pushed; GitHub ${JSON.stringify(syncGithub(model, { dryRun: false }))}`);
+function isAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code === "EPERM"; }
 }
 
-if (flags.has("--publish")) publish();
-else {
+function otherLandRunning() {
+  const mark = resolve(root, git("rev-parse", "--git-common-dir"), "land.pid");
+  if (!existsSync(mark)) return false;
+  const pid = Number(readFileSync(mark, "utf8"));
+  return pid !== process.ppid && isAlive(pid);
+}
+
+function publish() {
+  if (!ORIGIN.test(git("remote", "get-url", "origin"))) { console.log("roadmap: origin is not FRIKKern/barkever; nothing to publish"); return; }
+  if (git("symbolic-ref", "--short", "HEAD") !== "main") throw new Error("--publish runs on main");
+  if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("--publish needs a clean main");
+  if (otherLandRunning()) throw new Error("another land is running; publish after it");
+  git("fetch", "-q", "origin", "main");
+  if (head() !== git("rev-parse", "origin/main")) throw new Error("main is not level with origin; land first");
   const model = readModel();
-  console.log(`roadmap: ${draw(model).length} picture(s) changed`);
-  if (flags.has("--dry-run")) console.log(JSON.stringify(syncGithub(model, { dryRun: true }), null, 2));
+  const drawing = draw(model);
+  if (drawing.changed.length) commitAndPush(drawing);
+  console.log(`roadmap: ${drawing.changed.length} picture(s) pushed; GitHub ${JSON.stringify(syncGithub(model, { dryRun: false }))}`);
+}
+
+try {
+  if (flags.has("--publish")) publish();
+  else if (flags.has("--dry-run")) console.log(JSON.stringify(syncGithub(readModel(), { dryRun: true }), null, 2));
+  else console.log(`roadmap: ${draw(readModel()).changed.length} picture(s) changed`);
+} catch (error) {
+  console.error(`roadmap: ${error.message}`);
+  process.exit(1);
 }

@@ -23,7 +23,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 3. One journey per branch. Name it in the commit: `J03: …`.
 4. `npm run check` before every commit.
 5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, queued prepush, fast-forward and push `main`. No squash. Evidence on the task.
-6. Close with evidence: what ran, where to see it, screenshots for any UI change. Stamped with no land coming? `npm run roadmap:publish` on clean main.
+6. Close with evidence: what ran, where to see it, screenshots for any UI change. The lead redraws after a stamp: `npm run roadmap:publish`.
 
 ## Long unattended runs
 
