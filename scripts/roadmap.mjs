@@ -95,10 +95,11 @@ function publish() {
   if (!ORIGIN.test(git("remote", "get-url", "origin"))) { console.log("roadmap: origin is not FRIKKern/barkever; nothing to publish"); return; }
   if (git("symbolic-ref", "--short", "HEAD") !== "main") throw new Error("--publish runs on main");
   if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("--publish needs a clean main");
-  if (otherLandRunning()) throw new Error("another land is running; publish after it");
+  if (otherLandRunning()) throw new Error("another land is running (.git/land.pid); publish after it");
   git("fetch", "-q", "origin", "main");
   if (head() !== git("rev-parse", "origin/main")) throw new Error("main is not level with origin; land first");
   const model = readModel();
+  syncGithub(model, { dryRun: true });
   const drawing = draw(model);
   if (drawing.changed.length) commitAndPush(drawing);
   console.log(`roadmap: ${drawing.changed.length} picture(s) pushed; GitHub ${JSON.stringify(syncGithub(model, { dryRun: false }))}`);

@@ -135,3 +135,31 @@ test("a roadmap refresh that fails does not fail a land that already pushed", ()
   assert.ok(!existsSync(join(run.main, ".git/land.pid")), "the land removes its mark when it ends");
   assert.equal(git(run.main, "rev-parse", "origin/main"), git(run.main, "rev-parse", "main"));
 });
+
+test("a land refused for its sha leaves the running land's mark alone", () => {
+  const held = process.pid;
+  const run = repo((m) => writeFileSync(join(m, ".git/land.pid"), String(held)), undefined, { reviewedAs: "0000000" });
+  assert.equal(run.r.status, 1);
+  assert.equal(readFileSync(join(run.main, ".git/land.pid"), "utf8"), String(held));
+});
+
+test("a second land refuses to start while the first is alive, and names the mark", () => {
+  const held = process.pid;
+  const run = repo((m) => writeFileSync(join(m, ".git/land.pid"), String(held)));
+  assert.equal(run.r.status, 1);
+  assert.match(run.r.stderr, /another land is running \(pid \d+, .*land\.pid\); nothing changed/);
+  assert.equal(readFileSync(join(run.main, ".git/land.pid"), "utf8"), String(held));
+  assert.equal(git(run.main, "rev-parse", "HEAD"), run.mainHead);
+});
+
+test("a mark left by a dead land doesn't stop the next one", () => {
+  const dead = spawnSync("node", ["-p", "process.pid"], { encoding: "utf8" }).stdout.trim();
+  const run = repo((m) => writeFileSync(join(m, ".git/land.pid"), dead), (b) => {
+    mkdirSync(join(b, "docs"));
+    writeFileSync(join(b, "docs", "note.md"), "a note\n");
+    git(b, "add", "docs/note.md");
+    git(b, "commit", "-qm", "a note");
+  }, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.ok(!existsSync(join(run.main, ".git/land.pid")));
+});

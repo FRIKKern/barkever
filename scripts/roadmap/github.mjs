@@ -78,7 +78,9 @@ export function planIssues(want, have, numbers) {
       (fields.state !== "closed" || found.state_reason === "completed") &&
       found.milestone?.number === fields.milestone &&
       sameLabels(found.labels.map((l) => l.name), fields.labels);
-    if (!same) ops.push({ method: "PATCH", path: `issues/${found.number}`, fields });
+    if (same) continue;
+    const { milestone, ...rest } = fields;
+    ops.push({ method: "PATCH", path: `issues/${found.number}`, fields: found.milestone?.number === milestone ? rest : fields });
   }
   const orphans = [...byKey.values()].filter((issue) => issue.state === "open");
   if (orphans.length > MAX_ORPHANS) throw new Error(`refusing to close ${orphans.length} mirror issues that left the board; check the board first`);

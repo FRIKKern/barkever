@@ -91,6 +91,20 @@ test("a journey is signed only from a stamped criterion, tested from a spec, els
   assert.equal(none.journeys[2].status, "missing");
 });
 
+test("a journey no criterion names is never signed off", () => {
+  const extra = [...journeys, { id: "J04", name: "Lone", rule: "r" }];
+  const none = buildModel({ plan, heading: "", journeys: extra, goal, details, specs: new Set(), asOf: "x" });
+  assert.equal(none.journeys[3].status, "missing");
+  const spec = buildModel({ plan, heading: "", journeys: extra, goal, details, specs: new Set(["J04"]), asOf: "x" });
+  assert.equal(spec.journeys[3].status, "spec");
+});
+
+test("a stamp alone moves a milestone, with no task closed", () => {
+  const stampOnly = { ...details, P3: detail("task-a3", "open", [{ criterion: "Later", met: true, evidence: "ran" }]) };
+  const row = buildModel({ plan, heading: "", journeys, goal, details: stampOnly, specs: new Set(), asOf: "x" });
+  assert.equal(row.milestones[3].status, "moving");
+});
+
 test("a stamp with no evidence is not a sign-off", () => {
   const bare = { ...details, P1: detail("task-a1", "open", [{ criterion: "J01 and J02", met: true }]) };
   const row = buildModel({ plan, heading: "", journeys, goal, details: bare, specs: new Set(), asOf: "x" });
@@ -230,6 +244,21 @@ test("any drift in a mirror issue is put back", () => {
   }
 });
 
+test("a fix to an issue under a closed milestone leaves the milestone out, unless it changed", () => {
+  const want = wantIssues();
+  const edited = asExisting(want).map((issue, i) => (i === 0 ? { ...issue, title: "edited" } : issue));
+  const [fix] = planIssues(want, edited, numbers);
+  assert.ok(!("milestone" in fix.fields));
+  const moved = asExisting(want).map((issue, i) => (i === 0 ? { ...issue, milestone: { number: 99 } } : issue));
+  assert.equal(planIssues(want, moved, numbers)[0].fields.milestone, 1);
+});
+
+test("a milestone whose description drifted is put back", () => {
+  const want = wantMilestones();
+  const have = want.map((m, i) => ({ number: i + 1, ...m, description: i === 1 ? "edited" : m.description }));
+  assert.deepEqual(planMilestones(want, have).map((op) => op.path), ["milestones/2"]);
+});
+
 test("a stamped issue closed as not planned is corrected to completed", () => {
   const want = wantIssues();
   const have = asExisting(want).map((issue) => (issue.state === "closed" ? { ...issue, state_reason: "not_planned" } : issue));
@@ -242,7 +271,7 @@ test("a second issue with the same marker closes as not planned", () => {
   const want = wantIssues();
   const have = asExisting(want);
   const copy = { ...have[1], number: 50 };
-  assert.deepEqual(planIssues(want, [...have, copy], numbers), [{ method: "PATCH", path: "issues/50", fields: { state: "closed", state_reason: "not_planned" } }]);
+  assert.deepEqual(planIssues(want, [copy, ...have], numbers), [{ method: "PATCH", path: "issues/50", fields: { state: "closed", state_reason: "not_planned" } }]);
 });
 
 test("more than three issues leaving the board at once is refused", () => {

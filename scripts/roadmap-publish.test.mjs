@@ -25,6 +25,7 @@ if (!args.includes("-X")) {
   let rows = state[collection];
   if (collection === "issues" && !(rest ?? "").includes("state=all")) rows = rows.filter((r) => r.state === "open");
   if (collection === "milestones" && !(rest ?? "").includes("state=all")) rows = rows.filter((r) => r.state === "open");
+  if (collection === "issues") rows = [...rows].reverse();
   if (!args.includes("--paginate")) rows = rows.slice(0, 1);
   for (const row of rows) console.log(JSON.stringify(row));
   process.exit(0);
@@ -58,6 +59,7 @@ if (!reply) process.exit(3);
 console.log(JSON.stringify(reply));
 `;
 
+const OLD_PICTURE = "old picture\n";
 const criterion = (text, met = false) => ({ criterion: text, met, ...(met && { evidence: "ran" }) });
 const goodBoard = () => ({
   "task-42e5633d742184c5": {
@@ -99,12 +101,14 @@ function sandbox({ originName = "FRIKKern/barkever.git", board = goodBoard(), gi
   writeFileSync(join(main, "JOURNEYS.md"), "| ID | Journey | Passes when |\n|---|---|---|\n| J01 | Capture | Fast. Really |\n");
   writeFileSync(join(main, "app/e2e/j01-capture.spec.ts"), "");
   writeFileSync(join(main, "mac/e2e/mac.spec.ts"), "");
+  writeFileSync(join(main, "docs/img/roadmap.svg"), OLD_PICTURE);
+  writeFileSync(join(main, "docs/img/journeys.svg"), OLD_PICTURE);
   git(main, "add", ".");
   git(main, "commit", "-qm", "base");
   git(main, "remote", "add", "origin", origin);
   git(main, "push", "-q", "origin", "main");
 
-  const run = (flag = "--publish", extra = {}) => spawnSync("node", ["scripts/roadmap.mjs", flag], { cwd: main, env: { ...env, ...extra }, encoding: "utf8" });
+  const run = (flag = "--publish", extra = {}) => spawnSync("node", ["scripts/roadmap.mjs", ...(flag ? [flag] : [])], { cwd: main, env: { ...env, ...extra }, encoding: "utf8" });
   const github2 = () => JSON.parse(readFileSync(env.FAKE_GITHUB, "utf8"));
   const originHead = () => git(top, "--git-dir", origin, "rev-parse", "main");
   const head = () => git(main, "rev-parse", "HEAD");
@@ -116,6 +120,7 @@ const assertUntouched = (box, base) => {
   assert.equal(box.head(), base);
   assert.equal(box.originHead(), base);
   assert.ok(box.clean(), "main stays clean");
+  assert.equal(readFileSync(join(box.main, "docs/img/roadmap.svg"), "utf8"), box.git("show", "HEAD:docs/img/roadmap.svg") + "\n");
   assert.deepEqual(box.github().log, []);
 };
 
@@ -351,14 +356,65 @@ test("dry run writes nothing: no pictures, no commit, no GitHub", () => {
   const r = box.run("--dry-run");
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /"issues": 2/);
-  assert.ok(!existsSync(join(box.main, "docs/img/roadmap.svg")));
+  assert.equal(readFileSync(join(box.main, "docs/img/roadmap.svg"), "utf8"), OLD_PICTURE);
   assertUntouched(box, base);
+});
+
+test("dry run refuses a secret too", () => {
+  const board = goodBoard();
+  board["task-bb"].doc.content.acceptance_criteria = [criterion(`J01 ${"bp" + "sess_"}${"a".repeat(20)}`)];
+  const r = sandbox({ board }).run("--dry-run");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /looks like a secret/);
+});
+
+test("on a later sync, a milestone that just finished closes after its new issue", () => {
+  const box = sandbox();
+  assert.equal(box.run().status, 0);
+  box.setGithub({ ...box.github(), log: [] });
+  const board = goodBoard();
+  board["task-bb"].doc.lifecycle_status = "done";
+  board["task-bb"].doc.content.acceptance_criteria.push(criterion("New rule"));
+  box.setBoard(board);
+  assert.equal(box.run().status, 0);
+  const { log } = box.github();
+  const issue = log.findIndex((l) => l.startsWith("POST issues"));
+  const closing = log.findIndex((l) => /^PATCH milestones\/\d+ closed/.test(l));
+  assert.ok(issue >= 0 && issue < closing, log.join("|"));
+});
+
+test("criteria emptied on the board are refused before any picture moves", () => {
+  const box = sandbox();
+  const board = goodBoard();
+  for (const name of ["First", "Second", "Third", "Fourth"]) board["task-bb"].doc.content.acceptance_criteria.push(criterion(name));
+  box.setBoard(board);
+  assert.equal(box.run().status, 0);
+  const head = box.head();
+  box.setGithub({ ...box.github(), log: [] });
+  const emptied = goodBoard();
+  emptied["task-bb"].doc.content.acceptance_criteria = [];
+  box.setBoard(emptied);
+  const r = box.run();
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /refusing to close/);
+  assertUntouched(box, head);
+});
+
+test("a server token in the config is known as well", () => {
+  const board = goodBoard();
+  board["task-bb"].doc.content.acceptance_criteria = [criterion("J01 the-known-server-token")];
+  const box = sandbox({ board });
+  mkdirSync(join(box.top, ".config/barkpark"), { recursive: true });
+  writeFileSync(join(box.top, ".config/barkpark/config.json"), JSON.stringify({ known_servers: [{ token: "the-known-server-token" }] }));
+  const r = box.run();
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /looks like a secret/);
 });
 
 test("drawing alone writes the pictures and leaves git and GitHub alone", () => {
   const box = sandbox();
   const base = box.head();
-  const r = box.run("--draw");
+  const r = box.run("");
   assert.equal(r.status, 0, r.stderr);
   assert.match(readFileSync(join(box.main, "docs/img/roadmap.svg"), "utf8"), /1 of 2 milestones done/);
   assert.equal(box.head(), base);
@@ -370,7 +426,7 @@ test("only the date changing doesn't redraw", () => {
   assert.equal(box.run().status, 0);
   const path = join(box.main, "docs/img/roadmap.svg");
   writeFileSync(path, readFileSync(path, "utf8").replace(/As of \d{4}-\d{2}-\d{2}/, "As of 2000-01-01"));
-  const r = box.run("--draw");
+  const r = box.run("");
   assert.match(r.stdout, /0 picture\(s\) changed/);
   assert.match(readFileSync(path, "utf8"), /As of 2000-01-01/);
 });

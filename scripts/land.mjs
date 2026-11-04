@@ -18,9 +18,6 @@ const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched
 const here = git(["rev-parse", "--show-toplevel"]);
 const dir = execFileSync("node", [`${here}/scripts/worktree.mjs`, branch], { encoding: "utf8" }).trim().split("\n").at(-1);
 const main = git(["worktree", "list", "--porcelain"]).match(/^worktree (.+)$/m)[1];
-const landMark = `${main}/.git/land.pid`;
-writeFileSync(landMark, String(process.pid));
-process.on("exit", () => { if (existsSync(landMark) && readFileSync(landMark, "utf8") === String(process.pid)) rmSync(landMark); });
 for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
   if (git(["status", "--porcelain", "--untracked-files=no"], cwd)) { console.error(`land: uncommitted changes in the ${where} (${cwd})`); process.exit(1); }
 }
@@ -35,6 +32,13 @@ if (!isText(touched) && !(reviewed && /^[0-9a-f]{7,40}$/.test(reviewed) && (head
   console.error(`land: ${branch} is at ${head.slice(0, 10)}; pass --reviewed <the sha the reviewer passed>. A head that moved after review needs a delta review first`);
   process.exit(1);
 }
+
+const landMark = `${main}/.git/land.pid`;
+const isAlive = (pid) => { try { process.kill(pid, 0); return true; } catch (error) { return error.code === "EPERM"; } };
+const holder = existsSync(landMark) ? Number(readFileSync(landMark, "utf8")) : 0;
+if (holder && isAlive(holder)) { console.error(`land: another land is running (pid ${holder}, ${landMark}); nothing changed`); process.exit(1); }
+writeFileSync(landMark, String(process.pid));
+process.on("exit", () => rmSync(landMark, { force: true }));
 
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
 const abortRebase = () => {
