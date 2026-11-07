@@ -3,8 +3,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, symlinkSync } from "node:fs";
 import { resolve } from "node:path";
 
-const name = process.argv[2];
-if (!name) { console.error("usage: node scripts/worktree.mjs <branch>"); process.exit(2); }
+const args = process.argv.slice(2);
+const reuse = args.includes("--reuse");
+const name = args.find((a) => a !== "--reuse");
+if (!name) { console.error("usage: node scripts/worktree.mjs <branch> [--reuse]"); process.exit(2); }
 
 const git = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const trees = git(["worktree", "list", "--porcelain"]).split("\n\n").map((b) => ({
@@ -16,7 +18,11 @@ const dir = trees.find((t) => t.branch === name)?.dir ?? resolve(main, "..", "ba
 
 const commonDir = (cwd) => { try { return git(["rev-parse", "--path-format=absolute", "--git-common-dir"], cwd); } catch { return null; } };
 if (existsSync(dir) && commonDir(dir) !== commonDir(main)) { console.error(`worktree: ${dir} is not a worktree of this repo; move it away first`); process.exit(1); }
-if (!existsSync(dir)) {
+if (existsSync(dir)) {
+  const changes = git(["status", "--porcelain"], dir);
+  if (changes && !reuse) { console.error(`worktree: ${dir} already exists with uncommitted changes, maybe another lane's. Pick another name, or pass --reuse if they are yours:\n${changes}`); process.exit(1); }
+  console.error(`worktree: reusing ${dir}`);
+} else {
   const known = execFileSync("git", ["branch", "--list", name], { cwd: main, encoding: "utf8" }).trim();
   execFileSync("git", ["worktree", "add", "-q", dir, ...(known ? [name] : ["-b", name, "main"])], { cwd: main, stdio: "inherit" });
 }

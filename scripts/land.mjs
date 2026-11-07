@@ -16,7 +16,7 @@ const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched
 };
 
 const here = git(["rev-parse", "--show-toplevel"]);
-const dir = execFileSync("node", [`${here}/scripts/worktree.mjs`, branch], { encoding: "utf8" }).trim().split("\n").at(-1);
+const dir = execFileSync("node", [`${here}/scripts/worktree.mjs`, branch, "--reuse"], { encoding: "utf8" }).trim().split("\n").at(-1);
 const main = git(["worktree", "list", "--porcelain"]).match(/^worktree (.+)$/m)[1];
 for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
   if (git(["status", "--porcelain", "--untracked-files=no"], cwd)) { console.error(`land: uncommitted changes in the ${where} (${cwd})`); process.exit(1); }

@@ -140,6 +140,32 @@ test("worktree.mjs refuses a folder that belongs to another repo", () => {
   assert.equal(git(main, "branch", "--list", "stale"), "");
 });
 
+test("worktree.mjs refuses an existing worktree with uncommitted changes, naming its path, unless --reuse; a clean one says it is reused", () => {
+  const { main, branch } = repo(() => {});
+  const worktree = (...args) => spawnSync("node", [join(main, "scripts/worktree.mjs"), "feature", ...args], { cwd: main, env, encoding: "utf8" });
+  const clean = worktree();
+  assert.equal(clean.status, 0, clean.stderr);
+  assert.equal(clean.stdout.trim(), realpathSync(branch));
+  assert.match(clean.stderr, /reusing/);
+  for (const change of ["a.txt", "new.txt"]) {
+    writeFileSync(join(branch, change), "someone's edit\n");
+    const refused = worktree();
+    assert.equal(refused.status, 1, change);
+    assert.equal(refused.stdout, "");
+    assert.ok(refused.stderr.includes(realpathSync(branch)), refused.stderr);
+    assert.match(refused.stderr, new RegExp(change.replace(".", "\\.")));
+    assert.equal(worktree("--reuse").stdout.trim(), realpathSync(branch));
+    git(branch, "checkout", "-q", "--", ".");
+    git(branch, "clean", "-qf");
+  }
+});
+
+test("a land of a branch with an untracked file goes on as before: only worktree.mjs called by hand refuses it", () => {
+  const { r } = repo(() => {}, (b) => { write(b, "branch\n"); writeFileSync(join(b, "stray.txt"), "untracked\n"); });
+  assert.match(r.stderr, /^land: npm run check failed; main is untouched$/m);
+  assert.doesNotMatch(r.stderr, /already exists/);
+});
+
 test("a roadmap refresh that fails does not fail a land that already pushed", () => {
   const run = repo((m) => {
     writeFileSync(join(m, "scripts", "roadmap.mjs"), `const fs = require("node:fs");fs.writeFileSync("where.txt", process.cwd() + " " + process.argv[2] + " " + (fs.readFileSync(".git/land.pid", "utf8") === String(process.ppid)));process.exit(9)\n`.replace(/^/, "import { createRequire } from 'node:module';const require=createRequire(import.meta.url);"));
