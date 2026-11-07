@@ -31,6 +31,7 @@
   --c-hover: #ececea;
   --c-select: #e6ebf5;
   --c-accent: #3a62b5;
+  --c-switch-off: #8d9097; --c-switch-on: #3a62b5;
   --c-accent-soft: #e4eaf7;
   --c-on-accent: #ffffff;
   --c-edge: #b4b7bf;
@@ -49,7 +50,7 @@
   --c-bg: #141518; --c-sidebar: #17181b; --c-list: #1a1b1e; --c-surface: #1f2024; --c-rail: #1b1c1f; --c-raised: #26272c;
   --c-border: #2c2e33; --c-border-soft: #26282c;
   --c-text: #e7e8eb; --c-text-2: #b8bbc2; --c-muted: #8a8e97; --c-faint: #565a62;
-  --c-hover: #24262a; --c-select: #252d3d; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
+  --c-hover: #24262a; --c-select: #252d3d; --c-switch-off: #565a62; --c-switch-on: #6a8ad8; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
   --c-edge: #4c5059; --c-ok: #79b98b;
   --c-add-bg: #173421; --c-add-fg: #92d6a3; --c-del-bg: #3e1c1b; --c-del-fg: #f1a39c;
   --c-warn-bg: #352b16; --c-warn-fg: #e3c27c; --c-mark: #5a4a17;
@@ -260,9 +261,9 @@ svg.hov .g-edge.on { stroke: var(--c-accent); }
 .ask-head { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-s); }
 .ask-head strong { font-size: var(--fs-m); display: block; }
 .switch { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--c-muted); cursor: pointer; flex: none; }
-.switch input { appearance: none; width: 28px; height: 16px; border-radius: var(--r-pill); background: var(--c-faint); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
+.switch input { appearance: none; width: 28px; height: 16px; border-radius: var(--r-pill); background: var(--c-switch-off); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
 .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .15s; }
-.switch input:checked { background: var(--c-accent); }
+.switch input:checked { background: var(--c-switch-on); }
 .switch input:checked::after { transform: translateX(12px); }
 .thread { flex: 1; padding: var(--sp-3) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
 .q { align-self: flex-end; max-width: 85%; background: var(--c-select); color: var(--c-text); padding: 6px 10px; border-radius: var(--r-l) var(--r-l) var(--r-s) var(--r-l); font-size: var(--fs-m); }

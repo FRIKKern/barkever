@@ -67,9 +67,9 @@ svg.hov .g-edge.on { stroke: var(--c-accent); }
 .ask-head { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-border-soft); font-size: var(--fs-s); }
 .ask-head strong { font-size: var(--fs-m); display: block; }
 .switch { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--c-muted); cursor: pointer; flex: none; }
-.switch input { appearance: none; width: 28px; height: 16px; border-radius: var(--r-pill); background: var(--c-faint); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
+.switch input { appearance: none; width: 28px; height: 16px; border-radius: var(--r-pill); background: var(--c-switch-off); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
 .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .15s; }
-.switch input:checked { background: var(--c-accent); }
+.switch input:checked { background: var(--c-switch-on); }
 .switch input:checked::after { transform: translateX(12px); }
 .thread { flex: 1; padding: var(--sp-3) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
 .q { align-self: flex-end; max-width: 85%; background: var(--c-select); color: var(--c-text); padding: 6px 10px; border-radius: var(--r-l) var(--r-l) var(--r-s) var(--r-l); font-size: var(--fs-m); }

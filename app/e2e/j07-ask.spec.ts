@@ -18,7 +18,18 @@ const contrast = (a: string, b: string) => {
   const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
-const knob = (page: Page) => page.getByTestId('ai-switch').evaluate((el) => ({knob: getComputedStyle(el, '::after').backgroundColor, track: getComputedStyle(el).backgroundColor}))
+const knob = (page: Page) => page.getByTestId('ai-switch').evaluate(async (el) => {
+  await Promise.all(el.getAnimations({subtree: true}).map((a) => a.finished))
+  return {knob: getComputedStyle(el, '::after').backgroundColor, track: getComputedStyle(el).backgroundColor}
+})
+const switchReadable = async (page: Page) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({colorScheme})
+    const k = await knob(page)
+    expect(k.knob).toBe('rgb(255, 255, 255)')
+    expect(contrast(k.knob, k.track)).toBeGreaterThanOrEqual(3)
+  }
+}
 const mode = (page: Page, m: Mode) => page.evaluate((m) => ((window as unknown as {mode: Mode}).mode = m), m)
 
 function stubBridge(page: Page) {
@@ -127,11 +138,7 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   await expect(page.getByTestId('ai-off')).toHaveText('AI is off. Nothing leaves this Mac.')
   await expect(page.getByLabel('Ask about your notes')).toHaveCount(0)
   expect(await told(page)).toBe('false')
-  await expect.poll(async () => (await knob(page)).knob).toBe('rgb(255, 255, 255)')
-  await expect.poll(async () => { const k = await knob(page); return contrast(k.knob, k.track) }).toBeGreaterThanOrEqual(3)
-  await page.emulateMedia({colorScheme: 'light'})
-  await expect.poll(async () => (await knob(page)).knob).toBe('rgb(255, 255, 255)')
-  await page.emulateMedia({colorScheme: 'dark'})
+  await switchReadable(page)
   await page.keyboard.press('Enter')
   await page.evaluate(() => localStorage.removeItem('stub.ai'))
   await page.reload()
@@ -142,6 +149,7 @@ test('J07 Ask answers from the notes it read, cites each one, says when nothing 
   expect(await asked(page)).toBe(before)
   await page.getByTestId('ai-switch').check()
   expect(await told(page)).toBe('true')
+  await switchReadable(page)
   await ask(page, 'carousel')
   await expect(page.getByTestId('ask-meta').last()).toHaveText('Read 2 notes · fake-sonnet · your login · ≈ $0.002')
   expect(await asked(page)).toBe(before + 1)

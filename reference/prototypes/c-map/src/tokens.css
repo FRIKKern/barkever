@@ -24,6 +24,7 @@
   --c-hover: #ececea;
   --c-select: #e6ebf5;
   --c-accent: #3a62b5;
+  --c-switch-off: #8d9097; --c-switch-on: #3a62b5;
   --c-accent-soft: #e4eaf7;
   --c-on-accent: #ffffff;
   --c-edge: #b4b7bf;
@@ -42,7 +43,7 @@
   --c-bg: #141518; --c-sidebar: #17181b; --c-list: #1a1b1e; --c-surface: #1f2024; --c-rail: #1b1c1f; --c-raised: #26272c;
   --c-border: #2c2e33; --c-border-soft: #26282c;
   --c-text: #e7e8eb; --c-text-2: #b8bbc2; --c-muted: #8a8e97; --c-faint: #565a62;
-  --c-hover: #24262a; --c-select: #252d3d; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
+  --c-hover: #24262a; --c-select: #252d3d; --c-switch-off: #565a62; --c-switch-on: #6a8ad8; --c-accent: #84a3e6; --c-accent-soft: #263149; --c-on-accent: #10131a;
   --c-edge: #4c5059; --c-ok: #79b98b;
   --c-add-bg: #173421; --c-add-fg: #92d6a3; --c-del-bg: #3e1c1b; --c-del-fg: #f1a39c;
   --c-warn-bg: #352b16; --c-warn-fg: #e3c27c; --c-mark: #5a4a17;
