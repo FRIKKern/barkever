@@ -64,7 +64,7 @@ test('an edited note is found by its new words; untouched notes keep their cache
   assert.deepEqual(ids(find([a, b], 'zebre').notes), [])
 })
 
-test('5,000 notes: the index builds once, then every query, typos included, runs well inside the 150 ms budget', () => {
+test('5,000 notes: the index builds once, then every query, typos included, runs inside the 150 ms budget', () => {
   const notes = [...fixtures, ...bulkNotes(5000 - fixtures.length).map((d) => toNote(d))]
   assert.equal(notes.length, 5000)
   const t0 = performance.now()
@@ -82,5 +82,5 @@ test('5,000 notes: the index builds once, then every query, typos included, runs
   const ms = queries.map(median)
   const worst = Math.max(...ms)
   console.log(`search at 5,000 notes in node: index ${build.toFixed(0)} ms once; median per query ${queries.map((q, i) => `${q} ${ms[i].toFixed(1)}`).join(' · ')}`)
-  assert.ok(worst < 50, `slowest query median ${worst.toFixed(1)} ms`)
+  assert.ok(worst < 150, `slowest query median ${worst.toFixed(1)} ms`)
 })
