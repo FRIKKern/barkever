@@ -4,18 +4,17 @@ import {board, type Board} from '../lib/board'
 import {libraryQuery, prefsQuery} from '../lib/library'
 import {indexLinks, type Links} from '../lib/links'
 import {shelve, type Shelf} from '../lib/notebooks'
+import {tagTally} from '../lib/scope'
 import type {Library, Note, Prefs} from '../lib/model'
 
 export type World = {lib: Library; prefs: Prefs; shelf: Shelf; links: Links; tasks: Board; perNotebook: Map<string, number>; tags: [string, number][]}
 
 function tally(notes: Note[]) {
   const perNotebook = new Map<string, number>()
-  const perTag = new Map<string, number>()
   for (const n of notes) {
     if (n.notebook) perNotebook.set(n.notebook, (perNotebook.get(n.notebook) ?? 0) + 1)
-    for (const t of n.tags) perTag.set(t, (perTag.get(t) ?? 0) + 1)
   }
-  return {perNotebook, tags: [...perTag].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))}
+  return {perNotebook, tags: tagTally(notes)}
 }
 
 export function useWorld(): World {

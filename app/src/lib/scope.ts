@@ -14,9 +14,35 @@ export function leaveNote({search, next}: {search: Search; next: (s: Search) => 
   return {...to, line: to.line === search.line ? undefined : to.line, view: to.view === search.view ? undefined : to.view}
 }
 
+export const sameTag = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+
+export function tagTally(notes: Note[]): [string, number][] {
+  const tally = new Map<string, {notes: number; spellings: Map<string, number>}>()
+  for (const n of notes) {
+    const seen = new Set<string>()
+    for (const t of n.tags) {
+      const key = t.toLowerCase()
+      const tag = tally.get(key) ?? {notes: 0, spellings: new Map()}
+      tag.spellings.set(t, (tag.spellings.get(t) ?? 0) + 1)
+      if (!seen.has(key)) tag.notes++
+      seen.add(key)
+      tally.set(key, tag)
+    }
+  }
+  const byCount = (a: [string, number], b: [string, number]) => b[1] - a[1] || a[0].localeCompare(b[0])
+  return [...tally.values()].map((t): [string, number] => [[...t.spellings].sort(byCount)[0][0], t.notes]).sort(byCount)
+}
+
+export function withOpenAt(notes: Note[], count: number, open: string | undefined, at: number): Note[] {
+  const note = open && notes.find((n) => n.id === open)
+  if (!note || at < 0) return notes.slice(0, count)
+  const rest = notes.slice(0, count).filter((n) => n !== note)
+  return [...rest.slice(0, at), note, ...rest.slice(at)]
+}
+
 export function visibleNotes(notes: Note[], s: Search, shelf: Shelf): Found {
   if (terms(s.q).length) return find(notes, s.q!)
-  const inScope = s.nb ? (n: Note) => !!n.notebook && shelf.scope(s.nb!).includes(n.notebook) : s.tag ? (n: Note) => n.tags.includes(s.tag!) : () => true
+  const inScope = s.nb ? (n: Note) => !!n.notebook && shelf.scope(s.nb!).includes(n.notebook) : s.tag ? (n: Note) => n.tags.some((t) => sameTag(t, s.tag!)) : () => true
   return {notes: notes.filter(inScope).sort(newest), marks: []}
 }
 

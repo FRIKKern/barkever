@@ -126,3 +126,30 @@ test(`J03 speed with a note open: the list stays a window, the open note stays p
   await expect(open).toHaveAttribute('aria-selected', 'true')
   expect(await rows(page).count()).toBeLessThanOrEqual(101)
 })
+
+test('J03: the pinned open note stays put while the list pages in', async ({page}) => {
+  await synced(page)
+  await page.goto(ORIGIN)
+  await expect(rows(page).nth(99)).toBeAttached({timeout: 30_000})
+  await rows(page).nth(99).scrollIntoViewIfNeeded()
+  await expect.poll(() => rows(page).count(), {timeout: 15_000}).toBeGreaterThan(150)
+  const far = (await rows(page).nth(150).getAttribute('data-note-id'))!
+  await page.addInitScript((id) => {
+    const tops = new Set<number>()
+    Object.assign(window, {tops})
+    const look = () => {
+      const row = document.querySelector<HTMLElement>(`[data-testid="note-row"][data-note-id="${id}"]`)
+      if (row) tops.add(row.offsetTop)
+      requestAnimationFrame(look)
+    }
+    requestAnimationFrame(look)
+  }, far)
+  await page.goto(`${ORIGIN}/?n=${far}`)
+  const open = page.locator(`[data-testid="note-row"][data-note-id="${far}"]`)
+  await expect(open).toHaveAttribute('aria-selected', 'true', {timeout: 30_000})
+  await open.scrollIntoViewIfNeeded()
+  await expect.poll(() => rows(page).count(), {timeout: 15_000}).toBeGreaterThan(101)
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => [...(window as unknown as {tops: Set<number>}).tops])).toHaveLength(1)
+  await expect(open).toHaveAttribute('aria-selected', 'true')
+})

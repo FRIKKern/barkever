@@ -2,7 +2,7 @@ import {forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, t
 import {Link, useNavigate} from '@tanstack/react-router'
 import {inHeldOrder} from '../lib/held-order'
 import {hitLine, snippet, UNTITLED, type Note} from '../lib/model'
-import {scopeName, type Search} from '../lib/scope'
+import {scopeName, withOpenAt, type Search} from '../lib/scope'
 import type {Found} from '../lib/search'
 import {groups} from '../lib/versions'
 import {when} from '../lib/when'
@@ -171,6 +171,7 @@ function useHeldOrder(notes: Note[], rows: RefObject<HTMLDivElement | null>): No
 
 function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | null>): {shown: Note[]; more: boolean} {
   const [pages, setPages] = useState(1)
+  const pin = useRef({scope: '', at: -1})
   useEffect(() => setPages(1), [s.q, s.nb, s.tag])
   const count = pages * PAGE
   const more = count < notes.length
@@ -181,7 +182,7 @@ function useShown(notes: Note[], s: Search, rows: RefObject<HTMLDivElement | nul
     seen.observe(end)
     return () => seen.disconnect()
   }, [count, notes])
-  const first = notes.slice(0, count)
-  const open = s.n && !first.some((n) => n.id === s.n) ? notes.find((n) => n.id === s.n) : undefined
-  return {shown: open ? [...first, open] : first, more}
+  const scope = `${s.n}|${s.q}|${s.nb}|${s.tag}`
+  if (pin.current.scope !== scope) pin.current = {scope, at: notes.slice(0, count).some((n) => n.id === s.n) ? -1 : count}
+  return {shown: withOpenAt(notes, count, s.n, pin.current.at), more}
 }

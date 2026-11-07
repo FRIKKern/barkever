@@ -106,7 +106,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
       <div className="bar ed-bar">
         <div className="crumb">
           <span className="dot" style={{background: w.shelf.colour(note.notebook)}} />
-          {path.join(' › ')}
+          {path.join(' › ') || 'No notebook'}
         </div>
         <div className="ed-actions">
           <span className={`saved ${status}`} data-testid="save-status" aria-live="polite">
