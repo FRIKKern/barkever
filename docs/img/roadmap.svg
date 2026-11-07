@@ -41,7 +41,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <circle cx="701.5999999999999" cy="194" r="38" class="pulse"/>
 <circle cx="701.5999999999999" cy="194" r="24" class="card"/>
 <circle cx="701.5999999999999" cy="194" r="24" fill="none" class="line" stroke-width="6"/>
-<circle cx="701.5999999999999" cy="194" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="90.5 150.8" transform="rotate(-90 701.5999999999999 194)"/>
+<circle cx="701.5999999999999" cy="194" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="94.2 150.8" transform="rotate(-90 701.5999999999999 194)"/>
 <text x="701.5999999999999" y="200" font-size="17" font-weight="700" text-anchor="middle">P3</text>
 <text x="701.5999999999999" y="242" font-size="16" font-weight="600" text-anchor="middle">Web core</text>
 <text x="701.5999999999999" y="154" font-size="13" class="nowt" font-weight="700" text-anchor="middle">NOW</text>
@@ -52,7 +52,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="904.8" y="242" font-size="16" font-weight="600" text-anchor="middle">Mac app</text>
 <circle cx="701.5999999999999" cy="306" r="24" class="card"/>
 <circle cx="701.5999999999999" cy="306" r="24" fill="none" class="line" stroke-width="6"/>
-<circle cx="701.5999999999999" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="129.3 150.8" transform="rotate(-90 701.5999999999999 306)"/>
+<circle cx="701.5999999999999" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="150.8 150.8" transform="rotate(-90 701.5999999999999 306)"/>
 <text x="701.5999999999999" y="312" font-size="17" font-weight="700" text-anchor="middle">P5</text>
 <text x="701.5999999999999" y="354" font-size="16" font-weight="600" text-anchor="middle">AI v1</text>
 <circle cx="904.8" cy="306" r="24" class="card"/>
@@ -82,10 +82,10 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="830" y="396" font-size="16" class="caps soft" text-anchor="end">4</text>
 <path d="M370 408H830" class="line"/>
 <text x="370" y="440" font-size="19" font-weight="600">P3 Web core</text>
-<text x="830" y="440" font-size="15" font-weight="600" text-anchor="end">24 of 40 tasks</text>
+<text x="830" y="440" font-size="15" font-weight="600" text-anchor="end">25 of 40 tasks</text>
 <text x="370" y="464" font-size="16" class="soft">Write, browse, find, organize and link, online or off</text>
 <rect x="370" y="479" width="460" height="7" rx="3.5" class="track"/>
-<rect x="370" y="479" width="276.0" height="7" rx="3.5" class="nowf"/>
+<rect x="370" y="479" width="287.5" height="7" rx="3.5" class="nowf"/>
 <text x="370" y="505" font-size="14" class="soft">0 of 5 criteria stamped</text>
 <text x="370" y="541" font-size="19" font-weight="600">P4 Mac app</text>
 <text x="830" y="541" font-size="15" font-weight="600" text-anchor="end">3 of 5 tasks</text>
@@ -94,11 +94,11 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <rect x="370" y="580" width="276.0" height="7" rx="3.5" class="nowf"/>
 <text x="370" y="606" font-size="14" class="soft">0 of 3 criteria stamped</text>
 <text x="370" y="642" font-size="19" font-weight="600">P5 AI v1</text>
-<text x="830" y="642" font-size="15" font-weight="600" text-anchor="end">6 of 7 tasks</text>
+<text x="830" y="642" font-size="15" font-weight="600" text-anchor="end">7 of 7 tasks</text>
 <text x="370" y="666" font-size="16" class="soft">Ask your notes, and edit with AI through a diff you</text>
 <text x="370" y="687" font-size="16" class="soft">accept</text>
 <rect x="370" y="702" width="460" height="7" rx="3.5" class="track"/>
-<rect x="370" y="702" width="394.3" height="7" rx="3.5" class="nowf"/>
+<rect x="370" y="702" width="460.0" height="7" rx="3.5" class="nowf"/>
 <text x="370" y="728" font-size="14" class="soft">0 of 3 criteria stamped</text>
 <text x="370" y="764" font-size="19" font-weight="600">P6 Projects</text>
 <text x="830" y="764" font-size="15" font-weight="600" text-anchor="end">6 of 6 tasks</text>
@@ -118,5 +118,5 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="880" y="603" font-size="17">the web and in a signed Mac</text>
 <text x="880" y="626" font-size="17">app that updates itself. Then</text>
 <text x="880" y="649" font-size="17">the later list.</text>
-<text x="48" y="879" font-size="14" class="soft">As of 2026-11-07. A ring fills as tasks close. Plus 33 open tasks that name no milestone or journey.</text>
+<text x="48" y="879" font-size="14" class="soft">As of 2026-11-07. A ring fills as tasks close. Plus 25 open tasks that name no milestone or journey.</text>
 </svg>

@@ -52,7 +52,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="736.8" y="261" font-size="14.5" class="soft">shortcuts and recent</text>
 <text x="736.8" y="280" font-size="14.5" class="soft">notes, each one click</text>
 <text x="736.8" y="299" font-size="14.5" class="soft">from the sidebar</text>
-<text x="736.8" y="330" font-size="14" class="soft">P3 · 3 open tasks</text>
+<text x="736.8" y="330" font-size="14" class="soft">P3 · 2 open tasks</text>
 <rect x="942.4" y="150" width="209.6" height="196" rx="12" class="card"/>
 <rect x="942.4" y="150" width="209.6" height="6" rx="3" class="nowf"/>
 <text x="960.4" y="186" font-size="16" class="caps soft">J05</text>
@@ -77,7 +77,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="289.6" y="471" font-size="14.5" class="soft">notes, cites every</text>
 <text x="289.6" y="490" font-size="14.5" class="soft">note used, says &quot;not</text>
 <text x="289.6" y="509" font-size="14.5" class="soft">in your notes&quot; when…</text>
-<text x="289.6" y="540" font-size="14" class="soft">P5 · 1 open task</text>
+<text x="289.6" y="540" font-size="14" class="soft">P5 · no open tasks</text>
 <rect x="495.2" y="360" width="209.6" height="196" rx="12" class="card"/>
 <rect x="495.2" y="360" width="209.6" height="6" rx="3" class="nowf"/>
 <text x="513.2" y="396" font-size="16" class="caps soft">J08</text>
