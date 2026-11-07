@@ -26,7 +26,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="66" y="216" font-size="21" font-weight="600">Capture</text>
 <text x="66" y="242" font-size="14.5" class="soft">Cmd-N gives a cursor</text>
 <text x="66" y="261" font-size="14.5" class="soft">in under 1 s</text>
-<text x="66" y="330" font-size="14" class="soft">P3 · 3 open tasks</text>
+<text x="66" y="330" font-size="14" class="soft">P3 · 2 open tasks</text>
 <rect x="271.6" y="150" width="209.6" height="196" rx="12" class="card"/>
 <rect x="271.6" y="150" width="209.6" height="6" rx="3" class="nowf"/>
 <text x="289.6" y="186" font-size="16" class="caps soft">J02</text>
@@ -104,5 +104,5 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="960.4" y="452" font-size="14.5" class="soft">An hour offline:</text>
 <text x="960.4" y="471" font-size="14.5" class="soft">create, edit, delete</text>
 <text x="960.4" y="540" font-size="14" class="soft">P3 · 8 open tasks</text>
-<text x="48" y="594" font-size="14" class="soft">As of 2026-11-04. Signed off is read from the Barkpark board. An e2e spec on main proves no pass by itself.</text>
+<text x="48" y="594" font-size="14" class="soft">As of 2026-11-07. Signed off is read from the Barkpark board. An e2e spec on main proves no pass by itself.</text>
 </svg>
