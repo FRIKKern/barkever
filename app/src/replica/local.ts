@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NotebookDoc, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {failed, forgetJot, forgetJournal, jotJoined, jotted, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
+import {failed, forgetJot, forgetJournal, forgetOldMarks, jotJoined, jotted, replayedHere, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -56,7 +56,7 @@ const isTitle = (p: Jot) => p.title !== undefined
 
 // A failed edit joins the one before it only where the journal joined their steps, so the owed list and the journal
 // stay one to one and a run of failed saves stays one retry per field. An edit another tab already replayed has no
-// step left to join, so it stays its own edit and re-applies as a no-op.
+// step left to join, so it stays its own edit, and the replay's mark keeps it from applying again.
 function owe(list: Owed[], seq: number, p: Jot, joined?: number): Owed[] {
   const last = joined === undefined ? undefined : list.find((o) => o.seq === joined)
   if (!last) return [...list, {seq, patch: p}]
@@ -114,7 +114,10 @@ async function journaled(id: string, patch: Jot) {
   let back: Jotted | undefined
   try {
     await write(id, (note, entry, notebooks) => {
-      if (note) return edited(id, (before, server) => (out = owing().reduce((n, o) => editFor(o)(n, server), before)))(note, entry, notebooks)
+      if (note) {
+        const replayed = replayedHere(id)
+        return edited(id, (before, server) => (out = owing().filter((o) => !replayed.has(o.seq)).reduce((n, o) => editFor(o)(n, server), before)))(note, entry, notebooks)
+      }
       const j = jottedOf(id)
       const next = restore(id, j, entry, notebooks)
       if (next) back = j
@@ -128,7 +131,7 @@ async function journaled(id: string, patch: Jot) {
   }
   owed.delete(id)
   owedTitles.delete(id)
-  if (back) unjotReplayed(id, back.seq)
+  if (back) unjotReplayed(id, back.seq, true)
   unjot(id, seq)
   return out
 }
@@ -157,15 +160,19 @@ let replaying: Promise<void> | undefined
 export function replayJournal() {
   replaying ??= (async () => {
     await db()
+    forgetOldMarks()
     for (const [id] of jotted()) {
       let seq = 0
+      let wrote = false
       await write(id, (note, entry, notebooks) => {
         const j = jottedOf(id)
         if (!j) return null
         seq = j.seq
-        return note ? edited(id, applied(j))(note, entry, notebooks) : restore(id, j, entry, notebooks)
+        const next = note ? edited(id, applied(j))(note, entry, notebooks) : restore(id, j, entry, notebooks)
+        wrote = !!next
+        return next
       })
-      if (seq) unjotReplayed(id, seq)
+      if (seq) unjotReplayed(id, seq, wrote)
     }
   })()
   return replaying

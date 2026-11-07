@@ -55,7 +55,7 @@ test('a note record that clears and starts again never reuses a seq, so a replay
   mine.unjot('n1', old)
   const again = mine.jot('n1', {base: [p('a', 'two')], after: [p('a', 'new failed')]})
   assert.ok(again > old)
-  mine.unjotReplayed('n1', old)
+  mine.unjotReplayed('n1', old, true)
   assert.equal(mine.jotted()[0][1].steps?.length, 1)
 })
 

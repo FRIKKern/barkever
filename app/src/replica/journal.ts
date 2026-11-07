@@ -3,7 +3,8 @@ import {replicaKey} from './db'
 
 export type Step = {seq: number; tab?: string; base: Block[]; after: Block[]}
 type TitleStep = {seq: number; tab?: string; shown?: string; title: string}
-export type Jotted = {seq: number; titles?: TitleStep[]; steps?: Step[]}
+type Replayed = {seq: number; tab: string; at: number}
+export type Jotted = {seq: number; titles?: TitleStep[]; steps?: Step[]; replayed?: Replayed[]}
 type Stored = Jotted & {title?: string; titleSeq?: number}
 export type Jot = {shown?: string; title?: string; base?: Block[]; after?: Block[]}
 type Journal = Record<string, Jotted>
@@ -68,20 +69,41 @@ export function jotJoined(id: string, {shown, title, base, after}: Jot): {seq: n
 
 export const jot = (id: string, patch: Jot): number => jotJoined(id, patch).seq
 
-function drop(id: string, seq: number, gone: (tab?: string) => boolean) {
+function put(j: Journal, id: string, {seq, titles = [], steps = [], replayed = []}: Jotted) {
+  if (!steps.length && !titles.length && !replayed.length) delete j[id]
+  else j[id] = {seq, ...(titles.length && {titles}), ...(steps.length && {steps}), ...(replayed.length && {replayed})}
+}
+
+// A step this tab replays for another live tab leaves a mark, so that tab skips the step in its owed retries instead of
+// applying it again over what the person did since. A lost mark only means the step applies again, as before marks.
+function drop(id: string, seq: number, gone: (tab?: string) => boolean, mark = false) {
   const j = load()
   const was = j[id]
   if (!was) return
-  const steps = (was.steps ?? []).filter((s) => s.seq > seq || !gone(s.tab))
-  const titles = (was.titles ?? []).filter((t) => t.seq > seq || !gone(t.tab))
-  if (!steps.length && !titles.length) delete j[id]
-  else j[id] = {seq: was.seq, ...(titles.length && {titles}), ...(steps.length && {steps})}
+  const at = Date.now()
+  const dropped = (s: {seq: number; tab?: string}) => s.seq <= seq && gone(s.tab)
+  const marks = mark ? [...(was.titles ?? []), ...(was.steps ?? [])].filter((s) => dropped(s) && s.tab && s.tab !== THIS_TAB).map((s) => ({seq: s.seq, tab: s.tab!, at})) : []
+  const kept = (was.replayed ?? []).filter((r) => mark || r.tab !== THIS_TAB || r.seq > seq)
+  put(j, id, {seq: was.seq, titles: was.titles?.filter((t) => !dropped(t)), steps: was.steps?.filter((s) => !dropped(s)), replayed: [...kept, ...marks]})
   save(j)
 }
 
 export const unjot = (id: string, seq: number) => drop(id, seq, (tab) => tab === THIS_TAB)
 
-export const unjotReplayed = (id: string, seq: number) => drop(id, seq, () => true)
+export const unjotReplayed = (id: string, seq: number, applied: boolean) => drop(id, seq, () => true, applied)
+
+export const replayedHere = (id: string) => new Set((load()[id]?.replayed ?? []).filter((r) => r.tab === THIS_TAB).map((r) => r.seq))
+
+const KEEP_MARKS_MS = 24 * 60 * 60 * 1000
+
+export function forgetOldMarks() {
+  const j = load()
+  const at = Date.now()
+  const old = (r: Replayed) => at - r.at >= KEEP_MARKS_MS
+  if (!Object.values(j).some((e) => e.replayed?.some(old))) return
+  for (const [id, e] of Object.entries(j)) put(j, id, {...e, replayed: e.replayed?.filter((r) => !old(r))})
+  save(j)
+}
 
 export function forgetJot(id: string) {
   const j = load()
@@ -89,7 +111,7 @@ export function forgetJot(id: string) {
   save(j)
 }
 
-export const jotted = (): [string, Jotted][] => Object.entries(load())
+export const jotted = (): [string, Jotted][] => Object.entries(load()).filter(([, j]) => j.titles?.length || j.steps?.length)
 
 export function forgetJournal() {
   save({})
