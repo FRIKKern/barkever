@@ -251,9 +251,11 @@ test("a failed install stops the land before the check, and says so", () => {
   assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
 });
 
+const landAs = ({ main, top }, sha) => spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", sha.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${process.env.PATH}` }, encoding: "utf8" });
+
 function rebasedOverContext() {
   const run = repo(() => {}, () => {}, { reviewedAs: "abcdef" });
-  const { main, branch, top } = run;
+  const { main, branch } = run;
   const lines = (at, text) => { const all = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]; all[at] = text; return `${all.join("\n")}\n`; };
   writeFileSync(join(main, "long.txt"), lines(0, "1"));
   git(main, "add", "long.txt");
@@ -271,7 +273,7 @@ function rebasedOverContext() {
   git(main, "commit", "-qm", "context");
   git(main, "push", "-q", "origin", "main");
   git(branch, "rebase", "-q", "main");
-  const land = () => spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", sha.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${process.env.PATH}` }, encoding: "utf8" });
+  const land = (reviewed = sha) => landAs(run, reviewed);
   return { branch, sha, land };
 }
 
@@ -295,6 +297,49 @@ for (const [what, change] of [
   git(branch, "add", ".");
   git(branch, "commit", "-q", "--amend", "--no-edit");
   const r = land();
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+});
+
+test("a head with no net change is refused, even with a reviewed sha already on main", () => {
+  const { branch, land } = rebasedOverContext();
+  const old = git(branch, "rev-parse", "main~1");
+  git(branch, "reset", "-q", "--hard", "main");
+  writeFileSync(join(branch, "z.txt"), "added\n");
+  git(branch, "add", ".");
+  git(branch, "commit", "-qm", "add");
+  git(branch, "rm", "-q", "z.txt");
+  git(branch, "commit", "-qm", "take it back");
+  const r = land(old);
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+});
+
+test("a criss-cross history is refused: a head can't drop main's code under a reviewed sha", () => {
+  const run = repo(() => {}, () => {}, { reviewedAs: "abcdef" });
+  const { main, branch } = run;
+  const commit = (cwd, file, text, day) => {
+    writeFileSync(join(cwd, file), text);
+    git(cwd, "add", file);
+    const at = `2030-01-0${day}T00:00:00`;
+    execFileSync("git", ["commit", "-qm", file], { cwd, env: { ...env, GIT_COMMITTER_DATE: at, GIT_AUTHOR_DATE: at } });
+  };
+  git(main, "switch", "-qc", "b2");
+  commit(main, "guard.txt", "guard\n", 1);
+  git(main, "switch", "-q", "main");
+  git(main, "switch", "-qc", "b1");
+  commit(main, "b1.txt", "b1\n", 2);
+  git(main, "switch", "-q", "main");
+  git(main, "merge", "-q", "--no-ff", "--no-edit", "b1");
+  git(main, "merge", "-q", "--no-ff", "--no-edit", "b2");
+  git(main, "push", "-q", "origin", "main");
+  git(branch, "merge", "-q", "--ff-only", "b1");
+  commit(branch, "f.txt", "reviewed\n", 3);
+  const sha = git(branch, "rev-parse", "HEAD");
+  git(branch, "merge", "-q", "--no-edit", "b2");
+  git(branch, "rm", "-q", "guard.txt");
+  git(branch, "commit", "-qm", "tidy");
+  const r = landAs(run, sha);
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
 });

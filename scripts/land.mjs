@@ -43,7 +43,9 @@ const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/arms\.mjs$/);
 const head = git(["rev-parse", branch], dir);
 const samePatch = (sha) => {
   try {
-    const base = git(["merge-base", "main", branch], dir);
+    const bases = git(["merge-base", "--all", "main", branch], dir).split("\n");
+    if (bases.length !== 1) return false;
+    const [base] = bases;
     const tree = git(["rev-parse", `${branch}^{tree}`], dir);
     return tree !== git(["rev-parse", `${base}^{tree}`], dir) && git(["merge-tree", "--write-tree", sha, base], dir) === tree;
   } catch { return false; }
