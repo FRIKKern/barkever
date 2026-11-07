@@ -1,15 +1,16 @@
-import { after, test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cleanup } from "./test-cleanup.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
 const env = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" };
 const tops = [];
-after(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
+cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 const long = "A1b2C3d4".repeat(5);
 const known = "known-value-".concat(long);
 const knownMail = "owner-".concat(long, "@example.test");

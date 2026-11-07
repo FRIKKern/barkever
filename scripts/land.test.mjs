@@ -1,9 +1,10 @@
-import { after, test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cleanup } from "./test-cleanup.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
@@ -11,7 +12,7 @@ const env = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.c
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
 const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd, "add", "a.txt"); git(cwd, "commit", "-qm", text); };
 const tops = [];
-after(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
+cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
 function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", reviewedAs } = {}) {
   const top = mkdtempSync(join(tmpdir(), "land-"));

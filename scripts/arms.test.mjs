@@ -1,12 +1,13 @@
-import { after, test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cleanup } from "./test-cleanup.mjs";
 
 const temp = mkdtempSync(join(tmpdir(), "arms-"));
-after(() => rmSync(temp, { recursive: true, force: true }));
+cleanup(() => rmSync(temp, { recursive: true, force: true }));
 
 const ARMS = new URL("./arms.mjs", import.meta.url).pathname;
 

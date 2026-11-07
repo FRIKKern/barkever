@@ -1,9 +1,10 @@
-import { after, describe, test } from "node:test";
+import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cleanup } from "./test-cleanup.mjs";
 
 const heavy = new URL("heavy.mjs", import.meta.url).pathname;
 const top = mkdtempSync(join(tmpdir(), "heavy-"));
@@ -29,7 +30,7 @@ const { HEAVY_SLOTS, ...inherited } = process.env;
 const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
 const groups = [];
 const stop = (p, signal = "SIGKILL") => { try { process.kill(-p.pid, signal); } catch {} };
-after(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, force: true }); });
+cleanup(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, force: true }); });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const slots = () => mkdtempSync(join(top, "slots-"));

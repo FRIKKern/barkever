@@ -1,14 +1,15 @@
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { after, test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { baseline, killers, mutate, mutantsOf } from "./mutate.mjs";
+import { cleanup } from "./test-cleanup.mjs";
 
 const temp = mkdtempSync(join(tmpdir(), "mutate-"));
-after(() => rmSync(temp, { recursive: true, force: true }));
+cleanup(() => rmSync(temp, { recursive: true, force: true }));
 
 const lines = (s) => mutantsOf(s).map((m) => m.line);
 
