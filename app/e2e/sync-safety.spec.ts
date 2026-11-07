@@ -352,9 +352,11 @@ test('a remote rename reaches the title box while only a body save is owed, and 
   await a.evaluate(() => ((window as unknown as {breakWrites?: boolean}).breakWrites = true))
   await a.keyboard.type(' failed')
   await failed
+  await a.waitForTimeout(300)
   await a.evaluate(() => ((window as unknown as {breakWrites?: boolean}).breakWrites = false))
   expect((await remoteTitle(id, `Renamed ${stamp}`)).ok).toBe(true)
   await expect(title).toHaveValue(`Renamed ${stamp}`, {timeout: 15_000})
+  await expect(status(a)).toHaveText('Couldn’t save on this device')
   await a.keyboard.type(' healed')
   await expect.poll(async () => (await serverNote(id))?.body?.blocks.map(blockText).join(' '), {timeout: 15_000}).toContain('failed healed')
   await expect(status(a)).toHaveText('Saved', {timeout: 15_000})
