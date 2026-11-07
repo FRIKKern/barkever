@@ -176,7 +176,7 @@ test('a failed title lands inside the next body save, and two failed titles in a
     await inFailure(() => recorded('w2', editTitle('w2', 'Before', 'First')))
     await inFailure(() => recorded('w2', editTitle('w2', 'First', 'Second')))
     assert.equal(stage('w2'), 'unsaved')
-    assert.equal(journalOf('w2')?.title, 'Second')
+    assert.equal(journalOf('w2')?.titles?.at(-1)?.title, 'Second')
     await recorded('w2', editBody('w2', [para('a', 'one')], [para('a', 'one two')]))
     await settled()
     assert.notEqual(stage('w2'), 'unsaved')

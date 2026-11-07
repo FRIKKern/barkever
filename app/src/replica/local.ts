@@ -60,7 +60,7 @@ async function journaled(id: string, patch: Jot, change: Edit) {
   return out
 }
 
-export const editTitle = (id: string, shown: string, title: string) => journaled(id, {title}, overTitle(shown, title))
+export const editTitle = (id: string, shown: string, title: string) => journaled(id, {shown, title}, overTitle(shown, title))
 
 export const moveNote = (id: string, from: string | null, to: string) => edit(id, (n, server) => typed(n, server, ...move(n, from, to)))
 
@@ -85,7 +85,10 @@ export function replayJournal() {
   replaying ??= (async () => {
     await db()
     for (const [id, j] of jotted()) {
-      await edit(id, (n, server) => (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), j.title === undefined ? n : withTitle(j.title)(n)))
+      await edit(id, (n, server) => {
+        const titled = (j.titles ?? []).reduce((m, t) => (t.shown === undefined ? withTitle(t.title)(m) : overTitle(t.shown, t.title)(m, server)), n)
+        return (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), titled)
+      })
       unjot(id, j.seq)
     }
   })()

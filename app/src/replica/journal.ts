@@ -2,15 +2,20 @@ import type {Block} from '../lib/model'
 import {replicaKey} from './db'
 
 export type Step = {seq: number; base: Block[]; after: Block[]}
-type Jotted = {seq: number; title?: string; titleSeq?: number; steps?: Step[]}
-export type Jot = {title?: string; base?: Block[]; after?: Block[]}
+type TitleStep = {seq: number; shown?: string; title: string}
+type Jotted = {seq: number; titles?: TitleStep[]; steps?: Step[]}
+type Stored = Jotted & {title?: string; titleSeq?: number}
+export type Jot = {shown?: string; title?: string; base?: Block[]; after?: Block[]}
 type Journal = Record<string, Jotted>
 
 const key = () => `${replicaKey()}-journal`
 
+const upgraded = ({title, titleSeq, ...j}: Stored): Jotted => (title === undefined ? j : {...j, titles: [{seq: titleSeq ?? j.seq, title}]})
+
 function load(): Journal {
   try {
-    return JSON.parse(localStorage.getItem(key()) ?? '{}') as Journal
+    const stored = JSON.parse(localStorage.getItem(key()) ?? '{}') as Record<string, Stored>
+    return Object.fromEntries(Object.entries(stored).map(([id, j]) => [id, upgraded(j)]))
   } catch {
     return {}
   }
@@ -23,14 +28,14 @@ function save(j: Journal) {
   } catch {}
 }
 
-export function jot(id: string, {title, base, after}: Jot): number {
+export function jot(id: string, {shown, title, base, after}: Jot): number {
   const j = load()
   const was = j[id] ?? {seq: 0}
   const seq = was.seq + 1
   j[id] = {
     ...was,
     seq,
-    ...(title !== undefined && {title, titleSeq: seq}),
+    ...(title !== undefined && {titles: [...(was.titles ?? []), {seq, shown, title}]}),
     ...(base && after && {steps: [...(was.steps ?? []), {seq, base, after}]}),
   }
   save(j)
@@ -42,9 +47,9 @@ export function unjot(id: string, seq: number) {
   const was = j[id]
   if (!was) return
   const steps = (was.steps ?? []).filter((s) => s.seq > seq)
-  const titled = was.titleSeq !== undefined && was.titleSeq > seq
-  if (!steps.length && !titled) delete j[id]
-  else j[id] = {seq: was.seq, ...(titled && {title: was.title, titleSeq: was.titleSeq}), ...(steps.length && {steps})}
+  const titles = (was.titles ?? []).filter((t) => t.seq > seq)
+  if (!steps.length && !titles.length) delete j[id]
+  else j[id] = {seq: was.seq, ...(titles.length && {titles}), ...(steps.length && {steps})}
   save(j)
 }
 
