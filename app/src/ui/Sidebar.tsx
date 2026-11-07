@@ -19,12 +19,14 @@ const lossWarning = (pending: number | null) =>
     ? 'Can’t check whether every change has reached Barkpark. Sign out and risk losing them?'
     : `${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`
 
+const FORGET_LIMIT_MS = 5000
+
 async function signOut(e: FormEvent<HTMLFormElement>) {
   e.preventDefault()
   const form = e.currentTarget
   const pending = await unsyncedNow()
   if (pending !== 0 && !confirm(lossWarning(pending))) return
-  await Promise.allSettled([forgetDevice(), forgetOwner()])
+  await Promise.race([Promise.allSettled([forgetDevice(), forgetOwner()]), new Promise((done) => setTimeout(done, FORGET_LIMIT_MS))])
   form.submit()
 }
 const RECENT_SHOWN = 5

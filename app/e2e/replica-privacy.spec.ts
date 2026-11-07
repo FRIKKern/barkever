@@ -43,3 +43,17 @@ test('sign out drops this device’s copy of the notes, its owner and its offlin
   await expect.poll(() => replicas(page)).toEqual({dbs: [], journals: [], owner: false, shell: false})
   expect(errors).toEqual([])
 })
+
+test('a device delete that never answers still signs out, with the owner and journal forgotten', async ({page}) => {
+  await page.addInitScript(() => {
+    IDBFactory.prototype.deleteDatabase = () => ({}) as IDBOpenDBRequest
+  })
+  await page.goto('/')
+  await page.getByLabel('Email').fill(ACCOUNT.email)
+  await page.getByLabel('Password').fill(ACCOUNT.password)
+  await page.getByRole('button', {name: 'Sign in'}).click()
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 20_000})
+  await page.getByTestId('sign-out').click()
+  await expect(page).toHaveURL(/\/sign-in/, {timeout: 15_000})
+  await expect.poll(() => replicas(page)).toMatchObject({journals: [], owner: false})
+})
