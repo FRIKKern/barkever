@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
+import {forgetJournal, jot, jotted, unjot, unjotAll, type Jot} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -18,15 +18,11 @@ async function write(id: string, change: Change, adopt = false) {
   const [local, entry] = await Promise.all([notes.get(id), outbox.get(id)])
   const next = change(local && stored(local), entry)
   if (!next) return tx.done
-  if (next.note) {
-    void notes.put({...next.note, _gen: adopt ? (local?._gen ?? 0) + 1 : local?._gen})
-    void rows.put(toRow(next.note))
-  } else {
-    void notes.delete(id)
-    void rows.delete(id)
-  }
-  void (next.entry ? outbox.put(next.entry) : outbox.delete(id))
-  await tx.done
+  await Promise.all([
+    ...(next.note ? [notes.put({...next.note, _gen: adopt ? (local?._gen ?? 0) + 1 : local?._gen}), rows.put(toRow(next.note))] : [notes.delete(id), rows.delete(id)]),
+    next.entry ? outbox.put(next.entry) : outbox.delete(id),
+    tx.done,
+  ])
   notify({kind: 'local', ids: [id]})
 }
 
@@ -50,7 +46,7 @@ async function journaled(id: string, patch: Jot, change: Edit) {
   const seq = jot(id, patch)
   let out: NoteDoc | undefined
   await edit(id, (before, server) => (out = change(before, server)))
-  unjot(id, seq)
+  unjot(id, seq, patch)
   return out
 }
 
@@ -80,7 +76,7 @@ export function replayJournal() {
     await db()
     for (const [id, j] of jotted()) {
       await edit(id, (n, server) => (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), j.title === undefined ? n : withTitle(j.title)(n)))
-      unjot(id, j.seq)
+      unjotAll(id, j.seq)
     }
   })()
   return replaying

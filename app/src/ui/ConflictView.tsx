@@ -3,6 +3,7 @@ import {blockText, UNTITLED, type Block, type Conflict, type Note} from '../lib/
 import {groups} from '../lib/versions'
 import {when} from '../lib/when'
 import {deviceId} from '../replica/db'
+import {writeFailed} from '../lib/saver'
 import {dismissVersion, keepVersion} from '../replica/local'
 import type {World} from './world'
 
@@ -33,7 +34,7 @@ function Copy({c, note, name, onKeep}: {c: Conflict; note: Note; name: NotebookN
   const v = {label: `${yours(c.by) ? 'Your version' : 'Other version'} · ${when(c.at)}`, title: c.title, tags: c.tags, notebook: c.notebook?._ref, blocks: c.body?.blocks ?? [], clash: new Set(c.clash)}
   const keep = () => {
     onKeep()
-    void keepVersion(note.id, c._key, {title: note.title, body: {blocks: note.blocks}})
+    void keepVersion(note.id, c._key, {title: note.title, body: {blocks: note.blocks}}).catch(writeFailed(note.id))
   }
   return (
     <Column v={v} testId="conflict-other" name={name}>
@@ -41,7 +42,7 @@ function Copy({c, note, name, onKeep}: {c: Conflict; note: Note; name: NotebookN
         <button className="kb-act" onClick={keep} data-testid="keep-version">
           Keep this
         </button>
-        <button className="kb-act" onClick={() => void dismissVersion(note.id, c._key)} data-testid="dismiss-version">
+        <button className="kb-act" onClick={() => void dismissVersion(note.id, c._key).catch(writeFailed(note.id))} data-testid="dismiss-version">
           Dismiss
         </button>
       </div>

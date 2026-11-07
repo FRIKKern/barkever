@@ -1,6 +1,7 @@
 import {useState, type KeyboardEvent} from 'react'
 import {Link} from '@tanstack/react-router'
 import type {Note} from '../lib/model'
+import {writeFailed} from '../lib/saver'
 import {moveNote, retag} from '../replica/local'
 import {withTag} from '../replica/organize'
 import type {World} from './world'
@@ -12,7 +13,7 @@ export function NotebookPick({w, note}: {w: World; note: Note}) {
   return (
     <label className="nbchip pick" title="Move to notebook">
       <span className="dot" style={{background: shelf.colour(note.notebook)}} />
-      <select value={note.notebook ?? ''} onChange={(e) => void moveNote(note.id, note.notebook, e.target.value)} aria-label="Notebook" data-testid="notebook-pick">
+      <select value={note.notebook ?? ''} onChange={(e) => void moveNote(note.id, note.notebook, e.target.value).catch(writeFailed(note.id))} aria-label="Notebook" data-testid="notebook-pick">
         {!placed && <option value={note.notebook ?? ''}>No notebook</option>}
         {options.map((nb) => (
           <option key={nb.id} value={nb.id}>
@@ -29,7 +30,7 @@ export function TagEdit({w, note}: {w: World; note: Note}) {
   const all = w.tags.map(([t]) => t)
   const mine = new Set(note.tags.map((t) => t.toLowerCase()))
   const known = all.filter((t) => !mine.has(t.toLowerCase()))
-  const set = (tags: string[]) => void retag(note.id, note.tags, tags)
+  const set = (tags: string[]) => void retag(note.id, note.tags, tags).catch(writeFailed(note.id))
   const add = () => {
     const tags = withTag(note.tags, all, draft)
     setDraft('')

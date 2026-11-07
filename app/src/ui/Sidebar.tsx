@@ -2,7 +2,7 @@ import {useEffect, useRef, type FormEvent} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {forgetDevice} from '../replica/local'
 import {dismissDropped, droppedStarsQuery, stuckQuery} from '../lib/library'
-import {useUnsynced} from '../lib/saver'
+import {unsyncedNow, useUnsynced} from '../lib/saver'
 import {forgetOwner} from '../lib/owner'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
@@ -14,11 +14,18 @@ import {SideTags} from './SideTags'
 import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
-function signOut(e: FormEvent<HTMLFormElement>, pending: number | null) {
+const lossWarning = (pending: number | null) =>
+  pending === null
+    ? 'Can’t check whether every change has reached Barkpark. Sign out and risk losing them?'
+    : `${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`
+
+async function signOut(e: FormEvent<HTMLFormElement>) {
   e.preventDefault()
   const form = e.currentTarget
-  if (pending && !confirm(`${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`)) return
-  void Promise.all([forgetDevice(), forgetOwner()]).then(() => form.submit())
+  const pending = await unsyncedNow()
+  if (pending !== 0 && !confirm(lossWarning(pending))) return
+  await Promise.all([forgetDevice(), forgetOwner()])
+  form.submit()
 }
 const RECENT_SHOWN = 5
 const TOO_BIG = 'searchable_text_too_large'
@@ -125,7 +132,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         <button className="icon-btn" onClick={toggleTheme} title="Light / dark" aria-label="Toggle theme">
           <Icon name="theme" />
         </button>
-        <form method="post" action="/sign-out" onSubmit={(e) => signOut(e, pending)}>
+        <form method="post" action="/sign-out" onSubmit={(e) => void signOut(e)}>
           <button className="icon-btn" title="Sign out" aria-label="Sign out" data-testid="sign-out">
             <Icon name="out" />
           </button>

@@ -5,7 +5,7 @@ import {star} from '../lib/library'
 import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
-import {markDirty, markSaved, savePoint, useSaveStatus} from '../lib/saver'
+import {markDirty, markSaved, savePoint, useSaveStatus, writeFailed} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
@@ -22,7 +22,7 @@ import {Icon} from './icons'
 import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
-const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device'}
+const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device', unsaved: 'Couldn’t save on this device'}
 
 type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void}
 
@@ -70,7 +70,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
     markDirty(note.id, 'title')
     keys.current++
     lastKey.current = Date.now()
-    void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', savePoint(note.id, 'title')))
+    void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', savePoint(note.id, 'title')), writeFailed(note.id, 'title'))
   }
 
   const label = LABEL[status]
@@ -81,7 +81,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
     void edit.start(instruction, picked)
   }
   const remove = () => {
-    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}))
+    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}), writeFailed(note.id))
   }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)

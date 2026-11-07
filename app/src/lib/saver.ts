@@ -1,14 +1,16 @@
 import {useSyncExternalStore} from 'react'
 import {db} from '../replica/db'
 import {onChange} from '../replica/bus'
+import {jotted} from '../replica/journal'
 import type {Reach} from './online'
 
-type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked'
+type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked' | 'unsaved'
 export type Field = 'title' | 'body'
-type Stage = 'typed' | 'queued' | 'saved' | 'unchecked'
+type Stage = 'typed' | 'queued' | 'saved' | 'unchecked' | 'unsaved'
 
 const typed = new Map<string, Map<Field, number>>()
 const covered = new Map<string, Map<Field, number>>()
+const unwritten = new Map<string, Set<Field | undefined>>()
 let queued = new Set<string>()
 let known = false
 let failed = false
@@ -57,6 +59,10 @@ function look() {
 }
 
 export function markSaved(id: string, field: Field, upTo: number | undefined) {
+  const parts = unwritten.get(id)
+  parts?.delete(field)
+  parts?.delete(undefined)
+  if (parts?.size === 0) unwritten.delete(id)
   if (upTo !== undefined) {
     const fields = covered.get(id) ?? new Map<Field, number>()
     covered.set(id, fields.set(field, Math.max(fields.get(field) ?? -1, upTo)))
@@ -64,9 +70,23 @@ export function markSaved(id: string, field: Field, upTo: number | undefined) {
   void look()
 }
 
-export const stage = (id: string): Stage => (failed ? 'unchecked' : typed.has(id) ? 'typed' : !known || queued.has(id) ? 'queued' : 'saved')
+export const writeFailed = (id: string, field?: Field) => (e: unknown) => {
+  unwritten.set(id, (unwritten.get(id) ?? new Set()).add(field))
+  console.warn('save status: a write failed', e)
+  emit()
+}
 
-export const unsynced = () => (known ? new Set([...typed.keys(), ...queued]).size : null)
+export const stage = (id: string): Stage => (unwritten.has(id) ? 'unsaved' : failed ? 'unchecked' : typed.has(id) ? 'typed' : !known || queued.has(id) ? 'queued' : 'saved')
+
+export const unsynced = () => (known ? new Set([...typed.keys(), ...queued, ...unwritten.keys()]).size : null)
+
+export const unsyncedNow = (): Promise<number | null> =>
+  db()
+    .then((d) => d.getAllKeys('outbox'))
+    .then(
+      (keys) => new Set([...typed.keys(), ...unwritten.keys(), ...jotted().map(([id]) => id), ...keys]).size,
+      () => null,
+    )
 
 onChange(() => void look())
 if (typeof window !== 'undefined') void look()
@@ -78,7 +98,7 @@ const subscribe = (l: () => void) => {
 
 export function useSaveStatus(id: string, reach: Reach): SaveStatus {
   const now = useSyncExternalStore(subscribe, () => stage(id), (): Stage => 'saved')
-  if (now === 'saved' || now === 'unchecked') return now
+  if (now === 'saved' || now === 'unchecked' || now === 'unsaved') return now
   return now === 'typed' || reach === 'online' ? 'saving' : reach
 }
 

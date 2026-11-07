@@ -7,7 +7,7 @@ import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
 import {ANSWERED, answersHeard} from '../lib/online'
-import {markDirty, markSaved, savePoint} from '../lib/saver'
+import {markDirty, markSaved, savePoint, writeFailed} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
@@ -71,7 +71,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       void editBody(id, base, structuredClone(el.blocks)).then((saved) => {
         markSaved(id, 'body', upTo)
         if (saved) el.applyServerBlocks(saved, {mode: 'own', requestId})
-      })
+      }, writeFailed(id, 'body'))
     }
     const onInput = () => {
       markDirty(id, 'body')
