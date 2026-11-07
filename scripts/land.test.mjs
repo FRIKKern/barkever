@@ -43,7 +43,8 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   writeFileSync(join(top, "bin", "pnpm"), `#!/bin/sh\n${pnpm ?? `exit ${pnpmExit}`}\n`, { mode: 0o755 });
   if (onPull) writeFileSync(join(top, "bin", "git"), `#!/bin/sh\nif [ "$1" = pull ]; then (cd "${branch}" && ${onPull}); fi\nexec ${execFileSync("which", ["git"], { encoding: "utf8" }).trim()} "$@"\n`, { mode: 0o755 });
   const mainHead = git(main, "rev-parse", "HEAD");
-  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${env.PATH}` }, encoding: "utf8" });
+  const claim = reviewedAs === null ? [] : ["--reviewed", typeof reviewedAs === "function" ? reviewedAs(reviewed) : reviewedAs ?? reviewed.slice(0, 7)];
+  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", ...claim], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${env.PATH}` }, encoding: "utf8" });
   return { r, top, main, branch, reviewed, mainHead };
 }
 
@@ -255,6 +256,51 @@ for (const form of ["feature", "HEAD@{0}", "main", "abcdef"]) test(`--reviewed $
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
   assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
+});
+
+test("a real sha prefix of 6 characters is too short to name a review", () => {
+  const { r } = repo(() => {}, undefined, { check: "exit 0", reviewedAs: (sha) => sha.slice(0, 6) });
+  assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+});
+
+test("a head that moved keeps its review only while the patch is the same", () => {
+  let first;
+  const amended = (text) => (b) => { write(b, "branch\n"); first = git(b, "rev-parse", "HEAD"); writeFileSync(join(b, "a.txt"), text); git(b, "add", "a.txt"); git(b, "commit", "-q", "--amend", "-m", "amended"); };
+  const same = repo(() => {}, amended("branch\n"), { reviewedAs: () => first });
+  assert.match(same.r.stderr, /^land: npm run check failed/m);
+  const moved = repo(() => {}, amended("changed\n"), { reviewedAs: () => first });
+  assert.match(moved.r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+});
+
+test("a branch with no patch of its own needs its own head named, not the patch", () => {
+  const { r } = repo(() => {}, () => {}, { reviewedAs: (sha) => sha });
+  assert.doesNotMatch(r.stderr, /pass --reviewed/);
+  assert.match(r.stderr, /^land: npm run check failed/m);
+});
+
+test("a docs branch lands with no --reviewed", () => {
+  const { r, main } = repo(() => {}, docsOnly, { check: "exit 0", reviewedAs: null });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+});
+
+test("a docs branch holding a key stops at the secret scan, and origin does not move", () => {
+  const keyed = (b) => { mkdirSync(join(b, "docs")); writeFileSync(join(b, "docs/x.md"), "gho_".concat("A1b2C3d4".repeat(5))); git(b, "add", "docs"); git(b, "commit", "-qm", "docs"); };
+  const { r, main, mainHead } = repo(() => {}, keyed, { check: "exit 0", reviewedAs: null });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: no app effect: secret scan failed/m);
+  assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
+  assert.equal(git(join(main, "..", "origin.git"), "rev-parse", "main"), mainHead);
+});
+
+test("worktree.mjs makes a new worktree on a new branch and prints its folder", () => {
+  const { main } = repo(() => {}, undefined, { pnpm: "exit 0" });
+  const PATH = `${join(main, "..", "bin")}:${env.PATH}`;
+  const r = spawnSync("node", [join(main, "scripts/worktree.mjs"), "fresh"], { cwd: main, env: { ...env, PATH }, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  const dir = join(realpathSync(join(main, "..")), "barkever-wt", "fresh");
+  assert.equal(r.stdout.trim(), dir);
+  assert.equal(git(dir, "symbolic-ref", "HEAD"), "refs/heads/fresh");
 });
 
 test("a land sends main and nothing else, whatever else the repo holds", () => {
