@@ -21,6 +21,7 @@ function signOut(e: FormEvent<HTMLFormElement>, pending: number | null) {
   void Promise.all([forgetDevice(), forgetOwner()]).then(() => form.submit())
 }
 const RECENT_SHOWN = 5
+const TOO_BIG = 'searchable_text_too_large'
 
 const AWAY = {offline: 'Offline', unreachable: 'Can’t reach Barkpark'}
 const footLine = (reach: Reach, pending: number | null) => {
@@ -36,7 +37,9 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
     if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
   }, [modal])
   const pending = useUnsynced()
-  const stuck = useQuery(stuckQuery).data ?? []
+  const refused = useQuery(stuckQuery).data ?? []
+  const tooBig = refused.filter((x) => x.why.includes(TOO_BIG))
+  const stuck = refused.filter((x) => !x.why.includes(TOO_BIG))
   const dropped = useQuery(droppedStarsQuery).data ?? []
   const qc = useQueryClient()
   const {lib, shelf, prefs, links, perNotebook, tags} = w
@@ -100,6 +103,11 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
               ×
             </button>
           </div>
+        ))}
+        {tooBig.map((x) => (
+          <Link key={x.id} to="/" search={{...s, q: undefined, n: x.id}} onClick={() => onPick(x.id)} className="side-dropped" data-testid="sync-too-big" role="status">
+            Too many versions of “{links.byId.get(x.id)?.title || UNTITLED}” to sync. Resolve some to continue.
+          </Link>
         ))}
         {recents.length > 0 && <div className="side-h">Recent</div>}
         {recents.map((id) => noteItem(id, 'clock', 'side-recent'))}

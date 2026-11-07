@@ -125,6 +125,43 @@ test('bug 2: an entry Barkpark refuses never blocks the others, shows as stuck, 
   await page.context().close()
 })
 
+test('a note Barkpark refuses as too large is named in the sidebar and opens from there', async ({browser, baseURL}, testInfo) => {
+  const page = await device(browser, baseURL!)
+  await page.goto('/')
+  await expect(page.getByTestId('note-row').first()).toBeVisible()
+  const big = `e2e-too-big-${Date.now()}`
+  const title = `Stormy note ${big}`
+  await page.evaluate(
+    async ({big, title}) => {
+      const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+      const db = await new Promise<IDBDatabase>((ok) => {
+        const r = indexedDB.open(name)
+        r.onsuccess = () => ok(r.result)
+      })
+      const tx = db.transaction(['notes', 'rows', 'outbox'], 'readwrite')
+      const words = Array.from({length: 150_000}, (_, i) => `stormcopy${i.toString(36)}`).join(' ')
+      tx.objectStore('notes').put({_id: big, _type: 'note', title, notebook: {_type: 'reference', _ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks: [{id: 'p', type: 'paragraph', content: [{type: 'text', value: words}]}]}})
+      tx.objectStore('rows').put({id: big})
+      tx.objectStore('outbox').put({id: big, base: null, v: 1, at: Date.now()})
+      await new Promise((ok) => (tx.oncomplete = ok))
+      db.close()
+    },
+    {big, title},
+  )
+  await newNote(page, `Wakes the sender ${Date.now()}`, 'Good.')
+  const line = page.getByTestId('sync-too-big')
+  await expect(line, 'a real 422 from Barkpark').toHaveText(`Too many versions of “${title}” to sync. Resolve some to continue.`, {timeout: 30_000})
+  await expect(page.getByTestId('sync-stuck')).toHaveCount(0)
+  await page.screenshot({path: testInfo.outputPath('too-big-light.png')})
+  await page.emulateMedia({colorScheme: 'dark'})
+  await page.screenshot({path: testInfo.outputPath('too-big-dark.png')})
+  await page.emulateMedia({colorScheme: 'light'})
+  await line.click()
+  await expect(page).toHaveURL(new RegExp(`n=${big}`))
+  await expect(page.getByTestId('title')).toHaveValue(title)
+  await page.context().close()
+})
+
 test('an offline edit to a note deleted elsewhere is pushed at reconnect, before catch-up, and lands at once without a refusal', async ({page}) => {
   const warnings: string[] = []
   page.on('console', (m) => m.type() === 'warning' && warnings.push(m.text()))
