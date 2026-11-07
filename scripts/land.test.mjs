@@ -254,18 +254,19 @@ test("a failed install stops the land before the check, and says so", () => {
 function rebasedOverContext() {
   const run = repo(() => {}, () => {}, { reviewedAs: "abcdef" });
   const { main, branch, top } = run;
-  const lines = (at, text) => { const all = ["1", "2", "3", "4", "5"]; all[at] = text; return `${all.join("\n")}\n`; };
+  const lines = (at, text) => { const all = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]; all[at] = text; return `${all.join("\n")}\n`; };
   writeFileSync(join(main, "long.txt"), lines(0, "1"));
   git(main, "add", "long.txt");
   git(main, "commit", "-qm", "long");
   git(main, "push", "-q", "origin", "main");
   git(branch, "rebase", "-q", "main");
-  writeFileSync(join(branch, "long.txt"), lines(4, "reviewed line"));
+  writeFileSync(join(branch, "long.txt"), lines(8, "reviewed line").replace("7\n", "7\nguard\n"));
+  writeFileSync(join(branch, "z.txt"), "last line\n");
   writeFileSync(join(branch, "pic.bin"), Buffer.from([0, 1, 2, 3]));
   git(branch, "add", ".");
   git(branch, "commit", "-qm", "reviewed");
   const sha = git(branch, "rev-parse", "HEAD");
-  writeFileSync(join(main, "long.txt"), lines(2, "main moved the line above"));
+  writeFileSync(join(main, "long.txt"), lines(4, "main moved a line nearby"));
   git(main, "add", "long.txt");
   git(main, "commit", "-qm", "context");
   git(main, "push", "-q", "origin", "main");
@@ -285,6 +286,9 @@ test("a clean rebase over lines beside the change keeps its reviewed sha", () =>
 for (const [what, change] of [
   ["a changed line", (b) => writeFileSync(join(b, "long.txt"), readFileSync(join(b, "long.txt"), "utf8").replace("reviewed line", "other line"))],
   ["a binary file", (b) => writeFileSync(join(b, "pic.bin"), Buffer.from([0, 1, 2, 4]))],
+  ["the same line in another place", (b) => writeFileSync(join(b, "long.txt"), readFileSync(join(b, "long.txt"), "utf8").replace("guard\n", "").replace("1\n", "1\nguard\n"))],
+  ["a trailing space on the last line", (b) => writeFileSync(join(b, "z.txt"), "last line \n")],
+  ["a commit on top of the reviewed sha", (b) => writeFileSync(join(b, "other.txt"), "not reviewed\n")],
 ]) test(`${what} that differs from the reviewed sha is refused after a rebase`, () => {
   const { branch, land } = rebasedOverContext();
   change(branch);

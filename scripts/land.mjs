@@ -41,8 +41,13 @@ const only = (pattern) => (files) => files.length > 0 && files.every((f) => patt
 const isText = only(/^docs\/|^[A-Z]+\.md$/);
 const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/arms\.mjs$/);
 const head = git(["rev-parse", branch], dir);
-const changedLines = (tip) => git(["diff", "-U0", "--binary", `main...${tip}`], dir).split("\n").filter((l) => !/^(index |@@ )/.test(l)).join("\n");
-const samePatch = (sha) => { try { const patch = changedLines(branch); return patch !== "" && changedLines(sha) === patch; } catch { return false; } };
+const samePatch = (sha) => {
+  try {
+    const base = git(["merge-base", "main", branch], dir);
+    const tree = git(["rev-parse", `${branch}^{tree}`], dir);
+    return tree !== git(["rev-parse", `${base}^{tree}`], dir) && git(["merge-tree", "--write-tree", sha, base], dir) === tree;
+  } catch { return false; }
+};
 if (!isText(touched) && !(reviewed && /^[0-9a-f]{7,40}$/.test(reviewed) && (head.startsWith(reviewed) || samePatch(reviewed)))) {
   console.error(`land: ${branch} is at ${head.slice(0, 10)}; pass --reviewed <the sha the reviewer passed>. A head that moved after review needs a delta review first`);
   process.exit(1);
