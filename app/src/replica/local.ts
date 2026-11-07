@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJournal, jot, jotted, unjot, unjotAll, type Jot} from './journal'
+import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -42,11 +42,21 @@ const overTitle = (shown: string, title: string): Edit => (n, server) => typed(n
 
 const withBody = (base: Block[], after: Block[]): Edit => (n, server) => typed(n, server, {body: {...n.body, blocks: base}}, {body: {...n.body, blocks: after}})
 
+const owed = new Map<string, Edit[]>()
+
+export const owesWords = (id: string) => owed.has(id)
+
 async function journaled(id: string, patch: Jot, change: Edit) {
   const seq = jot(id, patch)
   let out: NoteDoc | undefined
-  await edit(id, (before, server) => (out = change(before, server)))
-  unjot(id, seq, patch)
+  try {
+    await edit(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))
+  } catch (e) {
+    owed.set(id, [...(owed.get(id) ?? []), change])
+    throw e
+  }
+  owed.delete(id)
+  unjot(id, seq)
   return out
 }
 
@@ -76,7 +86,7 @@ export function replayJournal() {
     await db()
     for (const [id, j] of jotted()) {
       await edit(id, (n, server) => (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), j.title === undefined ? n : withTitle(j.title)(n)))
-      unjotAll(id, j.seq)
+      unjot(id, j.seq)
     }
   })()
   return replaying

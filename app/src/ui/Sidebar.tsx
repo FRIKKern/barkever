@@ -24,7 +24,7 @@ async function signOut(e: FormEvent<HTMLFormElement>) {
   const form = e.currentTarget
   const pending = await unsyncedNow()
   if (pending !== 0 && !confirm(lossWarning(pending))) return
-  await Promise.all([forgetDevice(), forgetOwner()])
+  await Promise.allSettled([forgetDevice(), forgetOwner()])
   form.submit()
 }
 const RECENT_SHOWN = 5

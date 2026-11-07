@@ -69,7 +69,7 @@ export const db = () =>
 
 export async function forgetReplica(): Promise<void> {
   if (!name) return
-  if (opened) (await opened).close()
+  if (opened) await opened.then((d) => d.close(), () => undefined)
   await new Promise<void>((done) => {
     const r = indexedDB.deleteDatabase(name!)
     r.onsuccess = r.onerror = r.onblocked = () => done()

@@ -2,6 +2,7 @@ import {useSyncExternalStore} from 'react'
 import {db} from '../replica/db'
 import {onChange} from '../replica/bus'
 import {jotted} from '../replica/journal'
+import {owesWords} from '../replica/local'
 import type {Reach} from './online'
 
 type SaveStatus = 'saved' | 'saving' | 'offline' | 'unreachable' | 'unchecked' | 'unsaved'
@@ -10,7 +11,7 @@ type Stage = 'typed' | 'queued' | 'saved' | 'unchecked' | 'unsaved'
 
 const typed = new Map<string, Map<Field, number>>()
 const covered = new Map<string, Map<Field, number>>()
-const unwritten = new Map<string, Set<Field | undefined>>()
+const unwritten = new Set<string>()
 let queued = new Set<string>()
 let known = false
 let failed = false
@@ -59,10 +60,6 @@ function look() {
 }
 
 export function markSaved(id: string, field: Field, upTo: number | undefined) {
-  const parts = unwritten.get(id)
-  parts?.delete(field)
-  parts?.delete(undefined)
-  if (parts?.size === 0) unwritten.delete(id)
   if (upTo !== undefined) {
     const fields = covered.get(id) ?? new Map<Field, number>()
     covered.set(id, fields.set(field, Math.max(fields.get(field) ?? -1, upTo)))
@@ -70,23 +67,39 @@ export function markSaved(id: string, field: Field, upTo: number | undefined) {
   void look()
 }
 
-export const writeFailed = (id: string, field?: Field) => (e: unknown) => {
-  unwritten.set(id, (unwritten.get(id) ?? new Set()).add(field))
-  console.warn('save status: a write failed', e)
-  emit()
-}
+export const recorded = <T>(id: string, write: Promise<T>): Promise<T | undefined> =>
+  write.then(
+    (out) => {
+      if (unwritten.has(id) && !owesWords(id)) {
+        unwritten.delete(id)
+        emit()
+      }
+      return out
+    },
+    (e: unknown) => {
+      unwritten.add(id)
+      console.warn('save status: a write failed', e)
+      emit()
+      return undefined
+    },
+  )
 
 export const stage = (id: string): Stage => (unwritten.has(id) ? 'unsaved' : failed ? 'unchecked' : typed.has(id) ? 'typed' : !known || queued.has(id) ? 'queued' : 'saved')
 
-export const unsynced = () => (known ? new Set([...typed.keys(), ...queued, ...unwritten.keys()]).size : null)
+export const unsynced = () => (known ? new Set([...typed.keys(), ...queued, ...unwritten]).size : null)
+
+const READ_LIMIT_MS = 5000
 
 export const unsyncedNow = (): Promise<number | null> =>
-  db()
-    .then((d) => d.getAllKeys('outbox'))
-    .then(
-      (keys) => new Set([...typed.keys(), ...unwritten.keys(), ...jotted().map(([id]) => id), ...keys]).size,
-      () => null,
-    )
+  Promise.race([
+    db()
+      .then((d) => d.getAllKeys('outbox'))
+      .then(
+        (keys) => new Set([...typed.keys(), ...unwritten, ...jotted().map(([id]) => id), ...keys]).size,
+        () => null,
+      ),
+    new Promise<null>((done) => setTimeout(() => done(null), READ_LIMIT_MS)),
+  ])
 
 onChange(() => void look())
 if (typeof window !== 'undefined') void look()

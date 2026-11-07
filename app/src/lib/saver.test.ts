@@ -5,10 +5,10 @@ import {newDevice, use, type Device} from '../chaos/fake-db.ts'
 
 const device: Device = newDevice('A')
 use(device)
-const {markDirty, markSaved, savePoint, stage, unsynced, unsyncedNow, writeFailed} = await import('./saver.ts')
+const {markDirty, markSaved, recorded, savePoint, stage, unsynced, unsyncedNow} = await import('./saver.ts')
 const {db} = await import('../replica/db.ts')
 const {notify} = await import('../replica/bus.ts')
-const {editBody, editTitle} = await import('../replica/local.ts')
+const {editBody, editTitle, tick} = await import('../replica/local.ts')
 const {forgetJournal, jot, jotted} = await import('../replica/journal.ts')
 const settled = () => new Promise((r) => setTimeout(r, 5))
 const entry = (id: string) => ({id, base: null, v: 1, at: 0}) as never
@@ -93,72 +93,117 @@ test('an outbox that cannot be read says so, without an unhandled rejection, and
   assert.deepEqual(rejections, [])
 })
 
-test('sign-out counts words only the journal holds, and answers null when the outbox cannot be read', async () => {
+
+test('sign-out counts typed notes and words only the journal holds, and answers null when the outbox cannot be read', async () => {
   const before = (await unsyncedNow())!
   jot('j1', {title: 'held'})
   assert.equal(await unsyncedNow(), before + 1)
   forgetJournal()
+  markDirty('j2', 'title')
+  assert.equal(await unsyncedNow(), before + 1)
+  markSaved('j2', 'title', savePoint('j2', 'title'))
+  await settled()
   const outbox = device.stores.outbox
   device.stores.outbox = {keys: () => { throw new Error('disk gone') }} as never
   assert.equal(await unsyncedNow(), null)
   device.stores.outbox = outbox
+  notify({kind: 'local', ids: ['j2']})
+  await settled()
 })
 
-test('a write that fails shows as unsaved and counts as unsynced until a later save of that note lands, with no unhandled rejection', async (t) => {
-  const d = await db()
-  await d.put('notes', {_id: 'w1', _type: 'note', title: 'Before', _rev: 'r1'} as never)
+const para = (id: string, value: string) => ({id, type: 'paragraph', content: [{type: 'text', value}]})
+const bodyOf = (n: {body: {blocks: {content: {value: string}[]}[]}}) => n.body.blocks.map((b) => b.content[0].value)
+const inFailure = <T>(write: () => Promise<T>) => {
   const notes = device.stores.notes
+  const broken = new Map(notes)
+  broken.set = () => { throw new Error('quota') }
+  device.stores.notes = broken
+  return write().finally(() => void (device.stores.notes = notes))
+}
+const clean = async (id: string) => {
+  const d = await db()
+  await d.delete('outbox', id)
+  await d.delete('notes', id)
+  notify({kind: 'local', ids: [id]})
+  await settled()
+}
+const stored = async (id: string) => (await (await db()).get('notes', id)) as never as {title: string; body: {blocks: never[]}; conflicts?: unknown[]}
+const journalOf = (id: string) => jotted().find(([x]) => x === id)?.[1]
+
+async function failing(t: {mock: {method: (o: object, m: string, f: () => void) => {mock: {callCount: () => number}}}}, run: () => Promise<void>) {
   const warn = t.mock.method(console, 'warn', () => {})
   const rejections: unknown[] = []
   const onRejection = (e: unknown) => rejections.push(e)
   process.on('unhandledRejection', onRejection)
-  const before = (await unsyncedNow())!
-  const broken = new Map(notes)
-  broken.set = () => { throw new Error('quota') }
-  device.stores.notes = broken
-  markDirty('w1', 'title')
-  await editTitle('w1', 'Before', 'After').then(() => markSaved('w1', 'title', savePoint('w1', 'title')), writeFailed('w1'))
-  await settled()
-  assert.equal(stage('w1'), 'unsaved')
-  assert.equal(warn.mock.callCount(), 1)
-  assert.equal(await unsyncedNow(), before + 1)
-  notify({kind: 'remote', ids: ['w1']})
-  await settled()
-  assert.equal(stage('w1'), 'unsaved')
-  device.stores.notes = notes
-  await editTitle('w1', 'After', 'After again').then(() => markSaved('w1', 'title', savePoint('w1', 'title')), writeFailed('w1'))
+  await run()
   await settled()
   process.off('unhandledRejection', onRejection)
-  assert.equal(stage('w1'), 'queued')
   assert.deepEqual(rejections, [])
-  await d.delete('outbox', 'w1')
-  forgetJournal()
-  notify({kind: 'local', ids: ['w1']})
-  await settled()
+  return warn
+}
+
+test('a failed body step in one block lands inside the next save of another block, with no copy; unsaved and counted until then', async (t) => {
+  const d = await db()
+  await d.put('notes', {_id: 'w1', _type: 'note', title: 'T', _rev: 'r1', body: {blocks: [para('a', 'old A'), para('b', 'old B')]}} as never)
+  await failing(t, async () => {
+    const before = (await unsyncedNow())!
+    const steps = [[para('a', 'old A'), para('b', 'old B')], [para('a', 'WORDS IN A'), para('b', 'old B')], [para('a', 'WORDS IN A'), para('b', 'more B')]]
+    await inFailure(() => recorded('w1', editBody('w1', steps[0], steps[1])))
+    await settled()
+    assert.equal(stage('w1'), 'unsaved')
+    assert.equal(await unsyncedNow(), before + 1)
+    assert.equal(unsynced(), before + 1)
+    assert.equal(journalOf('w1')?.steps?.length, 1)
+    notify({kind: 'remote', ids: ['w1']})
+    await settled()
+    assert.equal(stage('w1'), 'unsaved')
+    await recorded('w1', editBody('w1', steps[1], steps[2]))
+    await settled()
+    assert.equal(stage('w1'), 'queued')
+    assert.deepEqual(bodyOf((await stored('w1')) as never), ['WORDS IN A', 'more B'])
+    assert.equal((await stored('w1')).conflicts?.length ?? 0, 0)
+    assert.equal(journalOf('w1'), undefined)
+  })
+  await clean('w1')
 })
 
-test('a failed title write outlives a body save: still unsaved, still in the journal, until a title save lands', async (t) => {
+test('a failed title lands inside the next body save, and two failed titles in a row make no copy', async (t) => {
   const d = await db()
-  const para = (id: string, value: string) => ({id, type: 'paragraph', content: [{type: 'text', value}]})
   await d.put('notes', {_id: 'w2', _type: 'note', title: 'Before', _rev: 'r1', body: {blocks: [para('a', 'one')]}} as never)
-  const notes = device.stores.notes
-  t.mock.method(console, 'warn', () => {})
-  const broken = new Map(notes)
-  broken.set = () => { throw new Error('quota') }
-  device.stores.notes = broken
-  markDirty('w2', 'title')
-  await editTitle('w2', 'Before', 'Lost?').catch(writeFailed('w2', 'title'))
-  device.stores.notes = notes
-  await editBody('w2', [para('a', 'one')], [para('a', 'one two')])
-  markSaved('w2', 'body', undefined)
-  await settled()
-  assert.equal(stage('w2'), 'unsaved')
-  assert.equal(jotted().find(([id]) => id === 'w2')?.[1].title, 'Lost?')
-  await editTitle('w2', 'Before', 'Found').then(() => markSaved('w2', 'title', savePoint('w2', 'title')))
-  await settled()
-  assert.notEqual(stage('w2'), 'unsaved')
-  assert.equal(jotted().find(([id]) => id === 'w2'), undefined)
-  await d.delete('outbox', 'w2')
-  notify({kind: 'local', ids: ['w2']})
-  await settled()
+  await failing(t, async () => {
+    await inFailure(() => recorded('w2', editTitle('w2', 'Before', 'First')))
+    await inFailure(() => recorded('w2', editTitle('w2', 'First', 'Second')))
+    assert.equal(stage('w2'), 'unsaved')
+    assert.equal(journalOf('w2')?.title, 'Second')
+    await recorded('w2', editBody('w2', [para('a', 'one')], [para('a', 'one two')]))
+    await settled()
+    assert.notEqual(stage('w2'), 'unsaved')
+    assert.equal((await stored('w2')).title, 'Second')
+    assert.deepEqual(bodyOf((await stored('w2')) as never), ['one two'])
+    assert.equal((await stored('w2')).conflicts?.length ?? 0, 0)
+    assert.equal(journalOf('w2'), undefined)
+  })
+  await clean('w2')
+})
+
+test('a failed tick is unsaved until a tick lands, and a landed tick leaves failed words unsaved', async (t) => {
+  const d = await db()
+  const list = {id: 'l', type: 'list', task: true, items: [{content: [{type: 'text', value: 'x'}], checked: false}]}
+  await d.put('notes', {_id: 'w3', _type: 'note', title: 'T', _rev: 'r1', body: {blocks: [list]}} as never)
+  await failing(t, async () => {
+    const box = 'no-line'
+    await inFailure(() => recorded('w3', tick('w3', box)))
+    assert.equal(stage('w3'), 'unsaved')
+    await recorded('w3', tick('w3', box))
+    await settled()
+    assert.notEqual(stage('w3'), 'unsaved')
+    await inFailure(() => recorded('w3', editTitle('w3', 'T', 'Words')))
+    await recorded('w3', tick('w3', box))
+    await settled()
+    assert.equal(stage('w3'), 'unsaved')
+    await recorded('w3', editTitle('w3', 'Words', 'Words'))
+    await settled()
+    assert.notEqual(stage('w3'), 'unsaved')
+  })
+  await clean('w3')
 })

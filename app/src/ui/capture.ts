@@ -2,7 +2,6 @@ import {useQueryClient} from '@tanstack/react-query'
 import {useNavigate} from '@tanstack/react-router'
 import {refresh} from '../lib/library'
 import {landing, type Search} from '../lib/scope'
-import {writeFailed} from '../lib/saver'
 import {createNote} from '../replica/local'
 import type {World} from './world'
 
@@ -16,6 +15,6 @@ export function useCapture(w: World, s: Search) {
     void createNote({id, notebook: spot.notebook, tags: spot.tags, blockId: `${id}-p0`})
       .then(() => refresh(qc, [id]))
       .then(() => navigate({to: '/', search: {...spot.search, n: id}}))
-      .catch(writeFailed(id))
+      .catch((e: unknown) => console.warn('capture: the new note could not be made', e))
   }
 }

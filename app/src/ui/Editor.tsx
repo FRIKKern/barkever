@@ -5,7 +5,7 @@ import {star} from '../lib/library'
 import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-pick'
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
-import {markDirty, markSaved, savePoint, useSaveStatus, writeFailed} from '../lib/saver'
+import {markDirty, markSaved, savePoint, recorded, useSaveStatus} from '../lib/saver'
 import {deleteNote, editTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
@@ -70,7 +70,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
     markDirty(note.id, 'title')
     keys.current++
     lastKey.current = Date.now()
-    void editTitle(note.id, shown, value).then(() => markSaved(note.id, 'title', savePoint(note.id, 'title')), writeFailed(note.id, 'title'))
+    void recorded(note.id, editTitle(note.id, shown, value)).then(() => markSaved(note.id, 'title', savePoint(note.id, 'title')))
   }
 
   const label = LABEL[status]
@@ -81,7 +81,9 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
     void edit.start(instruction, picked)
   }
   const remove = () => {
-    void deleteNote(note.id).then(() => navigate({to: '/', search: {...s, n: undefined}}), writeFailed(note.id))
+    void recorded(note.id, deleteNote(note.id).then(() => true)).then((gone) => {
+      if (gone) void navigate({to: '/', search: {...s, n: undefined}})
+    })
   }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)

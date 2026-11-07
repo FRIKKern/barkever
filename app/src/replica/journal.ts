@@ -37,22 +37,16 @@ export function jot(id: string, {title, base, after}: Jot): number {
   return seq
 }
 
-function trim(id: string, keepStep: (seq: number) => boolean, keepTitle: (seq: number) => boolean) {
+export function unjot(id: string, seq: number) {
   const j = load()
   const was = j[id]
   if (!was) return
-  const steps = (was.steps ?? []).filter((s) => keepStep(s.seq))
-  const titled = was.titleSeq !== undefined && keepTitle(was.titleSeq)
+  const steps = (was.steps ?? []).filter((s) => s.seq > seq)
+  const titled = was.titleSeq !== undefined && was.titleSeq > seq
   if (!steps.length && !titled) delete j[id]
   else j[id] = {seq: was.seq, ...(titled && {title: was.title, titleSeq: was.titleSeq}), ...(steps.length && {steps})}
   save(j)
 }
-
-const newer = (than: number) => (seq: number) => seq > than
-
-export const unjot = (id: string, seq: number, {title}: Jot) => (title === undefined ? trim(id, newer(seq), () => true) : trim(id, () => true, newer(seq)))
-
-export const unjotAll = (id: string, seq: number) => trim(id, newer(seq), newer(seq))
 
 export const jotted = (): [string, Jotted][] => Object.entries(load())
 

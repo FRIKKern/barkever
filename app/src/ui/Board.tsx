@@ -1,7 +1,7 @@
 import {forwardRef, useImperativeHandle, useRef} from 'react'
 import {Link} from '@tanstack/react-router'
 import {summary} from '../lib/board'
-import {writeFailed} from '../lib/saver'
+import {recorded} from '../lib/saver'
 import {tick} from '../replica/local'
 import {Icon} from './icons'
 import type {World} from './world'
@@ -45,7 +45,7 @@ export const Board = forwardRef<BoardHandle, Props>(function Board({w, onMenu}, 
                   </Link>
                   {card.tasks.map((t, i) => (
                     <div key={i} className={`tk${t.done ? ' done' : ''}${t.depth ? ' sub' : ''}`}>
-                      <button type="button" className="cb" role="checkbox" aria-checked={t.done} aria-label={t.text} onClick={() => void tick(card.note, t.box).catch(writeFailed(card.note))}>
+                      <button type="button" className="cb" role="checkbox" aria-checked={t.done} aria-label={t.text} onClick={() => void recorded(card.note, tick(card.note, t.box))}>
                         <i />
                       </button>
                       <Link className="tl" to="/" search={{n: card.note, line: t.line}} title="Open at this line" data-testid="task">

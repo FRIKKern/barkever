@@ -2,7 +2,7 @@ import {useEffect, useRef, useState, type RefObject} from 'react'
 import {bridge} from '../lib/ask'
 import {checked, editRequest, editable, rewrite, textOf, type Change, type EditReply, type Edited} from '../lib/ai-edit'
 import type {Block, Note} from '../lib/model'
-import {markDirty, markSaved, savePoint, writeFailed} from '../lib/saver'
+import {markDirty, markSaved, recorded, savePoint} from '../lib/saver'
 import {editBody} from '../replica/local'
 import type {BodyHandle} from './BodyCanvas'
 
@@ -23,10 +23,9 @@ export function useAiEdit(note: Note, body: RefObject<BodyHandle | null>) {
     shown.current = next
     markDirty(note.id, 'body')
     const upTo = savePoint(note.id, 'body')
-    await editBody(note.id, base, next).then((saved) => {
-      markSaved(note.id, 'body', upTo)
-      body.current!.show(saved!)
-    }, writeFailed(note.id, 'body'))
+    const saved = await recorded(note.id, editBody(note.id, base, next))
+    markSaved(note.id, 'body', upTo)
+    if (saved) body.current!.show(saved)
   }
 
   const start = async (instruction: string, ids: string[]) => {
