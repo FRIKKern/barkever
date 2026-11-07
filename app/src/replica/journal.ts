@@ -10,7 +10,16 @@ type Journal = Record<string, Jotted>
 
 const key = () => `${replicaKey()}-journal`
 
-const upgraded = ({title, titleSeq, ...j}: Stored): Jotted => (title === undefined ? j : {...j, titles: [{seq: titleSeq ?? j.seq, title}]})
+function upgraded({title, titleSeq, titles = [], ...j}: Stored): Jotted {
+  const known = title === undefined || titles.some((t) => t.seq === titleSeq)
+  const all = known ? titles : [...titles, {seq: titleSeq ?? j.seq, title}]
+  return all.length ? {...j, titles: all} : j
+}
+
+function readableByLastVersion(j: Jotted): Stored {
+  const last = j.titles?.at(-1)
+  return last ? {...j, title: last.title, titleSeq: last.seq} : j
+}
 
 function load(): Journal {
   try {
@@ -23,7 +32,7 @@ function load(): Journal {
 
 function save(j: Journal) {
   try {
-    if (Object.keys(j).length) localStorage.setItem(key(), JSON.stringify(j))
+    if (Object.keys(j).length) localStorage.setItem(key(), JSON.stringify(Object.fromEntries(Object.entries(j).map(([id, e]) => [id, readableByLastVersion(e)]))))
     else localStorage.removeItem(key())
   } catch {}
 }

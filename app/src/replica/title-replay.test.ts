@@ -34,6 +34,13 @@ const journal = JSON.parse(localStorage.getItem(`${replicaKey()}-journal`)!)
 journal['old-shape'] = {seq: 1, title: 'From the last version', titleSeq: 1}
 localStorage.setItem(`${replicaKey()}-journal`, JSON.stringify(journal))
 
+await put('old-tab', 'Old')
+seq('old-tab', 'Old', 'First')
+const raw = JSON.parse(localStorage.getItem(`${replicaKey()}-journal`)!)
+const lastVersionReads = raw['old-tab']
+raw['old-tab'] = {...lastVersionReads, seq: lastVersionReads.seq + 1, title: 'From an old tab', titleSeq: lastVersionReads.seq + 1}
+localStorage.setItem(`${replicaKey()}-journal`, JSON.stringify(raw))
+
 await replayJournal()
 
 test('a journaled title replayed over a newer remote title keeps both', async () => {
@@ -68,6 +75,17 @@ test('a title that landed but stayed in the journal replays with no copy', async
 
 test('a journal written by the last version still replays its title', async () => {
   assert.equal((await seen('old-shape')).title, 'From the last version')
+})
+
+test('the last version can read the newest title, so a rollback or an old tab does not lose it', () => {
+  assert.equal(lastVersionReads.title, 'First')
+  assert.equal(lastVersionReads.titleSeq, 1)
+})
+
+test('a title an old tab wrote over a new entry replays after the steps it found', async () => {
+  const n = await seen('old-tab')
+  assert.equal(n.title, 'From an old tab')
+  assert.deepEqual(titles(n), [])
 })
 
 test('the replay empties the journal', () => {
