@@ -1,4 +1,4 @@
-import {expect, test, type Page} from '@playwright/test'
+import {expect, test, type Locator, type Page} from '@playwright/test'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {created, device, errorsOf, newNote, serverNote, synced} from './devices'
 
@@ -16,6 +16,14 @@ const notebooks = async (id: string) => {
   return [n?.notebook === undefined ? 'main: none' : `main: ${n.notebook?._ref}`, ...(n?.conflicts ?? []).map((c) => `copy: ${c.notebook === null ? 'none' : c.notebook?._ref}`)]
 }
 const pick = (page: Page) => page.getByTestId('notebook-pick')
+
+async function shoot(page: Page, view: Locator, name: string) {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({colorScheme})
+    await view.screenshot({path: test.info().outputPath(`${name}-${colorScheme}.png`)})
+  }
+  await page.emulateMedia({colorScheme: 'light'})
+}
 
 async function addTag(page: Page, tag: string) {
   await page.getByTestId('tag-add').fill(tag)
@@ -48,7 +56,11 @@ test('two devices tag or move a note differently offline: both tags and notebook
 
   const view = b.getByTestId('conflict')
   await view.locator('summary').first().click()
-  await view.screenshot({path: test.info().outputPath('tags-copy.png')})
+  await expect(view.getByTestId('conflict-other').getByTestId('kb-tags')).toHaveText(`#${ta}`)
+  await expect(view.getByTestId('conflict-mine').getByTestId('kb-tags')).toHaveText(`#${tb}`)
+  await expect(view.getByTestId('kb-tags').first()).toHaveClass(/clash/)
+  await expect(view.getByTestId('kb-notebook')).toHaveCount(0)
+  await shoot(b, view, 'tags-copy')
   await view.getByTestId('keep-version').click()
   await expect(tags(b)).toHaveText([new RegExp(`#${ta}`)])
   await expect(view).toHaveCount(0)
@@ -65,6 +77,11 @@ test('two devices tag or move a note differently offline: both tags and notebook
   await synced(b)
   await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-work', 'copy: fx-nb-home'])
   await view.locator('summary').first().click()
+  await expect(view.getByTestId('conflict-other').getByTestId('kb-notebook')).toHaveText('Home')
+  await expect(view.getByTestId('conflict-mine').getByTestId('kb-notebook')).toHaveText('Work')
+  await expect(view.getByTestId('kb-notebook').first()).toHaveClass(/clash/)
+  await expect(view.getByTestId('kb-tags')).toHaveCount(0)
+  await shoot(b, view, 'notebook-copy')
   await view.getByTestId('keep-version').click()
   await expect(pick(b)).toHaveValue('fx-nb-home')
   await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-home'])
@@ -79,6 +96,7 @@ test('two devices tag or move a note differently offline: both tags and notebook
   await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: fx-nb-travel', 'copy: none'])
   const onA = a.getByTestId('conflict')
   await onA.locator('summary').first().click()
+  await expect(onA.getByTestId('conflict-other').getByTestId('kb-notebook')).toHaveText('No notebook')
   await onA.getByTestId('keep-version').click()
   await expect.poll(() => notebooks(id), {timeout: 15_000}).toEqual(['main: none'])
   await expect(pick(b)).toHaveValue('', {timeout: 15_000})
