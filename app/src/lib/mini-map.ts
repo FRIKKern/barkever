@@ -6,6 +6,10 @@ const M = {dx: 132, dy: 76, padX: 66, padTop: 62, padBot: 50, gapX: 46, gapY: 46
 export type Box = {id: string; x: number; y: number; w: number; h: number; rows: number; notes: string[]}
 export type MiniMap = {boxes: Box[]; pos: Map<string, {x: number; y: number}>; W: number; H: number}
 
+export const mapShape = ({notes}: Library, links: Links) => new Map(notes.map((n) => [n.id, `${n.notebook} ${links.outs(n.id).join()}`]))
+
+export const sameShape = (a: Map<string, string>, b: Map<string, string>) => a.size === b.size && [...a].every(([id, at]) => b.get(id) === at)
+
 export function layoutMap({notes, notebooks}: Library, links: Links): MiniMap {
   const boxes = notebooks.map((nb) => {
     const ids = notes.filter((n) => n.notebook === nb.id).map((n) => n.id)

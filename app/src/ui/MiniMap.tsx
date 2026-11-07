@@ -1,19 +1,17 @@
-import {useMemo} from 'react'
-import {curve, layoutMap} from '../lib/mini-map'
+import {useMemo, useRef} from 'react'
+import {curve, layoutMap, mapShape, sameShape} from '../lib/mini-map'
 import type {World} from './world'
 
 const nodeR = (degree: number) => 16 + Math.min(degree, 4) * 3
 
 export function MiniMap({w, sel}: {w: World; sel?: string}) {
   const {lib, links, shelf} = w
-  const map = useMemo(() => layoutMap(lib, links), [lib, links])
-  if (!map.boxes.length) return null
-  return (
-    <figure className="mini" aria-label="Map of notebooks and links">
-      <div className="mini-h">
-        <b>Map</b>
-        {lib.notes.length} notes · {links.total} links
-      </div>
+  const shape = useRef(new Map<string, string>())
+  const next = mapShape(lib, links)
+  if (!sameShape(shape.current, next)) shape.current = next
+  const map = useMemo(() => layoutMap(lib, links), [shape.current, lib.notebooks])
+  const drawn = useMemo(
+    () => (
       <svg viewBox={`-10 -10 ${map.W + 20} ${map.H + 20}`} aria-hidden="true">
         {map.boxes.map((b) => (
           <rect key={b.id} className="mb-r" x={b.x} y={b.y} width={b.w} height={b.h} rx={22} style={{fill: shelf.colour(b.id), stroke: shelf.colour(b.id)}} />
@@ -34,6 +32,17 @@ export function MiniMap({w, sel}: {w: World; sel?: string}) {
           ) : null
         })}
       </svg>
+    ),
+    [map, sel, shelf],
+  )
+  if (!map.boxes.length) return null
+  return (
+    <figure className="mini" aria-label="Map of notebooks and links">
+      <div className="mini-h">
+        <b>Map</b>
+        {lib.notes.length} notes · {links.total} links
+      </div>
+      {drawn}
     </figure>
   )
 }

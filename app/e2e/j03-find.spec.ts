@@ -153,3 +153,29 @@ test('J03: the pinned open note stays put while the list pages in', async ({page
   expect(await page.evaluate(() => [...(window as unknown as {tops: Set<number>}).tops])).toHaveLength(1)
   await expect(open).toHaveAttribute('aria-selected', 'true')
 })
+
+test('J01 at 5,000 notes: typing has no long task per key, and stays on this device', async ({page, context}) => {
+  await page.addInitScript(() => {
+    const long: number[] = []
+    Object.assign(window, {long})
+    new PerformanceObserver((l) => l.getEntries().forEach((e) => long.push(e.duration))).observe({type: 'longtask'})
+  })
+  await synced(page)
+  await page.goto(`${ORIGIN}/?n=fx-note-03`)
+  await expect(page.getByTestId('canvas').locator('[contenteditable="true"]').first()).toBeAttached({timeout: 30_000})
+  await context.setOffline(true)
+  await expect(page.getByTestId('offline')).toBeVisible({timeout: 15_000})
+  await page.locator('body').click({position: {x: 1, y: 1}})
+  await page.keyboard.press('n')
+  await expect(page.getByTestId('title')).toBeFocused()
+  await page.keyboard.type('Typing cost')
+  await page.keyboard.press('Enter')
+  const body = page.getByTestId('canvas').locator('[contenteditable="true"]').first()
+  await expect(body).toBeFocused({timeout: 30_000})
+  await page.waitForTimeout(1000)
+  await page.evaluate(() => ((window as unknown as {long: number[]}).long.length = 0))
+  const KEYS = 'Swap the cells before winter comes here.'
+  await page.keyboard.type(KEYS, {delay: 80})
+  const long = await page.evaluate(() => (window as unknown as {long: number[]}).long)
+  expect(long.length, `long tasks over ${KEYS.length} keys: ${long.map(Math.round)}`).toBeLessThan(KEYS.length / 2)
+})

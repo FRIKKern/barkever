@@ -1,3 +1,4 @@
+import {mapShape, sameShape} from './mini-map.ts'
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
@@ -120,4 +121,16 @@ test('a note is blank only with no title and no text, image or other content in 
   assert.equal(isBlank(note('x', [], {title: 'Hi', blocks: [p('')]})), false)
   assert.equal(isBlank(note('x', [], {title: '', blocks: [p('words')]})), false)
   assert.equal(isBlank(note('x', [], {title: '', blocks: [{id: 'i', type: 'image'}]})), false)
+})
+
+test('the mini map keeps its layout through title, body and order changes, and redoes it for a move or a new link', () => {
+  const lib = {notebooks: [], notes: [{id: 'a', notebook: 'n1', title: 'A', blocks: []}, {id: 'b', notebook: 'n1', title: 'B', blocks: []}]} as never
+  const links = (b: string[] = []) => ({outs: (id: string) => (id === 'b' ? b : [])}) as never
+  const shape = mapShape(lib, links())
+  const [a, b] = (lib as {notes: object[]}).notes
+  const retitled = {notebooks: [], notes: [b, {...a, title: 'New', blocks: [{id: 'p'}]}]} as never
+  assert.ok(sameShape(shape, mapShape(retitled, links())))
+  assert.ok(!sameShape(shape, mapShape({notebooks: [], notes: [a, {...b, notebook: 'n2'}]} as never, links())))
+  assert.ok(!sameShape(shape, mapShape(lib, links(['a']))))
+  assert.ok(!sameShape(shape, mapShape({notebooks: [], notes: [a]} as never, links())))
 })
