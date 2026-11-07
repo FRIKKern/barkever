@@ -106,6 +106,8 @@ test('a citation must name a note that was sent and quote it', () => {
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: 'Decision: drop the carousel.'}]}, NOTES), /not in note fx-note-1/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: '  '}]}, NOTES), /not in note fx-note-1/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: 'e'}]}, NOTES), /not in note fx-note-1/)
+  assert.throws(() => checked({...ok, citations: [{id: 'fx-note-1', quote: 'dropped'}]}, NOTES), /not in note fx-note-1/)
+  assert.doesNotThrow(() => checked({...ok, citations: [{id: 'fx-note-2', quote: 'drop the'}]}, NOTES))
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-2', quote: 'ecision: drop'}]}, NOTES), /not in note fx-note-2/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-2', quote: 'Decision: dro'}]}, NOTES), /not in note fx-note-2/)
   assert.throws(() => checked({...ok, citations: [{id: 'fx-note-9', quote: 'undefined'}]}, NOTES), /not in note fx-note-9/)
@@ -190,6 +192,14 @@ test('a CLI that never answers, even one that traps SIGTERM, is rejected at the 
   const graced = Date.now() - fake.termed()[trapped.codex]
   assert.ok(graced >= GRACE_MS / 2, `fake codex was killed ${graced} ms after its SIGTERM, inside the ${GRACE_MS} ms grace`)
   assert.ok(await until(() => gone(trapped.claude), SDK_GRACE_MS + 5000), 'fake claude outlived its SIGKILL')
+})
+
+test('a codex answer clears its timeout, so no timer outlives the call', async () => {
+  const fake = fakeBin()
+  const timers = () => process.getActiveResourcesInfo().filter((r) => r === 'Timeout').length
+  const before = timers()
+  await both(fake.dir)[1].run({system: '', prompt: 'Question: x', schema: {}, cwd: testDir('barkever-ai-'), env: env(fake), timeoutMs: 60_000})
+  assert.equal(timers(), before)
 })
 
 test('installed lists claude then codex, whichever are on the path', () => {
