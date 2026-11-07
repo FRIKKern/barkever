@@ -1,9 +1,7 @@
-import {useEffect, useRef, type FormEvent} from 'react'
+import {useEffect, useRef} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
-import {forgetDevice} from '../replica/local'
 import {dismissDropped, droppedStarsQuery, stuckQuery} from '../lib/library'
-import {unsyncedNow, useUnsynced} from '../lib/saver'
-import {forgetOwner} from '../lib/owner'
+import {useUnsynced} from '../lib/saver'
 import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Reach} from '../lib/online'
@@ -11,24 +9,10 @@ import type {Search} from '../lib/scope'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
 import {SideTags} from './SideTags'
+import {SignOut} from './SignOut'
 import {toggleTheme} from './local-prefs'
 import type {World} from './world'
 
-const lossWarning = (pending: number | null) =>
-  pending === null
-    ? 'Can’t check whether every change has reached Barkpark. Sign out and risk losing them?'
-    : `${pending} ${pending === 1 ? 'change has' : 'changes have'} not reached Barkpark yet. Sign out and lose ${pending === 1 ? 'it' : 'them'}?`
-
-const FORGET_LIMIT_MS = 5000
-
-async function signOut(e: FormEvent<HTMLFormElement>) {
-  e.preventDefault()
-  const form = e.currentTarget
-  const pending = await unsyncedNow()
-  if (pending !== 0 && !confirm(lossWarning(pending))) return
-  await Promise.race([Promise.allSettled([forgetDevice(), forgetOwner()]), new Promise((done) => setTimeout(done, FORGET_LIMIT_MS))])
-  form.submit()
-}
 const RECENT_SHOWN = 5
 const TOO_BIG = 'searchable_text_too_large'
 
@@ -134,11 +118,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
         <button className="icon-btn" onClick={toggleTheme} title="Light / dark" aria-label="Toggle theme">
           <Icon name="theme" />
         </button>
-        <form method="post" action="/sign-out" onSubmit={(e) => void signOut(e)}>
-          <button className="icon-btn" title="Sign out" aria-label="Sign out" data-testid="sign-out">
-            <Icon name="out" />
-          </button>
-        </form>
+        <SignOut />
       </div>
     </aside>
   )

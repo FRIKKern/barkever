@@ -8,6 +8,7 @@ import {startSync} from '../sync/engine'
 import appCss from '../styles/app.css?url'
 import {themeBoot, tokenCss} from '../styles/tokens'
 import {meQuery} from '../lib/session'
+import {StuckOpening} from '../ui/StuckOpening'
 
 export const Route = createRootRouteWithContext<{queryClient: QueryClient}>()({
   beforeLoad: async ({context, location}) => {
@@ -39,7 +40,12 @@ function App() {
     startSync()
     return () => (stop(), unwatch(), unstar())
   }, [queryClient])
-  return <Outlet />
+  return (
+    <>
+      <Outlet />
+      {me && <StuckOpening />}
+    </>
+  )
 }
 
 function RootDocument({children}: {children: ReactNode}) {

@@ -57,3 +57,29 @@ test('a device delete that never answers still signs out, with the owner and jou
   await expect(page).toHaveURL(/\/sign-in/, {timeout: 15_000})
   await expect.poll(() => replicas(page)).toMatchObject({journals: [], owner: false})
 })
+
+test('a database open that never answers says so, and sign-out still works from there', async ({page}) => {
+  const seen: string[] = []
+  page.on('dialog', (d) => {
+    seen.push(d.message())
+    void d.accept()
+  })
+  await page.goto('/')
+  await page.getByLabel('Email').fill(ACCOUNT.email)
+  await page.getByLabel('Password').fill(ACCOUNT.password)
+  await page.getByRole('button', {name: 'Sign in'}).click()
+  await expect(page.getByTestId('note-row').first()).toBeVisible({timeout: 20_000})
+  await page.addInitScript(() => {
+    const real = IDBFactory.prototype.open
+    IDBFactory.prototype.open = function (this: IDBFactory, ...a: Parameters<typeof real>) {
+      const req = real.apply(this, a)
+      if (a[0].startsWith('barkever-')) req.addEventListener = (() => undefined) as typeof req.addEventListener
+      return req
+    }
+  })
+  await page.reload()
+  await expect(page.getByTestId('stuck-opening')).toContainText('aren’t opening on this device', {timeout: 15_000})
+  await page.getByTestId('sign-out').click()
+  await expect(page).toHaveURL(/\/sign-in/, {timeout: 20_000})
+  expect(seen).toEqual(['Can’t check whether every change has reached Barkpark. Sign out and risk losing them?'])
+})
