@@ -1,14 +1,16 @@
 import type {Block} from '../lib/model'
 import {replicaKey} from './db'
 
-export type Step = {seq: number; base: Block[]; after: Block[]}
-type TitleStep = {seq: number; shown?: string; title: string}
-type Jotted = {seq: number; titles?: TitleStep[]; steps?: Step[]}
+export type Step = {seq: number; tab?: string; base: Block[]; after: Block[]}
+type TitleStep = {seq: number; tab?: string; shown?: string; title: string}
+export type Jotted = {seq: number; titles?: TitleStep[]; steps?: Step[]}
 type Stored = Jotted & {title?: string; titleSeq?: number}
 export type Jot = {shown?: string; title?: string; base?: Block[]; after?: Block[]}
 type Journal = Record<string, Jotted>
 
 const key = () => `${replicaKey()}-journal`
+const THIS_TAB = crypto.randomUUID()
+let lastSeq = 0
 
 function upgraded({title, titleSeq, titles = [], ...j}: Stored): Jotted {
   const known = title === undefined || titles.some((t) => t.seq === titleSeq)
@@ -40,27 +42,31 @@ function save(j: Journal) {
 export function jot(id: string, {shown, title, base, after}: Jot): number {
   const j = load()
   const was = j[id] ?? {seq: 0}
-  const seq = was.seq + 1
+  const seq = (lastSeq = Math.max(was.seq + 1, Date.now(), lastSeq + 1))
   j[id] = {
     ...was,
     seq,
-    ...(title !== undefined && {titles: [...(was.titles ?? []), {seq, shown, title}]}),
-    ...(base && after && {steps: [...(was.steps ?? []), {seq, base, after}]}),
+    ...(title !== undefined && {titles: [...(was.titles ?? []), {seq, tab: THIS_TAB, shown, title}]}),
+    ...(base && after && {steps: [...(was.steps ?? []), {seq, tab: THIS_TAB, base, after}]}),
   }
   save(j)
   return seq
 }
 
-export function unjot(id: string, seq: number) {
+function drop(id: string, seq: number, gone: (tab?: string) => boolean) {
   const j = load()
   const was = j[id]
   if (!was) return
-  const steps = (was.steps ?? []).filter((s) => s.seq > seq)
-  const titles = (was.titles ?? []).filter((t) => t.seq > seq)
+  const steps = (was.steps ?? []).filter((s) => s.seq > seq || !gone(s.tab))
+  const titles = (was.titles ?? []).filter((t) => t.seq > seq || !gone(t.tab))
   if (!steps.length && !titles.length) delete j[id]
   else j[id] = {seq: was.seq, ...(titles.length && {titles}), ...(steps.length && {steps})}
   save(j)
 }
+
+export const unjot = (id: string, seq: number) => drop(id, seq, (tab) => tab === THIS_TAB)
+
+export const unjotReplayed = (id: string, seq: number) => drop(id, seq, () => true)
 
 export function forgetJot(id: string) {
   const j = load()

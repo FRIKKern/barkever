@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJot, forgetJournal, jot, jotted, unjot, type Jot} from './journal'
+import {forgetJot, forgetJournal, jot, jotted, unjot, type Jot, unjotReplayed} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -89,7 +89,7 @@ export function replayJournal() {
         const titled = (j.titles ?? []).reduce((m, t) => (t.shown === undefined ? withTitle(t.title)(m) : overTitle(t.shown, t.title)(m, server)), n)
         return (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), titled)
       })
-      unjot(id, j.seq)
+      unjotReplayed(id, j.seq)
     }
   })()
   return replaying
