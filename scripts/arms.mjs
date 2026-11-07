@@ -1,5 +1,6 @@
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 const args = process.argv.slice(2);
 const runAt = args.indexOf("--run");
@@ -57,17 +58,29 @@ async function runMutants() {
   if (dirty) { console.error(`arms --run: commit first, these files have changes:\n${dirty}`); process.exit(2); }
   const red = await baseline(cmd, { timeout });
   if (red) { console.error(`arms --run: the command fails on the clean tree, so no mutant can be judged:\n${red}`); process.exit(2); }
-  const results = await mutate(targets, cmd, { timeout });
+  const projectOf = (file) => {
+    if (!/\.tsx?$/.test(file)) return null;
+    for (let dir = dirname(file); dir.startsWith(top); dir = dirname(dir)) if (existsSync(join(dir, "tsconfig.json")) && existsSync(join(dir, "node_modules/.bin/tsc"))) return dir;
+    return null;
+  };
+  const tsc = (dir) => spawnSync(join(dir, "node_modules/.bin/tsc"), ["--noEmit", "-p", dir], { encoding: "utf8", timeout });
+  for (const dir of new Set(files.map(projectOf).filter(Boolean))) {
+    const clean = tsc(dir);
+    if (clean.status !== 0) { console.error(`arms --run: tsc fails on the clean tree in ${dir}, so no mutant can be judged:\n${clean.stdout}`); process.exit(2); }
+  }
+  const compiles = (file) => { const dir = projectOf(file); return !dir || tsc(dir).status === 0; };
+  const results = await mutate(targets, cmd, { timeout, compiles });
   const short = (w) => w.slice(top.length + 1);
   const pipe = (t) => t.replaceAll("|", "\\|");
   const is = (why) => results.filter((r) => r.why === why || (why === "killed" && r.why.startsWith("killed")));
   const likely = is("survived, likely equivalent");
   const survived = [...is("survived"), ...(strict ? likely : [])];
   const unparsed = is("does not parse");
+  const uncompiled = is("does not compile");
   const bare = rows.filter((r) => !results.some((x) => short(x.where) === r.where));
   console.log(`\n| where | mutant | result | killed by |\n|---|---|---|---|\n${results.filter((r) => !likely.includes(r)).map((r) => `| ${short(r.where)} | ${pipe(r.label)} | ${r.why} | ${pipe(r.by)} |`).join("\n")}`);
   if (likely.length) console.log(`\nLikely equivalent: \`?? []\` or \`?? {}\` → \`||\` differs only when the value is '', 0 or false. ${strict ? "Counted (--strict)." : "Not counted; --strict counts them."}\n\n| where | mutant | result |\n|---|---|---|\n${likely.map((r) => `| ${short(r.where)} | ${pipe(r.label)} | survived |`).join("\n")}`);
   if (bare.length) console.log(`\nNo operator mutant: each of these needs a hand mutant.\n\n${bare.map((r) => `- ${r.where} (${r.arm}) \`${pipe(r.src)}\``).join("\n")}`);
-  console.log(`\nmutants: ${results.length} run, ${is("killed").length} killed, ${survived.length} survived${strict ? "" : `, ${likely.length} likely equivalent`}, ${unparsed.length} do not parse; ${bare.length} of ${rows.length} arm rows have no operator mutant`);
+  console.log(`\nmutants: ${results.length} run, ${is("killed").length} killed, ${survived.length} survived${strict ? "" : `, ${likely.length} likely equivalent`}, ${unparsed.length} do not parse, ${uncompiled.length} do not compile; ${bare.length} of ${rows.length} arm rows have no operator mutant`);
   process.exit(survived.length ? 1 : 0);
 }

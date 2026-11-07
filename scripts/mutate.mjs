@@ -185,7 +185,7 @@ export async function baseline(cmd, { timeout = 600_000 } = {}) {
 const verdict = (m, { code, timedOut, out }) =>
   timedOut ? "killed (timeout)" : code === 0 ? (m.likely ? "survived, likely equivalent" : "survived") : /SyntaxError|TS1\d{3}/.test(out) && !killers(out).length ? "does not parse" : "killed";
 
-export async function mutate(rows, cmd, { timeout = 600_000 } = {}) {
+export async function mutate(rows, cmd, { timeout = 600_000, compiles = () => true } = {}) {
   const results = [];
   for (const { where } of rows) {
     const [path, n] = [where.slice(0, where.lastIndexOf(":")), Number(where.slice(where.lastIndexOf(":") + 1))];
@@ -196,7 +196,8 @@ export async function mutate(rows, cmd, { timeout = 600_000 } = {}) {
       try {
         writeFileSync(path, [...lines.slice(0, n - 1), m.line, ...lines.slice(n)].join("\n"));
         const run = await runOnce(cmd, timeout);
-        const why = verdict(m, run);
+        const read = verdict(m, run);
+        const why = read.startsWith("survived") && !compiles(path) ? "does not compile" : read;
         results.push({ where, label: m.label, why, by: killers(run.out).slice(0, 2).join("; ") });
         console.error(`${why.padEnd(24)} ${where} ${m.label}`);
       } finally {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanup } from "./test-cleanup.mjs";
@@ -73,7 +73,7 @@ test("a base other than main is read from the first plain argument, and Go rows 
   assert.doesNotMatch(listed.stdout, /a\.mjs/);
   const r = arms(dir, "trunk", "--run", "true");
   assert.match(r.stdout, /No operator mutant: each of these needs a hand mutant\.\n\n- b\.go:2 \(fallback\)/);
-  assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent, 0 do not parse; 1 of 2 arm rows have no operator mutant/);
+  assert.match(r.stdout, /mutants: 3 run, 0 killed, 3 survived, 0 likely equivalent, 0 do not parse, 0 do not compile; 1 of 2 arm rows have no operator mutant/);
 });
 
 test("only likely-equivalent survivors pass, and --strict fails them", () => {
@@ -81,10 +81,10 @@ test("only likely-equivalent survivors pass, and --strict fails them", () => {
   const r = arms(dir, "--run", KILLS, "main");
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /Likely equivalent:[\s\S]*\| a\.mjs:2 \| `\?\?` → `\\\|\\\|` in `a \?\? \[\]` \| survived \|/);
-  assert.match(r.stdout, /mutants: 6 run, 5 killed, 0 survived, 1 likely equivalent, 0 do not parse; 0 of 2 arm rows have no operator mutant/);
+  assert.match(r.stdout, /mutants: 6 run, 5 killed, 0 survived, 1 likely equivalent, 0 do not parse, 0 do not compile; 0 of 2 arm rows have no operator mutant/);
   const strict = arms(dir, "main", "--run", KILLS, "--strict");
   assert.equal(strict.status, 1);
-  assert.match(strict.stdout, /mutants: 6 run, 5 killed, 1 survived, 0 do not parse; 0 of 2/);
+  assert.match(strict.stdout, /mutants: 6 run, 5 killed, 1 survived, 0 do not parse, 0 do not compile; 0 of 2/);
 });
 
 test("a real survivor fails the run and shows in the main table", () => {
@@ -126,4 +126,38 @@ test("a mutant that hangs the tests counts as killed once --timeout passes", () 
   assert.match(r.stdout, /\| t\.mjs:1 \| `===` → `!==` in `a === 1` \| killed \(timeout\) \|/);
   assert.match(r.stdout, /mutants: 1 run, 1 killed, 0 survived/);
   assert.equal(r.status, 0);
+});
+
+const TSC = new URL("../app/node_modules/.bin/tsc", import.meta.url).pathname;
+
+function tsRepo(source) {
+  const dir = repo();
+  const git = (...a) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: dir });
+  writeFileSync(join(dir, "b.ts"), source);
+  writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({ include: ["b.ts"], compilerOptions: { strict: true, noEmit: true, types: [] } }));
+  mkdirSync(join(dir, "node_modules/.bin"), { recursive: true });
+  writeFileSync(join(dir, "node_modules/.bin/tsc"), `#!/bin/sh\nexec "${TSC}" "$@"\n`, { mode: 0o755 });
+  writeFileSync(join(dir, ".gitignore"), "node_modules\n");
+  git("add", ".");
+  git("commit", "-qm", "ts");
+  return dir;
+}
+
+test("a mutant tsc rejects reads does not compile, not survived, and is counted apart", () => {
+  const r = arms(tsRepo("export const pick = (a: {z?: string}) => a.z ?? 'x'\n"), "main", "--run", "exit 0");
+  assert.match(r.stdout, /\| b\.ts:1 \| swap [^\n]*\| does not compile \|/);
+  assert.match(r.stdout, /\b1 do not compile\b/);
+});
+
+test("a mutant tsc accepts still reads survived", () => {
+  const r = arms(tsRepo("export const pick = (a?: string, b?: string) => a ?? b\n"), "main", "--run", "exit 0");
+  assert.doesNotMatch(r.stdout, /\| b\.ts:\d+ \|[^\n]*\| does not compile \|/);
+  assert.match(r.stdout, /\| b\.ts:1 \|[^\n]*\| survived \|/);
+  assert.equal(r.status, 1);
+});
+
+test("tsc red on the clean tree is a usage error before any mutant runs", () => {
+  const r = arms(tsRepo("export const n: number = 'x'\nexport const f = (a?: string) => a ?? 'y'\n"), "main", "--run", "exit 0");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /tsc fails on the clean tree/);
 });
