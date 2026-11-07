@@ -1,5 +1,5 @@
 import {Link} from '@tanstack/react-router'
-import {contentOf, itemContent, itemsOf, leafText, linkMissing, listStart, nestedLists, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
+import {childrenOf, contentOf, itemContent, itemsOf, leafText, linkMissing, listStart, nestedLists, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
 import type {Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
@@ -17,7 +17,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
         </Link>
       )
     ) : (
-      leafText(x) || <Inlines key={i} c={x.children ?? []} at={at} />
+      leafText(x) || <Inlines key={i} c={childrenOf(x)} at={at} />
     ),
   )
 }

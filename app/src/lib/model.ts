@@ -10,11 +10,18 @@ export type Prefs = {shortcuts: string[]; recents: string[]}
 
 export const UNTITLED = 'Untitled'
 
-export const contentOf = (x: {content?: Inline[]; text?: string}): Inline[] => (x.content?.length ? x.content : x.text ? [{type: 'text', value: x.text}] : [])
-
 const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 
-export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? it : isObject(it) ? contentOf(it) : [])
+const inlinesIn = (c: unknown): Inline[] => (Array.isArray(c) ? (c.filter(isObject) as Inline[]) : [])
+
+export const childrenOf = (x: Inline): Inline[] => inlinesIn(x.children)
+
+export function contentOf(x: {content?: Inline[]; text?: string}): Inline[] {
+  const c = inlinesIn(x.content)
+  return c.length ? c : x.text ? [{type: 'text', value: x.text}] : []
+}
+
+export const itemContent = (it: Item): Inline[] => (typeof it === 'string' ? [{type: 'text', value: it}] : Array.isArray(it) ? inlinesIn(it) : isObject(it) ? contentOf(it) : [])
 
 const LISTS = ['list', 'bulletList', 'bullet_list', 'bulleted-list', 'bulleted_list', 'ordered-list', 'numbered_list']
 const NUMBERED = ['ordered-list', 'numbered_list']
@@ -46,17 +53,17 @@ export const titleIn =
 const stored: Title = () => undefined
 
 function inline(c: Inline[], title: Title): string {
-  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : leafText(x) || inline(x.children ?? [], title))).join('')
+  return c.map((x) => (x.type === 'wikilink' ? linkWords(x, title) : leafText(x) || inline(childrenOf(x), title))).join('')
 }
 
 export function linkWords(x: Inline, title: Title): string {
-  const words = inline(x.children ?? [], title)
+  const words = inline(childrenOf(x), title)
   return (x.alias == null && words === x.target && title(x.docId)) || words
 }
 
 export const linkMissing = (x: Inline, title: Title): boolean => !title(x.docId)
 
-export const inlineText = (c: Inline[] = []): string => inline(c, stored)
+export const inlineText = (c: Inline[] = []): string => inline(inlinesIn(c), stored)
 
 export const itemText = (it: Item, title: Title): string => inline(itemContent(it), title)
 
@@ -67,11 +74,11 @@ function shownText(b: Block, title: Title): string {
 
 export const blockText = (b: Block): string => shownText(b, stored)
 
-const inlines = (b: Block): Inline[] => (b.type === 'list' ? itemsOf(b).flatMap((it) => [...itemContent(it), ...nestedOf(it).flatMap(inlines)]) : b.content ?? [])
+const inlines = (b: Block): Inline[] => (b.type === 'list' ? itemsOf(b).flatMap((it) => [...itemContent(it), ...nestedOf(it).flatMap(inlines)]) : contentOf(b))
 
 export function wikilinks(blocks: Block[]): string[] {
   const out = new Set<string>()
-  const walk = (c: Inline[]) => c.forEach((x) => (x.type === 'wikilink' && (x.docId || x.target) ? out.add((x.docId || x.target)!) : walk(x.children ?? [])))
+  const walk = (c: Inline[]) => c.forEach((x) => (x.type === 'wikilink' && (x.docId || x.target) ? out.add((x.docId || x.target)!) : walk(childrenOf(x))))
   blocks.forEach((b) => walk(inlines(b)))
   return [...out]
 }

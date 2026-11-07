@@ -71,3 +71,26 @@ test('the read-only body matches the canvas: a numbered list keeps its start, to
   await expect(body.getByText('Third')).toBeVisible()
   await expect(body.getByText('Hidden words')).toHaveCount(0)
 })
+
+test('the read-only body draws a note whose content and inline children are not arrays, and the page does not throw', async ({page}) => {
+  const id = `note-read-only-bad-${Date.now()}`
+  created.push(id)
+  const blocks = [
+    {id: 's', type: 'paragraph', content: 'x'},
+    {id: 'o', type: 'paragraph', content: {a: 1}},
+    {id: 'n', type: 'paragraph', content: 5},
+    {id: 'm', type: 'paragraph', content: [text('Rope '), {type: 'strong', children: 'x'}, {type: 'wikilink', target: 'Pier', docId: 'nowhere', children: 5}, text('stays.')]},
+    {id: 'l', type: 'list', items: [{content: 'x'}, {content: [{type: 'em', children: {a: 1}}, text('Item line')]}]},
+  ]
+  const doc = {_id: id, _type: 'note', title: 'Read-only bad shapes', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: doc}]})})
+  expect(res.status).toBe(200)
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.addInitScript(oldEditor)
+  await page.goto(`/?n=${id}`)
+  const body = page.getByTestId('body')
+  await expect(body.locator('p').nth(3)).toHaveText('Rope stays.', {timeout: 30_000})
+  await expect(body.locator('ul > li')).toHaveText(['', 'Item line'])
+  expect(errors).toEqual([])
+})
