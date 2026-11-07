@@ -6,7 +6,7 @@ import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-p
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, recorded, useSaveStatus} from '../lib/saver'
-import {deleteNote, editTitle, owesWords, savedTitle} from '../replica/local'
+import {deleteNote, editTitle, owesTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
@@ -53,7 +53,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
         () => lastKey.current,
         () => {
           const at = keys.current
-          void savedTitle(note.id).then((t) => at === keys.current && !owesWords(note.id) && setTitle(t))
+          void savedTitle(note.id).then((t) => at === keys.current && !owesTitle(note.id) && setTitle(t))
         },
       ),
     [note.gen],

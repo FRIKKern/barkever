@@ -52,6 +52,10 @@ const owed = new Map<string, Edit[]>()
 
 export const owesWords = (id: string) => owed.has(id)
 
+const owedTitles = new Set<string>()
+
+export const owesTitle = (id: string) => owedTitles.has(id)
+
 const applied = (j: Jotted): Edit => (n, server) => {
   const titled = (j.titles ?? []).reduce((m, t) => (t.shown === undefined ? withTitle(t.title)(m) : overTitle(t.shown, t.title)(m, server)), n)
   return (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), titled)
@@ -92,9 +96,11 @@ async function journaled(id: string, patch: Jot, change: Edit) {
     })
   } catch (e) {
     owed.set(id, [...(owed.get(id) ?? []), change])
+    if (patch.title !== undefined) owedTitles.add(id)
     throw e
   }
   owed.delete(id)
+  owedTitles.delete(id)
   if (back) unjotReplayed(id, back.seq)
   unjot(id, seq)
   return out
@@ -153,6 +159,7 @@ export async function deleteNote(id: string) {
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
   owed.delete(id)
+  owedTitles.delete(id)
   deletedAt.set(id, Date.now())
   forgetJot(id)
   await unmark(id)

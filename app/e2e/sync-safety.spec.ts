@@ -329,6 +329,40 @@ test('a remote title shows in an open editor whose title is focused but has no k
   await a.context().close()
 })
 
+test('a remote rename reaches the title box while only a body save is owed, and stays after that save heals', async ({browser, baseURL}) => {
+  const a = await device(browser, baseURL!)
+  await a.addInitScript(() => {
+    const real = IDBObjectStore.prototype.put
+    IDBObjectStore.prototype.put = function (this: IDBObjectStore, ...args: Parameters<typeof real>) {
+      const req = real.apply(this, args)
+      if ((window as unknown as {breakWrites?: boolean}).breakWrites && this.name === 'outbox') this.transaction!.abort()
+      return req
+    }
+  })
+  const stamp = Date.now()
+  const id = await newNote(a, `Owed body ${stamp}`, 'Body.')
+  await leave(a)
+  await synced(a)
+  await a.goto(`/?n=${id}`)
+  const title = a.getByTestId('title')
+  await expect(title).toHaveValue(`Owed body ${stamp}`)
+  await a.getByTestId('canvas').locator('[contenteditable="true"]').first().click()
+  await a.keyboard.press('End')
+  const failed = a.waitForEvent('console', (m) => m.text().includes('a write failed'))
+  await a.evaluate(() => ((window as unknown as {breakWrites?: boolean}).breakWrites = true))
+  await a.keyboard.type(' failed')
+  await failed
+  await a.evaluate(() => ((window as unknown as {breakWrites?: boolean}).breakWrites = false))
+  expect((await remoteTitle(id, `Renamed ${stamp}`)).ok).toBe(true)
+  await expect(title).toHaveValue(`Renamed ${stamp}`, {timeout: 15_000})
+  await a.keyboard.type(' healed')
+  await expect.poll(async () => (await serverNote(id))?.body?.blocks.map(blockText).join(' '), {timeout: 15_000}).toContain('failed healed')
+  await expect(status(a)).toHaveText('Saved', {timeout: 15_000})
+  await expect(title).toHaveValue(`Renamed ${stamp}`)
+  expect((await serverNote(id))?.title).toBe(`Renamed ${stamp}`)
+  await a.context().close()
+})
+
 test('Keep this on a title version right after a title key shows the kept title before the typing pause ends, and it stays the main', async ({browser, baseURL}) => {
   const a = await device(browser, baseURL!)
   const errors = errorsOf(a)

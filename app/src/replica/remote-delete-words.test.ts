@@ -7,7 +7,7 @@ import type {Entry} from './db.ts'
 import {newDevice, use, type Device} from '../chaos/fake-db.ts'
 
 const {forgetJot, forgetJournal, jot, jotted} = await import('./journal.ts')
-const {createNote, deleteNote, editBody, editTitle} = await import('./local.ts')
+const {createNote, deleteNote, editBody, editTitle, owesTitle, owesWords} = await import('./local.ts')
 const {dropIfBlank} = await import('./drop.ts')
 const {mutationFor} = await import('../sync/push.ts')
 
@@ -264,4 +264,17 @@ test('a replay that restores a note clears a step jotted just before the write, 
   await nextBoot()
   assert.deepEqual(bodyOf(d), ['one failed words and more'])
   assert.deepEqual(jotted(), [])
+})
+
+test('a failed body owes words but no title; a failed title owes both until a save lands or the note goes', async () => {
+  const d = device()
+  await rejectedSave(d, () => editBody('n1', BASE, WORDS))
+  assert.deepEqual([owesWords('n1'), owesTitle('n1')], [true, false])
+  await rejectedSave(d, () => editTitle('n1', 'Plan', 'Better plan'))
+  assert.deepEqual([owesWords('n1'), owesTitle('n1')], [true, true])
+  await editBody('n1', WORDS, WORDS)
+  assert.deepEqual([owesWords('n1'), owesTitle('n1')], [false, false])
+  await rejectedSave(d, () => editTitle('n1', 'Better plan', 'Best plan'))
+  await deleteNote('n1')
+  assert.equal(owesTitle('n1'), false)
 })
