@@ -1,10 +1,9 @@
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {claude} from '../src/ai/claude.ts'
 import {codex} from '../src/ai/codex.ts'
-import {fakeBin, until} from '../src/ai/fakes.ts'
+import {fakeBin, testDir, until} from '../src/ai/fakes.ts'
 import {childEnv} from '../src/ai/provider.ts'
 
 const BOOT_MS = 800
@@ -16,7 +15,7 @@ function hung(timeoutMs = 60_000) {
   writeFileSync(answer, `for (const end = Date.now() + ${BOOT_MS}; Date.now() < end; );\n${readFileSync(answer, 'utf8')}`)
   const env = childEnv({...process.env, HOME: fake.home, CODEX_HOME: '', CLAUDE_CONFIG_DIR: ''}, `${fake.dir}:${process.env.PATH}`)
   const call = {system: '', prompt: 'Question: x', schema: {}, env, timeoutMs}
-  const runs = [claude(join(fake.dir, 'claude')), codex(join(fake.dir, 'codex'))].map((p) => p.run({...call, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-'))}).catch(() => {}))
+  const runs = [claude(join(fake.dir, 'claude')), codex(join(fake.dir, 'codex'))].map((p) => p.run({...call, cwd: testDir('barkever-ai-')}).catch(() => {}))
   const trapped = async () => {
     if (!(await until(() => Object.keys(fake.trapped()).length === 2, TRAP_MS)))
       throw new Error(`fake ${['claude', 'codex'].filter((cli) => !fake.trapped()[cli]).join(' and ')} never trapped SIGTERM in ${TRAP_MS / 1000} s`)

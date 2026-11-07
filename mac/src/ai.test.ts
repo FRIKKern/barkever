@@ -1,13 +1,12 @@
 import {strict as assert} from 'node:assert'
-import {existsSync, mkdirSync, mkdtempSync, writeFileSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {existsSync, mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {MAX_REQUEST, NO_IDENTITY, ask, checked, type AskNote} from './ai/ask.ts'
 import {budget} from './ai/budget.ts'
 import {claude} from './ai/claude.ts'
 import {GRACE_MS, codex} from './ai/codex.ts'
-import {fakeBin, ownerHome, until} from './ai/fakes.ts'
+import {fakeBin, ownerHome, testDir, until} from './ai/fakes.ts'
 import {NONE, SPENT, firstAnswer} from './ai/first-answer.ts'
 import {childEnv, findTool} from './ai/provider.ts'
 import {OTHER_ORIGIN, askHandler, installed, switchHandler} from './ai/serve.ts'
@@ -19,8 +18,8 @@ const NOTES: AskNote[] = [
   {id: 'fx-note-3', title: 'Book the dentist', text: 'Before the end of the month.'},
 ]
 const env = (fake: ReturnType<typeof fakeBin>, extra: NodeJS.ProcessEnv = {}) => childEnv({...process.env, HOME: fake.home, CODEX_HOME: '', CLAUDE_CONFIG_DIR: '', ...extra}, `${fake.dir}:${process.env.PATH}`)
-const power = () => aiSwitch(join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json'))
-const roomy = () => budget(join(mkdtempSync(join(tmpdir(), 'barkever-budget-')), 'budget.json'), 1e9)
+const power = () => aiSwitch(join(testDir('barkever-switch-'), 'ai-switch.json'))
+const roomy = () => budget(join(testDir('barkever-budget-'), 'budget.json'), 1e9)
 
 test('the child keeps only login basics: no API keys, no nested-session variables', () => {
   const out = childEnv({HOME: '/Users/x', LANG: 'nb_NO.UTF-8', ANTHROPIC_API_KEY: 'k', OPENAI_API_KEY: 'k', CODEX_API_KEY: 'k', CLAUDECODE: '1', CLAUDE_CODE_SSE_PORT: '1', CLAUDE_CODE_ENTRYPOINT: 'cli'}, '/bin')
@@ -52,20 +51,20 @@ test('claude runs through the Agent SDK in a fresh folder with no settings, stri
 
 test('the fake refuses a call that carries an API key', async () => {
   const fake = fakeBin()
-  const run = claude(join(fake.dir, 'claude')).run({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: {...env(fake), ANTHROPIC_API_KEY: 'k'}, timeoutMs: 30_000})
+  const run = claude(join(fake.dir, 'claude')).run({system: '', prompt: 'Question: x', schema: {}, cwd: testDir('barkever-ai-'), env: {...env(fake), ANTHROPIC_API_KEY: 'k'}, timeoutMs: 30_000})
   await assert.rejects(run, /refused, the environment carries ANTHROPIC_API_KEY/)
 })
 
 test('the fake refuses a folder that is not fresh', async () => {
   const fake = fakeBin()
-  const cwd = mkdtempSync(join(tmpdir(), 'barkever-ai-'))
+  const cwd = testDir('barkever-ai-')
   mkdirSync(join(cwd, '.claude'))
   await assert.rejects(claude(join(fake.dir, 'claude')).run({system: '', prompt: 'Question: x', schema: {}, cwd, env: env(fake), timeoutMs: 30_000}), /not run in a fresh empty folder/)
 })
 
 test('a used-up budget refuses before any binary runs, and a new day starts at zero', async () => {
   const fake = fakeBin()
-  const file = join(mkdtempSync(join(tmpdir(), 'barkever-budget-')), 'budget.json')
+  const file = join(testDir('barkever-budget-'), 'budget.json')
   let now = new Date(2026, 9, 30, 23, 0)
   const b = budget(file, 2000, () => now)
   const call = () => ask({question: 'carousel', notes: NOTES}, {providers: [claude(join(fake.dir, 'claude'))], budget: b, env: env(fake)})
@@ -80,7 +79,7 @@ test('a used-up budget refuses before any binary runs, and a new day starts at z
 })
 
 test('a budget file that is missing or broken counts as nothing spent', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'barkever-budget-'))
+  const dir = testDir('barkever-budget-')
   assert.equal(budget(join(dir, 'none.json'), 10).left(), 10)
   writeFileSync(join(dir, 'bad.json'), '{')
   assert.equal(budget(join(dir, 'bad.json'), 10).left(), 10)
@@ -92,7 +91,7 @@ test('with no provider installed the call says so', async () => {
 
 test('findTool takes the first runnable file on the path and skips folders and plain files', () => {
   const fake = fakeBin()
-  const dir = mkdtempSync(join(tmpdir(), 'barkever-path-'))
+  const dir = testDir('barkever-path-')
   mkdirSync(join(dir, 'claude'))
   writeFileSync(join(dir, 'codex'), 'not runnable')
   assert.equal(findTool('claude', `${dir}:${fake.dir}`), join(fake.dir, 'claude'))
@@ -180,7 +179,7 @@ const HANG_TIMEOUT_MS = 2000
 
 test('a CLI that never answers, even one that traps SIGTERM, is rejected at the timeout and killed after a grace period', {timeout: 30_000}, async () => {
   const fake = fakeBin({claude: 'hang', codex: 'hang'})
-  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake), timeoutMs: HANG_TIMEOUT_MS})
+  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: testDir('barkever-ai-'), env: env(fake), timeoutMs: HANG_TIMEOUT_MS})
   const started = Date.now()
   const took = await Promise.all(both(fake.dir).map(async (p) => (await assert.rejects(p.run(call()), new RegExp(`^Error: ${p.name} gave no answer in ${HANG_TIMEOUT_MS / 1000} s$`)), Date.now() - started)))
   assert.ok(Math.max(...took) < HANG_TIMEOUT_MS + 1000, `took ${took} ms`)
@@ -196,7 +195,7 @@ test('a CLI that never answers, even one that traps SIGTERM, is rejected at the 
 test('installed lists claude then codex, whichever are on the path', () => {
   const fake = fakeBin()
   assert.deepEqual(installed(fake.dir).map((p) => p.name), ['claude', 'codex'])
-  const only = mkdtempSync(join(tmpdir(), 'barkever-path-'))
+  const only = testDir('barkever-path-')
   writeFileSync(join(only, 'codex'), '', {mode: 0o755})
   assert.deepEqual(installed(only).map((p) => p.name), ['codex'])
 })
@@ -214,7 +213,7 @@ test('the ask handler answers its own origin, turns failures into an error, and 
 
 test('claude reports a usage limit as its own message, and a run that ends without a result says so', async () => {
   const fake = fakeBin({claude: 'limit'})
-  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: mkdtempSync(join(tmpdir(), 'barkever-ai-')), env: env(fake), timeoutMs: 30_000})
+  const call = () => ({system: '', prompt: 'Question: x', schema: {}, cwd: testDir('barkever-ai-'), env: env(fake), timeoutMs: 30_000})
   await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /^Error: Claude AI usage limit reached$/)
   fake.behave({claude: 'quiet'})
   await assert.rejects(claude(join(fake.dir, 'claude')).run(call()), /claude stopped without an answer/)
@@ -253,7 +252,7 @@ test('no user config reaches either CLI: the owner home has a marker at every do
 test('codex signs in through a link to the owner login in CODEX_HOME, else in ~/.codex, and says so when there is none', async () => {
   const fake = fakeBin()
   const elsewhere = ownerHome()
-  const bare = mkdtempSync(join(tmpdir(), 'barkever-owner-home-'))
+  const bare = testDir('barkever-owner-home-')
   const only = {providers: [codex(join(fake.dir, 'codex'))], budget: roomy()}
   assert.equal((await ask(carousel, {...only, env: env(fake, {HOME: bare, CODEX_HOME: join(elsewhere, '.codex')})})).provider, 'codex')
   await assert.rejects(ask(carousel, {...only, env: env(fake, {HOME: bare})}), /^Error: codex: fake codex: not signed in$/)
@@ -261,7 +260,7 @@ test('codex signs in through a link to the owner login in CODEX_HOME, else in ~/
 
 test('with the AI switch off the bridge refuses every ask before any binary runs, other origins and anything but true cannot flip it on, and it survives a restart', async () => {
   const fake = fakeBin()
-  const file = join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json')
+  const file = join(testDir('barkever-switch-'), 'ai-switch.json')
   const origin = 'http://127.0.0.1:4100'
   const from = (url: string) => ({senderFrame: {url}})
   const handle = askHandler(origin, aiSwitch(file), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))

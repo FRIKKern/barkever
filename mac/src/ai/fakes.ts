@@ -1,6 +1,6 @@
 import {spawnSync} from 'node:child_process'
 import {createRequire} from 'node:module'
-import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync} from 'node:fs'
+import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 import {after} from 'node:test'
@@ -29,8 +29,20 @@ const DOORS = [
 type FakeCall = {cli: string; pid: number; cwd: string; env: string[]; home: string; codexHome?: string; links?: string[]; args: string[]; system: string; prompt: string}
 type Behavior = 'answer' | 'fail' | 'hang' | 'quiet' | 'limit' | 'no-turn' | {reply: unknown} | {sign: string}
 
+const UNIT = !!process.env.NODE_TEST_CONTEXT
+
+export function testDir(prefix: string, gone: (dir: string) => void = () => {}) {
+  const dir = mkdtempSync(join(tmpdir(), prefix))
+  if (UNIT)
+    after(() => {
+      gone(dir)
+      rmSync(dir, {recursive: true, force: true, maxRetries: 5})
+    })
+  return dir
+}
+
 export function ownerHome() {
-  const home = mkdtempSync(join(tmpdir(), 'barkever-owner-home-'))
+  const home = testDir('barkever-owner-home-')
   for (const door of DOORS) {
     mkdirSync(dirname(join(home, door)), {recursive: true})
     writeFileSync(join(home, door), `SYNTHETIC-MARKER ${door}`)
@@ -38,8 +50,6 @@ export function ownerHome() {
   writeFileSync(join(home, '.codex', 'auth.json'), '{"auth_mode":"synthetic"}')
   return home
 }
-
-const UNIT = !!process.env.NODE_TEST_CONTEXT
 
 const kill = (pid: number) => {
   try {
@@ -63,7 +73,7 @@ export const PARENT_WATCH = join(FAKES, 'parent-watch.cjs')
 if (UNIT) createRequire(import.meta.url)(PARENT_WATCH)
 
 export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> = {}) {
-  const dir = mkdtempSync(join(tmpdir(), 'barkever-fake-bin-'))
+  const dir = testDir('barkever-fake-bin-', reap)
   for (const f of readdirSync(FAKES)) copyFileSync(join(FAKES, f), join(dir, f))
   for (const f of ['claude', 'codex']) chmodSync(join(dir, f), 0o755)
   const behave = (b: typeof behavior) => writeFileSync(join(dir, 'behavior.json'), JSON.stringify(b))
@@ -72,6 +82,5 @@ export function fakeBin(behavior: Partial<Record<'claude' | 'codex', Behavior>> 
   const calls = (): FakeCall[] => read('calls.jsonl').map((l) => JSON.parse(l))
   const termed = () => Object.fromEntries(read('sigterm').map((l) => l.split(' ').map(Number)))
   const trapped = (): Record<string, number> => Object.fromEntries(read('trapped').map((l) => l.split(' ')).map(([cli, pid]) => [cli, Number(pid)]))
-  if (UNIT) after(() => reap(dir))
   return {dir, home: ownerHome(), behave, calls, termed, trapped}
 }

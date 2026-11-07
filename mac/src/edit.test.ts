@@ -1,12 +1,10 @@
 import {strict as assert} from 'node:assert'
-import {mkdtempSync} from 'node:fs'
-import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {budget} from './ai/budget.ts'
 import {MAX_REQUEST, NO_IDENTITY} from './ai/ask.ts'
 import {EDIT_SCHEMA, EDIT_SYSTEM, checkedEdit, edit, editPrompt, type EditRequest} from './ai/edit.ts'
-import {fakeBin} from './ai/fakes.ts'
+import {fakeBin, testDir} from './ai/fakes.ts'
 import {NONE} from './ai/first-answer.ts'
 import {childEnv} from './ai/provider.ts'
 import {OTHER_ORIGIN, editHandler, installed, switchHandler} from './ai/serve.ts'
@@ -23,7 +21,7 @@ const REQ: EditRequest = {
 }
 const cite = [{id: 'fx-note-00', quote: 'Harbor redesign: kickoff'}]
 const env = (fake: ReturnType<typeof fakeBin>) => childEnv({...process.env, HOME: fake.home, CODEX_HOME: '', CLAUDE_CONFIG_DIR: ''}, `${fake.dir}:${process.env.PATH}`)
-const roomy = () => budget(join(mkdtempSync(join(tmpdir(), 'barkever-budget-')), 'budget.json'), 1e9)
+const roomy = () => budget(join(testDir('barkever-budget-'), 'budget.json'), 1e9)
 const from = (url: string) => ({senderFrame: {url}})
 
 test('the edit prompt carries the instruction, the selected blocks and the notes as data, and the schema asks for changes and citations', () => {
@@ -109,7 +107,7 @@ test('an edit of exactly the longest request is sent, and one character more is 
 test('the edit handler answers only its own origin and refuses while the AI switch is off, before any binary runs', async () => {
   const fake = fakeBin()
   const origin = 'http://127.0.0.1:4100'
-  const file = join(mkdtempSync(join(tmpdir(), 'barkever-switch-')), 'ai-switch.json')
+  const file = join(testDir('barkever-switch-'), 'ai-switch.json')
   const handle = editHandler(origin, aiSwitch(file), () => ({providers: installed(fake.dir), budget: roomy(), env: env(fake)}))
   assert.deepEqual(await handle(from('http://127.0.0.1:4101/'), REQ), {error: OTHER_ORIGIN})
   switchHandler(origin, aiSwitch(file))(from(`${origin}/`), false)

@@ -1,15 +1,15 @@
 import {strict as assert} from 'node:assert'
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
-import {tmpdir} from 'node:os'
+import {readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {test} from 'node:test'
 import {installPort, savedPort} from './port.ts'
 import {serverEnv} from './server-env.ts'
 import {memoryOnly} from './session-cookie.ts'
 import {mergePath, pathFromShell} from './shell-path.ts'
+import {testDir} from './ai/fakes.ts'
 import {openVault, type Box} from './vault.ts'
 
-const dir = () => mkdtempSync(join(tmpdir(), 'barkever-mac-test-'))
+const dir = () => testDir('barkever-mac-test-')
 const box: Box = {encryptString: (s) => Buffer.from(s, 'utf8').reverse(), decryptString: (b) => Buffer.from(b).reverse().toString('utf8')}
 
 test('a sign-in cookie loses its lifetime so it never reaches disk; other cookies pass', () => {

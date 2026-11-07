@@ -1,6 +1,6 @@
 import {strict as assert} from 'node:assert'
 import {spawn, spawnSync} from 'node:child_process'
-import {existsSync, mkdtempSync, rmSync} from 'node:fs'
+import {existsSync, mkdtempSync, readdirSync, rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {after, test} from 'node:test'
@@ -8,6 +8,7 @@ import {PARENT_WATCH, fakeBin, until} from './ai/fakes.ts'
 
 const FIXTURE = new URL('../test/hanging-fakes.ts', import.meta.url).pathname
 const FAKES = new URL('./ai/fakes.ts', import.meta.url).pathname
+const MAKES_DIRS = new URL('../test/makes-dirs.ts', import.meta.url).pathname
 const READY_MS = 30_000
 const GONE_MS = 10_000
 const root = mkdtempSync(join(tmpdir(), 'barkever-orphans-'))
@@ -69,3 +70,12 @@ test('a test file whose runner is gone before it loads fakes.ts still exits', as
   await until(() => alive(mark).length === 0, GONE_MS)
   assert.deepEqual(alive(mark), [])
 })
+
+for (const fails of [false, true]) {
+  test(`a plain node --test run that ${fails ? 'fails' : 'passes'} leaves no barkever-* dir in its TMPDIR, with no own-tmp around it`, () => {
+    const dir = mkdtempSync(join(root, 'plain-'))
+    const run = spawnSync('node', ['--test', '--experimental-strip-types', MAKES_DIRS], {env: {...outside, TMPDIR: `${dir}/`, ...(fails && {PLANT_FAILURE: '1'})}, encoding: 'utf8'})
+    assert.equal(run.status, fails ? 1 : 0, run.stdout)
+    assert.deepEqual(readdirSync(dir).filter((n) => n.startsWith('barkever-')), [])
+  })
+}
