@@ -9,7 +9,7 @@
     "dev": "vite dev --port 3000 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000 --strictPort",
-    "test": "node ../scripts/own-tmp.mjs node --test --test-timeout=300000 --experimental-strip-types src/*/*.test.ts scripts/*.test.ts e2e/*.test.ts",
+    "test": "node ../scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 --experimental-strip-types src/*/*.test.ts scripts/*.test.ts e2e/*.test.ts",
     "e2e": "playwright test -c e2e/playwright.config.ts",
     "editor-restore": "node e2e/editor-candidate-restore.mjs",
     "j10": "playwright test -c e2e/j10/playwright.config.ts",

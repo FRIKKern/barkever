@@ -185,6 +185,45 @@ for (const args of [[], ['']]) {
   })
 }
 
+for (const flag of ['--deadline=0', '--deadline=abc', '--deadline=', '--deadline', '--deadline=2147483648', '--deadline=5.5']) {
+  test(`${flag} is a usage error that runs nothing and makes no dir`, LIMIT, () => {
+    const empty = mkdtempSync(join(temp, 'case-'))
+    const {status, stderr, stdout} = spawnSync('node', [OWN, flag, 'node', '-e', 'require("node:fs").writeSync(1, "ran")'], {env: {...process.env, TMPDIR: `${empty}/`}, encoding: 'utf8', timeout: 10_000})
+    assert.equal(status, 2)
+    assert.match(stderr, /^usage: /)
+    assert.equal(stdout, '')
+    assert.deepEqual(readdirSync(empty), [])
+  })
+}
+
+test('a run past its deadline stops, exits 124 with one line and leaves no dir, also when a leftover child holds stdout', LIMIT, (t) => {
+  const empty = mkdtempSync(join(temp, 'case-'))
+  const holder = `sleep 29.${process.pid}`
+  cleanup(t, () => spawnSync('pkill', ['-9', '-f', `^${holder}`]))
+  const started = Date.now()
+  const {status, stderr, stdout, error} = spawnSync('node', [OWN, '--deadline=1000', 'sh', '-c', `(${holder}; echo held) | cat`], {env: {...process.env, TMPDIR: `${empty}/`}, encoding: 'utf8', timeout: 20_000})
+  assert.equal(error, undefined, 'stdout stayed held until the outer limit')
+  assert.equal(status, 124)
+  assert.equal(stderr, 'own-tmp: sh ran past its 1000 ms deadline; stopping it\n')
+  assert.equal(stdout, '')
+  assert.ok(Date.now() - started < 15_000)
+  assert.notEqual(spawnSync('pgrep', ['-f', `^${holder}`]).status, 0)
+  assert.deepEqual(readdirSync(empty), [])
+})
+
+test('a child that ignores the deadline signal is killed after the grace period, and still exits 124', LIMIT, () => {
+  const empty = mkdtempSync(join(temp, 'case-'))
+  const {status} = spawnSync('node', [OWN, '--deadline=500', 'node', '-e', `process.on('SIGTERM', () => {}); ${HANG}`], {env: {...process.env, TMPDIR: `${empty}/`}, encoding: 'utf8', timeout: 20_000})
+  assert.equal(status, 124)
+  assert.deepEqual(readdirSync(empty), [])
+})
+
+test('a run inside its deadline keeps its own exit code and output', LIMIT, () => {
+  const {status, stdout} = spawnSync('node', [OWN, '--deadline=60000', 'node', '-e', 'console.log("done"); process.exit(3)'], {encoding: 'utf8', timeout: 30_000})
+  assert.equal(status, 3)
+  assert.equal(stdout, 'done\n')
+})
+
 test('a TMPDIR that does not exist fails before anything runs', LIMIT, () => {
   const {status, stdout} = spawnSync('node', [OWN, 'node', '-e', 'require("node:fs").writeSync(1, "ran")'], {env: {...process.env, TMPDIR: join(temp, 'no-such-dir/')}, encoding: 'utf8', timeout: 10_000})
   assert.equal(status, 1)

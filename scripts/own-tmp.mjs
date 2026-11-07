@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
 const GRACE_MS = 2000
+const DEADLINE_EXIT = 124
 
 let child
 const group = (signal) => {
@@ -19,9 +20,11 @@ for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']) process.on(sign
 const parent = process.ppid
 setInterval(() => process.ppid !== parent && stop('SIGHUP'), 500).unref()
 
-const [cmd, ...args] = process.argv.slice(2)
-if (!cmd) {
-  console.error('usage: node scripts/own-tmp.mjs <command> [args...]')
+const asked = process.argv[2]?.startsWith('--deadline') ? process.argv[2] : undefined
+const deadline = asked && +asked.match(/^--deadline=([1-9]\d*)$/)?.[1]
+const [cmd, ...args] = process.argv.slice(asked ? 3 : 2)
+if (!cmd || (asked && !(deadline <= 2147483647))) {
+  console.error('usage: node scripts/own-tmp.mjs [--deadline=<1 to 2147483647 ms>] <command> [args...]')
   process.exit(2)
 }
 const root = mkdtempSync(join(tmpdir(), 'barkever-run-'))
@@ -35,4 +38,11 @@ child.on('error', (error) => {
   console.error(`own-tmp: ${cmd}: ${error.message}`)
   done(127)
 })
-child.on('exit', (code) => done(code ?? 1))
+let late = false
+if (deadline)
+  setTimeout(() => {
+    late = true
+    console.error(`own-tmp: ${cmd} ran past its ${deadline} ms deadline; stopping it`)
+    stop('SIGTERM')
+  }, deadline)
+child.on('exit', (code) => done(late ? DEADLINE_EXIT : code ?? 1))

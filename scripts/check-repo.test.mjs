@@ -66,6 +66,7 @@ const plants = {
   "a second node --test after && without --test-timeout": secondRunBare("&&"),
   "a second node --test after || without --test-timeout": secondRunBare("||"),
   "a second node --test after ; without --test-timeout": secondRunBare(";"),
+  "node --test with no whole-run deadline": (d) => { const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8")); p.scripts.test = p.scripts.test.replace(" --deadline=1200000", ""); writeFileSync(join(d, "mac/package.json"), JSON.stringify(p)); },
   "banned dependency": (d) => { const p = JSON.parse(readFileSync(join(d, "package.json"), "utf8")); p.dependencies = { next: "1" }; writeFileSync(join(d, "package.json"), JSON.stringify(p)); },
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),

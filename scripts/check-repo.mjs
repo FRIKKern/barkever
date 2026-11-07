@@ -49,6 +49,7 @@ for (const f of files.filter((f) => f.endsWith("package.json"))) {
   for (const [name, cmd] of Object.entries(pkg.scripts ?? {}))
     for (const part of cmd.split(/&&|\|\||;/))
       if (/(^|\s)--test(\s|$)/.test(part) && !(+part.match(/\s--test-timeout=([1-9]\d*)(\s|$)/)?.[1] <= 2147483647)) fail(f, `script "${name}" runs node --test without a --test-timeout=<1 to 2147483647 ms>, so one hung test hangs the gate`);
+      else if (/(^|\s)--test(\s|$)/.test(part) && !/own-tmp\.mjs --deadline=[1-9]\d* /.test(part)) fail(f, `script "${name}" runs node --test outside own-tmp.mjs --deadline=<ms>, so a child holding stdout hangs the gate`);
 }
 
 const secret = [
