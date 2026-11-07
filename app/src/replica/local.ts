@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NotebookDoc, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJot, forgetJournal, jot, jotted, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
+import {failed, forgetJot, forgetJournal, jotJoined, jotted, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -48,7 +48,23 @@ const overTitle = (shown: string, title: string): Edit => (n, server) => typed(n
 
 const withBody = (base: Block[], after: Block[]): Edit => (n, server) => typed(n, server, {body: {...n.body, blocks: base}}, {body: {...n.body, blocks: after}})
 
-const owed = new Map<string, Edit[]>()
+type Owed = {seq: number; patch: Jot}
+
+const owed = new Map<string, Owed[]>()
+
+const isTitle = (p: Jot) => p.title !== undefined
+
+// A failed edit joins the one before it only where the journal joined their steps, so the owed list and the journal
+// stay one to one and a run of failed saves stays one retry per field. An edit another tab already replayed has no
+// step left to join, so it stays its own edit and re-applies as a no-op.
+function owe(list: Owed[], seq: number, p: Jot, joined?: number): Owed[] {
+  const last = joined === undefined ? undefined : list.find((o) => o.seq === joined)
+  if (!last) return [...list, {seq, patch: p}]
+  const patch = isTitle(p) ? {shown: last.patch.shown, title: p.title} : {base: last.patch.base, after: p.after}
+  return [...list.filter((o) => o !== last), {seq, patch}]
+}
+
+const editFor = ({patch: p}: Owed): Edit => (isTitle(p) ? overTitle(p.shown ?? '', p.title!) : withBody(p.base!, p.after!))
 
 export const owesWords = (id: string) => owed.has(id)
 
@@ -91,20 +107,22 @@ const restore = (id: string, j: Jotted | undefined, entry: Entry | undefined, no
       }
 }
 
-async function journaled(id: string, patch: Jot, change: Edit) {
-  const seq = jot(id, patch)
+async function journaled(id: string, patch: Jot) {
+  const {seq, joined} = jotJoined(id, patch)
+  const owing = () => owe(owed.get(id) ?? [], seq, patch, joined)
   let out: NoteDoc | undefined
   let back: Jotted | undefined
   try {
     await write(id, (note, entry, notebooks) => {
-      if (note) return edited(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))(note, entry, notebooks)
+      if (note) return edited(id, (before, server) => (out = owing().reduce((n, o) => editFor(o)(n, server), before)))(note, entry, notebooks)
       const j = jottedOf(id)
       const next = restore(id, j, entry, notebooks)
       if (next) back = j
       return next
     })
   } catch (e) {
-    owed.set(id, [...(owed.get(id) ?? []), change])
+    owed.set(id, owing())
+    failed(seq)
     if (patch.title !== undefined) owedTitles.add(id)
     throw e
   }
@@ -115,7 +133,7 @@ async function journaled(id: string, patch: Jot, change: Edit) {
   return out
 }
 
-export const editTitle = (id: string, shown: string, title: string) => journaled(id, {shown, title}, overTitle(shown, title))
+export const editTitle = (id: string, shown: string, title: string) => journaled(id, {shown, title})
 
 export const moveNote = (id: string, from: string | null, to: string) => edit(id, (n, server) => typed(n, server, ...move(n, from, to)))
 
@@ -130,7 +148,7 @@ export const keepVersion = (id: string, key: string, shown: Pick<NoteDoc, 'title
 export const dismissVersion = (id: string, key: string) => edit(id, (n) => dismiss(n, key))
 
 export async function editBody(id: string, base: Block[], after: Block[]) {
-  const out = await journaled(id, {base, after}, withBody(base, after))
+  const out = await journaled(id, {base, after})
   return out?.body?.blocks
 }
 

@@ -32,26 +32,41 @@ function load(): Journal {
   }
 }
 
-function save(j: Journal) {
+function save(j: Journal): boolean {
   try {
     if (Object.keys(j).length) localStorage.setItem(key(), JSON.stringify(Object.fromEntries(Object.entries(j).map(([id, e]) => [id, readableByLastVersion(e)]))))
     else localStorage.removeItem(key())
-  } catch {}
+    return true
+  } catch {
+    return false
+  }
 }
 
-export function jot(id: string, {shown, title, base, after}: Jot): number {
+export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+const failedHere = new Set<number>()
+
+export const failed = (seq: number) => void failedHere.add(seq)
+
+// A step that carries on from this tab's last one, which this tab saw fail, replaces it and keeps its base, so a run of
+// failed saves stays one step. A step still in flight may land, so nothing joins it. `joined` names the seq it replaced.
+function extend<T extends {seq: number; tab?: string}>(list: T[], carriesOn: (last: T) => boolean, make: (last?: T) => T): {list: T[]; joined?: number} {
+  const last = list.at(-1)
+  return last && last.tab === THIS_TAB && failedHere.has(last.seq) && carriesOn(last) ? {list: [...list.slice(0, -1), make(last)], joined: last.seq} : {list: [...list, make()]}
+}
+
+export function jotJoined(id: string, {shown, title, base, after}: Jot): {seq: number; joined?: number} {
   const j = load()
   const was = j[id] ?? {seq: 0}
   const seq = (lastSeq = Math.max(was.seq + 1, Date.now(), lastSeq + 1))
-  j[id] = {
-    ...was,
-    seq,
-    ...(title !== undefined && {titles: [...(was.titles ?? []), {seq, tab: THIS_TAB, shown, title}]}),
-    ...(base && after && {steps: [...(was.steps ?? []), {seq, tab: THIS_TAB, base, after}]}),
-  }
-  save(j)
-  return seq
+  const titles = title !== undefined ? extend(was.titles ?? [], (last) => last.title === shown && shown !== undefined, (last) => ({seq, tab: THIS_TAB, shown: last?.shown ?? shown, title})) : undefined
+  const steps = base && after ? extend(was.steps ?? [], (last) => same(last.after, base), (last) => ({seq, tab: THIS_TAB, base: last?.base ?? base, after})) : undefined
+  j[id] = {...was, seq, ...(titles && {titles: titles.list}), ...(steps && {steps: steps.list})}
+  const stored = save(j)
+  return {seq, joined: stored ? (titles ?? steps)?.joined : undefined}
 }
+
+export const jot = (id: string, patch: Jot): number => jotJoined(id, patch).seq
 
 function drop(id: string, seq: number, gone: (tab?: string) => boolean) {
   const j = load()
