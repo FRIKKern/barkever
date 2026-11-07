@@ -1,6 +1,6 @@
 export type Inline = {type: string; value?: string; text?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
 export type Item = Inline[] | string | {content?: Inline[]; text?: string; checked?: boolean; children?: Block[]}
-export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; caption?: string}
+export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; start?: number; caption?: string}
 
 export type Conflict = {_key: string; by?: string; at: string; title?: string; body?: {blocks: Block[]}; tags?: string[]; notebook?: {_ref: string; _type?: string} | null; clash: string[]}
 export type Note = {id: string; title: string; notebook: string | null; tags: string[]; blocks: Block[]; links: string[]; updatedAt: string; rev: string; conflicts: Conflict[]; gen: number}
@@ -27,6 +27,10 @@ export function nestedOf(it: Item): Block[] {
   const children = isObject(it) ? it.children : undefined
   return Array.isArray(children) ? children.filter(isObject).map((c) => asList(c as Block)) : []
 }
+
+export const nestedLists = (it: Item): Block[] => nestedOf(it).filter((c) => c.type === 'list' && Array.isArray(c.items))
+
+export const listStart = ({start}: Block): number | undefined => (Number.isInteger(start) && start !== 1 ? start : undefined)
 
 export const leafText = (x: Inline): string | undefined => x.value || x.text
 

@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {board, findLine, ticked} from './board.ts'
-import {blockText, isBlank, nestedOf, wikilinks, type Block, type Inline, type Note} from './model.ts'
+import {blockText, isBlank, listStart, nestedLists, nestedOf, wikilinks, type Block, type Inline, type Note} from './model.ts'
 import {shelve} from './notebooks.ts'
 
 const text = (value: string): Inline => ({type: 'text', value})
@@ -41,6 +41,20 @@ test('ordered: true numbers any nested spelling, and the stored child is left as
 test('like the canvas, a nested spelling without an items array and a top-level spelling are not lists', () => {
   assert.equal(nestedOf(under({id: 'c', type: 'bulletList', content: [text('loose')]}).items![0]!)[0]!.type, 'bulletList')
   assert.equal(blockText({id: 'b', type: 'bulletList', items: [[text('top')]]} as Block), '')
+})
+
+test('like the canvas, only list children with an items array are drawn; their words still count for search and blank', () => {
+  const words = {id: 'p', type: 'paragraph', content: [text('hidden')]}
+  assert.deepEqual(nestedLists(under(words).items![0]!), [])
+  assert.equal(blockText(under(words)), 'Pier · hidden')
+  assert.deepEqual(nestedLists(under({id: 'e', type: 'list', content: [text('loose')]}).items![0]!), [])
+  assert.deepEqual(nestedLists(under({id: 'c', type: 'bulletList', items: [[text('seen')]]}).items![0]!).map((c) => c.id), ['c'])
+})
+
+test('like the canvas, a list starts at its integer start, and 1 or anything else means no start', () => {
+  const at = (start: unknown) => listStart({id: 'l', type: 'list', ordered: true, start} as Block)
+  assert.deepEqual([5, 0, -2].map(at), [5, 0, -2])
+  assert.deepEqual([1, 2.5, '5', null, undefined].map(at), [undefined, undefined, undefined, undefined, undefined])
 })
 
 test('a nested bulletList checklist makes board tasks, and its box ticks it', () => {

@@ -51,3 +51,23 @@ test('the read-only body draws a nested list in every spelling the canvas reads:
   await expect(pier.locator(':scope > ul > li')).toHaveText(['Bullet rope'])
   expect(errors).toEqual([])
 })
+
+test('the read-only body matches the canvas: a numbered list keeps its start, top level and nested, and a non-list child under an item stays hidden', async ({page}) => {
+  const id = `note-read-only-start-${Date.now()}`
+  created.push(id)
+  const blocks = [
+    {id: 'o', type: 'list', ordered: true, start: 5, items: [{content: [text('Fifth')], children: [{id: 'n', type: 'numbered_list', start: 3, items: [[text('Third')]]}, {id: 'p', type: 'paragraph', content: [text('Hidden words')]}]}]},
+    {id: 'u', type: 'list', ordered: true, items: [[text('First')]]},
+  ]
+  const doc = {_id: id, _type: 'note', title: 'Read-only start', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks}}
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: doc}]})})
+  expect(res.status).toBe(200)
+  await page.addInitScript(oldEditor)
+  await page.goto(`/?n=${id}`)
+  const body = page.getByTestId('body')
+  await expect(body.locator('.blocks > ol').first()).toHaveAttribute('start', '5', {timeout: 30_000})
+  await expect(body.locator('.blocks > ol > li > ol')).toHaveAttribute('start', '3')
+  await expect(body.locator('.blocks > ol').nth(1)).not.toHaveAttribute('start')
+  await expect(body.getByText('Third')).toBeVisible()
+  await expect(body.getByText('Hidden words')).toHaveCount(0)
+})

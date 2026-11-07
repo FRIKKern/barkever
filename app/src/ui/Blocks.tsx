@@ -1,5 +1,5 @@
 import {Link} from '@tanstack/react-router'
-import {contentOf, itemContent, itemsOf, leafText, linkMissing, nestedOf, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
+import {contentOf, itemContent, itemsOf, leafText, linkMissing, listStart, nestedLists, linkWords, type Block, type Inline, type Item, type Title} from '../lib/model'
 import type {Search} from '../lib/scope'
 
 type At = {s: Search; title: Title}
@@ -22,7 +22,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
   )
 }
 
-const Nested = ({it, at}: {it: Item; at: At}) => nestedOf(it).map((c, j) => <BlockView key={j} b={c} at={at} />)
+const Nested = ({it, at}: {it: Item; at: At}) => nestedLists(it).map((c, j) => <BlockView key={j} b={c} at={at} />)
 
 function BlockView({b, at}: {b: Block; at: At}) {
   if (b.type === 'heading') return b.level === 3 ? <h3><Inlines c={contentOf(b)} at={at} /></h3> : <h2><Inlines c={contentOf(b)} at={at} /></h2>
@@ -47,7 +47,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
         <Nested it={it} at={at} />
       </li>
     ))
-    return b.ordered ? <ol>{items}</ol> : <ul>{items}</ul>
+    return b.ordered ? <ol start={listStart(b)}>{items}</ol> : <ul>{items}</ul>
   }
   if (b.type === 'paragraph' || b.type === 'blockquote')
     return (
