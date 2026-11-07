@@ -152,7 +152,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           <ConflictView note={note} w={w} onKeep={() => (lastKey.current = 0)} />
           {edit.run && <AiBody s={s} edit={{...edit, run: edit.run}} title={linker.title} />}
           <div hidden={!!edit.run}>
-            <BodyCanvas note={note} s={s} handle={body} linker={linker} />
+            <BodyCanvas note={note} s={s} handle={body} linker={linker} toTitle={() => titleRef.current?.focus()} />
           </div>
         </article>
       </div>

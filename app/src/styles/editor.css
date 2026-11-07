@@ -8,6 +8,7 @@
 .doc-title::placeholder { color: var(--c-faint); }
 .doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-half) var(--sp-3); font-size: var(--fs-s); color: var(--c-muted); padding-bottom: var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
 .nbchip { display: inline-flex; align-items: center; gap: var(--sp-half); color: var(--c-text-2); }
+.held { display: block; width: 100%; padding: 0; border: 0; outline: none; resize: none; background: none; color: inherit; font: inherit; field-sizing: content; }
 .doc-body { font-size: var(--fs-body); line-height: var(--lh-body); min-height: var(--sp-7); }
 .blocks p, .blocks h2, .blocks h3, .blocks ul, .blocks ol { margin: 0 0 var(--sp-3); }
 .blocks h2, .blocks h3 { font-size: var(--fs-l); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin-top: var(--sp-2); }

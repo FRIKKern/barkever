@@ -1,4 +1,5 @@
 import {expect, test, type Page} from '@playwright/test'
+import {oldEditor} from './old-editor'
 import {barkpark, DATASET, deleteNotes} from './fixtures-cleanup'
 import {canvas, created, device, deviceOf, errorsOf, everything, leave, newNote, serverNote, status, synced, typeAtEndOf, type ServerNote} from './devices'
 import {blockText} from '../src/lib/model.ts'
@@ -225,6 +226,105 @@ test.describe('with the editor held back at the network', () => {
     await page.keyboard.press('Enter')
     await expect(canvas(page).locator('[contenteditable="true"]')).toBeAttached({timeout: 10_000})
     await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-testid=canvas]'))).toBe(true)
+  })
+
+  const held = async (page: Page, title: string) => {
+    let open!: () => void
+    const gate = new Promise<void>((ok) => (open = ok))
+    await page.route('**/editor-assets/**', async (r) => {
+      await gate
+      await r.continue().catch(() => {})
+    })
+    await page.goto('/')
+    await expect(page.getByTestId('new-note')).toBeEnabled()
+    await page.keyboard.press('n')
+    await expect(page.getByTestId('title')).toBeFocused()
+    const id = new URL(page.url()).searchParams.get('n')!
+    created.push(id)
+    await page.keyboard.type(title)
+    await page.keyboard.press('Enter')
+    return {id, open, words: () => serverNote(id).then((n) => n?.body?.blocks.map(blockText))}
+  }
+
+  test('keys typed after Enter in the title, before the editor loads, show and land in the body in order', async ({page}) => {
+    const {open, words} = await held(page, 'Lighthouse buoy')
+    const url = page.url()
+    await page.keyboard.type('Nine knots, on task')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('.')
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('Second line.')
+    await expect(page.getByTestId('held')).toHaveValue('Nine knots, on tas.\nSecond line.')
+    await expect(canvas(page)).toHaveCount(0)
+    open()
+    await expect(canvas(page).locator('p')).toHaveText(['Nine knots, on tas.', 'Second line.'], {timeout: 15_000})
+    await expect(page.getByTestId('held')).toHaveCount(0)
+    await page.keyboard.type(' More.')
+    await expect(canvas(page).locator('p').nth(1)).toHaveText('Second line. More.')
+    await expect(page.getByTestId('title')).toHaveValue('Lighthouse buoy')
+    expect(page.url()).toBe(url)
+    await leave(page)
+    await expect.poll(words, {timeout: 15_000}).toEqual(['Nine knots, on tas.', 'Second line. More.'])
+  })
+
+  test('held words stay in the note when you leave it before the editor loads', async ({page}) => {
+    const {id, words} = await held(page, 'Left early')
+    await page.keyboard.type('Keep these words.')
+    await expect(page.getByTestId('note-row').filter({hasText: 'Left early'})).toBeVisible()
+    await page.getByTestId('note-row').filter({hasNotText: 'Left early'}).first().click()
+    await expect.poll(() => new URL(page.url()).searchParams.get('n')).not.toBe(id)
+    await expect.poll(words, {timeout: 15_000}).toEqual(['Keep these words.'])
+  })
+
+  test('held words stay in a note with no title when the page reloads before the editor loads', async ({page}) => {
+    const {id, open, words} = await held(page, '')
+    await page.keyboard.type('Reload kept.')
+    open()
+    await page.reload()
+    await expect(canvas(page).locator('p')).toHaveText(['Reload kept.'], {timeout: 15_000})
+    expect(new URL(page.url()).searchParams.get('n')).toBe(id)
+    await expect.poll(words, {timeout: 15_000}).toEqual(['Reload kept.'])
+  })
+
+  test('a second Enter in the title goes back to the held words, so later keys stay out of the title', async ({page}) => {
+    const {open, words} = await held(page, 'Back and forth')
+    await page.keyboard.type('First.')
+    await page.getByTestId('title').click()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('held')).toBeFocused()
+    await page.keyboard.type(' Second.')
+    await expect(page.getByTestId('title')).toHaveValue('Back and forth')
+    await expect(page.getByTestId('held')).toHaveValue('First. Second.')
+    open()
+    await expect.poll(words, {timeout: 15_000}).toEqual(['First. Second.'])
+  })
+
+  test('held words go in the body without taking focus back when you moved on before the editor loads', async ({page}) => {
+    const {open, words} = await held(page, 'Moved on')
+    await page.keyboard.type('Stays below.')
+    await page.getByTestId('title').click()
+    open()
+    await expect(canvas(page).locator('p')).toHaveText(['Stays below.'], {timeout: 15_000})
+    await expect(page.getByTestId('title')).toBeFocused()
+    await expect.poll(words, {timeout: 15_000}).toEqual(['Stays below.'])
+  })
+
+  test('a refused editor keeps held words, gives the keys back to the title, and Enter holds no more', async ({page}) => {
+    await page.addInitScript(oldEditor)
+    const {open, words} = await held(page, 'Refused')
+    const url = page.url()
+    await page.keyboard.type('Still kept.')
+    open()
+    await expect(page.getByText('Read only: the editor could not load', {exact: false})).toBeVisible({timeout: 15_000})
+    await expect(page.getByTestId('body').locator('.blocks')).toContainText('Still kept.')
+    await expect(page.getByTestId('title')).toBeFocused()
+    await page.keyboard.type(' now')
+    await expect(page.getByTestId('title')).toHaveValue('Refused now')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('held')).toHaveCount(0)
+    await expect(page.getByTestId('title')).toBeFocused()
+    expect(page.url()).toBe(url)
+    await expect.poll(words, {timeout: 15_000}).toEqual(['Still kept.'])
   })
 })
 

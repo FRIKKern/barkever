@@ -2,7 +2,7 @@ import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObje
 import {flushSync} from 'react-dom'
 import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, Outdated, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
-import {focusCanvas} from '../lib/canvas-focus'
+import {focusCanvas, heldBlocks, typeHeld} from '../lib/canvas-focus'
 import {findLine, type Spot} from '../lib/board'
 import type {Linker} from '../lib/link-pick'
 import {wikilinks, type Block, type Note} from '../lib/model'
@@ -13,12 +13,12 @@ import type {Search} from '../lib/scope'
 import {Blocks} from './Blocks'
 
 export type BodyHandle = {focus: () => void; blocks: () => Block[]; show: (blocks: Block[]) => void; selected: () => string[]}
-type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker}
+type Props = {note: Note; s: Search; handle: Ref<BodyHandle>; linker: Linker; toTitle: () => void}
 
 const FLUSH_MS = 40
 const WORDS = JSON.stringify({'Link to page': 'Link to note', 'No matching pages': 'No matching notes'})
 
-export function BodyCanvas({note, s, handle, linker}: Props) {
+export function BodyCanvas({note, s, handle, linker, toTitle}: Props) {
   const navigate = useNavigate()
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<CanvasElement | null>(null)
@@ -28,7 +28,10 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   line.current = s.line
   const links = useRef(linker)
   links.current = linker
-  const wantFocus = useRef(false)
+  const heldBox = useRef<HTMLTextAreaElement>(null)
+  const held = useRef('')
+  const refused = useRef(false)
+  const [holding, setHolding] = useState(false)
   const [state, setState] = useState<{live: boolean; blocked?: string}>({live: false})
   const id = note.id
 
@@ -42,7 +45,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
   useImperativeHandle(
     handle,
     () => ({
-      focus: () => (canvas.current ? focusEditor() : (wantFocus.current = true)),
+      focus: () => (canvas.current ? focusEditor() : heldBox.current ? heldBox.current.focus() : !refused.current && setHolding(true)),
       blocks: () => (flush(), structuredClone(canvas.current!.blocks)),
       show: (blocks) => canvas.current?.applyServerBlocks(blocks),
       selected,
@@ -105,6 +108,21 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       const to = linkAtCaret(e.currentTarget as CanvasElement)
       if (live(to)) (e.preventDefault(), go(to))
     }
+    const keepHeld = () => {
+      const text = held.current
+      const upTo = savePoint(id, 'body')
+      held.current = ''
+      if (heldBox.current) heldBox.current.value = ''
+      if (!text.trim()) return markSaved(id, 'body', upTo)
+      void recorded(id, editBody(id, latest.current.blocks, heldBlocks(text, latest.current.blocks))).then((saved) => {
+        markSaved(id, 'body', upTo)
+        if (saved) canvas.current?.applyServerBlocks(saved)
+      })
+    }
+    const onHide = () => {
+      keepHeld()
+      flush()
+    }
     const mount = (heard: number) => loadCanvas().then(
       () => {
         if (gone || !host.current) return
@@ -129,13 +147,29 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         el.dataset.testid = 'canvas'
         host.current.append(el)
         canvas.current = el
-        flushSync(() => setState({live: true}))
-        if (wantFocus.current) focusEditor()
+        const typing = !!heldBox.current && document.activeElement === heldBox.current
+        flushSync(() => {
+          setHolding(false)
+          setState({live: true})
+        })
+        if (typing) focusEditor()
+        if (typing && el.contains(document.activeElement)) {
+          typeHeld(held.current)
+          held.current = ''
+        }
+        keepHeld()
       },
       (e: Error) => {
         if (gone) return
         setState({live: false, blocked: e.message})
-        if (e instanceof Outdated) return
+        if (e instanceof Outdated) {
+          refused.current = true
+          const typing = !!heldBox.current && document.activeElement === heldBox.current
+          keepHeld()
+          setHolding(false)
+          if (typing) toTitle()
+          return
+        }
         if (answersHeard() > heard) return load()
         addEventListener(ANSWERED, load)
         waiting = setTimeout(load, retryIn(tries++))
@@ -149,12 +183,13 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       mount(answersHeard())
     }
     load()
-    addEventListener('pagehide', flush)
+    addEventListener('pagehide', onHide)
     return () => {
       gone = true
+      keepHeld()
       clearTimeout(flushing)
       clearTimeout(waiting)
-      removeEventListener('pagehide', flush)
+      removeEventListener('pagehide', onHide)
       removeEventListener(ANSWERED, load)
       flush()
       canvas.current?.remove()
@@ -181,6 +216,20 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
       )}
       {spot && spot !== 'gone' && <LineMark spot={spot} host={host} surface={state.live ? 'bp-paper-canvas' : state.blocked ? '.blocks' : undefined} />}
       {state.blocked && <div className="canvas-note">Read only: the editor could not load ({state.blocked}).</div>}
+      {holding && (
+        <textarea
+          ref={heldBox}
+          className="held"
+          rows={1}
+          autoFocus
+          aria-label="Body"
+          data-testid="held"
+          onInput={(e) => {
+            held.current = e.currentTarget.value
+            markDirty(id, 'body')
+          }}
+        />
+      )}
       <Blocks blocks={note.blocks} s={s} title={linker.title} />
     </div>
   )
