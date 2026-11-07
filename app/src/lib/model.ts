@@ -104,7 +104,7 @@ const FLAGS = new Set(['level', 'task', 'ordered', 'checked'])
 
 const quiet = ([k, v]: [string, unknown]) => NAMES.has(k) || (FLAGS.has(k) && (typeof v === 'number' || typeof v === 'boolean')) || holdsNothing(v)
 
-const holdsNothing = (x: unknown): boolean =>
+export const holdsNothing = (x: unknown): boolean =>
   x == null ||
   (typeof x === 'string' && !x.trim()) ||
   (Array.isArray(x) && x.every(holdsNothing)) ||

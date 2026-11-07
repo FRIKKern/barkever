@@ -162,6 +162,24 @@ test('a note Barkpark refuses as too large is named in the sidebar and opens fro
   await page.context().close()
 })
 
+test('words left in the journal on a note deleted elsewhere come back at the next boot and reach Barkpark', async ({page}) => {
+  const errors = errorsOf(page)
+  const id = await newNote(page, `Deleted with failed words ${Date.now()}`, 'Before.')
+  await synced(page)
+  await deleteNotes([id])
+  await expect.poll(() => serverRows(id), {timeout: 10_000}).toEqual([])
+  await expect(page.getByTestId('note-row').filter({hasText: 'Deleted with failed words'})).toHaveCount(0, {timeout: 15_000})
+  await page.evaluate(async (id) => {
+    const name = (await indexedDB.databases()).map((d) => d.name).find((n) => n?.startsWith('barkever-'))!
+    const block = (value: string) => [{id: 'p', type: 'paragraph', content: [{type: 'text', value}]}]
+    localStorage.setItem(`${name}-journal`, JSON.stringify({[id]: {seq: 5, steps: [{seq: 5, base: block('Before.'), after: block('Failed words.')}]}}))
+  }, id)
+  await page.reload()
+  await expect(page.getByTestId('note-row').filter({hasText: 'Failed words.'})).toHaveCount(1, {timeout: 15_000})
+  await expect.poll(async () => blockText((await serverNote(id))?.body?.blocks[0] ?? {id: '', type: 'paragraph'}), {timeout: 15_000}).toBe('Failed words.')
+  expect(errors).toEqual([])
+})
+
 test('an offline edit to a note deleted elsewhere is pushed at reconnect, before catch-up, and lands at once without a refusal', async ({page}) => {
   const warnings: string[] = []
   page.on('console', (m) => m.type() === 'warning' && warnings.push(m.text()))

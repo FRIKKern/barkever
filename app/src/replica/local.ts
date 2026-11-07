@@ -2,11 +2,11 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJot, forgetJournal, jot, jotted, unjot, type Jot, unjotReplayed} from './journal'
+import {forgetJot, forgetJournal, jot, jotted, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
-import {emptyParagraph, type Block} from '../lib/model'
+import {emptyParagraph, holdsNothing, type Block} from '../lib/model'
 
 const now = () => new Date().toISOString()
 
@@ -31,8 +31,14 @@ const bump = (id: string, before: NoteDoc | null, entry: Entry | undefined, extr
 
 type Edit = (note: NoteDoc, server: NoteDoc | null) => NoteDoc
 
-const edit = (id: string, change: Edit, adopt = false) =>
-  write(id, (note, entry) => (note ? {note: {...change(note, entry ? entry.base : note._rev ? note : null), _updatedAt: now()}, entry: bump(id, note, entry)} : null), adopt)
+const edited =
+  (id: string, change: Edit): Change =>
+  (note, entry) =>
+    note ? {note: {...change(note, entry ? entry.base : note._rev ? note : null), _updatedAt: now()}, entry: bump(id, note, entry)} : null
+
+const edit = (id: string, change: Edit, adopt = false) => write(id, edited(id, change), adopt)
+
+const jottedOf = (id: string) => jotted().find(([each]) => each === id)?.[1]
 
 const withTitle = (title: string) => (n: NoteDoc) => ({...n, title})
 
@@ -46,16 +52,50 @@ const owed = new Map<string, Edit[]>()
 
 export const owesWords = (id: string) => owed.has(id)
 
+const applied = (j: Jotted): Edit => (n, server) => {
+  const titled = (j.titles ?? []).reduce((m, t) => (t.shown === undefined ? withTitle(t.title)(m) : overTitle(t.shown, t.title)(m, server)), n)
+  return (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), titled)
+}
+
+const addsWords = ({base, after}: Step) => after.some((b) => !holdsNothing(b) && !base.some((x) => JSON.stringify(x) === JSON.stringify(b)))
+
+const holdsWords = (j: Jotted) => (j.titles ?? []).some((t) => t.title.trim() && t.title !== t.shown) || (j.steps ?? []).some(addsWords)
+
+export const journalHoldsWords = (id: string) => {
+  const j = jottedOf(id)
+  return !!j && holdsWords(j)
+}
+
+const LATE_SAVE_MS = 5000
+const deletedAt = new Map<string, number>()
+const justDeleted = (id: string) => Date.now() - (deletedAt.get(id) ?? -Infinity) < LATE_SAVE_MS
+
+const restore = (id: string, j: Jotted | undefined, entry: Entry | undefined) =>
+  entry?.delete || justDeleted(id) || !j || !holdsWords(j)
+    ? null
+    : {
+        note: applied(j)({_id: id, _type: 'note', title: j.titles?.[0]?.shown ?? '', tags: [], links: [], body: {blocks: j.steps?.[0]?.base ?? [emptyParagraph(`${id}-p0`)]}, _updatedAt: now()}, null),
+        entry: bump(id, null, entry),
+      }
+
 async function journaled(id: string, patch: Jot, change: Edit) {
   const seq = jot(id, patch)
   let out: NoteDoc | undefined
+  let back: Jotted | undefined
   try {
-    await edit(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))
+    await write(id, (note, entry) => {
+      if (note) return edited(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))(note, entry)
+      const j = jottedOf(id)
+      const next = restore(id, j, entry)
+      if (next) back = j
+      return next
+    })
   } catch (e) {
     owed.set(id, [...(owed.get(id) ?? []), change])
     throw e
   }
   owed.delete(id)
+  if (back) unjotReplayed(id, back.seq)
   unjot(id, seq)
   return out
 }
@@ -84,12 +124,15 @@ let replaying: Promise<void> | undefined
 export function replayJournal() {
   replaying ??= (async () => {
     await db()
-    for (const [id, j] of jotted()) {
-      await edit(id, (n, server) => {
-        const titled = (j.titles ?? []).reduce((m, t) => (t.shown === undefined ? withTitle(t.title)(m) : overTitle(t.shown, t.title)(m, server)), n)
-        return (j.steps ?? []).reduce((m, s) => withBody(s.base, s.after)(m, server), titled)
+    for (const [id] of jotted()) {
+      let seq = 0
+      await write(id, (note, entry) => {
+        const j = jottedOf(id)
+        if (!j) return null
+        seq = j.seq
+        return note ? edited(id, applied(j))(note, entry) : restore(id, j, entry)
       })
-      unjotReplayed(id, j.seq)
+      if (seq) unjotReplayed(id, seq)
     }
   })()
   return replaying
@@ -110,6 +153,7 @@ export async function deleteNote(id: string) {
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
   owed.delete(id)
+  deletedAt.set(id, Date.now())
   forgetJot(id)
   await unmark(id)
 }

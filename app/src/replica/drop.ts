@@ -1,8 +1,8 @@
 import {db, type LocalNote} from './db.ts'
-import {deleteNote, owesWords} from './local.ts'
+import {deleteNote, journalHoldsWords, owesWords} from './local.ts'
 import {droppable} from './made.ts'
 
-const blank = async (doc: LocalNote) => !owesWords(doc._id) && (await droppable(doc))
+const blank = async (doc: LocalNote) => !owesWords(doc._id) && !journalHoldsWords(doc._id) && (await droppable(doc))
 
 export async function dropIfBlank(id: string) {
   const doc = await (await db()).get('notes', id)
