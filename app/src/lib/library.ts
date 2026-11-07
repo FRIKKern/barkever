@@ -88,13 +88,18 @@ async function sendAll(): Promise<{shortcuts?: string[]; failed: boolean; droppe
 
 const setDropped = (qc: QueryClient, edit: (d: DroppedStar[]) => DroppedStar[]) => qc.setQueryData<DroppedStar[]>(droppedStarsQuery.queryKey, (d) => edit(d ?? []))
 export const dismissDropped = (qc: QueryClient, id: string) => setDropped(qc, (d) => d.filter((x) => x.id !== id))
+const showDropped = (qc: QueryClient, dropped: DroppedStar[]) => setDropped(qc, (d) => [...d.filter((x) => !dropped.some((y) => y.id === x.id)), ...dropped])
+let otherTabs: BroadcastChannel | undefined
 
 async function sendStars(qc: QueryClient) {
   clearTimeout(retry)
   await db()
   const {shortcuts, failed, dropped} = await navigator.locks.request(`${replicaKey()}-stars`, sendAll)
   if (shortcuts) setPrefs(qc, {shortcuts: withStars(shortcuts, await pendingStars())})
-  if (dropped.length) setDropped(qc, (d) => [...d.filter((x) => !dropped.some((y) => y.id === x.id)), ...dropped])
+  if (dropped.length) {
+    showDropped(qc, dropped)
+    otherTabs?.postMessage(dropped)
+  }
   retries = failed ? retries + 1 : 0
   if (failed) retry = setTimeout(() => void sendStars(qc).catch(keepLocal), Math.min(STAR_RETRY_MS * 2 ** (retries - 1), STAR_RETRY_MAX_MS))
 }
@@ -150,5 +155,15 @@ export function sendStarsWhenOnline(qc: QueryClient) {
   const send = () => void sendStars(qc).catch(keepLocal)
   send()
   addEventListener('online', send)
-  return () => removeEventListener('online', send)
+  const tabs = new BroadcastChannel('barkever-stars')
+  tabs.onmessage = (e: MessageEvent<DroppedStar[]>) => {
+    showDropped(qc, e.data)
+    void qc.invalidateQueries({queryKey: prefsQuery.queryKey})
+  }
+  otherTabs = tabs
+  return () => {
+    removeEventListener('online', send)
+    tabs.close()
+    if (otherTabs === tabs) otherTabs = undefined
+  }
 }

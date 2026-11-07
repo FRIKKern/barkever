@@ -295,6 +295,41 @@ test('a star Barkpark refuses for good is dropped and never blocks the next one'
   await writePrefs(userToken(), kept)
 })
 
+test("two tabs: a star refused in the other tab's send loop shows Couldn't star here, and the star goes away", async ({context}) => {
+  await fillShortcutsToTheLimit()
+  const full = await readPrefs(userToken())
+  await writePrefs(userToken(), {...full, shortcuts: full.shortcuts.map((x) => (x === 'fx-note-02' ? 'fx-pad-zzz' : x))})
+  const sender = await context.newPage()
+  await openNote(sender, 'fx-note-02')
+  let release = () => {}
+  const holding = new Promise<void>((ok) => (release = ok))
+  let reached = () => {}
+  const held = new Promise<void>((ok) => (reached = ok))
+  await sender.route('**/_serverFn/**', async (route) => {
+    if (starCall(route.request().postData() ?? '', 'fx-note-02')) reached(), await holding
+    await route.continue()
+  })
+  await sender.getByTestId('star').click()
+  await held
+
+  const clicker = await context.newPage()
+  await openNote(clicker, 'fx-note-07')
+  const star = clicker.getByTestId('star')
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  const sentHere: string[] = []
+  clicker.on('request', (r) => starCall(r.postData() ?? '', 'fx-note-07') && sentHere.push(r.url()))
+  await star.click()
+  await expect(star).toHaveAttribute('aria-pressed', 'true')
+  release()
+
+  const notice = clicker.getByTestId('star-dropped').filter({hasText: STARRED['fx-note-07']})
+  await expect(notice).toHaveText(`Couldn't star “${STARRED['fx-note-07']}”.×`)
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  expect(sentHere, "the other tab's loop sent it").toEqual([])
+  await expect(sender.getByTestId('star-dropped').filter({hasText: STARRED['fx-note-07']})).toHaveCount(1)
+  await writePrefs(userToken(), kept)
+})
+
 test("starring a note again clears its \"Couldn't star\" line at once", async ({page}) => {
   await fillShortcutsToTheLimit()
   await openNote(page, 'fx-note-07')
