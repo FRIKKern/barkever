@@ -1,4 +1,4 @@
-import {holdsNothing, type Block} from './model'
+import {holdsNothing, type Block} from './model.ts'
 
 type FocusCanvas = {
   focusSelection?: () => boolean
