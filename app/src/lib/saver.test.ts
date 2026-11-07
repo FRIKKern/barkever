@@ -8,7 +8,9 @@ use(device)
 const {markDirty, markSaved, recorded, savePoint, stage, unsynced, unsyncedNow} = await import('./saver.ts')
 const {db} = await import('../replica/db.ts')
 const {notify} = await import('../replica/bus.ts')
-const {editBody, editTitle, tick} = await import('../replica/local.ts')
+const {deleteNote, editBody, editTitle, owesWords, tick} = await import('../replica/local.ts')
+const {dropIfBlank} = await import('../replica/drop.ts')
+const {markMade} = await import('../replica/made.ts')
 const {forgetJournal, jot, jotted} = await import('../replica/journal.ts')
 const settled = () => new Promise((r) => setTimeout(r, 5))
 const entry = (id: string) => ({id, base: null, v: 1, at: 0}) as never
@@ -192,8 +194,10 @@ test('a failed tick is unsaved until a tick lands, and a landed tick leaves fail
   await d.put('notes', {_id: 'w3', _type: 'note', title: 'T', _rev: 'r1', body: {blocks: [list]}} as never)
   await failing(t, async () => {
     const box = 'no-line'
+    const before = (await unsyncedNow())!
     await inFailure(() => recorded('w3', tick('w3', box)))
     assert.equal(stage('w3'), 'unsaved')
+    assert.equal(await unsyncedNow(), before + 1)
     await recorded('w3', tick('w3', box))
     await settled()
     assert.notEqual(stage('w3'), 'unsaved')
@@ -206,4 +210,49 @@ test('a failed tick is unsaved until a tick lands, and a landed tick leaves fail
     assert.notEqual(stage('w3'), 'unsaved')
   })
   await clean('w3')
+})
+
+test('failed saves in a row run oldest first inside the next save, so it lands the newest words with no copy', async (t) => {
+  const d = await db()
+  await d.put('notes', {_id: 'w4', _type: 'note', title: 'T', _rev: 'r1', body: {blocks: [para('a', 'one')]}} as never)
+  await failing(t, async () => {
+    await inFailure(() => recorded('w4', editBody('w4', [para('a', 'one')], [para('a', 'two')])))
+    await inFailure(() => recorded('w4', editBody('w4', [para('a', 'two')], [para('a', 'three')])))
+    await recorded('w4', editBody('w4', [para('a', 'three')], [para('a', 'four')]))
+    assert.deepEqual(bodyOf((await stored('w4')) as never), ['four'])
+    assert.equal((await stored('w4')).conflicts?.length ?? 0, 0)
+  })
+  await clean('w4')
+})
+
+test('a delete that lands forgets what the note still owed: nothing unsaved, nothing counted, no words waiting for the id', async (t) => {
+  const d = await db()
+  await d.put('notes', {_id: 'w5', _type: 'note', title: 'T', _rev: 'r1', body: {blocks: [para('a', 'one')]}} as never)
+  await failing(t, async () => {
+    const before = (await unsyncedNow())!
+    await inFailure(() => recorded('w5', editBody('w5', [para('a', 'one')], [para('a', 'stale')])))
+    assert.equal(owesWords('w5'), true)
+    await recorded('w5', deleteNote('w5'))
+    await d.delete('outbox', 'w5')
+    await settled()
+    assert.equal(owesWords('w5'), false)
+    assert.notEqual(stage('w5'), 'unsaved')
+    assert.equal(journalOf('w5'), undefined)
+    assert.equal(await unsyncedNow(), before)
+  })
+  await clean('w5')
+})
+
+test('a blank note whose title failed to write is not dropped as blank; its words land with the next save', async (t) => {
+  const d = await db()
+  await d.put('notes', {_id: 'w6', _type: 'note', title: '', notebook: {_ref: 'nb'}, tags: [], links: [], body: {blocks: [{id: 'p', type: 'paragraph'}]}} as never)
+  await markMade('w6')
+  await failing(t, async () => {
+    await inFailure(() => recorded('w6', editTitle('w6', '', 'Only here')))
+    await dropIfBlank('w6')
+    assert.notEqual(await stored('w6'), undefined)
+    await recorded('w6', editTitle('w6', 'Only here', 'Only here too'))
+    assert.equal((await stored('w6')).title, 'Only here too')
+  })
+  await clean('w6')
 })

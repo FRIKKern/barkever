@@ -48,6 +48,12 @@ export function unjot(id: string, seq: number) {
   save(j)
 }
 
+export function forgetJot(id: string) {
+  const j = load()
+  delete j[id]
+  save(j)
+}
+
 export const jotted = (): [string, Jotted][] => Object.entries(load())
 
 export function forgetJournal() {

@@ -2,7 +2,7 @@ import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db
 import {toRow, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
-import {forgetJournal, jot, jotted, unjot, type Jot} from './journal'
+import {forgetJot, forgetJournal, jot, jotted, unjot, type Jot} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
@@ -106,6 +106,8 @@ export async function deleteNote(id: string) {
     if (!note._rev && !entry?.sent?.length) return {note: null, entry: null}
     return {note: null, entry: bump(id, note, entry, {delete: true})}
   })
+  owed.delete(id)
+  forgetJot(id)
   await unmark(id)
 }
 

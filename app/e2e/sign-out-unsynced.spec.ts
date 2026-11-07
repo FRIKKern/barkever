@@ -1,5 +1,6 @@
 import {expect, test, type Page} from '@playwright/test'
 import {serverNote} from './devices'
+import {TYPING_MS} from '../src/lib/typing.ts'
 import {canvas, cleanup, errorsOf, newNote, status, typeAtEnd} from './note'
 
 test.afterAll(cleanup)
@@ -87,6 +88,9 @@ for (const at of ['request', 'commit'] as const) {
     await expect(status(page)).toHaveText('Couldn’t save on this device')
     await page.waitForTimeout(500)
     await expect(status(page)).toHaveText('Couldn’t save on this device')
+    await page.evaluate((note) => new BroadcastChannel('barkever').postMessage({kind: 'local', ids: [note]}), id)
+    await page.waitForTimeout(TYPING_MS + 500)
+    await expect(page.getByTestId('title')).toHaveValue('Title on a broken disk')
     await page.getByTestId('sign-out').click()
     await expect.poll(() => seen).toEqual(['1 change has not reached Barkpark yet. Sign out and lose it?'])
     expect(errors).toEqual([])
