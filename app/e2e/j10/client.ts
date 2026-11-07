@@ -111,8 +111,14 @@ export async function act(page: Page, writer: Writer, op: Op) {
   if (op.kind === 'create') {
     const before = shown(new URL(page.url()))
     await page.getByTestId('new-note').first().click()
-    await expect(page).toHaveURL((u) => /^note-/.test(shown(u) ?? '') && shown(u) !== before)
-    made.note = shown(new URL(page.url()))!
+    let note = ''
+    await expect(page).toHaveURL((u) => {
+      const now = shown(u)
+      if (!now?.startsWith('note-') || now === before) return false
+      note = now
+      return true
+    })
+    made.note = note
     await open(page, made.note)
     await page.getByTestId('title').fill(op.title)
     made.block = `${made.note}-p0`
