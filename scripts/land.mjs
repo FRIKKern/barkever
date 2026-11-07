@@ -18,11 +18,25 @@ const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched
 const here = git(["rev-parse", "--show-toplevel"]);
 const dir = execFileSync("node", [`${here}/scripts/worktree.mjs`, branch, "--reuse"], { encoding: "utf8" }).trim().split("\n").at(-1);
 const main = git(["worktree", "list", "--porcelain"]).match(/^worktree (.+)$/m)[1];
-for (const [where, cwd] of [["branch", dir], ["main checkout", main]]) {
+for (const name of [branch, "main"]) {
+  if (git(["tag", "--list", name], main)) { console.error(`land: a tag named ${name} would stand in for the branch, and the land could push the wrong commit; rename the tag; nothing changed`); process.exit(1); }
+}
+const unfinished = (cwd) => ["rebase-merge", "rebase-apply", "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "BISECT_LOG", "sequencer"].find((f) => existsSync(resolve(cwd, git(["rev-parse", "--git-path", f], cwd))));
+const stopIfUnfinished = (where, cwd) => {
+  const state = unfinished(cwd);
+  if (state) { console.error(`land: the ${where} (${cwd}) has an unfinished ${state}; finish or abort it; nothing landed`); process.exit(1); }
+};
+for (const [where, cwd, name] of [["branch", dir, branch], ["main checkout", main, "main"]]) {
+  stopIfUnfinished(where, cwd);
+  const on = git(["branch", "--show-current"], cwd);
+  if (on !== name) { console.error(`land: the ${where} (${cwd}) is on ${on || "no branch"}, not ${name}; nothing changed`); process.exit(1); }
   if (git(["status", "--porcelain", "--untracked-files=no"], cwd)) { console.error(`land: uncommitted changes in the ${where} (${cwd})`); process.exit(1); }
 }
+const strays = git(["ls-files", "--others", "--exclude-standard"], dir);
+if (strays) { console.error(`land: untracked files in the branch (${dir}); the check would pass on what main won't get. Commit or move them; nothing changed:\n${strays}`); process.exit(1); }
 
-const touched = git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean);
+const changedSince = (base) => git(["diff", "--name-only", "--no-renames", `${base}...${branch}`], dir).split("\n").filter(Boolean);
+const touched = changedSince("main");
 const only = (pattern) => (files) => files.length > 0 && files.every((f) => pattern.test(f));
 const isText = only(/^docs\/|^[A-Z]+\.md$/);
 const noAppEffect = only(/^docs\/|^[A-Z]+\.md$|^scripts\/arms\.mjs$/);
@@ -48,6 +62,7 @@ const abortRebase = () => {
   return ` on ${conflicts}; rebase aborted, ${branch} is back at ${head.slice(0, 10)}`;
 };
 if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} moved before the rebase; nothing landed; main is untouched`); process.exit(1); }
+stopIfUnfinished("branch", dir);
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
 const rebased = git(["rev-parse", branch], dir);
 const putBack = () => {
@@ -60,7 +75,7 @@ const putBack = () => {
 };
 if (existsSync(resolve(dir, "pnpm-lock.yaml"))) step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir, putBack);
 step("npm run check", "npm", ["run", "check"], dir, putBack);
-if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
+if (noAppEffect(changedSince("origin/main"))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
 else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir, putBack);
 const moved = () => { try { return git(["rev-parse", "--abbrev-ref", "HEAD"], dir) !== branch || git(["rev-parse", branch], dir) !== rebased || git(["status", "--porcelain", "--untracked-files=no"], dir) !== ""; } catch { return true; } };
 if (moved()) { console.error(`land: ${dir} moved during the land, so the checks did not cover what is there now; it stays as it is; nothing landed; main is untouched`); process.exit(1); }

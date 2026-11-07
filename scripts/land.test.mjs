@@ -11,10 +11,11 @@ const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
 const env = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" };
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
 const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd, "add", "a.txt"); git(cwd, "commit", "-qm", text); };
+const originHead = (main) => git(join(main, "..", "origin.git"), "log", "-1", "--format=%s", "main");
 const tops = [];
 cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
-function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", prepush, pnpmExit = 0, reviewedAs, onPull, pnpm } = {}) {
+function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", prepush, pnpmExit = 0, reviewedAs, onPull, pnpm, unpushed = () => {} } = {}) {
   const top = mkdtempSync(join(tmpdir(), "land-"));
   tops.push(top);
   const origin = join(top, "origin.git");
@@ -36,6 +37,7 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   onBranch(branch);
   onMain(main);
   git(main, "push", "-q", "origin", "main");
+  unpushed(main);
   const reviewed = git(branch, "rev-parse", "HEAD");
   mkdirSync(join(top, "bin"));
   writeFileSync(join(top, "bin", "pnpm"), `#!/bin/sh\n${pnpm ?? `exit ${pnpmExit}`}\n`, { mode: 0o755 });
@@ -70,8 +72,12 @@ test("a path main deleted and the branch changed is named too", () => {
 
 test("a rebase that never starts fails as before, without a stack", () => {
   const run = repo(
-    (m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "b.txt"); git(m, "commit", "-qm", "add b"); },
-    (b) => { write(b, "branch\n"); writeFileSync(join(b, "b.txt"), "untracked\n"); },
+    (m) => {
+      writeFileSync(join(m, "b.txt"), "main\n");
+      git(m, "add", "b.txt");
+      git(m, "commit", "-qm", "add b");
+      writeFileSync(join(m, ".git/hooks/pre-rebase"), '#!/bin/sh\n[ "$(git symbolic-ref --short HEAD)" = feature ] && exit 1\nexit 0\n', { mode: 0o755 });
+    },
   );
   assertBack(run);
   assert.match(run.r.stderr, /^land: rebase onto main failed; main is untouched$/m);
@@ -302,10 +308,88 @@ test("worktree.mjs refuses an existing worktree with uncommitted changes, naming
   }
 });
 
-test("a land of a branch with an untracked file goes on as before: only worktree.mjs called by hand refuses it", () => {
-  const { r } = repo(() => {}, (b) => { write(b, "branch\n"); writeFileSync(join(b, "stray.txt"), "untracked\n"); });
-  assert.match(r.stderr, /^land: npm run check failed; feature is back at \w{10}; main is untouched$/m);
-  assert.doesNotMatch(r.stderr, /already exists/);
+test("a land refuses a branch with an untracked file, because the check would pass on what main won't get", () => {
+  const run = repo(() => {}, (b) => { write(b, "branch\n"); writeFileSync(join(b, "stray.txt"), "untracked\n"); }, { check: "exit 0" });
+  assert.equal(run.r.status, 1, run.r.stderr);
+  assert.match(run.r.stderr, /untracked files in the branch .*\nstray\.txt/);
+  assert.equal(originHead(run.main), "base");
+  assert.doesNotMatch(run.r.stdout, /landed/);
+});
+
+const stoppedAtEdit = (b) => {
+  docsOnly(b);
+  git(b, "-c", "sequence.editor=sed -i.bak s/^pick/edit/", "rebase", "-q", "-i", "HEAD~1");
+  writeFileSync(join(b, "docs/y.md"), "y\n");
+  git(b, "add", "docs");
+  git(b, "commit", "-qm", "made mid-rebase");
+};
+
+function assertRebaseKept(run) {
+  assert.equal(run.r.status, 1, run.r.stderr);
+  assert.match(run.r.stderr, /the branch .* has an unfinished rebase-merge/);
+  assert.ok(existsSync(git(run.branch, "rev-parse", "--path-format=absolute", "--git-path", "rebase-merge")));
+  assert.equal(originHead(run.main), "base");
+}
+
+test("a rebase the owner has in progress is left alone, with the commit it made", () => {
+  const run = repo(() => {}, stoppedAtEdit, { check: "exit 0" });
+  assertRebaseKept(run);
+  assert.equal(git(run.branch, "rev-parse", "HEAD"), run.reviewed);
+});
+
+test("a rebase in progress is left alone even with the branch checked out over it", () => {
+  assertRebaseKept(repo(() => {}, (b) => { stoppedAtEdit(b); git(b, "checkout", "-q", "feature"); }, { check: "exit 0" }));
+});
+
+test("a rebase that starts while the land brings main up to origin is left alone too", () => {
+  const run = repo(() => {}, docsOnly, { check: "exit 0", onPull: `git -c sequence.editor="sed -i.bak s/^pick/edit/" rebase -q -i HEAD~1` });
+  assertRebaseKept(run);
+});
+
+test("a tag named like the branch or main stops the land before it can push the tagged commit", () => {
+  for (const name of ["feature", "main"]) {
+    const { r, main } = repo(() => {}, docsOnly, { check: "exit 0", unpushed: (m) => git(m, "tag", name) });
+    assert.equal(r.status, 1, r.stderr);
+    assert.match(r.stderr, new RegExp(`a tag named ${name} would stand in`));
+    assert.equal(originHead(main), "base");
+  }
+});
+
+test("a merge left open is not run through", () => {
+  const { r, main } = repo(() => {}, (b) => {
+    docsOnly(b);
+    git(b, "checkout", "-q", "-b", "side", "HEAD~1");
+    writeFileSync(join(b, "c.txt"), "c\n");
+    git(b, "add", "c.txt");
+    git(b, "commit", "-qm", "side");
+    git(b, "checkout", "-q", "feature");
+    git(b, "merge", "-q", "--no-commit", "-s", "ours", "side");
+  }, { check: "exit 0" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /has an unfinished MERGE_HEAD/);
+  assert.equal(originHead(main), "base");
+});
+
+test("a move out of the app into docs still needs the reviewed sha", () => {
+  const { r } = repo(() => {}, (b) => { mkdirSync(join(b, "docs")); git(b, "mv", "a.txt", "docs/a.txt"); git(b, "commit", "-qm", "move"); }, { check: "exit 0", reviewedAs: "0000000" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /pass --reviewed/);
+});
+
+test("a main checkout on another branch stops the land, and nothing claims to have landed", () => {
+  const { r, main } = repo((m) => git(m, "checkout", "-q", "-b", "other"), docsOnly, { check: "exit 0" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /the main checkout .* is on other, not main/);
+  assert.doesNotMatch(r.stdout, /landed/);
+  assert.equal(originHead(main), "base");
+});
+
+test("a docs branch over an unpushed app commit on local main runs prepush before anything reaches origin", () => {
+  const { r, main } = repo(() => {}, docsOnly, { check: "exit 0", prepush: "exit 4", unpushed: (m) => { writeFileSync(join(m, "app.txt"), "app\n"); git(m, "add", "app.txt"); git(m, "commit", "-qm", "app"); } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: prepush \(queued\) failed; feature is back at \w{10}; main is untouched$/m);
+  assert.doesNotMatch(r.stderr, /no app effect/);
+  assert.equal(originHead(main), "base");
 });
 
 test("a roadmap refresh that fails does not fail a land that already pushed", () => {
