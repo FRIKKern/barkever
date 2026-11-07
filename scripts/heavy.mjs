@@ -85,13 +85,16 @@ let child;
 process.on("exit", () => { try { rmSync(wantPath, { force: true }); } catch (e) { if (e.code !== "ENOTDIR") throw e; } });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => (child ? child.kill(sig) : process.exit(sig === "SIGINT" ? 130 : 143)));
 const asked = Date.now();
-const born = want();
-let slot = take();
+const dirGone = () => { console.error(`heavy: ${HEAVY_DIR} is gone; not waiting for a slot that cannot be written`); process.exit(1); };
+const dirThere = () => statSync(HEAVY_DIR, { throwIfNoEntry: false })?.isDirectory();
+const orGone = (step) => { try { return step(); } catch (e) { if (dirThere() || !["ENOENT", "ENOTDIR"].includes(e.code)) throw e; dirGone(); } };
+const born = orGone(want);
+let slot = orGone(take);
 if (!slot) console.error(`heavy: waiting (one slot per worktree, ${SLOTS} in all)`);
 while (!slot) {
   await sleep(2000);
-  if (!statSync(HEAVY_DIR, { throwIfNoEntry: false })?.isDirectory()) { console.error(`heavy: ${HEAVY_DIR} is gone; not waiting for a slot that cannot be written`); process.exit(1); }
-  slot = take();
+  if (!dirThere()) dirGone();
+  slot = orGone(take);
 }
 rmSync(wantPath, { force: true });
 const started = Date.now();

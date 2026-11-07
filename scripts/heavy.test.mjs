@@ -311,6 +311,20 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.equal(readFileSync(join(dir, "slot-1"), "utf8"), theirs);
   });
 
+  test("a HEAVY_DIR that goes just after a run writes its want file prints only the is gone line", async () => {
+    const dir = join(top, "gone-at-want");
+    const preload = join(top, "gone-at-want.mjs");
+    writeFileSync(preload, `import fs from "node:fs";\nimport {syncBuiltinESMExports} from "node:module";\nconst real = fs.writeFileSync;\nfs.writeFileSync = (p, ...a) => { real(p, ...a); if (String(p).includes("/want-")) fs.rmSync(${JSON.stringify(dir)}, {recursive: true}); };\nsyncBuiltinESMExports();\n`);
+    let stderr = "";
+    const asker = spawn(process.execPath, ["--import", preload, heavy, "job"], { env: env(dir, "c"), detached: true, stdio: ["ignore", "ignore", "pipe"] });
+    groups.push(asker);
+    asker.stderr.on("data", (d) => (stderr += d));
+    assert.ok(await within(10_000, () => asker.exitCode !== null), "the run exits");
+    assert.equal(asker.exitCode, 1);
+    assert.match(stderr, new RegExp(`heavy: ${dir} is gone`));
+    assert.doesNotMatch(stderr, /Error|\n\s+at /, "no stack trace");
+  });
+
   for (const gone of ["removed", "replaced by a file"]) test(`a waiting run whose HEAVY_DIR is ${gone} exits 1 naming the dir instead of polling forever`, async () => {
     const { dir, two } = await prepushAndOne();
     let stderr = "";
