@@ -1,6 +1,9 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {replay, report, run, shrink, type Run} from './chaos.ts'
+import {para} from './edits.ts'
+import {unpicked} from './judge.ts'
+import type {NoteDoc} from '../replica/note.ts'
 import type {Kind, Setup} from './plan.ts'
 
 const SEEDS = 2000
@@ -41,6 +44,22 @@ test(`${SEEDS} seeds lose no text`, async () => {
 test(`${SEEDS} seeds never copy a writer’s own push`, async () => {
   const bad = await failing('echo')
   assert.equal(bad.length, 0, await firstOf(bad))
+})
+
+test(`${SEEDS} seeds: Keep this always shows the copy`, async () => {
+  const bad = await failing('pick')
+  assert.equal(bad.length, 0, await firstOf(bad))
+})
+
+test('the judge calls a Keep this wrong when a part the copy holds is not showing, and ignores what it does not hold', () => {
+  const main: NoteDoc = {_id: 'n', _type: 'note', title: 'Main', tags: ['m'], notebook: {_type: 'reference', _ref: 'nb-m'}, body: {blocks: [para('a', 'main')]}}
+  const copy = (clash: string[], held: Partial<NoteDoc>) => ({_key: 'k', at: '', clash, ...held})
+  for (const [clash, held] of [[['title'], {title: 'Copy'}], [['tags'], {tags: ['c']}], [['notebook'], {notebook: {_type: 'reference', _ref: 'nb-c'}}], [['body:a'], {body: {blocks: [para('a', 'copy')]}}]] as const) {
+    assert.equal(unpicked(copy([...clash], held as Partial<NoteDoc>) as never, main, 1)?.kind, 'pick', clash[0])
+    assert.equal(unpicked(copy([...clash], held as Partial<NoteDoc>) as never, {...main, ...(held as Partial<NoteDoc>)}, 1), undefined, clash[0])
+  }
+  assert.equal(unpicked(copy(['title'], {}) as never, main, 1), undefined)
+  assert.equal(unpicked(copy(['body:a'], {body: {blocks: []}}) as never, main, 1)?.kind, 'pick')
 })
 
 test(`${SOLO} seeds of one writer typing alone make no copies`, async () => {

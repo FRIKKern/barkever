@@ -172,7 +172,7 @@ export function world(setup: Setup) {
     return true
   }
 
-  const {type, organize, keepCopy, raw} = writing({t, server, step: () => at, say, as, queue, note, viewOf})
+  const {type, organize, keepCopy, raw} = writing({t, server, step: () => at, say, as, fail: (f) => void (caught ??= f), queue, note, viewOf})
 
   async function act(s: Step): Promise<boolean> {
     clock += Math.floor(s.a * 2000)

@@ -1,4 +1,5 @@
 import {edited, modeName, para, placeOf, rawNext, rawVerb, rawWrite, replacedBy, retagged, textOf} from './edits.ts'
+import {unpicked, type Failure} from './judge.ts'
 import {partsOf, type Truth} from './truth.ts'
 import type {Server} from './server.ts'
 import {ID, type Job, type Writer} from './writer.ts'
@@ -12,12 +13,13 @@ type Desk = {
   step: () => number
   say: (w: Writer | string, what: string) => void
   as: (w: Writer, fn: () => unknown) => Promise<void>
+  fail: (f?: Failure) => void
   queue: (w: Writer, job: Job) => void
   note: (w: Writer) => NoteDoc | undefined
   viewOf: (w: Writer) => Writer['view']
 }
 
-export function writing({t, server, step, say, as, queue, note, viewOf}: Desk) {
+export function writing({t, server, step, say, as, fail, queue, note, viewOf}: Desk) {
   let rawTyped = 0
   const wrote = (w: Writer, part: string, text: string, over: string) => (t.wrote({part, text, by: w.id, step: step()}), t.revived(part, text, w.id, over), void w.wrote.set(part, [...(w.wrote.get(part) ?? []), text]))
 
@@ -93,6 +95,7 @@ export function writing({t, server, step, say, as, queue, note, viewOf}: Desk) {
     }
     say(w, `keeps copy ${c._key} by ${c.by} (${c.clash.join(',')})`)
     await as(w, () => keepVersion(ID, c._key, shown))
+    fail(unpicked(c, note(w)!, step()))
     w.view = viewOf(w)
     if (w.connected) queue(w, 'push')
     return true

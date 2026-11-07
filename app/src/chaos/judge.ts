@@ -1,14 +1,20 @@
-import {show} from './edits.ts'
+import {replacedBy, show, textOf} from './edits.ts'
+import type {Conflict} from '../lib/model.ts'
 import type {Truth} from './truth.ts'
 import type {NoteDoc} from '../replica/note.ts'
 
 const {sameContent} = await import('../replica/merge.ts')
 
-export type Failure = {kind: 'lost' | 'echo' | 'diverged' | 'stuck' | 'noisy' | 'crash'; step: number; detail: string}
+export type Failure = {kind: 'lost' | 'echo' | 'diverged' | 'stuck' | 'noisy' | 'crash' | 'pick'; step: number; detail: string}
 
 export function unheld(t: Truth, holders: (NoteDoc | undefined)[], step: number): Failure | undefined {
   const lost = t.lost(holders)
   if (lost.length) return {kind: 'lost', step, detail: lost.map((v) => `"${v.text}" (${v.part}, written by ${v.by} at step ${v.step}) is on no device and not on the server`).join('\n  ')}
+}
+
+export function unpicked(c: Conflict, kept: NoteDoc, step: number): Failure | undefined {
+  const off = replacedBy(c).filter((p) => textOf(kept, p) !== textOf(c, p))
+  if (off.length) return {kind: 'pick', step, detail: `Keep this on copy ${c._key} left ${off.join(', ')} not showing the copy: ${show(kept)}`}
 }
 
 export function unsettled(t: Truth, doc: NoteDoc, devices: [string, NoteDoc | undefined][], solo: boolean, step: number): Failure | undefined {
