@@ -224,7 +224,7 @@ test('a runner killed with SIGKILL leaves nothing in its process group', LIMIT, 
   runner = leader
   assert.equal(rest.length, 3)
   process.kill(runner, 'SIGKILL')
-  for (const end = Date.now() + GROUP_GONE_MS; alive(-runner) && Date.now() < end; ) await wait(20)
+  for (const end = Date.now() + GROUP_GONE_MS; (alive(-runner) || rest.some(alive)) && Date.now() < end; ) await wait(20)
   assert.equal(alive(-runner), false, `the group of ${runner} still runs ${GROUP_GONE_MS} ms after its runner died`)
   assert.deepEqual(rest.filter(alive), [])
 })
