@@ -13,6 +13,12 @@ cleanup(() => rmSync(temp, { recursive: true, force: true }));
 
 const lines = (s) => mutantsOf(s).map((m) => m.line);
 
+const running = (command) => spawnSync("pgrep", ["-f", `^${command}`]).status === 0;
+const goneSoon = async (command) => {
+  for (const end = Date.now() + 10_000; Date.now() < end; await new Promise((r) => setTimeout(r, 50))) if (!running(command)) return true;
+  return false;
+};
+
 test("a fallback gets ?? for ||, its operands swapped, and its fallback dropped, each in parens", () => {
   const s = "  return c.map((x) => x.value || x.text || inline(x.children ?? [], title)).join('')";
   assert.deepEqual(lines(s).slice(0, 3), [
@@ -139,12 +145,12 @@ test("Ctrl-C leaves no test process behind", async () => {
   const dir = mkdtempSync(join(temp, "case-"));
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
-  const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], 'sleep 31.4159; true'))`], { stdio: "ignore" });
-  while (spawnSync("pgrep", ["-f", "sleep 31.4159"]).status !== 0) await new Promise((r) => setTimeout(r, 20));
+  const sleep = `sleep 31.${process.pid}`;
+  const runner = spawn(process.execPath, ["-e", `import('${new URL("./mutate.mjs", import.meta.url).pathname}').then((m) => m.mutate([{ where: '${file}:1' }], '${sleep}; true'))`], { stdio: "ignore" });
+  while (!running(sleep)) await new Promise((r) => setTimeout(r, 20));
   runner.kill("SIGINT");
   await once(runner, "exit");
-  await new Promise((r) => setTimeout(r, 200));
-  assert.notEqual(spawnSync("pgrep", ["-f", "sleep 31.4159"]).status, 0);
+  assert.ok(await goneSoon(sleep));
 });
 
 test("a mutant the parser rejects is its own bucket, not killed", async () => {
@@ -165,9 +171,9 @@ test("a test process that ignores SIGTERM still dies on timeout", async () => {
   const file = join(dir, "f.mjs");
   writeFileSync(file, "export const x = a === b\n");
   const t0 = Date.now();
-  const [r] = await mutate([{ where: `${file}:1` }], `sh -c 'trap "" TERM; sleep 30.9'`, { timeout: 500 });
+  const sleep = `sleep 30.${process.pid}`;
+  const [r] = await mutate([{ where: `${file}:1` }], `sh -c 'trap "" TERM; ${sleep}'`, { timeout: 500 });
   assert.equal(r.why, "killed (timeout)");
   assert.ok(Date.now() - t0 < 5000);
-  await new Promise((r) => setTimeout(r, 200));
-  assert.notEqual(spawnSync("pgrep", ["-f", "sleep 30.9"]).status, 0);
+  assert.ok(await goneSoon(sleep));
 });
