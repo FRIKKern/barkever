@@ -57,7 +57,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="701.5999999999999" y="354" font-size="16" font-weight="600" text-anchor="middle">AI v1</text>
 <circle cx="904.8" cy="306" r="24" class="card"/>
 <circle cx="904.8" cy="306" r="24" fill="none" class="line" stroke-width="6"/>
-<circle cx="904.8" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="125.7 150.8" transform="rotate(-90 904.8 306)"/>
+<circle cx="904.8" cy="306" r="24" fill="none" class="nowl" stroke-width="6" stroke-dasharray="150.8 150.8" transform="rotate(-90 904.8 306)"/>
 <text x="904.8" y="312" font-size="17" font-weight="700" text-anchor="middle">P6</text>
 <text x="904.8" y="354" font-size="16" font-weight="600" text-anchor="middle">Projects</text>
 <circle cx="1108" cy="250" r="24" class="bg"/>
@@ -101,10 +101,10 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <rect x="370" y="702" width="394.3" height="7" rx="3.5" class="nowf"/>
 <text x="370" y="728" font-size="14" class="soft">0 of 3 criteria stamped</text>
 <text x="370" y="764" font-size="19" font-weight="600">P6 Projects</text>
-<text x="830" y="764" font-size="15" font-weight="600" text-anchor="end">5 of 6 tasks</text>
+<text x="830" y="764" font-size="15" font-weight="600" text-anchor="end">6 of 6 tasks</text>
 <text x="370" y="788" font-size="16" class="soft">Checklists become tasks on a board</text>
 <rect x="370" y="803" width="460" height="7" rx="3.5" class="track"/>
-<rect x="370" y="803" width="383.3" height="7" rx="3.5" class="nowf"/>
+<rect x="370" y="803" width="460.0" height="7" rx="3.5" class="nowf"/>
 <text x="370" y="829" font-size="14" class="soft">0 of 2 criteria stamped</text>
 <text x="862" y="396" font-size="16" class="caps soft">NOT STARTED</text>
 <text x="1152" y="396" font-size="16" class="caps soft" text-anchor="end">1</text>
@@ -118,5 +118,5 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="880" y="603" font-size="17">the web and in a signed Mac</text>
 <text x="880" y="626" font-size="17">app that updates itself. Then</text>
 <text x="880" y="649" font-size="17">the later list.</text>
-<text x="48" y="879" font-size="14" class="soft">As of 2026-11-07. A ring fills as tasks close. Plus 41 open tasks that name no milestone or journey.</text>
+<text x="48" y="879" font-size="14" class="soft">As of 2026-11-07. A ring fills as tasks close. Plus 37 open tasks that name no milestone or journey.</text>
 </svg>
