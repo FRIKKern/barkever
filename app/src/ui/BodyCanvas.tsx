@@ -1,4 +1,5 @@
 import {useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject} from 'react'
+import {flushSync} from 'react-dom'
 import {useNavigate} from '@tanstack/react-router'
 import {linkAtCaret, loadCanvas, Outdated, retryIn, vocabulary, type CanvasElement, type CanvasOps} from '../lib/canvas-load'
 import {focusCanvas} from '../lib/canvas-focus'
@@ -128,7 +129,7 @@ export function BodyCanvas({note, s, handle, linker}: Props) {
         el.dataset.testid = 'canvas'
         host.current.append(el)
         canvas.current = el
-        setState({live: true})
+        flushSync(() => setState({live: true}))
         if (wantFocus.current) focusEditor()
       },
       (e: Error) => {
