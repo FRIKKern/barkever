@@ -14,6 +14,7 @@ if (!cmd) { console.error("usage: node scripts/heavy.mjs <command> [args…]"); 
 const PREPUSH = /\bheavy\.mjs npm run prepush$/;
 const lander = PREPUSH.test(process.argv.slice(1).join(" "));
 
+const ifPresent = (use) => { try { return use(); } catch (error) { if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error; } };
 const signals = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 const alive = (h) => (h.pid > 0 ? signals(h.pid) : Date.now() - Number(h.at / 1000000n) < 5000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -41,12 +42,11 @@ function room(live) {
 const crowded = (live, queue = 0) => live.some((h) => h.owner === owner) || (!lander && room(live) <= queue);
 
 function waiting() {
-  let names = [];
-  try { names = readdirSync(HEAVY_DIR); } catch {}
+  const names = ifPresent(() => readdirSync(HEAVY_DIR)) ?? [];
   return names.flatMap((name) => {
     const pid = Number(name.match(/^want-(\d+)$/)?.[1]);
     if (!pid || pid === process.pid) return [];
-    if (!signals(pid)) { try { unlinkSync(`${HEAVY_DIR}/${name}`); } catch {} return []; }
+    if (!signals(pid)) { ifPresent(() => unlinkSync(`${HEAVY_DIR}/${name}`)); return []; }
     if (!/\bheavy\.mjs\b/.test(command(pid))) return [];
     try { return [{ owner: readFileSync(`${HEAVY_DIR}/${name}`, "utf8"), at: statSync(`${HEAVY_DIR}/${name}`, { bigint: true }).birthtimeNs }]; } catch { return []; }
   });
@@ -68,13 +68,13 @@ function take() {
     try { writeFileSync(slot, `${process.pid} ${owner}`, { flag: "wx" }); }
     catch {
       const h = holder(slot);
-      if (h && !alive(h)) { try { unlinkSync(slot); } catch {} i -= 1; }
+      if (h && !alive(h)) { ifPresent(() => unlinkSync(slot)); i -= 1; }
       continue;
     }
     const me = holder(slot);
     const mine = () => holder(slot)?.pid === process.pid;
     if (me && !crowded(held().filter(before(me))) && mine()) return slot;
-    if (mine()) try { unlinkSync(slot); } catch {}
+    if (mine()) ifPresent(() => unlinkSync(slot));
     return null;
   }
   return null;
@@ -95,12 +95,12 @@ while (!slot) {
 }
 rmSync(wantPath, { force: true });
 const started = Date.now();
-const release = () => { if (holder(slot)?.pid === process.pid) try { unlinkSync(slot); } catch {} };
+const release = () => { if (holder(slot)?.pid === process.pid) ifPresent(() => unlinkSync(slot)); };
 
 child = spawn(cmd, args, { stdio: "inherit" });
 child.on("exit", (code, signal) => {
   release();
   const record = { at: new Date().toISOString(), cwd: process.cwd(), cmd: [cmd, ...args].join(" "), waitedS: Math.round((started - asked) / 1000), ranS: Math.round((Date.now() - started) / 1000), code: code ?? signal };
-  try { appendFileSync(`${HEAVY_DIR}/runs.jsonl`, JSON.stringify(record) + "\n"); } catch {}
+  ifPresent(() => appendFileSync(`${HEAVY_DIR}/runs.jsonl`, JSON.stringify(record) + "\n"));
   process.exit(code ?? 1);
 });

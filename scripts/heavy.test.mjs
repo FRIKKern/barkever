@@ -29,7 +29,8 @@ const mark = (dir, owner) => join(dir, `ran-${owner}`);
 const { HEAVY_SLOTS, ...inherited } = process.env;
 const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
 const groups = [];
-const stop = (p, signal = "SIGKILL") => { try { process.kill(-p.pid, signal); } catch {} };
+const EXITED_GROUP = ["ESRCH", "EPERM"];
+const stop = (p, signal = "SIGKILL") => { try { process.kill(-p.pid, signal); } catch (error) { if (!EXITED_GROUP.includes(error.code)) throw error; } };
 cleanup(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, force: true }); });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -335,6 +336,24 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     stop(holder);
     assert.ok(await within(3000, () => p.exitCode !== null), "the run exits");
     assert.equal(p.exitCode, 0);
+  });
+
+  const plainRun = (dir) => spawnSync(process.execPath, [heavy, "true"], { env: env(dir, "a"), encoding: "utf8", timeout: 5000 });
+
+  test("an error heavy does not expect is not swallowed: a runs.jsonl it cannot append to fails the run, naming the error", () => {
+    const dir = slots();
+    mkdirSync(join(dir, "runs.jsonl"));
+    const r = plainRun(dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /EISDIR/);
+  });
+
+  test("an error heavy does not expect is not swallowed: a dead want-file it cannot remove fails the run, naming the error", () => {
+    const dir = slots();
+    mkdirSync(join(dir, "want-99999999"));
+    const r = plainRun(dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /EPERM|EISDIR/);
   });
 
   const once = (slotsEnv, ...cmd) => {
