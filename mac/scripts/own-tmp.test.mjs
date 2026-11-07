@@ -11,6 +11,7 @@ const MAKE = `const {mkdtempSync, writeFileSync} = require('node:fs'); const {jo
 const KID = `const kid = require('node:child_process').spawn('sleep', ['30.5'], {stdio: 'ignore'}); kid.unref(); console.log('kid ' + kid.pid);`
 const HANG = 'setInterval(() => {}, 1000)'
 const LIMIT = {timeout: 60_000}
+const GROUP_GONE_MS = 3000
 const temp = mkdtempSync(join(tmpdir(), 'barkever-own-tmp-test-'))
 const clear = () => rmSync(temp, {recursive: true, force: true})
 after(clear)
@@ -23,6 +24,11 @@ const alive = (pid) => {
   } catch {
     return false
   }
+}
+const kill = (pid) => {
+  try {
+    process.kill(pid, 'SIGKILL')
+  } catch {}
 }
 const living = new Set()
 const cleanup = (t, kill) => {
@@ -191,4 +197,34 @@ test('a command that does not exist exits 127 with one line, and leaves no dir',
   assert.equal(status, 127)
   assert.equal(stderr, 'own-tmp: no-such-binary-xyz: spawn no-such-binary-xyz ENOENT\n')
   assert.deepEqual(readdirSync(empty), [])
+})
+
+test('a runner killed with SIGKILL leaves nothing in its process group', LIMIT, async (t) => {
+  const dir = mkdtempSync(join(temp, 'runner-'))
+  const pids = join(dir, 'pids')
+  const file = join(dir, 'hangs.test.mjs')
+  writeFileSync(file, `
+    import {spawn} from 'node:child_process'
+    import {writeFileSync} from 'node:fs'
+    import {test} from 'node:test'
+    test('hangs', () => {
+      const kids = [spawn('sleep', ['30.7'], {stdio: 'ignore'}), spawn('node', ['-e', ${JSON.stringify(HANG)}], {stdio: 'ignore'})]
+      writeFileSync(${JSON.stringify(pids)}, [process.ppid, process.pid, ...kids.map((k) => k.pid)].join(' '))
+      return new Promise(() => {})
+    })`)
+  const {NODE_TEST_CONTEXT, ...outside} = process.env
+  const own = spawn('node', [OWN, 'node', '--test', file], {stdio: 'ignore', env: outside})
+  let runner
+  cleanup(t, () => {
+    own.kill('SIGKILL')
+    if (runner) kill(-runner)
+  })
+  for (let i = 0; i < 1000 && !existsSync(pids); i++) await wait(20)
+  const [leader, ...rest] = readFileSync(pids, 'utf8').split(' ').map(Number)
+  runner = leader
+  assert.equal(rest.length, 3)
+  process.kill(runner, 'SIGKILL')
+  for (const end = Date.now() + GROUP_GONE_MS; alive(-runner) && Date.now() < end; ) await wait(20)
+  assert.equal(alive(-runner), false, `the group of ${runner} still runs ${GROUP_GONE_MS} ms after its runner died`)
+  assert.deepEqual(rest.filter(alive), [])
 })
