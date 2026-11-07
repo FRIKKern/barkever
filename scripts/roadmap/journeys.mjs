@@ -1,6 +1,7 @@
-import { count, say, svgDoc, wrap } from "./kit.mjs";
+import { count, say, svgDoc, wrap, oneLine } from "./kit.mjs";
 
 const WIDTH = 1200;
+const NAME_CHAR_WIDTH = 11.5;
 const PAD = 48;
 const COLUMNS = 5;
 const GAP = 14;
@@ -23,7 +24,7 @@ function card(j, x, y, width) {
     `<rect x="${x}" y="${y}" width="${width}" height="6" rx="3" class="${j.status === "signed" ? "okf" : j.status === "spec" ? "nowf" : "track"}"/>`,
     say(x + 18, y + 36, j.id, { cls: "caps soft" }),
     say(x + width - 18, y + 36, `${mark} ${label}`, { size: 14, weight: 600, cls, anchor: "end" }),
-    say(x + 18, y + 66, j.name, { size: 21, weight: 600 }),
+    say(x + 18, y + 66, oneLine(j.name, Math.floor((width - 36) / NAME_CHAR_WIDTH)), { size: 21, weight: 600 }),
     ...lines.map((line, i) => say(x + 18, y + 92 + i * 19, line, { size: 14.5, cls: "soft" })),
     say(x + 18, y + CARD_H - 16, `${j.milestone} · ${tasksLabel(j.openTasks)}`, { size: 14, cls: "soft" }),
   ];

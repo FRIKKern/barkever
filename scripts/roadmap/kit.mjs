@@ -34,6 +34,8 @@ export function wrap(text, maxChars, maxLines = Infinity) {
   return kept;
 }
 
+export const oneLine = (text, maxChars) => (text.length > maxChars ? `${text.slice(0, maxChars - 1).trimEnd()}…` : text);
+
 export const say = (x, y, content, { size = 16, cls = "", weight, anchor } = {}) =>
   `<text x="${x}" y="${y}" font-size="${size}"${cls ? ` class="${cls}"` : ""}${weight ? ` font-weight="${weight}"` : ""}${anchor ? ` text-anchor="${anchor}"` : ""}>${esc(content)}</text>`;
 

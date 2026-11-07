@@ -212,6 +212,15 @@ test("a locked index leaves the pictures as they were, so the next land still ru
   assertUntouched(box, base);
 });
 
+test("a commit that fails after the add puts the pictures back, even with the index locked for a moment", () => {
+  const box = sandbox();
+  const base = box.head();
+  writeFileSync(join(box.main, ".git/hooks/pre-commit"), '#!/bin/sh\nlock="$(git rev-parse --git-path index.lock)"\ntouch "$lock"\n(sleep 0.5; rm -f "$lock") >/dev/null 2>&1 &\nexit 1\n', { mode: 0o755 });
+  const r = box.run();
+  assert.equal(r.status, 1, r.stderr);
+  assertUntouched(box, base);
+});
+
 test("a commit already waiting on main is refused, never pushed past prepush", () => {
   const box = sandbox();
   const pushed = box.head();

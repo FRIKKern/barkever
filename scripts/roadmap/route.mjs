@@ -1,6 +1,7 @@
-import { count, say, svgDoc, wrap } from "./kit.mjs";
+import { count, say, svgDoc, wrap, oneLine } from "./kit.mjs";
 
 const WIDTH = 1200;
+const NODE_NAME_CHARS = 18;
 const PAD = 48;
 const ROUTE_TOP = 150;
 const ROUTE_MID = 250;
@@ -48,7 +49,7 @@ function station(m, { x, y }, isNow) {
   } else {
     out.push(`<circle cx="${x}" cy="${y}" r="${RADIUS}" class="bg"/>`, `<circle cx="${x}" cy="${y}" r="${RADIUS}" class="faintl" stroke-width="3"/>`, say(x, y + 6, m.id, { size: 17, weight: 700, cls: "soft", anchor: "middle" }));
   }
-  out.push(say(x, y + RADIUS + 24, m.name, { size: 16, weight: 600, anchor: "middle", cls: m.status === "ahead" ? "soft" : "" }));
+  out.push(say(x, y + RADIUS + 24, oneLine(m.name, NODE_NAME_CHARS), { size: 16, weight: 600, anchor: "middle", cls: m.status === "ahead" ? "soft" : "" }));
   if (isNow) out.push(say(x, y - RADIUS - 16, "NOW", { size: 13, weight: 700, cls: "nowt", anchor: "middle" }));
   return out;
 }
@@ -65,6 +66,9 @@ const CHAR_WIDTH = 8;
 const ROW_GAP = 36;
 const fit = (text, width, maxLines) => wrap(text, Math.floor(width / CHAR_WIDTH), maxLines);
 const stamped = (m) => `${m.met} of ${m.criteria.length} criteria stamped`;
+const NAME_CHAR_WIDTH = 10.5;
+const LABEL_ROOM = 130;
+const named = (m, width, prefix = "") => oneLine(`${prefix}${m.id} ${m.name}`, Math.floor(width / NAME_CHAR_WIDTH));
 const rewardLines = (lines, x, y) => lines.map((line, i) => say(x, y + 24 + i * 21, line, { cls: "soft" }));
 
 function doneRow(m, x, y, width) {
@@ -72,7 +76,7 @@ function doneRow(m, x, y, width) {
   return {
     height: 24 + lines.length * 21 + ROW_GAP,
     body: [
-      say(x, y, `✓ ${m.id} ${m.name}`, { size: 19, weight: 600 }),
+      say(x, y, named(m, width, "✓ "), { size: 19, weight: 600 }),
       ...rewardLines(lines, x, y),
       say(x, y + 24 + lines.length * 21, stamped(m), { size: 14, cls: "soft" }),
     ],
@@ -86,7 +90,7 @@ function movingRow(m, x, y, width) {
   return {
     height: 44 + lines.length * 21 + ROW_GAP,
     body: [
-      say(x, y, `${m.id} ${m.name}`, { size: 19, weight: 600 }),
+      say(x, y, named(m, width - LABEL_ROOM), { size: 19, weight: 600 }),
       say(x + width, y, `${m.tasksDone} of ${m.tasksTotal} tasks`, { size: 15, weight: 600, anchor: "end" }),
       ...rewardLines(lines, x, y),
       `<rect x="${x}" y="${barY}" width="${width}" height="7" rx="3.5" class="track"/>`,
@@ -100,7 +104,7 @@ function aheadRow(m, x, y, width) {
   const lines = fit(m.reward, width, 3);
   return {
     height: lines.length * 21 + ROW_GAP,
-    body: [say(x, y, `${m.id} ${m.name}`, { size: 19, weight: 600 }), ...rewardLines(lines, x, y)],
+    body: [say(x, y, named(m, width), { size: 19, weight: 600 }), ...rewardLines(lines, x, y)],
   };
 }
 

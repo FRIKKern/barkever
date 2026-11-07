@@ -274,12 +274,45 @@ test("a second issue with the same marker closes as not planned", () => {
   assert.deepEqual(planIssues(want, [copy, ...have], numbers), [{ method: "PATCH", path: "issues/50", fields: { state: "closed", state_reason: "not_planned" } }]);
 });
 
+const mirrored = (key) => `Mirror of one acceptance criterion on Barkpark task \`task-a9\`.\n\n<!-- barkever:${key} -->`;
+
 test("more than three issues leaving the board at once is refused", () => {
-  const gone = (n) => ({ number: n, title: "old", body: `<!-- barkever:task-a9:${n} -->`, state: "open", labels: [], milestone: null });
+  const gone = (n) => ({ number: n, title: "old", body: mirrored(`task-a9:${n}`), state: "open", labels: [], milestone: null });
   const want = wantIssues();
   const have = asExisting(want);
   assert.equal(planIssues(want, [...have, gone(61), gone(62), gone(63)], numbers).length, 3);
   assert.throws(() => planIssues(want, [...have, gone(61), gone(62), gone(63), gone(64)], numbers), /refusing to close 4/);
+});
+
+test("a person quoting our marker is never adopted: only the body we write counts", () => {
+  const want = wantIssues();
+  const have = asExisting(want);
+  const quotes = [
+    `Why did this close? It says <!-- barkever:${want[0].key} --> here`,
+    `<!-- barkever:${want[0].key} -->`,
+    `I saw this:\n\n${want[0].body}`,
+  ];
+  for (const body of quotes) {
+    const person = { number: 1, title: "A person wrote this", body, state: "open", labels: [], milestone: null };
+    assert.deepEqual(planIssues(want, [person, ...have], numbers), [], body);
+  }
+});
+
+test("a long name stops at the card's edge in both pictures, with the short ones as they were", () => {
+  const long = "A very long milestone name that goes on and on past the edge of any card it is drawn on";
+  const longPlan = plan.map((p) => ({ ...p, name: long }));
+  const longJourneys = journeys.map((j) => ({ ...j, name: long }));
+  const texts = (svg) => [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+  const m = buildModel({ plan: longPlan, heading: "h", journeys: longJourneys, goal, details, specs: new Set(), asOf: "x" });
+  const route = texts(renderRoute(m)).filter((t) => t.includes("A very long"));
+  const cards = texts(renderJourneys(m)).filter((t) => t.includes("A very long"));
+  assert.ok(route.length && cards.length);
+  for (const t of [...route, ...cards]) {
+    assert.ok(t.endsWith("…"), t);
+    assert.ok(t.length < long.length, t);
+  }
+  assert.ok(cards.every((t) => t.length * 11.5 <= 400), cards[0]);
+  assert.match(renderRoute(model()), new RegExp(`>${plan[0].id} ${plan[0].name}<|>✓ ${plan[0].id} ${plan[0].name}<`));
 });
 
 test("the title is capped at what GitHub takes", () => {
@@ -291,8 +324,8 @@ test("the title is capped at what GitHub takes", () => {
 test("issues without our marker are never touched; ours that left the board close as not planned, once", () => {
   const want = wantIssues();
   const stranger = { number: 99, title: "A person wrote this", body: "hello", state: "open", labels: [], milestone: null };
-  const gone = { number: 98, title: "old", body: "<!-- barkever:task-a9:0 -->", state: "open", labels: [], milestone: null };
-  const goneClosed = { ...gone, number: 97, body: "<!-- barkever:task-a9:1 -->", state: "closed" };
+  const gone = { number: 98, title: "old", body: mirrored("task-a9:0"), state: "open", labels: [], milestone: null };
+  const goneClosed = { ...gone, number: 97, body: mirrored("task-a9:1"), state: "closed" };
   const settled = asExisting(want);
   const ops = planIssues(want, [...settled, stranger, gone, goneClosed], numbers);
   assert.deepEqual(ops, [{ method: "PATCH", path: "issues/98", fields: { state: "closed", state_reason: "not_planned" } }]);

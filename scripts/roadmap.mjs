@@ -9,6 +9,8 @@ import { syncGithub } from "./roadmap/github.mjs";
 
 const GOAL = "task-42e5633d742184c5";
 const ORIGIN = /[:/]FRIKKern\/barkever(\.git)?$/i;
+const UNSTAGE_TRIES = 15;
+const UNSTAGE_WAIT_S = "0.2";
 const PICTURES = ["docs/img/roadmap.svg", "docs/img/journeys.svg"];
 const root = new URL("..", import.meta.url).pathname;
 const flags = new Set(process.argv.slice(2));
@@ -57,7 +59,13 @@ function draw(model) {
 const head = () => git("rev-parse", "HEAD");
 
 function undoPictures(changed, before) {
-  try { git("reset", "-q", "--", ...changed); } catch { console.error("roadmap: could not unstage the pictures"); }
+  for (let tries = UNSTAGE_TRIES; tries > 0; tries--) {
+    try { git("reset", "-q", "--", ...changed); break; }
+    catch {
+      if (tries === 1) console.error("roadmap: could not unstage the pictures");
+      else execFileSync("sleep", [UNSTAGE_WAIT_S]);
+    }
+  }
   for (const path of changed) writeFileSync(`${root}${path}`, before[path]);
 }
 

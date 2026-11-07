@@ -5,7 +5,7 @@ export const REPO = "FRIKKern/barkever";
 const EMAIL = /[\w.+-]+@[\w-]+\.[a-z]{2,}/i;
 const GH_TIMEOUT = 60_000;
 const MAX_ORPHANS = 3;
-const MARKER = /<!-- barkever:(task-[0-9a-f]+:\d+) -->/;
+const MARKER = /^Mirror of one acceptance criterion[\s\S]*<!-- barkever:(task-[0-9a-f]+:\d+) -->/;
 const LABEL_COLORS = { criterion: "3a62b5", journey: "4f8f62" };
 
 export const wantedMilestones = (model) =>
