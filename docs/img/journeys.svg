@@ -59,7 +59,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial
 <text x="1134" y="186" font-size="14" class="nowt" font-weight="600" text-anchor="end">◆ e2e spec</text>
 <text x="960.4" y="216" font-size="21" font-weight="600">Link</text>
 <text x="960.4" y="242" font-size="14.5" class="soft">Link a note to another</text>
-<text x="960.4" y="330" font-size="14" class="soft">P3 · 1 open task</text>
+<text x="960.4" y="330" font-size="14" class="soft">P3 · no open tasks</text>
 <rect x="48" y="360" width="209.6" height="196" rx="12" class="card"/>
 <rect x="48" y="360" width="209.6" height="6" rx="3" class="nowf"/>
 <text x="66" y="396" font-size="16" class="caps soft">J06</text>
