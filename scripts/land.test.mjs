@@ -14,7 +14,7 @@ const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd,
 const tops = [];
 cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
-function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", reviewedAs, pnpm } = {}) {
+function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", prepush, pnpmExit = 0, reviewedAs, onPull, pnpm } = {}) {
   const top = mkdtempSync(join(tmpdir(), "land-"));
   tops.push(top);
   const origin = join(top, "origin.git");
@@ -23,9 +23,10 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   git(top, "init", "-q", "--bare", "-b", "main", origin);
   git(top, "init", "-q", "-b", "main", main);
   mkdirSync(join(main, "scripts"));
-  for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs", "secrets.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
+  for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs", "secrets.mjs", "heavy.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
   writeFileSync(join(main, "a.txt"), "base\n");
-  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check } }));
+  writeFileSync(join(main, "gone.txt"), "old\n");
+  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check, ...(prepush && { prepush }) } }));
   git(main, "add", ".");
   git(main, "commit", "-qm", "base");
   git(main, "remote", "add", "origin", origin);
@@ -36,13 +37,12 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   onMain(main);
   git(main, "push", "-q", "origin", "main");
   const reviewed = git(branch, "rev-parse", "HEAD");
-  if (pnpm) {
-    mkdirSync(join(top, "bin"));
-    writeFileSync(join(top, "bin", "pnpm"), `#!/bin/sh\n${pnpm}\n`, { mode: 0o755 });
-  }
-  const PATH = pnpm ? `${join(top, "bin")}:${env.PATH}` : env.PATH;
-  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, PATH }, encoding: "utf8" });
-  return { r, main, branch, reviewed, mainHead: git(main, "rev-parse", "HEAD") };
+  mkdirSync(join(top, "bin"));
+  writeFileSync(join(top, "bin", "pnpm"), `#!/bin/sh\n${pnpm ?? `exit ${pnpmExit}`}\n`, { mode: 0o755 });
+  if (onPull) writeFileSync(join(top, "bin", "git"), `#!/bin/sh\nif [ "$1" = pull ]; then (cd "${branch}" && ${onPull}); fi\nexec ${execFileSync("which", ["git"], { encoding: "utf8" }).trim()} "$@"\n`, { mode: 0o755 });
+  const mainHead = git(main, "rev-parse", "HEAD");
+  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${env.PATH}` }, encoding: "utf8" });
+  return { r, top, main, branch, reviewed, mainHead };
 }
 
 function assertBack({ r, main, branch, reviewed, mainHead }) {
@@ -80,7 +80,143 @@ test("a rebase that never starts fails as before, without a stack", () => {
 test("a step after a clean rebase still fails as before", () => {
   const { r } = repo((m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "b.txt"); git(m, "commit", "-qm", "add b"); });
   assert.equal(r.status, 1, r.stderr);
-  assert.match(r.stderr, /^land: npm run check failed; main is untouched$/m);
+  assert.match(r.stderr, /^land: npm run check failed; feature is back at \w{10}; main is untouched$/m);
+});
+
+test("a step that fails after a rebase over a moved main puts the branch back, so the next land takes the same sha", () => {
+  const run = repo((m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "b.txt"); git(m, "commit", "-qm", "add b"); });
+  assertBack(run);
+  const { main, branch, reviewed } = run;
+  writeFileSync(join(main, "c.txt"), "later\n");
+  git(main, "add", "c.txt");
+  git(main, "commit", "-qm", "main moves again");
+  git(main, "push", "-q", "origin", "main");
+  assert.equal(git(branch, "rev-parse", "HEAD"), reviewed);
+  const again = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: join(main, "..") }, encoding: "utf8" });
+  assert.equal(again.status, 1);
+  assert.doesNotMatch(again.stderr, /pass --reviewed/);
+  assert.match(again.stderr, /^land: npm run check failed; feature is back at/m);
+  assert.equal(git(branch, "rev-parse", "HEAD"), reviewed);
+});
+
+const addB = (m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "b.txt"); git(m, "commit", "-qm", "add b"); };
+
+test("a red prepush puts the branch back at the reviewed sha", () => {
+  const run = repo(addB, undefined, { check: "exit 0", prepush: "exit 4" });
+  assertBack(run);
+  assert.match(run.r.stderr, /^land: prepush \(queued\) failed; feature is back at \w{10}; main is untouched$/m);
+});
+
+test("a failed install puts the branch back", () => {
+  const run = repo(addsDependency, undefined, { check: "exit 0", prepush: "exit 0", pnpmExit: 7 });
+  assertBack(run);
+  assert.match(run.r.stderr, /^land: install what main now locks failed; feature is back at \w{10}; main is untouched$/m);
+});
+
+test("a secret the no-app-effect scan refuses puts the branch back", () => {
+  const onBranch = (b) => { mkdirSync(join(b, "scripts"), { recursive: true }); writeFileSync(join(b, "scripts/arms.mjs"), `export const key = "AKIA${"A".repeat(16)}";\n`); git(b, "add", "scripts/arms.mjs"); git(b, "commit", "-qm", "arms"); };
+  const run = repo(addB, onBranch, { check: "exit 0" });
+  assertBack(run);
+  assert.match(run.r.stderr, /^land: no app effect: secret scan failed; feature is back at \w{10}; main is untouched$/m);
+});
+
+test("a commit made during a green prepush stops the land: it stays on the branch and nothing reaches origin", () => {
+  const { r, main, branch, top } = repo(addB, undefined, { check: "exit 0", prepush: "echo late > late.txt; git add late.txt; git commit -qm late" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /moved during the land.*nothing landed; main is untouched$/m);
+  assert.equal(git(branch, "log", "-1", "--format=%s"), "late");
+  assert.equal(git(main, "log", "-1", "--format=%s").includes("late"), false);
+  assert.equal(git(top, "--git-dir", join(top, "origin.git"), "log", "--format=%s", "main"), "add b\nbase");
+});
+
+test("a commit amended during a green check stops the land, so what was scanned is what would land", () => {
+  const onBranch = (b) => { mkdirSync(join(b, "scripts"), { recursive: true }); writeFileSync(join(b, "scripts/arms.mjs"), "export const a = 1;\n"); git(b, "add", "."); git(b, "commit", "-qm", "arms"); };
+  const { r, top } = repo(addB, onBranch, { check: "git commit -q --amend -m amended; exit 0" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /moved during the land/);
+  assert.equal(git(top, "--git-dir", join(top, "origin.git"), "log", "--format=%s", "main").includes("amended"), false);
+});
+
+test("a folder that changes during a green check stops the land: an edit, or another branch", () => {
+  for (const check of ["echo fix >> a.txt; exit 0", "git checkout -q -b z; exit 0"]) {
+    const { r, top, main, branch } = repo(addB, undefined, { check, prepush: "exit 0" });
+    assert.equal(r.status, 1, r.stderr);
+    assert.match(r.stderr, /moved during the land/);
+    assert.equal(existsSync(join(main, ".git/land.pid")), false);
+    assert.equal(git(top, "--git-dir", join(top, "origin.git"), "log", "--format=%s", "main"), "add b\nbase");
+    assert.equal(git(main, "log", "--format=%s", "main"), "add b\nbase");
+    if (check.includes("fix")) assert.match(readFileSync(join(branch, "a.txt"), "utf8"), /fix/);
+  }
+});
+
+test("a commit made during the pull stops the land before the rebase, so a red check can't drop it", () => {
+  const onPull = `echo late > late.txt && ${execFileSync("which", ["git"], { encoding: "utf8" }).trim()} add late.txt && ${execFileSync("which", ["git"], { encoding: "utf8" }).trim()} commit -qm late`;
+  const { r, branch } = repo(addB, undefined, { onPull });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /moved before the rebase; nothing landed/);
+  assert.equal(git(branch, "log", "-1", "--format=%s"), "late");
+  assert.equal(existsSync(join(branch, "late.txt")), true);
+});
+
+test("an untracked file a put-back would overwrite is kept, and the land says so", () => {
+  const gone = (m) => { git(m, "rm", "-q", "gone.txt"); git(m, "commit", "-qm", "main drops gone"); };
+  const onBranch = (b) => write(b, "branch\n");
+  const { r, branch } = repo(gone, onBranch, { check: "echo 'new work' > gone.txt; exit 3" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /feature could not be put back and stays at \w{10}/);
+  assert.equal(readFileSync(join(branch, "gone.txt"), "utf8"), "new work\n");
+});
+
+test("a new branch on the same sha during the land is not moved, and the land doesn't claim feature is back", () => {
+  const { r, branch } = repo(addB, undefined, { check: "git checkout -q -b z; exit 3" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /changed during the land/);
+  assert.equal(git(branch, "symbolic-ref", "HEAD"), "refs/heads/z");
+  assert.equal(git(branch, "rev-parse", "z"), git(branch, "rev-parse", "feature"));
+});
+
+test("a worktree folder gone during the land still reports the failed step, with no stack", () => {
+  const { r } = repo(addB, undefined, { check: 'mv "$PWD" "$PWD.gone"; exit 3' });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: npm run check failed; feature could not be put back and stays at \w{10}; main is untouched$/m);
+  assert.doesNotMatch(r.stderr, /at .*land\.mjs:\d+/);
+});
+
+test("a fast-forward main refuses puts the branch back", () => {
+  const onBranch = (b) => { write(b, "branch\n"); writeFileSync(join(b, "new.txt"), "branch\n"); git(b, "add", "new.txt"); git(b, "commit", "-qm", "new"); };
+  const run = repo(addB, onBranch, { check: "exit 0", prepush: 'echo mine > "$(git worktree list --porcelain | head -1 | cut -d" " -f2)/new.txt"' });
+  assertBack(run);
+  assert.match(run.r.stderr, /^land: fast-forward main failed; feature is back at \w{10}; main is untouched$/m);
+  assert.equal(readFileSync(join(run.main, "new.txt"), "utf8"), "mine\n");
+});
+
+test("an edit made during the land is kept: the branch is not put back", () => {
+  const { r, branch } = repo(addB, undefined, { check: "echo mine >> a.txt; exit 3" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /changed during the land/);
+  assert.match(readFileSync(join(branch, "a.txt"), "utf8"), /mine/);
+});
+
+test("a commit made during the land is kept: the branch is not put back", () => {
+  const { r, branch } = repo(addB, undefined, { check: "echo more > more.txt; git add more.txt; git commit -qm more; exit 3" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /changed during the land/);
+  assert.equal(git(branch, "log", "-1", "--format=%s"), "more");
+  assert.ok(existsSync(join(branch, "more.txt")));
+});
+
+test("a folder that moved to another branch during the land keeps that branch where it was", () => {
+  const { r, branch } = repo(addB, undefined, { check: "git checkout -q -b other; echo o > o.txt; git add o.txt; git commit -qm other; exit 3" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /changed during the land/);
+  assert.equal(git(branch, "symbolic-ref", "HEAD"), "refs/heads/other");
+  assert.equal(git(branch, "log", "-1", "--format=%s"), "other");
+});
+
+test("a reset that cannot run still reports the failed step", () => {
+  const { r } = repo(addB, undefined, { check: 'touch "$(git rev-parse --git-path index.lock)"; exit 3' });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: npm run check failed; feature could not be put back and stays at \w{10}; main is untouched$/m);
 });
 
 const docsOnly = (b) => { mkdirSync(join(b, "docs")); writeFileSync(join(b, "docs/x.md"), "x\n"); git(b, "add", "docs"); git(b, "commit", "-qm", "docs"); };
@@ -94,10 +230,16 @@ test("a branch rebased over a new dependency lands: it installs before the check
   assert.equal(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
 });
 
+test("a repo with no lockfile runs no install step", () => {
+  const { r } = repo(addB);
+  assert.doesNotMatch(r.stderr, /^land: install what main now locks$/m);
+  assert.match(r.stderr, /^land: npm run check$/m);
+});
+
 test("a failed install stops the land before the check, and says so", () => {
   const { r, main, mainHead } = repo(addsDependency, docsOnly, { ...INSTALLS, pnpm: "exit 7" });
   assert.equal(r.status, 1, r.stderr);
-  assert.match(r.stderr, /^land: install what main now locks failed; main is untouched$/m);
+  assert.match(r.stderr, /^land: install what main now locks failed; feature is back at \w{10}; main is untouched$/m);
   assert.doesNotMatch(r.stderr, /^land: npm run check$/m);
   assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
 });
@@ -162,7 +304,7 @@ test("worktree.mjs refuses an existing worktree with uncommitted changes, naming
 
 test("a land of a branch with an untracked file goes on as before: only worktree.mjs called by hand refuses it", () => {
   const { r } = repo(() => {}, (b) => { write(b, "branch\n"); writeFileSync(join(b, "stray.txt"), "untracked\n"); });
-  assert.match(r.stderr, /^land: npm run check failed; main is untouched$/m);
+  assert.match(r.stderr, /^land: npm run check failed; feature is back at \w{10}; main is untouched$/m);
   assert.doesNotMatch(r.stderr, /already exists/);
 });
 

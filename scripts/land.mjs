@@ -47,12 +47,24 @@ const abortRebase = () => {
   git(["rebase", "--abort"], dir);
   return ` on ${conflicts}; rebase aborted, ${branch} is back at ${head.slice(0, 10)}`;
 };
+if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} moved before the rebase; nothing landed; main is untouched`); process.exit(1); }
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
-if (existsSync(resolve(dir, "pnpm-lock.yaml"))) step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir);
-step("npm run check", "npm", ["run", "check"], dir);
-if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
-else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
-step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
+const rebased = git(["rev-parse", branch], dir);
+const putBack = () => {
+  try {
+    const untouched = git(["rev-parse", "--abbrev-ref", "HEAD"], dir) === branch && git(["rev-parse", branch], dir) === rebased && !git(["status", "--porcelain", "--untracked-files=no"], dir);
+    if (!untouched) return `; ${dir} changed during the land, so it stays as it is and ${branch} was not put back`;
+    git(["reset", "-q", "--keep", head], dir);
+    return `; ${branch} is back at ${head.slice(0, 10)}`;
+  } catch { return `; ${branch} could not be put back and stays at ${rebased.slice(0, 10)}`; }
+};
+if (existsSync(resolve(dir, "pnpm-lock.yaml"))) step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir, putBack);
+step("npm run check", "npm", ["run", "check"], dir, putBack);
+if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
+else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir, putBack);
+const moved = () => { try { return git(["rev-parse", "--abbrev-ref", "HEAD"], dir) !== branch || git(["rev-parse", branch], dir) !== rebased || git(["status", "--porcelain", "--untracked-files=no"], dir) !== ""; } catch { return true; } };
+if (moved()) { console.error(`land: ${dir} moved during the land, so the checks did not cover what is there now; it stays as it is; nothing landed; main is untouched`); process.exit(1); }
+step("fast-forward main", "git", ["merge", "--ff-only", "-q", rebased], main, putBack);
 step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "local main is ahead of origin; origin is untouched");
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);
 const publishRoadmap = `${main}/scripts/roadmap.mjs`;
