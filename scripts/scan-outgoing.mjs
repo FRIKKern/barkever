@@ -6,6 +6,7 @@ const git = (args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1
 const hasOrigin = () => { try { git(["rev-parse", "--verify", "-q", "origin/main"]); return true; } catch { return false; } };
 
 const secrets = knownSecrets();
+if (!secrets.length) console.error("scan-outgoing: no known tokens found in ~/.config/barkpark/config.json or app/.env.local; key patterns only");
 const patterns = secretPatterns;
 
 const range = process.argv[2] ?? (hasOrigin() ? "origin/main..HEAD" : "HEAD");

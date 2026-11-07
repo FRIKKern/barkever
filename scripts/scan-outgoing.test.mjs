@@ -15,7 +15,7 @@ const long = "A1b2C3d4".repeat(5);
 const known = "known-value-".concat(long);
 const knownMail = "owner-".concat(long, "@example.test");
 
-function outgoing(commit, envLocal = `export X_TOKEN=${known}\nBARKEVER_E2E_EMAIL=${knownMail}\n`) {
+function outgoing(commit, envLocal = `export X_TOKEN=${known}\nBARKEVER_E2E_EMAIL=${knownMail}\n`, config) {
   const top = mkdtempSync(join(tmpdir(), "scan-"));
   tops.push(top);
   const origin = join(top, "origin.git");
@@ -33,6 +33,10 @@ function outgoing(commit, envLocal = `export X_TOKEN=${known}\nBARKEVER_E2E_EMAI
   git("remote", "add", "origin", origin);
   git("push", "-q", "origin", "main");
   commit(repo, git);
+  if (config) {
+    mkdirSync(join(top, ".config/barkpark"), { recursive: true });
+    writeFileSync(join(top, ".config/barkpark/config.json"), JSON.stringify(config));
+  }
   return spawnSync("node", ["scripts/scan-outgoing.mjs"], { cwd: repo, env: { ...env, HOME: top }, encoding: "utf8" });
 }
 const file = (name, text, attrs) => (repo, git) => {
@@ -52,6 +56,11 @@ const caught = {
   bpsess_: [file("a.txt", "bpsess_".concat(long)), "bpsess_".concat(long)],
   "xoxb-": [file("a.txt", "xoxb-".concat(long)), "xoxb-".concat(long)],
   npm_: [file("a.txt", "npm_".concat(long)), "npm_".concat(long)],
+  ghu_: [file("a.txt", "ghu_".concat(long)), "ghu_".concat(long)],
+  ghs_: [file("a.txt", "ghs_".concat(long)), "ghs_".concat(long)],
+  ghr_: [file("a.txt", "ghr_".concat(long)), "ghr_".concat(long)],
+  "sk-ant-": [file("a.txt", "sk-ant-".concat(long)), "sk-ant-".concat(long)],
+  "a PEM private key": [file("a.txt", "-----BEGIN RSA ".concat("PRIVATE KEY-----\n", long)), long],
 };
 for (const [name, [commit, secret]] of Object.entries(caught)) test(`catches ${name} and never prints it`, () => {
   const r = outgoing(commit);
@@ -63,4 +72,24 @@ test("clean commits pass and name how many tokens were checked", () => {
   const r = outgoing(file("a.txt", "just words\n"));
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ok \(1 commit\(s\), 2 known tokens checked\)/);
+});
+
+for (const [where, config, value] of [["token", { token: known }, known], ["cloud_token", { cloud_token: known }, known], ["a known server's token", { known_servers: [{ token: known }] }, known]]) test(`catches the Barkpark config's ${where} and never prints it`, () => {
+  const r = outgoing(file("a.txt", value), "", config);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.ok(!(r.stdout + r.stderr).includes(value));
+});
+
+test("the public dev default in the Barkpark config is no secret: a commit may name it, and it isn't counted", () => {
+  const dev = "barkpark-dev-".concat("token");
+  const r = outgoing(file("a.txt", dev), "", { token: dev });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stderr, /no known tokens/);
+});
+
+test("no env and no config still scans for key patterns, and says it had no known tokens to check", () => {
+  const clean = outgoing(file("a.txt", "just words\n"), "");
+  assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+  assert.match(clean.stderr, /scan-outgoing: no known tokens .* key patterns only/);
+  assert.equal(outgoing(file("a.txt", "gho_".concat(long)), "").status, 1);
 });
