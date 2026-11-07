@@ -80,14 +80,15 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
     setPrompting(false)
     void edit.start(instruction, picked)
   }
+  const ins = w.links.backs(note.id).length
   const remove = () => {
+    if (ins && !confirm(`${ins} ${ins === 1 ? 'note links' : 'notes link'} here; their links will show as gone. Delete this note?`)) return
     void recorded(note.id, deleteNote(note.id).then(() => true)).then((gone) => {
       if (gone) void navigate({to: '/', search: {...s, n: undefined}})
     })
   }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)
-  const ins = w.links.backs(note.id).length
   const outs = w.links.outs(note.id).length
   const named = (id: string | null) => w.shelf.path(id).join(' › ')
   const linker: Linker = {pick: (q) => linkCandidates(w.lib.notes, note.id, q, named), preview: (id) => linkPreview(w.links.byId, id, named), resolve: (id) => linkTitle(w.links.byId, id), title: w.links.title}

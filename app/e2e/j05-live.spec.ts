@@ -161,6 +161,7 @@ test('J05 live titles: a typed [[Title]] links, a rename repaints every link, th
   await expect.poll(() => shown(page)).toEqual([RENAMED, RENAMED])
 
   const before = (await onServer(target))!
+  other.once('dialog', (d) => void d.accept())
   await other.getByTestId('delete-note').click()
   await expect(links(page).first()).toHaveAttribute('data-missing', {timeout: 15_000})
   await expect(links(page).nth(1)).toHaveAttribute('data-missing')

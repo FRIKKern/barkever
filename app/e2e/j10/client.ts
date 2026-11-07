@@ -1,4 +1,4 @@
-import {expect, type Page} from '@playwright/test'
+import {expect, type Page, type Dialog} from '@playwright/test'
 import type {Block} from '../../src/lib/model.ts'
 import type {Doc} from '../../src/replica/note.ts'
 import type {Made, Op, Writer} from './writer.ts'
@@ -135,8 +135,11 @@ export async function act(page: Page, writer: Writer, op: Op) {
       await expect(block(page, op.block)).toHaveCount(0)
     }
     if (op.kind === 'delete') {
+      const accept = (d: Dialog) => void d.accept()
+      page.once('dialog', accept)
       await page.getByTestId('delete-note').click()
       await expect(row(page, op.note)).toHaveCount(0)
+      page.off('dialog', accept)
       await expect(page).toHaveURL((u) => shown(u) === null)
     }
   }

@@ -157,6 +157,15 @@ test('J05 delete: a link to a deleted note reads as dead, its card says so and h
   await page.goto(`/?n=${target}`)
   await expect(page.getByTestId('title')).toHaveValue(TARGET, {timeout: 30_000})
   await synced(page)
+  const asked: string[] = []
+  page.once('dialog', (d) => {
+    asked.push(d.message())
+    void d.dismiss()
+  })
+  await page.getByTestId('delete-note').click()
+  await expect.poll(() => asked).toEqual(['2 notes link here; their links will show as gone. Delete this note?'])
+  expect(opened(page)).toBe(target)
+  page.once('dialog', (d) => void d.accept())
   await page.getByTestId('delete-note').click()
   await expect.poll(() => opened(page)).toBeNull()
 
@@ -175,4 +184,23 @@ test('J05 delete: a link to a deleted note reads as dead, its card says so and h
   await page.waitForTimeout(500)
   expect(opened(page)).toBe(source)
   expect(errors).toEqual([])
+})
+
+test('J05 delete: a note nothing links to goes in one click, with no question', async ({page}) => {
+  const lone = `note-lone-${Date.now()}`
+  created.push(lone)
+  const doc = {_id: lone, _type: 'note', title: 'Nothing links here', notebook: {_ref: 'fx-nb-inbox'}, tags: [], links: [], body: {blocks: [{id: 'p', type: 'paragraph', content: [{type: 'text', value: 'Alone.'}]}]}}
+  const res = await barkpark(`/v1/data/mutate/${DATASET}`, {method: 'POST', body: JSON.stringify({mutations: [{createOrReplace: doc}]})})
+  expect(res.status).toBe(200)
+  const asked: string[] = []
+  page.on('dialog', (d) => {
+    asked.push(d.message())
+    void d.dismiss()
+  })
+  await page.goto(`/?n=${lone}`)
+  await expect(page.getByTestId('title')).toHaveValue('Nothing links here', {timeout: 30_000})
+  await synced(page)
+  await page.getByTestId('delete-note').click()
+  await expect.poll(() => opened(page)).toBeNull()
+  expect(asked).toEqual([])
 })
