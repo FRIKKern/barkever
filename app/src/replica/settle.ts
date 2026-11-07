@@ -45,7 +45,7 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     void rows.put(toRow(next))
   }
   const base = entry ? baseFor(entry.base, entry.sent ?? [], theirs) : null
-  const merged = entry ? reconcile(base, note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
+  const merged = entry ? reconcile(base ?? (entry.home ? {_id: entry.id, _type: 'note', notebook: entry.home} : null), note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
   const settled = !entry || (merged && theirs ? sameContent(merged, theirs) : merged === theirs)
   if (settled) {
     if (entry) void outbox.delete(id)

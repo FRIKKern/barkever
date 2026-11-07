@@ -177,6 +177,9 @@ test('words left in the journal on a note deleted elsewhere come back at the nex
   await page.reload()
   await expect(page.getByTestId('note-row').filter({hasText: 'Failed words.'})).toHaveCount(1, {timeout: 15_000})
   await expect.poll(async () => blockText((await serverNote(id))?.body?.blocks[0] ?? {id: '', type: 'paragraph'}), {timeout: 15_000}).toBe('Failed words.')
+  await page.getByTestId('side-notebook').filter({hasText: 'Inbox'}).click()
+  await expect(page).toHaveURL(/nb=/)
+  await expect(page.getByTestId('note-row').filter({hasText: 'Failed words.'})).toHaveCount(1)
   expect(errors).toEqual([])
 })
 

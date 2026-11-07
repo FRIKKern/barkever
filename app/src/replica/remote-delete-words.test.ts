@@ -9,6 +9,7 @@ import {newDevice, use, type Device} from '../chaos/fake-db.ts'
 const {forgetJot, forgetJournal, jot, jotted} = await import('./journal.ts')
 const {createNote, deleteNote, editBody, editTitle, owesTitle, owesWords} = await import('./local.ts')
 const {dropIfBlank} = await import('./drop.ts')
+const {settle} = await import('./settle.ts')
 const {mutationFor} = await import('../sync/push.ts')
 
 const p = (id: string, text: string): Block => ({id, type: 'paragraph', content: [{type: 'text', value: text}]})
@@ -52,6 +53,45 @@ test('failed words on a note a remote delete removed come back at the next save,
   const entry = d.stores.outbox.get('n1') as Entry
   assert.ok(JSON.stringify(mutationFor(entry, d.stores.notes.get('n1') as NoteDoc)).includes('"create"'))
   assert.deepEqual(jotted(), [])
+})
+
+test('a restored note lands in Inbox, so a notebook view shows it and the create names a notebook', async () => {
+  const d = device()
+  d.stores.notebooks.set('nb-work', {_id: 'nb-work', _type: 'notebook', name: 'Work'})
+  d.stores.notebooks.set('nb-in', {_id: 'nb-in', _type: 'notebook', name: ' inbox '})
+  await rejectedSave(d, () => editBody('n1', BASE, WORDS))
+  d.stores.notes.delete('n1')
+  d.stores.rows.delete('n1')
+  await (await freshLocal()).replayJournal()
+  assert.equal((d.stores.notes.get('n1') as NoteDoc).notebook?._ref, 'nb-in')
+  assert.ok(JSON.stringify(mutationFor(d.stores.outbox.get('n1') as Entry, d.stores.notes.get('n1') as NoteDoc)).includes('nb-in'))
+})
+
+test('with no Inbox a restored note lands in the first top notebook by name, not a nested one', async () => {
+  const d = device()
+  d.stores.notebooks.set('nb-child', {_id: 'nb-child', _type: 'notebook', name: 'A child', parent: {_type: 'reference', _ref: 'nb-top'}})
+  d.stores.notebooks.set('nb-z', {_id: 'a-first-id', _type: 'notebook', name: 'Zebra'})
+  d.stores.notebooks.set('nb-top', {_id: 'nb-top', _type: 'notebook', name: 'Top'})
+  await rejectedSave(d, () => editTitle('n1', 'Plan', 'Better plan'))
+  d.stores.notes.delete('n1')
+  await editTitle('n1', 'Better plan', 'Best plan')
+  assert.equal((d.stores.notes.get('n1') as NoteDoc).notebook?._ref, 'nb-top')
+})
+
+test('Inbox is only a guess: the note goes back to its notebook if the server copy returns before the create lands', async () => {
+  const d = device()
+  d.stores.notebooks.set('nb-in', {_id: 'nb-in', _type: 'notebook', name: 'Inbox'})
+  await rejectedSave(d, () => editBody('n1', BASE, WORDS))
+  d.stores.notes.delete('n1')
+  d.stores.rows.delete('n1')
+  await (await freshLocal()).replayJournal()
+  assert.equal((d.stores.notes.get('n1') as NoteDoc).notebook?._ref, 'nb-in')
+  const server: NoteDoc = {_id: 'n1', _type: 'note', _rev: 'r9', title: 'Plan', notebook: {_type: 'reference', _ref: 'nb-work'}, tags: [], links: [], body: {blocks: BASE}}
+  await settle('note', 'n1', server, () => 'apply')
+  const merged = d.stores.notes.get('n1') as NoteDoc
+  assert.equal(merged.notebook?._ref, 'nb-work')
+  assert.ok(!(merged.conflicts ?? []).some((c) => c.notebook))
+  assert.ok(!JSON.stringify(mutationFor(d.stores.outbox.get('n1') as Entry, merged)).includes('nb-in'))
 })
 
 test('a failed title on a note a remote delete removed comes back as a note with that title', async () => {

@@ -1,5 +1,5 @@
 import {db, deviceId, forgetReplica, NOTE_STORES, stored, type Entry} from './db'
-import {toRow, type NoteDoc} from './note'
+import {toRow, type NotebookDoc, type NoteDoc} from './note'
 import {move, tagsTo, tickAt} from './organize'
 import {notify} from './bus'
 import {forgetJot, forgetJournal, jot, jotted, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
@@ -10,13 +10,13 @@ import {emptyParagraph, holdsNothing, type Block} from '../lib/model'
 
 const now = () => new Date().toISOString()
 
-type Change = (note: NoteDoc | undefined, entry: Entry | undefined) => {note: NoteDoc | null; entry: Entry | null} | null
+type Change = (note: NoteDoc | undefined, entry: Entry | undefined, notebooks: NotebookDoc[]) => {note: NoteDoc | null; entry: Entry | null} | null
 
 async function write(id: string, change: Change, adopt = false) {
-  const tx = (await db()).transaction(NOTE_STORES, 'readwrite')
+  const tx = (await db()).transaction([...NOTE_STORES, 'notebooks'] as const, 'readwrite')
   const [notes, rows, outbox] = [tx.objectStore('notes'), tx.objectStore('rows'), tx.objectStore('outbox')]
   const [local, entry] = await Promise.all([notes.get(id), outbox.get(id)])
-  const next = change(local && stored(local), entry)
+  const next = change(local && stored(local), entry, local ? [] : await tx.objectStore('notebooks').getAll())
   if (!next) return tx.done
   await Promise.all([
     ...(next.note ? [notes.put({...next.note, _gen: adopt ? (local?._gen ?? 0) + 1 : local?._gen}), rows.put(toRow(next.note))] : [notes.delete(id), rows.delete(id)]),
@@ -74,23 +74,32 @@ const LATE_SAVE_MS = 5000
 const deletedAt = new Map<string, number>()
 const justDeleted = (id: string) => Date.now() - (deletedAt.get(id) ?? -Infinity) < LATE_SAVE_MS
 
-const restore = (id: string, j: Jotted | undefined, entry: Entry | undefined) =>
-  entry?.delete || justDeleted(id) || !j || !holdsWords(j)
+const nameOf = (nb: NotebookDoc) => nb.name?.trim() ?? ''
+
+function homeFor(notebooks: NotebookDoc[]) {
+  const home = notebooks.find((nb) => nameOf(nb).toLowerCase() === 'inbox') ?? notebooks.filter((nb) => !notebooks.some((x) => x._id === nb.parent?._ref)).sort((a, b) => nameOf(a).localeCompare(nameOf(b)))[0]
+  return home && {_type: 'reference' as const, _ref: home._id}
+}
+
+const restore = (id: string, j: Jotted | undefined, entry: Entry | undefined, notebooks: NotebookDoc[]) => {
+  const home = homeFor(notebooks)
+  return entry?.delete || justDeleted(id) || !j || !holdsWords(j)
     ? null
     : {
-        note: applied(j)({_id: id, _type: 'note', title: j.titles?.[0]?.shown ?? '', tags: [], links: [], body: {blocks: j.steps?.[0]?.base ?? [emptyParagraph(`${id}-p0`)]}, _updatedAt: now()}, null),
-        entry: bump(id, null, entry),
+        note: applied(j)({_id: id, _type: 'note', ...(home && {notebook: home}), title: j.titles?.[0]?.shown ?? '', tags: [], links: [], body: {blocks: j.steps?.[0]?.base ?? [emptyParagraph(`${id}-p0`)]}, _updatedAt: now()}, null),
+        entry: bump(id, null, entry, {home}),
       }
+}
 
 async function journaled(id: string, patch: Jot, change: Edit) {
   const seq = jot(id, patch)
   let out: NoteDoc | undefined
   let back: Jotted | undefined
   try {
-    await write(id, (note, entry) => {
-      if (note) return edited(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))(note, entry)
+    await write(id, (note, entry, notebooks) => {
+      if (note) return edited(id, (before, server) => (out = [...(owed.get(id) ?? []), change].reduce((n, c) => c(n, server), before)))(note, entry, notebooks)
       const j = jottedOf(id)
-      const next = restore(id, j, entry)
+      const next = restore(id, j, entry, notebooks)
       if (next) back = j
       return next
     })
@@ -132,11 +141,11 @@ export function replayJournal() {
     await db()
     for (const [id] of jotted()) {
       let seq = 0
-      await write(id, (note, entry) => {
+      await write(id, (note, entry, notebooks) => {
         const j = jottedOf(id)
         if (!j) return null
         seq = j.seq
-        return note ? edited(id, applied(j))(note, entry) : restore(id, j, entry)
+        return note ? edited(id, applied(j))(note, entry, notebooks) : restore(id, j, entry, notebooks)
       })
       if (seq) unjotReplayed(id, seq)
     }
