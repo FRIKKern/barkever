@@ -48,7 +48,7 @@ Owner-only choices get a provisional pick from an independent judge, flagged for
 - **guerrilla is shared** by every run and agent. A live probe is one timed call: no loops, no deletes or bulk writes without the lead.
 - **No secrets in prompts, files or output.** `land.mjs` and `npm run prepush` scan outgoing commits; a plain `git push` runs nothing, so land.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
-- **Only the lead fast-forwards `main`.** Reviews go to the task and the verdict file.
+- **Trial until 2026-11-09 overrides these rules:** [0038](docs/decisions/0038-review-trial.md).
 
 ## AI in the app
 
