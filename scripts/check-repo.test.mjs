@@ -49,6 +49,11 @@ const testTimeout = (flag) => (d) => {
   p.scripts.test = p.scripts.test.replace(/ --test-timeout=\d+/, flag);
   writeFileSync(join(d, "mac/package.json"), JSON.stringify(p));
 };
+const secondRunBare = (join_) => (d) => {
+  const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8"));
+  p.scripts.test = `node --test --test-timeout=300000 a ${join_} node --test b`;
+  writeFileSync(join(d, "mac/package.json"), JSON.stringify(p));
+};
 const plants = {
   "word cap": (d) => writeFileSync(join(d, "README.md"), readFileSync(join(d, "README.md"), "utf8") + " word".repeat(400)),
   "no picture in a top-level doc": (d) => writeFileSync(join(d, "docs/NOTES.md"), "# Notes\n\nJust words.\n"),
@@ -58,6 +63,9 @@ const plants = {
   "--test-timeout past 2^31 - 1 ms": testTimeout(" --test-timeout=2147483648"),
   "--test-timeout with a space, not =": testTimeout(" --test-timeout 300000"),
   "--test-timeout with no number": testTimeout(" --test-timeout="),
+  "a second node --test after && without --test-timeout": secondRunBare("&&"),
+  "a second node --test after || without --test-timeout": secondRunBare("||"),
+  "a second node --test after ; without --test-timeout": secondRunBare(";"),
   "banned dependency": (d) => { const p = JSON.parse(readFileSync(join(d, "package.json"), "utf8")); p.dependencies = { next: "1" }; writeFileSync(join(d, "package.json"), JSON.stringify(p)); },
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
