@@ -72,6 +72,7 @@ test("clean commits pass and name how many tokens were checked", () => {
   const r = outgoing(file("a.txt", "just words\n"));
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ok \(1 commit\(s\), 2 known tokens checked\)/);
+  assert.doesNotMatch(r.stderr, /no known tokens/);
 });
 
 for (const [where, config, value] of [["token", { token: known }, known], ["cloud_token", { cloud_token: known }, known], ["a known server's token", { known_servers: [{ token: known }] }, known]]) test(`catches the Barkpark config's ${where} and never prints it`, () => {
