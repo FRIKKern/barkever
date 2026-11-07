@@ -6,6 +6,8 @@ import {clickCaret} from './caret'
 
 export type ServerNote = {_id: string; _rev: string; title?: string; by?: string; body?: {blocks: Block[]}; conflicts?: Conflict[]}
 
+type Pm = {commands: {setTextSelection: (r: {from: number; to: number}) => void}; view: {posAtDOM: (node: Node, offset: number) => number}}
+
 export const created: string[] = []
 
 export const canvas = (page: Page) => page.getByTestId('canvas')
@@ -37,7 +39,14 @@ export async function typeAtEndOf(page: Page, index: number, text: string) {
   const block = canvas(page).locator('[contenteditable="true"] > [data-bp-id]').nth(index)
   const box = (await block.boundingBox())!
   await clickCaret(block, {x: box.width - 2, y: box.height / 2})
-  await page.keyboard.press('End')
+  await block.evaluate((el) => {
+    const ed = (el.parentElement as HTMLElement & {editor: Pm}).editor
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    let last: Node | null = null
+    while (walk.nextNode()) last = walk.currentNode
+    const end = last ? ed.view.posAtDOM(last, last.textContent!.length) : ed.view.posAtDOM(el, 0)
+    ed.commands.setTextSelection({from: end, to: end})
+  })
   await page.keyboard.type(text)
 }
 
