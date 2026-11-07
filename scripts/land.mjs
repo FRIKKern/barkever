@@ -48,12 +48,10 @@ const abortRebase = () => {
   return ` on ${conflicts}; rebase aborted, ${branch} is back at ${head.slice(0, 10)}`;
 };
 step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
+if (existsSync(resolve(dir, "pnpm-lock.yaml"))) step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir);
 step("npm run check", "npm", ["run", "check"], dir);
 if (noAppEffect(git(["diff", "--name-only", `main...${branch}`], dir).split("\n").filter(Boolean))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir);
-else {
-  step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir);
-  step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
-}
+else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir);
 step("fast-forward main", "git", ["merge", "--ff-only", "-q", branch], main);
 step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "local main is ahead of origin; origin is untouched");
 console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);

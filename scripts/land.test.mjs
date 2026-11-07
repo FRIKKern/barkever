@@ -14,7 +14,7 @@ const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd,
 const tops = [];
 cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
-function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", reviewedAs } = {}) {
+function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", reviewedAs, pnpm } = {}) {
   const top = mkdtempSync(join(tmpdir(), "land-"));
   tops.push(top);
   const origin = join(top, "origin.git");
@@ -36,7 +36,12 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   onMain(main);
   git(main, "push", "-q", "origin", "main");
   const reviewed = git(branch, "rev-parse", "HEAD");
-  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top }, encoding: "utf8" });
+  if (pnpm) {
+    mkdirSync(join(top, "bin"));
+    writeFileSync(join(top, "bin", "pnpm"), `#!/bin/sh\n${pnpm}\n`, { mode: 0o755 });
+  }
+  const PATH = pnpm ? `${join(top, "bin")}:${env.PATH}` : env.PATH;
+  const r = spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", reviewedAs ?? reviewed.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, PATH }, encoding: "utf8" });
   return { r, main, branch, reviewed, mainHead: git(main, "rev-parse", "HEAD") };
 }
 
@@ -79,6 +84,23 @@ test("a step after a clean rebase still fails as before", () => {
 });
 
 const docsOnly = (b) => { mkdirSync(join(b, "docs")); writeFileSync(join(b, "docs/x.md"), "x\n"); git(b, "add", "docs"); git(b, "commit", "-qm", "docs"); };
+
+const addsDependency = (m) => { writeFileSync(join(m, "pnpm-lock.yaml"), "new dependency\n"); git(m, "add", "pnpm-lock.yaml"); git(m, "commit", "-qm", "add a dependency"); };
+const INSTALLS = { pnpm: "touch node_modules/dep", check: "test -f node_modules/dep" };
+
+test("a branch rebased over a new dependency lands: it installs before the check needs the package", () => {
+  const { r, main } = repo(addsDependency, docsOnly, INSTALLS);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+});
+
+test("a failed install stops the land before the check, and says so", () => {
+  const { r, main, mainHead } = repo(addsDependency, docsOnly, { ...INSTALLS, pnpm: "exit 7" });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^land: install what main now locks failed; main is untouched$/m);
+  assert.doesNotMatch(r.stderr, /^land: npm run check$/m);
+  assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
+});
 
 for (const form of ["feature", "HEAD@{0}", "main", "abcdef"]) test(`--reviewed ${form} is refused`, () => {
   const { r, main, mainHead } = repo(() => {}, undefined, { check: "exit 0", reviewedAs: form });
