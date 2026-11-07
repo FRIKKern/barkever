@@ -251,6 +251,50 @@ test("a failed install stops the land before the check, and says so", () => {
   assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
 });
 
+function rebasedOverContext() {
+  const run = repo(() => {}, () => {}, { reviewedAs: "abcdef" });
+  const { main, branch, top } = run;
+  const lines = (at, text) => { const all = ["1", "2", "3", "4", "5"]; all[at] = text; return `${all.join("\n")}\n`; };
+  writeFileSync(join(main, "long.txt"), lines(0, "1"));
+  git(main, "add", "long.txt");
+  git(main, "commit", "-qm", "long");
+  git(main, "push", "-q", "origin", "main");
+  git(branch, "rebase", "-q", "main");
+  writeFileSync(join(branch, "long.txt"), lines(4, "reviewed line"));
+  writeFileSync(join(branch, "pic.bin"), Buffer.from([0, 1, 2, 3]));
+  git(branch, "add", ".");
+  git(branch, "commit", "-qm", "reviewed");
+  const sha = git(branch, "rev-parse", "HEAD");
+  writeFileSync(join(main, "long.txt"), lines(2, "main moved the line above"));
+  git(main, "add", "long.txt");
+  git(main, "commit", "-qm", "context");
+  git(main, "push", "-q", "origin", "main");
+  git(branch, "rebase", "-q", "main");
+  const land = () => spawnSync("node", [join(main, "scripts/land.mjs"), "feature", "--reviewed", sha.slice(0, 7)], { cwd: main, env: { ...env, HOME: top, HEAVY_DIR: join(top, "heavy"), PATH: `${join(top, "bin")}:${process.env.PATH}` }, encoding: "utf8" });
+  return { branch, sha, land };
+}
+
+test("a clean rebase over lines beside the change keeps its reviewed sha", () => {
+  const { branch, sha, land } = rebasedOverContext();
+  assert.notEqual(git(branch, "rev-parse", "HEAD"), sha);
+  const r = land();
+  assert.doesNotMatch(r.stderr, /pass --reviewed/);
+  assert.match(r.stderr, /^land: npm run check failed/m);
+});
+
+for (const [what, change] of [
+  ["a changed line", (b) => writeFileSync(join(b, "long.txt"), readFileSync(join(b, "long.txt"), "utf8").replace("reviewed line", "other line"))],
+  ["a binary file", (b) => writeFileSync(join(b, "pic.bin"), Buffer.from([0, 1, 2, 4]))],
+]) test(`${what} that differs from the reviewed sha is refused after a rebase`, () => {
+  const { branch, land } = rebasedOverContext();
+  change(branch);
+  git(branch, "add", ".");
+  git(branch, "commit", "-q", "--amend", "--no-edit");
+  const r = land();
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /pass --reviewed <the sha the reviewer passed>/);
+});
+
 for (const form of ["feature", "HEAD@{0}", "main", "abcdef"]) test(`--reviewed ${form} is refused`, () => {
   const { r, main, mainHead } = repo(() => {}, undefined, { check: "exit 0", reviewedAs: form });
   assert.equal(r.status, 1, r.stderr);
