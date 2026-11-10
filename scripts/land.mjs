@@ -50,7 +50,8 @@ const samePatch = (sha) => {
     return tree !== git(["rev-parse", `${base}^{tree}`], dir) && git(["merge-tree", "--write-tree", sha, base], dir) === tree;
   } catch { return false; }
 };
-if (!isText(touched) && !(reviewed && /^[0-9a-f]{7,40}$/.test(reviewed) && (head.startsWith(reviewed) || samePatch(reviewed)))) {
+const reviewPassed = Boolean(reviewed && /^[0-9a-f]{7,40}$/.test(reviewed) && (head.startsWith(reviewed) || samePatch(reviewed)));
+if (!isText(touched) && !reviewPassed) {
   console.error(`land: ${branch} is at ${head.slice(0, 10)}; pass --reviewed <the sha the reviewer passed>. A head that moved after review needs a delta review first`);
   process.exit(1);
 }
@@ -77,7 +78,8 @@ if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} m
 stopIfUnfinished("branch", dir);
 step("rebase onto staging", "git", ["rebase", "-q", "--rebase-merges", base], dir, abortRebase);
 const abortMerge = () => {
-  try { git(["merge", "--abort"], dir); git(["reset", "-q", "--keep", head], dir); return `; merge aborted, ${branch} is back at ${head.slice(0, 10)}`; }
+  try { git(["merge", "--abort"], dir); } catch {}
+  try { git(["reset", "-q", "--keep", head], dir); return `; main and staging each hold a commit that clashes with the other, so no land can pass until the lead merges main into staging by hand; ${branch} is back at ${head.slice(0, 10)}`; }
   catch { return `; ${branch} could not be put back`; }
 };
 if (split) step("merge what main holds and staging lacks", "git", ["merge", "-q", "--no-edit", "origin/main"], dir, abortMerge);
@@ -112,6 +114,7 @@ const suites = [
 ];
 const known = /^docs\/|^[A-Z]+\.md$|^(scripts|\.github|app|mac)\//;
 const everything = landing.some((f) => !known.test(f));
+if (!isText(landing) && !reviewPassed) { console.error(`land: ${branch} would send more than docs: it carries commits local main holds and origin does not. Pass --reviewed <the sha the reviewer passed>${putBack()}; nothing landed; main is untouched`); process.exit(1); }
 if (noAppEffect(landing)) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
 else {
   for (const [label, covers, cmd, args] of suites) if (everything || landing.some((f) => covers.test(f))) step(label, cmd, args, dir, putBack);
@@ -123,5 +126,5 @@ step("push staging", "git", ["push", "-q", "origin", `${rebased}:refs/heads/stag
 console.log(`landed ${branch} on staging at ${rebased.slice(0, 7)}; ci checks it, then the bot moves main`);
 if (hasRoadmap) {
   try { execFileSync("node", ["scripts/roadmap.mjs", "--sync"], { cwd: dir, stdio: "inherit", timeout: 600_000 }); }
-  catch { console.error("land: the land is done, but GitHub's milestones did not refresh; run npm run roadmap:publish"); }
+  catch { console.error("land: the land is done, but GitHub's milestones did not refresh; run node scripts/roadmap.mjs --sync"); }
 }

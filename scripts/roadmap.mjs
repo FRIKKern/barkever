@@ -115,9 +115,16 @@ function publish() {
   console.log(`roadmap: ${drawing.changed.length} picture(s) pushed; GitHub ${JSON.stringify(syncGithub(model, { dryRun: false }))}`);
 }
 
+function sync() {
+  if (!ORIGIN.test(git("remote", "get-url", "origin"))) { console.log("roadmap: origin is not FRIKKern/barkever; nothing to sync"); return; }
+  const model = readModel();
+  syncGithub(model, { dryRun: true });
+  console.log(`roadmap: GitHub ${JSON.stringify(syncGithub(model, { dryRun: false }))}`);
+}
+
 try {
   if (flags.has("--publish")) publish();
-  else if (flags.has("--sync")) console.log(ORIGIN.test(git("remote", "get-url", "origin")) ? `roadmap: GitHub ${JSON.stringify(syncGithub(readModel(), { dryRun: false }))}` : "roadmap: origin is not FRIKKern/barkever; nothing to sync");
+  else if (flags.has("--sync")) sync();
   else if (flags.has("--dry-run")) console.log(JSON.stringify(syncGithub(readModel(), { dryRun: true }), null, 2));
   else console.log(`roadmap: ${draw(readModel()).changed.length} picture(s) changed`);
 } catch (error) {

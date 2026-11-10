@@ -520,6 +520,38 @@ test("a main checkout on another branch stops the land, and nothing claims to ha
   assert.equal(originHead(main), "base");
 });
 
+test("a docs branch cut from a local main that holds an unpushed app commit is refused: the app commit would ride along unreviewed", () => {
+  const run = repo(() => {}, () => {}, { check: "exit 0", reviewedAs: null, unpushed: (m) => {
+    writeFileSync(join(m, "app.txt"), "app\n"); git(m, "add", "app.txt"); git(m, "commit", "-qm", "app");
+    const b = join(m, "..", "barkever-wt", "feature");
+    git(b, "merge", "-q", "--ff-only", "main");
+    docsOnly(b);
+  } });
+  assert.equal(run.r.status, 1, run.r.stderr);
+  assert.match(run.r.stderr, /would send more than docs.*nothing landed/);
+  assert.equal(originLog(run.main, "staging"), "base");
+  assert.equal(git(run.branch, "log", "-1", "--format=%s"), "docs");
+});
+
+for (const [folder, runs, skips] of [["app", "@barkever/app test", "@barkever/mac"], ["mac", "@barkever/mac test", "@barkever/app"]]) test(`a change under ${folder}/ runs that package's tests and no other suite`, () => {
+  const change = (b) => { mkdirSync(join(b, folder)); writeFileSync(join(b, folder, "x.ts"), "x\n"); git(b, "add", folder); git(b, "commit", "-qm", folder); };
+  const run = repo(() => {}, change, { check: "exit 0", pnpm: 'echo "$@" >> "$HOME/pnpm.log"' });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  const ran = readFileSync(join(run.top, "pnpm.log"), "utf8");
+  assert.ok(ran.includes(`--filter ${runs}`), ran);
+  assert.ok(!ran.includes(skips), ran);
+  assert.doesNotMatch(run.r.stderr, /^land: script tests$/m);
+  assert.match(run.r.stderr, /^land: secret scan$/m);
+});
+
+test("a change outside the known folders runs every suite", () => {
+  const run = repo(() => {}, undefined, { check: "exit 0", prepush: "exit 0", pnpm: 'echo "$@" >> "$HOME/pnpm.log"' });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.match(run.r.stderr, /^land: script tests$/m);
+  const ran = readFileSync(join(run.top, "pnpm.log"), "utf8");
+  assert.ok(ran.includes("@barkever/app test") && ran.includes("@barkever/mac test"), ran);
+});
+
 test("an unpushed app commit on local main stays local: a docs land sends only its own commit", () => {
   const run = repo(() => {}, docsOnly, { check: "exit 0", unpushed: (m) => { writeFileSync(join(m, "app.txt"), "app\n"); git(m, "add", "app.txt"); git(m, "commit", "-qm", "app"); } });
   assert.equal(run.r.status, 0, run.r.stderr);
@@ -560,8 +592,8 @@ test("when main and staging each hold a commit the other lacks, the land merges 
   assert.equal(originLog(run.main, "main"), "add b\nbase");
 });
 
-const fakeRoadmap = (body) => (m) => {
-  writeFileSync(join(m, "scripts", "roadmap.mjs"), `import { mkdirSync, writeFileSync } from "node:fs";\nif (process.argv[2] === "--sync") { writeFileSync("../../synced.txt", "y"); process.exit(Number(process.env.SYNC_RC ?? 0)); }\nmkdirSync("docs/img", { recursive: true });\nwriteFileSync("docs/img/roadmap.svg", "new");\nwriteFileSync("docs/img/journeys.svg", "new");\n${body}\n`);
+const fakeRoadmap = (body, syncExit = 0) => (m) => {
+  writeFileSync(join(m, "scripts", "roadmap.mjs"), `import { mkdirSync, writeFileSync } from "node:fs";\nif (process.argv[2] === "--sync") { writeFileSync("../../synced.txt", "y"); process.exit(${syncExit}); }\nmkdirSync("docs/img", { recursive: true });\nwriteFileSync("docs/img/roadmap.svg", "new");\nwriteFileSync("docs/img/journeys.svg", "new");\n${body}\n`);
   git(m, "add", "scripts/roadmap.mjs");
   git(m, "commit", "-qm", "add roadmap");
 };
@@ -572,6 +604,29 @@ test("a land redraws the roadmap as its own commit on top, then syncs GitHub", (
   assert.equal(originLog(run.main, "staging"), "Roadmap: redraw from the Barkpark board\ndocs\nadd roadmap\nbase");
   landedHead(run);
   assert.equal(readFileSync(join(run.top, "synced.txt"), "utf8"), "y");
+});
+
+test("a GitHub sync that fails does not fail a land that already pushed", () => {
+  const run = repo(fakeRoadmap("", 9), docsOnly, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.match(run.r.stdout, /landed feature on staging/);
+  assert.match(run.r.stderr, /milestones did not refresh/);
+  landedHead(run);
+});
+
+test("a clash between what main and staging each hold stops the land, puts the branch back, and says who must fix it", () => {
+  const clash = (m) => {
+    git(m, "checkout", "-q", "-b", "pending");
+    writeFileSync(join(m, "gone.txt"), "staging\n"); git(m, "add", "gone.txt"); git(m, "commit", "-qm", "pending");
+    git(m, "push", "-q", "origin", "pending:staging");
+    git(m, "checkout", "-q", "main");
+    git(m, "branch", "-qD", "pending");
+    writeFileSync(join(m, "gone.txt"), "main\n"); git(m, "add", "gone.txt"); git(m, "commit", "-qm", "direct");
+  };
+  const run = repo(clash, docsOnly, { check: "exit 0" });
+  assertBack(run);
+  assert.match(run.r.stderr, /merge what main holds and staging lacks failed; main and staging each hold a commit that clashes/);
+  assert.equal(originLog(run.main, "staging"), "pending\nbase");
 });
 
 test("a roadmap that cannot be drawn does not stop the land, and leaves no half-drawn picture", () => {
