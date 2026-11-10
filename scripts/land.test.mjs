@@ -62,7 +62,7 @@ function assertBack({ r, main, branch, reviewed, mainHead }) {
 test("a conflicting rebase is aborted: the branch is back at the reviewed sha and the error names the file", () => {
   const run = repo((m) => write(m, "main\n"));
   assertBack(run);
-  const named = run.r.stderr.match(/rebase onto staging failed on a\.txt; rebase aborted, feature is back at (\w{10})/);
+  const named = run.r.stderr.match(/rebase onto main failed on a\.txt; rebase aborted, feature is back at (\w{10})/);
   assert.ok(named, run.r.stderr);
   assert.ok(run.reviewed.startsWith(named[1]));
 });
@@ -70,7 +70,7 @@ test("a conflicting rebase is aborted: the branch is back at the reviewed sha an
 test("a path main deleted and the branch changed is named too", () => {
   const run = repo((m) => { git(m, "rm", "-q", "a.txt"); git(m, "commit", "-qm", "drop a"); });
   assertBack(run);
-  assert.match(run.r.stderr, /rebase onto staging failed on a\.txt; rebase aborted/);
+  assert.match(run.r.stderr, /rebase onto main failed on a\.txt; rebase aborted/);
 });
 
 test("a rebase that never starts fails as before, without a stack", () => {
@@ -83,7 +83,7 @@ test("a rebase that never starts fails as before, without a stack", () => {
     },
   );
   assertBack(run);
-  assert.match(run.r.stderr, /^land: rebase onto staging failed; main is untouched$/m);
+  assert.match(run.r.stderr, /^land: rebase onto main failed; main is untouched$/m);
 });
 
 test("a step after a clean rebase still fails as before", () => {
@@ -569,10 +569,18 @@ const pending = (m) => {
   git(m, "branch", "-qD", "pending");
 };
 
+const everySuite = 'echo "$@" >> "$HOME/pnpm.log"';
+const ranEverySuite = (run) => {
+  assert.match(run.r.stderr, /^land: script tests$/m);
+  const ran = readFileSync(join(run.top, "pnpm.log"), "utf8");
+  assert.ok(ran.includes("@barkever/app test") && ran.includes("@barkever/mac test"), ran);
+};
+
 test("a land goes on top of what staging holds and main does not yet, and main stays where it was", () => {
   const run = repo(pending, docsOnly, { check: "exit 0" });
   assert.equal(run.r.status, 0, run.r.stderr);
   assert.equal(originLog(run.main, "staging"), "docs\npending\nbase");
+  assert.match(run.r.stderr, /^land: rebase onto staging$/m);
   assert.equal(originLog(run.main, "main"), "base");
   landedHead(run);
 });
@@ -581,10 +589,11 @@ test("a staging that only fell behind main is caught up by the land, with no mer
   const run = repo(addB, docsOnly, { check: "exit 0" });
   assert.equal(run.r.status, 0, run.r.stderr);
   assert.equal(originLog(run.main, "staging"), "docs\nadd b\nbase");
+  assert.match(run.r.stderr, /^land: rebase onto main$/m);
 });
 
 test("in a split, a docs branch cut after main's own commit still lands with no review: main's commit is not counted as the branch's", () => {
-  const run = repo((m) => { pending(m); addB(m); }, () => {}, { check: "exit 0", prepush: "exit 0", reviewedAs: null, unpushed: (m) => {
+  const run = repo((m) => { pending(m); addB(m); }, () => {}, { check: "exit 0", prepush: "exit 0", pnpm: everySuite, reviewedAs: null, unpushed: (m) => {
     const b = join(m, "..", "barkever-wt", "feature");
     git(b, "merge", "-q", "--ff-only", "main");
     docsOnly(b);
@@ -592,17 +601,19 @@ test("in a split, a docs branch cut after main's own commit still lands with no 
   assert.equal(run.r.status, 0, run.r.stderr);
   const origin = join(run.main, "..", "origin.git");
   assert.equal(git(origin, "rev-list", "--count", "staging"), "5");
+  ranEverySuite(run);
   assert.equal(spawnSync("git", ["merge-base", "--is-ancestor", "main", "staging"], { cwd: origin, env }).status, 0);
   landedHead(run);
 });
 
 test("when main and staging each hold a commit the other lacks, the land merges staging in so the bot can move main again", () => {
-  const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0", reviewedAs: null });
+  const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0", pnpm: everySuite, reviewedAs: null });
   assert.equal(run.r.status, 0, run.r.stderr);
   const origin = join(run.main, "..", "origin.git");
   for (const subject of ["docs", "pending", "add b"]) assert.ok(originLog(run.main, "staging").split("\n").includes(subject), subject);
   assert.equal(spawnSync("git", ["merge-base", "--is-ancestor", "main", "staging"], { cwd: origin, env }).status, 0);
   assert.equal(originLog(run.main, "main"), "add b\nbase");
+  ranEverySuite(run);
 });
 
 const fakeRoadmap = (body, syncExit = 0) => (m) => {

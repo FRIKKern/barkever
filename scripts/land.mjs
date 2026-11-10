@@ -76,10 +76,10 @@ const abortRebase = () => {
 };
 if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} moved before the rebase; nothing landed; main is untouched`); process.exit(1); }
 stopIfUnfinished("branch", dir);
-step("rebase onto staging", "git", ["rebase", "-q", "--rebase-merges", base], dir, abortRebase);
+step(`rebase onto ${base.slice(7)}`, "git", ["rebase", "-q", "--rebase-merges", base], dir, abortRebase);
 if (!isText(changedSince(base)) && !reviewPassed) {
   git(["reset", "-q", "--keep", head], dir);
-  console.error(`land: ${branch} would send more than docs: it carries commits local main holds and origin does not. Pass --reviewed <the sha the reviewer passed>; ${branch} is back at ${head.slice(0, 10)}; nothing landed; main is untouched`);
+  console.error(`land: ${branch} would send more than docs: it carries commits local main holds and ${base} does not. Pass --reviewed <the sha the reviewer passed>; ${branch} is back at ${head.slice(0, 10)}; nothing landed; main is untouched`);
   process.exit(1);
 }
 const abortMerge = () => {
