@@ -22,7 +22,7 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 2. Worktree for anything but `main`: `node scripts/worktree.mjs <name>` (installs, links the env). The main checkout never switches branches.
 3. One journey per branch. Name it in the commit: `J03: …`.
 4. `npm run check` before every commit.
-5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, touched tests, scan, push `staging`; a bot moves `main` when CI is green ([0041](docs/decisions/0041-land-on-staging-a-bot-moves-main.md)). No squash. Evidence on the task.
+5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, touched tests, scan, push `staging`; a bot moves `main` when CI is green ([0042](docs/decisions/0042-staging-is-live.md)). No squash. Evidence on the task.
 6. Close with evidence: what ran, where to see it, screenshots for any UI change. The lead redraws after a stamp: `npm run roadmap:publish`.
 
 ## Long unattended runs
@@ -41,7 +41,7 @@ Owner-only choices get a provisional pick from an independent judge, flagged for
 - **Unrun means unrun.** Never report a check you didn't run.
 - **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming reviewer and sha.
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
-- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0041](docs/decisions/0041-land-on-staging-a-bot-moves-main.md). Be brave; other agents review after.
+- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0042](docs/decisions/0042-staging-is-live.md). Be brave; other agents review after.
 - **Unsure? Test, don't guess.** Rival spikes in `spikes/<name>/`, one agent per direction, same tests; the winner becomes a decision linking the loser's report.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
