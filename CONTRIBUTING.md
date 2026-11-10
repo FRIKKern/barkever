@@ -25,7 +25,7 @@ node scripts/worktree.mjs <name>
 node scripts/land.mjs <name> --reviewed <sha>
 ```
 
-A land ends on `staging`. GitHub checks it there, and `main` follows once the checks are green.
+A land ends on `staging`. GitHub checks it there, and `main` follows once the checks are green. When they fail, `main` stays and an issue titled `staging is red at <sha>` links the run.
 
 ## Issues and milestones
 
