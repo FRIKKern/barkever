@@ -44,7 +44,10 @@ jobs:
           state="$(gh api "repos/$REPO/compare/main...$SHA" -q .status)"
           case "$state" in
             ahead)
-              gh api -X PATCH "repos/$REPO/git/refs/heads/main" -f sha="$SHA" -F force=false -q .object.sha
+              if ! gh api -X PATCH "repos/$REPO/git/refs/heads/main" -f sha="$SHA" -F force=false -q .object.sha; then
+                report "main could not move to ${SHA:0:10}" "ci is green on $SHA but GitHub refused to move main. A commit that changes .github/workflows is one known cause: someone with push rights then runs git push origin $SHA:main. Run: $RUN_URL"
+                exit 1
+              fi
               echo "main moved to $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
               ;;
             identical|behind)
