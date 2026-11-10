@@ -209,6 +209,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(await started(dir, asker), "the asker eventually takes over the empty slot");
     const startedAfter = statSync(asker.mark, { bigint: true }).birthtimeNs - born;
     assert.ok(startedAfter >= 5_000_000_000n, `the asker waited ${Number(startedAfter / 1_000_000n)} ms for the fresh slot to become a ghost`);
+    assert.ok(startedAfter < 30_000_000_000n, `the asker took ${Number(startedAfter / 1_000_000n)} ms to take over a slot that is a ghost at 5 s`);
   });
 
   test("a run that ends removes only its own slot, not one another run took after its file was removed", async () => {
