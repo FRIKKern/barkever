@@ -1,0 +1,162 @@
+name: ci
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+      - name: scan outgoing commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$BASE" =~ ^0*$ ]] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            node scripts/scan-outgoing.mjs HEAD
+          else
+            node scripts/scan-outgoing.mjs "$BASE..HEAD"
+          fi
+
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm run check
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+
+  test-scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 scripts/*.test.mjs
+
+  test-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @barkever/app test
+
+  test-mac:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @barkever/mac test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: ci-e2e
+      cancel-in-progress: false
+    steps:
+      - id: gate
+        env:
+          BARKEVER_E2E_EMAIL: ${{ secrets.BARKEVER_E2E_EMAIL }}
+          BARKEVER_E2E_PASSWORD: ${{ secrets.BARKEVER_E2E_PASSWORD }}
+          BARKEVER_E2E_BARKPARK_TOKEN: ${{ secrets.BARKEVER_E2E_BARKPARK_TOKEN }}
+        run: |
+          if [[ -n "$BARKEVER_E2E_EMAIL" && -n "$BARKEVER_E2E_PASSWORD" && -n "$BARKEVER_E2E_BARKPARK_TOKEN" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::e2e skipped: needs the secrets BARKEVER_E2E_EMAIL, BARKEVER_E2E_PASSWORD and BARKEVER_E2E_BARKPARK_TOKEN"
+          fi
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - if: steps.gate.outputs.run == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: pnpm
+      - if: steps.gate.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.gate.outputs.run == 'true'
+        env:
+          BARKEVER_E2E_EMAIL: ${{ secrets.BARKEVER_E2E_EMAIL }}
+          BARKEVER_E2E_PASSWORD: ${{ secrets.BARKEVER_E2E_PASSWORD }}
+          BARKEVER_E2E_BARKPARK_TOKEN: ${{ secrets.BARKEVER_E2E_BARKPARK_TOKEN }}
+          BARKPARK_URL: https://guerrilla.barkpark.cloud
+        run: |
+          mkdir -p ~/.config/barkpark
+          node -e 'require("fs").writeFileSync(process.argv[1], JSON.stringify({server: process.env.BARKPARK_URL, token: process.env.BARKEVER_E2E_BARKPARK_TOKEN}), {mode: 0o600})' ~/.config/barkpark/config.json
+          pnpm --filter @barkever/app e2e
