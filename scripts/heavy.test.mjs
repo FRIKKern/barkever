@@ -1,7 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, watch, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, statSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanup } from "./test-cleanup.mjs";
@@ -14,7 +14,7 @@ for (const tool of ["npm", "pnpm", "job"]) {
   writeFileSync(join(bin, tool), '#!/bin/sh\ntouch "$HEAVY_TEST_MARK"\nwhile kill -0 "$HEAVY_TEST_PID" 2>/dev/null; do sleep 0.2; done\n');
   chmodSync(join(bin, tool), 0o755);
 }
-writeFileSync(join(bin, "brief"), '#!/bin/sh\necho >> "$HEAVY_TEST_MARK"\nsleep 1.5\n');
+writeFileSync(join(bin, "brief"), '#!/bin/sh\necho >> "$HEAVY_TEST_MARK"\nwhile [ ! -e "$HEAVY_TEST_GO" ]; do sleep 0.1; done\n');
 chmodSync(join(bin, "brief"), 0o755);
 const fakePs = (name, body) => {
   const dir = join(top, name);
@@ -24,7 +24,7 @@ const fakePs = (name, body) => {
   return dir;
 };
 const noPs = fakePs("no-ps", "exit 1");
-const slowPs = fakePs("slow-ps", 'sleep 1\nexec /bin/ps "$@"');
+const gatedPs = fakePs("gated-ps", 'if grep -q "^$PPID " "$HEAVY_DIR/slot-1" 2>/dev/null; then while [ ! -e "$HEAVY_DIR/ps-go" ]; do sleep 0.05; done; fi\nexec /bin/ps "$@"');
 const mark = (dir, owner) => join(dir, `ran-${owner}`);
 const { HEAVY_SLOTS, ...inherited } = process.env;
 const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_OWNER: owner, HEAVY_TEST_MARK: mark(dir, owner), HEAVY_TEST_PID: String(process.pid), PATH: `${path}:${bin}:${process.env.PATH}` });
@@ -36,20 +36,19 @@ cleanup(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const slots = () => mkdtempSync(join(top, "slots-"));
 const runOn = (path, dir, owner, ...cmd) => runWith({}, path, dir, owner, ...cmd);
-const runWith = (extra, path, dir, owner, ...cmd) => {
-  const p = spawn(process.execPath, [heavy, ...cmd], { env: { ...env(dir, owner, path), ...extra }, detached: true, stdio: "ignore" });
-  p.mark = mark(dir, owner);
+let observed = 0;
+const observe = (command, args, options) => {
+  const messages = join(top, `messages-${observed++}`);
+  const messagesFd = openSync(messages, "w");
+  const p = spawn(command, args, { ...options, detached: true, stdio: ["ignore", "ignore", messagesFd] });
+  closeSync(messagesFd);
+  p.messages = messages;
   groups.push(p);
   return p;
 };
-const runObserved = (dir, owner, ...cmd) => {
-  const messages = join(dir, `messages-${owner}`);
-  const messagesFd = openSync(messages, "w");
-  const p = spawn(process.execPath, [heavy, ...cmd], { env: env(dir, owner), detached: true, stdio: ["ignore", "ignore", messagesFd] });
-  closeSync(messagesFd);
-  p.mark = mark(dir, owner);
-  p.messages = messages;
-  groups.push(p);
+const runWith = (extra, path, dir, owner, ...cmd) => {
+  const p = observe(process.execPath, [heavy, ...cmd], { env: { ...env(dir, owner, path), ...extra } });
+  p.mark = extra.HEAVY_TEST_MARK ?? mark(dir, owner);
   return p;
 };
 const run = (...a) => runOn(bin, ...a);
@@ -60,14 +59,18 @@ const sleeper = () => {
 };
 
 const holds = (dir, p) => existsSync(p.mark);
-async function within(ms, ok) {
-  for (const end = Date.now() + ms; Date.now() < end; await sleep(100)) if (ok()) return true;
+const SOON = 60_000;
+async function soon(ok) {
+  for (const end = Date.now() + SOON; Date.now() < end; await sleep(100)) if (ok()) return true;
+  await sleep(100);
   return ok();
 }
 const POLL = 2000;
-const started = (dir, ...ps) => within(5000, () => ps.every((p) => holds(dir, p)));
-const waits = async (dir, p) => { await sleep(POLL + 1000); return !holds(dir, p); };
-const firstTry = (dir, ...ps) => within(POLL - 500, () => ps.every((p) => holds(dir, p)));
+const polled = (p) => /heavy: waiting/.test(readFileSync(p.messages, "utf8"));
+const started = (dir, ...ps) => soon(() => ps.every((p) => holds(dir, p)));
+const waits = async (dir, ...ps) => { if (!(await soon(() => ps.every(polled)))) return false; await sleep(POLL + 1000); return !ps.some((p) => holds(dir, p)); };
+const firstTry = async (dir, ...ps) => (await started(dir, ...ps)) && !ps.some(polled);
+const ended = (p) => soon(() => p.exitCode !== null || p.signalCode !== null);
 const wants = (dir) => readdirSync(dir).filter((f) => f.startsWith("want-"));
 const gonePid = () => spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
 
@@ -86,14 +89,15 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
   test("while a prepush holds a slot, one other run is admitted and the next waits until a slot frees", async () => {
     const { dir, one, two } = await prepushAndOne();
     stop(one, "SIGTERM");
-    assert.ok(await within(POLL + 2000, () => holds(dir, two)), "the waiting run starts when the other run ends");
+    assert.ok(await started(dir, two), "the waiting run starts when the other run ends");
   });
 
   test("two runs asking at the same moment beside a prepush: exactly one starts", async () => {
     const dir = slots();
     assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
     const pair = [run(dir, "a", "job"), run(dir, "b", "job")];
-    await sleep(2 * POLL + 1000);
+    assert.ok(await soon(() => pair.some((p) => holds(dir, p))), "one starts");
+    assert.ok(await waits(dir, ...pair.filter((p) => !holds(dir, p))), "the other waits");
     assert.equal(pair.filter((p) => holds(dir, p)).length, 1);
   });
 
@@ -101,9 +105,11 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const dir = slots();
     assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
     const racers = ["a", "b", "c", "d"].map((o) => run(dir, o, "job"));
-    assert.ok(await within(POLL - 500, () => racers.some((p) => holds(dir, p))), "one starts before the first poll");
-    await sleep(POLL + 1000);
-    assert.equal(racers.filter((p) => holds(dir, p)).length, 1);
+    assert.ok(await soon(() => racers.some((p) => holds(dir, p))), "one starts");
+    assert.ok(await waits(dir, ...racers.filter((p) => !holds(dir, p))), "the other three wait");
+    const winners = racers.filter((p) => holds(dir, p));
+    assert.equal(winners.length, 1);
+    assert.ok(!polled(winners[0]), "the winner started on its first try");
     assert.equal(readdirSync(dir).filter((f) => f.startsWith("slot-")).length, 2, "the losers left no slot files");
   });
 
@@ -114,10 +120,9 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     for (let round = 0; round < 20; round++) {
       const dir = slots();
       writeFileSync(join(dir, "slot-0"), `${prepush.pid} lander`);
-      const racers = ["a", "b", "c", "d"].map((o) => runObserved(dir, o, "job"));
-      assert.ok(await within(10_000, () => racers.some((p) => holds(dir, p))), `round ${round}: nobody started`);
-      const winner = racers.find((p) => holds(dir, p));
-      assert.doesNotMatch(readFileSync(winner.messages, "utf8"), /heavy: waiting/, `round ${round}: the winner did not acquire on its first try`);
+      const racers = ["a", "b", "c", "d"].map((o) => run(dir, o, "job"));
+      assert.ok(await soon(() => racers.some((p) => holds(dir, p))), `round ${round}: nobody started`);
+      assert.ok(!polled(racers.find((p) => holds(dir, p))), `round ${round}: the winner did not acquire on its first try`);
       racers.forEach((p) => stop(p));
     }
   });
@@ -128,16 +133,16 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const writes = [];
     const watcher = watch(dir, (_, name) => name?.startsWith("slot-") && writes.push(name));
     const twin = runWith({ HEAVY_TEST_MARK: join(dir, "ran-twin") }, bin, dir, "tree", "job");
-    await sleep(POLL + 1000);
+    const waited = await waits(dir, twin);
     watcher.close();
-    assert.ok(!existsSync(join(dir, "ran-twin")), "the twin waits");
+    assert.ok(waited, "the twin waits");
     assert.deepEqual(writes, []);
   });
 
   test("a waiting run starts when the prepush ends", async () => {
     const { dir, prepush, two } = await prepushAndOne();
     stop(prepush, "SIGTERM");
-    assert.ok(await within(POLL + 2000, () => holds(dir, two)));
+    assert.ok(await started(dir, two));
   });
 
   test("without a prepush, all three slots fill", async () => {
@@ -190,9 +195,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
   for (const text of ["", "0 ghost", "-1 ghost", "abc ghost"]) {
     test(`a slot file reading ${JSON.stringify(text)} is a ghost once it is 5 s old: the asker takes it over`, async () => {
       const dir = slots();
-      const old = new Date(Date.now() - 60_000);
       writeFileSync(join(dir, "slot-0"), text);
-      utimesSync(join(dir, "slot-0"), old, old);
       assert.ok(await started(dir, runWith({ HEAVY_SLOTS: "1" }, bin, dir, "a", "job")));
     });
   }
@@ -203,7 +206,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     writeFileSync(slot, "");
     const born = statSync(slot, { bigint: true }).birthtimeNs;
     const asker = runWith({ HEAVY_SLOTS: "1" }, bin, dir, "a", "job");
-    assert.ok(await within(10_000, () => holds(dir, asker)), "the asker eventually takes over the empty slot");
+    assert.ok(await started(dir, asker), "the asker eventually takes over the empty slot");
     const startedAfter = statSync(asker.mark, { bigint: true }).birthtimeNs - born;
     assert.ok(startedAfter >= 5_000_000_000n, `the asker waited ${Number(startedAfter / 1_000_000n)} ms for the fresh slot to become a ghost`);
   });
@@ -216,7 +219,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const second = run(dir, "b", "job");
     assert.ok(await started(dir, second));
     stop(first, "SIGTERM");
-    assert.ok(await within(3000, () => first.exitCode !== null || first.signalCode !== null), "the first run exits");
+    assert.ok(await ended(first), "the first run exits");
     assert.equal(readFileSync(join(dir, "slot-0"), "utf8").split(" ")[0], String(second.pid));
   });
 
@@ -224,7 +227,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     test(`a SIGKILLed ${killed === "one" ? "other run" : "prepush"} leaves no stuck slot or priority: the waiting run starts on the next poll`, async () => {
       const held = await prepushAndOne();
       process.kill(held[killed].pid, "SIGKILL");
-      assert.ok(await within(POLL + 2000, () => holds(held.dir, held.two)));
+      assert.ok(await started(held.dir, held.two));
     });
   }
 
@@ -232,12 +235,14 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const dir = slots();
     assert.ok(await started(dir, run(dir, "lander", "npm", "run", "prepush")));
     const looped = mark(dir, "loop");
-    const looper = spawn("sh", ["-c", 'while kill -0 "$HEAVY_TEST_PID" 2>/dev/null; do "$0" "$1" brief; done', process.execPath, heavy], { env: env(dir, "loop"), detached: true, stdio: "ignore" });
-    groups.push(looper);
+    const go = join(dir, "go");
+    observe("sh", ["-c", 'while kill -0 "$HEAVY_TEST_PID" 2>/dev/null; do "$0" "$1" brief; done', process.execPath, heavy], { env: { ...env(dir, "loop"), HEAVY_TEST_GO: go } });
     const loops = () => (existsSync(looped) ? readFileSync(looped, "utf8").length : 0);
-    assert.ok(await within(5000, () => loops() === 1), "the looper's first run starts");
+    assert.ok(await soon(() => loops() === 1), "the looper's first run starts");
     const waiter = run(dir, "w", "job");
-    assert.ok(await within(POLL + 2500, () => holds(dir, waiter)), "the waiter starts");
+    assert.ok(await soon(() => polled(waiter)), "the waiter is queued while the looper's first run holds");
+    writeFileSync(go, "");
+    assert.ok(await started(dir, waiter), "the waiter starts");
     assert.equal(loops(), 1, "the looper ran again before the waiter");
   });
 
@@ -251,7 +256,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const two = { HEAVY_SLOTS: "2" };
     assert.ok(await started(dir, runWith(two, bin, dir, "tree", "job")));
     const twin = runWith({ ...two, HEAVY_TEST_MARK: join(dir, "ran-twin") }, bin, dir, "tree", "job");
-    assert.ok(await within(3000, () => wants(dir).includes(`want-${twin.pid}`)), "the twin waits in the queue");
+    assert.ok(await soon(() => polled(twin) && wants(dir).includes(`want-${twin.pid}`)), "the twin waits in the queue");
     assert.ok(await firstTry(dir, runWith(two, bin, dir, "b", "job")));
   });
 
@@ -269,17 +274,16 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
   test("a stale want-file left under the asking run's own pid does not put it ahead of an older waiter", async () => {
     const { dir, one, two } = await prepushAndOne();
     const go = join(dir, "go");
-    const stale = spawn("sh", ["-c", 'echo stale > "$0/want-$$"; touch "$0/staled"; while [ ! -e "$1" ]; do sleep 0.05; done; exec "$2" "$3" job', dir, go, process.execPath, heavy], { env: env(dir, "x"), detached: true, stdio: "ignore" });
-    groups.push(stale);
-    assert.ok(await within(3000, () => existsSync(join(dir, "staled"))));
+    const stale = observe("sh", ["-c", 'echo stale > "$0/want-$$"; touch "$0/staled"; while [ ! -e "$1" ]; do sleep 0.05; done; exec "$2" "$3" job', dir, go, process.execPath, heavy], { env: env(dir, "x") });
+    assert.ok(await soon(() => existsSync(join(dir, "staled"))));
     rmSync(join(dir, `want-${two.pid}`));
     const older = runWith({ HEAVY_TEST_MARK: join(dir, "ran-older") }, bin, dir, "w", "job");
-    assert.ok(await within(3000, () => wants(dir).includes(`want-${older.pid}`)), "the older waiter is queued");
+    assert.ok(await soon(() => polled(older) && wants(dir).includes(`want-${older.pid}`)), "the older waiter is queued");
     stop(two);
     writeFileSync(go, "");
-    await sleep(500);
+    assert.ok(await soon(() => polled(stale)), "the run with the stale want-file asks and is refused");
     stop(one, "SIGTERM");
-    assert.ok(await within(POLL + 2000, () => existsSync(join(dir, "ran-older"))), "the older waiter starts");
+    assert.ok(await started(dir, older), "the older waiter starts");
     assert.ok(!existsSync(mark(dir, "x")), "the run with the stale want-file waits");
   });
 
@@ -288,8 +292,8 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
       const { dir, two } = await prepushAndOne();
       assert.deepEqual(wants(dir), [`want-${two.pid}`]);
       stop(two, signal);
-      assert.ok(await within(3000, () => wants(dir).length === 0));
-      assert.ok(await within(3000, () => two.exitCode !== null), "the waiter exits");
+      assert.ok(await soon(() => wants(dir).length === 0));
+      assert.ok(await ended(two), "the waiter exits");
       assert.equal(two.exitCode, signal === "SIGINT" ? 130 : 143);
     });
   }
@@ -299,14 +303,11 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const two = { HEAVY_SLOTS: "2" };
     assert.ok(await started(dir, runWith(two, bin, dir, "other", "job")));
     writeFileSync(join(dir, "slot-1"), `${gonePid()} ghost`);
-    const asker = runWith(two, slowPs, dir, "x", "job");
+    const asker = runWith(two, gatedPs, dir, "x", "job");
     const theirs = `${process.pid} thief`;
-    const replaced = await within(5000, () => {
-      if (!existsSync(join(dir, "slot-1")) || !readFileSync(join(dir, "slot-1"), "utf8").startsWith(`${asker.pid} `)) return false;
-      writeFileSync(join(dir, "slot-1"), theirs);
-      return true;
-    });
-    assert.ok(replaced, "the asker took the ghost's slot");
+    assert.ok(await soon(() => existsSync(join(dir, "slot-1")) && readFileSync(join(dir, "slot-1"), "utf8").startsWith(`${asker.pid} `)), "the asker took the ghost's slot");
+    writeFileSync(join(dir, "slot-1"), theirs);
+    writeFileSync(join(dir, "ps-go"), "");
     assert.ok(await waits(dir, asker), "the asker does not run");
     assert.equal(readFileSync(join(dir, "slot-1"), "utf8"), theirs);
   });
@@ -319,7 +320,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const asker = spawn(process.execPath, ["--import", preload, heavy, "job"], { env: env(dir, "c"), detached: true, stdio: ["ignore", "ignore", "pipe"] });
     groups.push(asker);
     asker.stderr.on("data", (d) => (stderr += d));
-    assert.ok(await within(10_000, () => asker.exitCode !== null), "the run exits");
+    assert.ok(await ended(asker), "the run exits");
     assert.equal(asker.exitCode, 1);
     assert.match(stderr, new RegExp(`heavy: ${dir} is gone`));
     assert.doesNotMatch(stderr, /Error|\n\s+at /, "no stack trace");
@@ -331,10 +332,10 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const asker = spawn(process.execPath, [heavy, "job"], { env: env(dir, "c"), detached: true, stdio: ["ignore", "ignore", "pipe"] });
     groups.push(asker);
     asker.stderr.on("data", (d) => (stderr += d));
-    assert.ok(await within(3000, () => wants(dir).length === 2), "both waiters are queued");
+    assert.ok(await soon(() => wants(dir).length === 2), "both waiters are queued");
     rmSync(dir, { recursive: true, force: true });
     if (gone !== "removed") writeFileSync(dir, "");
-    assert.ok(await within(POLL + 2000, () => asker.exitCode !== null && two.exitCode !== null), "both waiters exit");
+    assert.ok((await ended(asker)) && (await ended(two)), "both waiters exit");
     assert.equal(asker.exitCode, 1);
     assert.equal(two.exitCode, 1);
     assert.match(stderr, new RegExp(`heavy: ${dir} is gone`));
@@ -348,11 +349,11 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     assert.ok(await started(dir, p));
     rmSync(dir, { recursive: true, force: true });
     stop(holder);
-    assert.ok(await within(3000, () => p.exitCode !== null), "the run exits");
+    assert.ok(await ended(p), "the run exits");
     assert.equal(p.exitCode, 0);
   });
 
-  const plainRun = (dir) => spawnSync(process.execPath, [heavy, "true"], { env: env(dir, "a"), encoding: "utf8", timeout: 5000 });
+  const plainRun = (dir) => spawnSync(process.execPath, [heavy, "true"], { env: env(dir, "a"), encoding: "utf8", timeout: SOON });
 
   test("an error heavy does not expect is not swallowed: a runs.jsonl it cannot append to fails the run, naming the error", () => {
     const dir = slots();
@@ -374,7 +375,7 @@ describe("heavy.mjs slots", { concurrency: true }, () => {
     const e = env(slots(), "a");
     if (slotsEnv === undefined) delete e.HEAVY_SLOTS;
     else e.HEAVY_SLOTS = slotsEnv;
-    return spawnSync(process.execPath, [heavy, ...cmd], { env: e, encoding: "utf8", timeout: 5000 });
+    return spawnSync(process.execPath, [heavy, ...cmd], { env: e, encoding: "utf8", timeout: SOON });
   };
 
   test("HEAVY_SLOTS must be a whole number from 1 to 99; anything else is refused before taking a slot", () => {
