@@ -66,8 +66,8 @@ process.on("exit", () => rmSync(landMark, { force: true }));
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
 step("fetch staging", "git", ["fetch", "-q", "origin", "staging"], main);
 const within = (a, b) => { try { git(["merge-base", "--is-ancestor", a, b], main); return true; } catch { return false; } };
-const base = within("origin/staging", "origin/main") ? "origin/main" : "origin/staging";
-const split = !within("origin/main", base);
+const split = !within("origin/staging", "origin/main") && !within("origin/main", "origin/staging");
+const base = split || within("origin/staging", "origin/main") ? "origin/main" : "origin/staging";
 const abortRebase = () => {
   if (!existsSync(resolve(dir, git(["rev-parse", "--git-path", "rebase-merge"], dir)))) return "";
   const conflicts = git(["diff", "--name-only", "--diff-filter=U"], dir).replaceAll("\n", ", ");
@@ -87,7 +87,7 @@ const abortMerge = () => {
   try { git(["reset", "-q", "--keep", head], dir); return `; main and staging each hold a commit that clashes with the other, so no land can pass until the lead merges main into staging by hand; ${branch} is back at ${head.slice(0, 10)}`; }
   catch { return `; ${branch} could not be put back`; }
 };
-if (split) step("merge what main holds and staging lacks", "git", ["merge", "-q", "--no-edit", "origin/main"], dir, abortMerge);
+if (split) step("merge what staging holds and main lacks", "git", ["merge", "-q", "--no-edit", "origin/staging"], dir, abortMerge);
 const PICTURES = ["docs/img/roadmap.svg", "docs/img/journeys.svg"];
 const hasRoadmap = existsSync(resolve(dir, "scripts/roadmap.mjs"));
 if (hasRoadmap) {

@@ -583,7 +583,20 @@ test("a staging that only fell behind main is caught up by the land, with no mer
   assert.equal(originLog(run.main, "staging"), "docs\nadd b\nbase");
 });
 
-test("when main and staging each hold a commit the other lacks, the land merges main in so the bot can move main again", () => {
+test("in a split, a docs branch cut after main's own commit still lands with no review: main's commit is not counted as the branch's", () => {
+  const run = repo((m) => { pending(m); addB(m); }, () => {}, { check: "exit 0", prepush: "exit 0", reviewedAs: null, unpushed: (m) => {
+    const b = join(m, "..", "barkever-wt", "feature");
+    git(b, "merge", "-q", "--ff-only", "main");
+    docsOnly(b);
+  } });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  const origin = join(run.main, "..", "origin.git");
+  assert.equal(git(origin, "rev-list", "--count", "staging"), "5");
+  assert.equal(spawnSync("git", ["merge-base", "--is-ancestor", "main", "staging"], { cwd: origin, env }).status, 0);
+  landedHead(run);
+});
+
+test("when main and staging each hold a commit the other lacks, the land merges staging in so the bot can move main again", () => {
   const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0", reviewedAs: null });
   assert.equal(run.r.status, 0, run.r.stderr);
   const origin = join(run.main, "..", "origin.git");
@@ -625,7 +638,7 @@ test("a clash between what main and staging each hold stops the land, puts the b
   };
   const run = repo(clash, docsOnly, { check: "exit 0" });
   assertBack(run);
-  assert.match(run.r.stderr, /merge what main holds and staging lacks failed; main and staging each hold a commit that clashes/);
+  assert.match(run.r.stderr, /merge what staging holds and main lacks failed; main and staging each hold a commit that clashes/);
   assert.equal(originLog(run.main, "staging"), "pending\nbase");
 });
 
