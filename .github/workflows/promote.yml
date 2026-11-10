@@ -40,9 +40,9 @@ jobs:
           settle() {
             local number red
             while read -r number red; do
-              case "$(gh api "repos/$REPO/compare/$red...$SHA" -q .status || true)" in
+              case "$(gh api "repos/$REPO/compare/$red...$SHA" -q .status < /dev/null || true)" in
                 ahead|identical)
-                  gh issue close "$number" -R "$REPO" --comment "main now holds $SHA, which includes $red. Run: $RUN_URL" || echo "::warning::issue $number is still open"
+                  gh issue close "$number" -R "$REPO" --comment "main now holds $SHA, which includes $red. Run: $RUN_URL" < /dev/null || echo "::warning::issue $number is still open"
                   ;;
               esac
             done < <(gh issue list -R "$REPO" --state open --limit 100 --search '"staging is red at" in:title' --json number,title,author \
