@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -28,7 +28,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 22
@@ -119,12 +118,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @barkever/mac test
 
-  e2e:
+  e2e-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    concurrency:
-      group: ci-e2e
-      cancel-in-progress: false
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
     steps:
       - id: gate
         env:
@@ -135,23 +133,28 @@ jobs:
           if [[ -n "$BARKEVER_E2E_EMAIL" && -n "$BARKEVER_E2E_PASSWORD" && -n "$BARKEVER_E2E_BARKPARK_TOKEN" ]]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::e2e skipped: needs the secrets BARKEVER_E2E_EMAIL, BARKEVER_E2E_PASSWORD and BARKEVER_E2E_BARKPARK_TOKEN"
+            echo "e2e did not run: it needs the secrets BARKEVER_E2E_EMAIL, BARKEVER_E2E_PASSWORD and BARKEVER_E2E_BARKPARK_TOKEN" | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-      - if: steps.gate.outputs.run == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+  e2e:
+    needs: e2e-gate
+    if: needs.e2e-gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: ci-e2e
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - if: steps.gate.outputs.run == 'true'
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
-      - if: steps.gate.outputs.run == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 22
           cache: pnpm
-      - if: steps.gate.outputs.run == 'true'
-        run: pnpm install --frozen-lockfile
-      - if: steps.gate.outputs.run == 'true'
-        env:
+      - run: pnpm install --frozen-lockfile
+      - env:
           BARKEVER_E2E_EMAIL: ${{ secrets.BARKEVER_E2E_EMAIL }}
           BARKEVER_E2E_PASSWORD: ${{ secrets.BARKEVER_E2E_PASSWORD }}
           BARKEVER_E2E_BARKPARK_TOKEN: ${{ secrets.BARKEVER_E2E_BARKPARK_TOKEN }}
