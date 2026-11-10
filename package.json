@@ -17,6 +17,7 @@
     "dev": "pnpm --filter @barkever/app dev",
     "build": "pnpm -r build",
     "test": "node scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 scripts/check-repo.test.mjs scripts/mutate.test.mjs scripts/scan-outgoing.test.mjs scripts/arms.test.mjs scripts/land.test.mjs scripts/roadmap.test.mjs scripts/roadmap-publish.test.mjs scripts/heavy.test.mjs scripts/test-cleanup.test.mjs scripts/own-tmp.test.mjs && pnpm -r test",
+    "test:scripts": "node scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 scripts/*.test.mjs",
     "roadmap": "node scripts/roadmap.mjs",
     "roadmap:publish": "node scripts/roadmap.mjs --publish",
     "e2e": "pnpm --filter @barkever/app e2e",

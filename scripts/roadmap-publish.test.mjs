@@ -107,14 +107,15 @@ function sandbox({ originName = "FRIKKern/barkever.git", board = goodBoard(), gi
   git(main, "add", ".");
   git(main, "commit", "-qm", "base");
   git(main, "remote", "add", "origin", origin);
-  git(main, "push", "-q", "origin", "main");
+  git(main, "push", "-q", "origin", "main", "main:staging");
 
   const run = (flag = "--publish", extra = {}) => spawnSync("node", ["scripts/roadmap.mjs", ...(flag ? [flag] : [])], { cwd: main, env: { ...env, ...extra }, encoding: "utf8" });
   const github2 = () => JSON.parse(readFileSync(env.FAKE_GITHUB, "utf8"));
-  const originHead = () => git(top, "--git-dir", origin, "rev-parse", "main");
+  const originHead = () => git(top, "--git-dir", origin, "rev-parse", "staging");
+  const originMain = () => git(top, "--git-dir", origin, "rev-parse", "main");
   const head = () => git(main, "rev-parse", "HEAD");
   const clean = () => git(main, "status", "--porcelain", "--untracked-files=no") === "";
-  return { top, main, env, git: (...args) => git(main, ...args), origin, run, github: github2, originHead, head, clean, setBoard: (b) => writeFileSync(env.FAKE_BOARD, JSON.stringify(b)), setGithub: (g) => writeFileSync(env.FAKE_GITHUB, JSON.stringify(g)) };
+  return { top, main, env, git: (...args) => git(main, ...args), origin, run, github: github2, originHead, originMain, head, clean, setBoard: (b) => writeFileSync(env.FAKE_BOARD, JSON.stringify(b)), setGithub: (g) => writeFileSync(env.FAKE_GITHUB, JSON.stringify(g)) };
 }
 
 const assertUntouched = (box, base) => {
@@ -195,7 +196,7 @@ test("the secret scan failing also undoes the commit", () => {
   writeFileSync(join(box.main, "scripts/scan-outgoing.mjs"), "process.exit(1);\n");
   box.git("add", ".");
   box.git("commit", "-qm", "failing scan");
-  box.git("push", "-q", "origin", "main");
+  box.git("push", "-q", "origin", "main", "main:staging");
   const moved = box.head();
   assert.notEqual(moved, base);
   assert.equal(box.run().status, 1);
@@ -234,6 +235,23 @@ test("a commit already waiting on main is refused, never pushed past prepush", (
   assert.deepEqual(box.github().log, []);
 });
 
+test("a staging that holds a commit main lacks is refused before anything is drawn", () => {
+  const box = sandbox();
+  const base = box.head();
+  box.git("checkout", "-q", "-b", "pending");
+  writeFileSync(join(box.main, "p.txt"), "p");
+  box.git("add", "p.txt");
+  box.git("commit", "-qm", "pending");
+  box.git("push", "-q", "origin", "pending:staging");
+  box.git("checkout", "-q", "main");
+  const r = box.run();
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /staging holds commits main does not have yet/);
+  assert.equal(box.head(), base);
+  assert.ok(box.clean());
+  assert.deepEqual(box.github().log, []);
+});
+
 test("origin moving first is refused before anything is drawn", () => {
   const box = sandbox();
   const other = join(box.top, "other");
@@ -257,7 +275,7 @@ process.exit(1);
 `);
   box.git("add", ".");
   box.git("commit", "-qm", "check that commits");
-  box.git("push", "-q", "origin", "main");
+  box.git("push", "-q", "origin", "main", "main:staging");
   assert.equal(box.run().status, 1);
   assert.equal(box.git("log", "-1", "--format=%s"), "ANOTHER");
   assert.ok(existsSync(join(box.main, "z.txt")));
@@ -325,7 +343,7 @@ test("an emptied roadmap table changes nothing", () => {
   writeFileSync(join(box.main, "docs/ROADMAP.md"), "Heading to: nowhere\n");
   box.git("add", "docs/ROADMAP.md");
   box.git("commit", "-qm", "empty");
-  box.git("push", "-q", "origin", "main");
+  box.git("push", "-q", "origin", "main", "main:staging");
   const base = box.head();
   const r = box.run();
   assert.equal(r.status, 1);

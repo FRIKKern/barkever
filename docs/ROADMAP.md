@@ -24,9 +24,9 @@ Rewards and order live here. Status lives on the Barkpark board, goal `task-42e5
 
 ```sh
 npm run roadmap            # redraw the pictures here
-npm run roadmap:publish    # lead, on a clean main level with origin, no land running: redraw, push, sync GitHub
+npm run roadmap:publish    # lead, on a clean main that holds all of staging, no land running: redraw, push staging, sync GitHub
 ```
 
-`land.mjs` runs the publish step after each land, so a task closed after it shows on the next one.
+`land.mjs` redraws inside each land and syncs GitHub after it, so a task closed after a land shows on the next one.
 
 [![The journeys and how far each one is](img/journeys.svg)](../JOURNEYS.md)

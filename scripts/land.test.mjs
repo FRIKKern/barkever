@@ -11,7 +11,9 @@ const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
 const env = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" };
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
 const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd, "add", "a.txt"); git(cwd, "commit", "-qm", text); };
-const originHead = (main) => git(join(main, "..", "origin.git"), "log", "-1", "--format=%s", "main");
+const originHead = (main) => git(join(main, "..", "origin.git"), "log", "-1", "--format=%s", "staging");
+const originLog = (main, name) => git(join(main, "..", "origin.git"), "log", "--format=%s", name);
+const landedHead = ({ main, branch }) => assert.equal(git(join(main, "..", "origin.git"), "rev-parse", "staging"), git(branch, "rev-parse", "HEAD"));
 const tops = [];
 cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
 
@@ -27,11 +29,11 @@ function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3"
   for (const f of ["land.mjs", "worktree.mjs", "scan-outgoing.mjs", "secrets.mjs", "heavy.mjs"]) cpSync(join(root, "scripts", f), join(main, "scripts", f));
   writeFileSync(join(main, "a.txt"), "base\n");
   writeFileSync(join(main, "gone.txt"), "old\n");
-  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check, ...(prepush && { prepush }) } }));
+  writeFileSync(join(main, "package.json"), JSON.stringify({ scripts: { check, ...(prepush && { "test:scripts": prepush }) } }));
   git(main, "add", ".");
   git(main, "commit", "-qm", "base");
   git(main, "remote", "add", "origin", origin);
-  git(main, "push", "-q", "origin", "main");
+  git(main, "push", "-q", "origin", "main", "main:staging");
   git(main, "worktree", "add", "-q", "-b", "feature", branch, "main");
   mkdirSync(join(branch, "node_modules"));
   onBranch(branch);
@@ -60,7 +62,7 @@ function assertBack({ r, main, branch, reviewed, mainHead }) {
 test("a conflicting rebase is aborted: the branch is back at the reviewed sha and the error names the file", () => {
   const run = repo((m) => write(m, "main\n"));
   assertBack(run);
-  const named = run.r.stderr.match(/rebase onto main failed on a\.txt; rebase aborted, feature is back at (\w{10})/);
+  const named = run.r.stderr.match(/rebase onto staging failed on a\.txt; rebase aborted, feature is back at (\w{10})/);
   assert.ok(named, run.r.stderr);
   assert.ok(run.reviewed.startsWith(named[1]));
 });
@@ -68,7 +70,7 @@ test("a conflicting rebase is aborted: the branch is back at the reviewed sha an
 test("a path main deleted and the branch changed is named too", () => {
   const run = repo((m) => { git(m, "rm", "-q", "a.txt"); git(m, "commit", "-qm", "drop a"); });
   assertBack(run);
-  assert.match(run.r.stderr, /rebase onto main failed on a\.txt; rebase aborted/);
+  assert.match(run.r.stderr, /rebase onto staging failed on a\.txt; rebase aborted/);
 });
 
 test("a rebase that never starts fails as before, without a stack", () => {
@@ -81,7 +83,7 @@ test("a rebase that never starts fails as before, without a stack", () => {
     },
   );
   assertBack(run);
-  assert.match(run.r.stderr, /^land: rebase onto main failed; main is untouched$/m);
+  assert.match(run.r.stderr, /^land: rebase onto staging failed; main is untouched$/m);
 });
 
 test("a step after a clean rebase still fails as before", () => {
@@ -111,7 +113,7 @@ const addB = (m) => { writeFileSync(join(m, "b.txt"), "main\n"); git(m, "add", "
 test("a red prepush puts the branch back at the reviewed sha", () => {
   const run = repo(addB, undefined, { check: "exit 0", prepush: "exit 4" });
   assertBack(run);
-  assert.match(run.r.stderr, /^land: prepush \(queued\) failed; feature is back at \w{10}; main is untouched$/m);
+  assert.match(run.r.stderr, /^land: script tests failed; feature is back at \w{10}; main is untouched$/m);
 });
 
 test("a failed install puts the branch back", () => {
@@ -189,14 +191,6 @@ test("a worktree folder gone during the land still reports the failed step, with
   assert.doesNotMatch(r.stderr, /at .*land\.mjs:\d+/);
 });
 
-test("a fast-forward main refuses puts the branch back", () => {
-  const onBranch = (b) => { write(b, "branch\n"); writeFileSync(join(b, "new.txt"), "branch\n"); git(b, "add", "new.txt"); git(b, "commit", "-qm", "new"); };
-  const run = repo(addB, onBranch, { check: "exit 0", prepush: 'echo mine > "$(git worktree list --porcelain | head -1 | cut -d" " -f2)/new.txt"' });
-  assertBack(run);
-  assert.match(run.r.stderr, /^land: fast-forward main failed; feature is back at \w{10}; main is untouched$/m);
-  assert.equal(readFileSync(join(run.main, "new.txt"), "utf8"), "mine\n");
-});
-
 test("an edit made during the land is kept: the branch is not put back", () => {
   const { r, branch } = repo(addB, undefined, { check: "echo mine >> a.txt; exit 3" });
   assert.equal(r.status, 1, r.stderr);
@@ -232,9 +226,9 @@ const addsDependency = (m) => { writeFileSync(join(m, "pnpm-lock.yaml"), "new de
 const INSTALLS = { pnpm: "touch node_modules/dep", check: "test -f node_modules/dep" };
 
 test("a branch rebased over a new dependency lands: it installs before the check needs the package", () => {
-  const { r, main } = repo(addsDependency, docsOnly, INSTALLS);
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+  const run = repo(addsDependency, docsOnly, INSTALLS);
+  assert.equal(run.r.status, 0, run.r.stderr);
+  landedHead(run);
 });
 
 test("a repo with no lockfile runs no install step", () => {
@@ -372,9 +366,11 @@ test("a branch with no patch of its own needs its own head named, not the patch"
 });
 
 test("a docs branch lands with no --reviewed", () => {
-  const { r, main } = repo(() => {}, docsOnly, { check: "exit 0", reviewedAs: null });
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+  const run = repo(() => {}, docsOnly, { check: "exit 0", reviewedAs: null });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.match(run.r.stdout, /^landed feature on staging at \w{7}; ci checks it, then the bot moves main$/m);
+  landedHead(run);
+  assert.equal(originLog(run.main, "main"), "base");
 });
 
 test("a docs branch holding a key stops at the secret scan, and origin does not move", () => {
@@ -384,6 +380,7 @@ test("a docs branch holding a key stops at the secret scan, and origin does not 
   assert.match(r.stderr, /^land: no app effect: secret scan failed/m);
   assert.equal(git(main, "rev-parse", "HEAD"), mainHead);
   assert.equal(git(join(main, "..", "origin.git"), "rev-parse", "main"), mainHead);
+  assert.equal(git(join(main, "..", "origin.git"), "rev-parse", "staging"), mainHead);
 });
 
 test("worktree.mjs makes a new worktree on a new branch and prints its folder", () => {
@@ -396,24 +393,24 @@ test("worktree.mjs makes a new worktree on a new branch and prints its folder", 
   assert.equal(git(dir, "symbolic-ref", "HEAD"), "refs/heads/fresh");
 });
 
-test("a land sends main and nothing else, whatever else the repo holds", () => {
+test("a land sends staging and nothing else, whatever else the repo holds", () => {
   const { r, main } = repo((m) => {
     git(m, "tag", "local-tag");
     git(m, "branch", "junk");
     git(m, "update-ref", "refs/entire/checkpoints/x", "HEAD");
   }, docsOnly, { check: "exit 0" });
   assert.equal(r.status, 0, r.stderr);
-  assert.equal(git(join(main, "..", "origin.git"), "for-each-ref", "--format=%(refname)"), "refs/heads/main");
+  assert.equal(git(join(main, "..", "origin.git"), "for-each-ref", "--format=%(refname)"), "refs/heads/main\nrefs/heads/staging");
 });
 
-test("a rejected push says local main moved and origin did not", () => {
-  const { r, main } = repo((m) => {
+test("a rejected push puts the branch back and says origin did not move", () => {
+  const run = repo((m) => {
     const hook = join(m, "..", "origin.git", "hooks", "pre-receive");
     writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
   }, docsOnly, { check: "exit 0" });
-  assert.equal(r.status, 1, r.stderr);
-  assert.match(r.stderr, /^land: push main failed; local main is ahead of origin; origin is untouched$/m);
-  assert.notEqual(git(main, "rev-parse", "main"), git(join(main, "..", "origin.git"), "rev-parse", "main"));
+  assertBack(run);
+  assert.match(run.r.stderr, /^land: push staging failed; feature is back at \w{10}; origin is untouched$/m);
+  assert.equal(originLog(run.main, "staging"), "base");
 });
 
 test("worktree.mjs refuses a folder that belongs to another repo", () => {
@@ -523,31 +520,72 @@ test("a main checkout on another branch stops the land, and nothing claims to ha
   assert.equal(originHead(main), "base");
 });
 
-test("a docs branch over an unpushed app commit on local main runs prepush before anything reaches origin", () => {
-  const { r, main } = repo(() => {}, docsOnly, { check: "exit 0", prepush: "exit 4", unpushed: (m) => { writeFileSync(join(m, "app.txt"), "app\n"); git(m, "add", "app.txt"); git(m, "commit", "-qm", "app"); } });
-  assert.equal(r.status, 1, r.stderr);
-  assert.match(r.stderr, /^land: prepush \(queued\) failed; feature is back at \w{10}; main is untouched$/m);
-  assert.doesNotMatch(r.stderr, /no app effect/);
-  assert.equal(originHead(main), "base");
+test("an unpushed app commit on local main stays local: a docs land sends only its own commit", () => {
+  const run = repo(() => {}, docsOnly, { check: "exit 0", unpushed: (m) => { writeFileSync(join(m, "app.txt"), "app\n"); git(m, "add", "app.txt"); git(m, "commit", "-qm", "app"); } });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.equal(originLog(run.main, "staging"), "docs\nbase");
+  assert.equal(originLog(run.main, "main"), "base");
 });
 
-test("a roadmap refresh that fails does not fail a land that already pushed", () => {
-  const run = repo((m) => {
-    writeFileSync(join(m, "scripts", "roadmap.mjs"), `const fs = require("node:fs");fs.writeFileSync("where.txt", process.cwd() + " " + process.argv[2] + " " + (fs.readFileSync(".git/land.pid", "utf8") === String(process.ppid)));process.exit(9)\n`.replace(/^/, "import { createRequire } from 'node:module';const require=createRequire(import.meta.url);"));
-    git(m, "add", "scripts/roadmap.mjs");
-    git(m, "commit", "-qm", "add roadmap");
-  }, (b) => {
-    mkdirSync(join(b, "docs"));
-    writeFileSync(join(b, "docs", "note.md"), "a note\n");
-    git(b, "add", "docs/note.md");
-    git(b, "commit", "-qm", "a note");
-  }, { check: "exit 0" });
+const pending = (m) => {
+  git(m, "checkout", "-q", "-b", "pending");
+  writeFileSync(join(m, "p.txt"), "pending\n");
+  git(m, "add", "p.txt");
+  git(m, "commit", "-qm", "pending");
+  git(m, "push", "-q", "origin", "pending:staging");
+  git(m, "checkout", "-q", "main");
+  git(m, "branch", "-qD", "pending");
+};
+
+test("a land goes on top of what staging holds and main does not yet, and main stays where it was", () => {
+  const run = repo(pending, docsOnly, { check: "exit 0" });
   assert.equal(run.r.status, 0, run.r.stderr);
-  assert.match(run.r.stdout, /landed feature on main/);
-  assert.match(run.r.stderr, /roadmap did not refresh/);
-  assert.equal(readFileSync(join(run.main, "where.txt"), "utf8"), `${realpathSync(run.main)} --publish true`);
-  assert.ok(!existsSync(join(run.main, ".git/land.pid")), "the land removes its mark when it ends");
-  assert.equal(git(run.main, "rev-parse", "origin/main"), git(run.main, "rev-parse", "main"));
+  assert.equal(originLog(run.main, "staging"), "docs\npending\nbase");
+  assert.equal(originLog(run.main, "main"), "base");
+  landedHead(run);
+});
+
+test("a staging that only fell behind main is caught up by the land, with no merge", () => {
+  const run = repo(addB, docsOnly, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.equal(originLog(run.main, "staging"), "docs\nadd b\nbase");
+});
+
+test("when main and staging each hold a commit the other lacks, the land merges main in so the bot can move main again", () => {
+  const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  const origin = join(run.main, "..", "origin.git");
+  for (const subject of ["docs", "pending", "add b"]) assert.ok(originLog(run.main, "staging").split("\n").includes(subject), subject);
+  assert.equal(spawnSync("git", ["merge-base", "--is-ancestor", "main", "staging"], { cwd: origin, env }).status, 0);
+  assert.equal(originLog(run.main, "main"), "add b\nbase");
+});
+
+const fakeRoadmap = (body) => (m) => {
+  writeFileSync(join(m, "scripts", "roadmap.mjs"), `import { mkdirSync, writeFileSync } from "node:fs";\nif (process.argv[2] === "--sync") { writeFileSync("../../synced.txt", "y"); process.exit(Number(process.env.SYNC_RC ?? 0)); }\nmkdirSync("docs/img", { recursive: true });\nwriteFileSync("docs/img/roadmap.svg", "new");\nwriteFileSync("docs/img/journeys.svg", "new");\n${body}\n`);
+  git(m, "add", "scripts/roadmap.mjs");
+  git(m, "commit", "-qm", "add roadmap");
+};
+
+test("a land redraws the roadmap as its own commit on top, then syncs GitHub", () => {
+  const run = repo(fakeRoadmap(""), docsOnly, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.equal(originLog(run.main, "staging"), "Roadmap: redraw from the Barkpark board\ndocs\nadd roadmap\nbase");
+  landedHead(run);
+  assert.equal(readFileSync(join(run.top, "synced.txt"), "utf8"), "y");
+});
+
+test("a roadmap that cannot be drawn does not stop the land, and leaves no half-drawn picture", () => {
+  const run = repo(fakeRoadmap("process.exit(9);"), docsOnly, { check: "exit 0" });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  assert.match(run.r.stderr, /the roadmap was not redrawn; the land goes on without it/);
+  assert.equal(originLog(run.main, "staging"), "docs\nadd roadmap\nbase");
+  assert.equal(existsSync(join(run.branch, "docs/img/roadmap.svg")), false);
+  assert.equal(git(run.branch, "status", "--porcelain"), "");
+});
+
+test("a branch named staging is refused like main", () => {
+  const r = spawnSync("node", [join(root, "scripts/land.mjs"), "staging"], { encoding: "utf8" });
+  assert.equal(r.status, 2);
 });
 
 test("a land refused for its sha leaves the running land's mark alone", () => {

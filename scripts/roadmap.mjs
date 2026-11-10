@@ -78,7 +78,7 @@ function commitAndPush({ changed, before }) {
     ours = head();
     execFileSync("node", ["scripts/check-repo.mjs"], { cwd: root, stdio: "inherit" });
     execFileSync("node", ["scripts/scan-outgoing.mjs"], { cwd: root, stdio: "inherit" });
-    git("push", "-q", "origin", "main");
+    git("push", "-q", "origin", "HEAD:refs/heads/staging");
   } catch (error) {
     if (ours === null) undoPictures(changed, before);
     else if (head() === ours) git("reset", "-q", "--keep", base);
@@ -104,8 +104,10 @@ function publish() {
   if (git("symbolic-ref", "--short", "HEAD") !== "main") throw new Error("--publish runs on main");
   if (git("status", "--porcelain", "--untracked-files=no")) throw new Error("--publish needs a clean main");
   if (otherLandRunning()) throw new Error("another land is running (.git/land.pid); publish after it");
-  git("fetch", "-q", "origin", "main");
-  if (head() !== git("rev-parse", "origin/main")) throw new Error("main is not level with origin; land first");
+  git("fetch", "-q", "origin", "main", "staging");
+  const holds = (ref) => { try { git("merge-base", "--is-ancestor", ref, "HEAD"); return true; } catch { return false; } };
+  if (![git("rev-parse", "origin/main"), git("rev-parse", "origin/staging")].includes(head()) || !holds("origin/main")) throw new Error("main is not level with origin; land first");
+  if (!holds("origin/staging")) throw new Error("staging holds commits main does not have yet; publish once the bot has moved main");
   const model = readModel();
   syncGithub(model, { dryRun: true });
   const drawing = draw(model);
@@ -115,6 +117,7 @@ function publish() {
 
 try {
   if (flags.has("--publish")) publish();
+  else if (flags.has("--sync")) console.log(ORIGIN.test(git("remote", "get-url", "origin")) ? `roadmap: GitHub ${JSON.stringify(syncGithub(readModel(), { dryRun: false }))}` : "roadmap: origin is not FRIKKern/barkever; nothing to sync");
   else if (flags.has("--dry-run")) console.log(JSON.stringify(syncGithub(readModel(), { dryRun: true }), null, 2));
   else console.log(`roadmap: ${draw(readModel()).changed.length} picture(s) changed`);
 } catch (error) {

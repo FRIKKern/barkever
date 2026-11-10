@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const [branch, ...rest] = process.argv.slice(2);
 const flag = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
 const reviewed = flag("--reviewed");
-if (!branch || branch === "main") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha>"); process.exit(2); }
+if (!branch || branch === "main" || branch === "staging") { console.error("usage: node scripts/land.mjs <branch> --reviewed <sha>"); process.exit(2); }
 
 const git = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const step = (label, cmd, args, cwd, undo = () => "", state = "main is untouched") => {
@@ -63,6 +63,10 @@ writeFileSync(landMark, String(process.pid));
 process.on("exit", () => rmSync(landMark, { force: true }));
 
 step("bring main up to origin", "git", ["pull", "--rebase", "-q", "origin", "main"], main);
+step("fetch staging", "git", ["fetch", "-q", "origin", "staging"], main);
+const within = (a, b) => { try { git(["merge-base", "--is-ancestor", a, b], main); return true; } catch { return false; } };
+const base = within("origin/staging", "origin/main") ? "origin/main" : "origin/staging";
+const split = !within("origin/main", base);
 const abortRebase = () => {
   if (!existsSync(resolve(dir, git(["rev-parse", "--git-path", "rebase-merge"], dir)))) return "";
   const conflicts = git(["diff", "--name-only", "--diff-filter=U"], dir).replaceAll("\n", ", ");
@@ -71,7 +75,24 @@ const abortRebase = () => {
 };
 if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} moved before the rebase; nothing landed; main is untouched`); process.exit(1); }
 stopIfUnfinished("branch", dir);
-step("rebase onto main", "git", ["rebase", "-q", "--rebase-merges", "main"], dir, abortRebase);
+step("rebase onto staging", "git", ["rebase", "-q", "--rebase-merges", base], dir, abortRebase);
+const abortMerge = () => {
+  try { git(["merge", "--abort"], dir); git(["reset", "-q", "--keep", head], dir); return `; merge aborted, ${branch} is back at ${head.slice(0, 10)}`; }
+  catch { return `; ${branch} could not be put back`; }
+};
+if (split) step("merge what main holds and staging lacks", "git", ["merge", "-q", "--no-edit", "origin/main"], dir, abortMerge);
+const PICTURES = ["docs/img/roadmap.svg", "docs/img/journeys.svg"];
+const hasRoadmap = existsSync(resolve(dir, "scripts/roadmap.mjs"));
+if (hasRoadmap) {
+  console.error("land: redraw the roadmap");
+  try {
+    execFileSync("node", ["scripts/roadmap.mjs"], { cwd: dir, stdio: ["ignore", 2, 2], timeout: 600_000 });
+    if (git(["status", "--porcelain", "--", ...PICTURES], dir)) { git(["add", "--", ...PICTURES], dir); git(["commit", "-qm", "Roadmap: redraw from the Barkpark board"], dir); }
+  } catch {
+    for (const undo of [["reset", "-q", "--", ...PICTURES], ["checkout", "-q", "--", ...PICTURES], ["clean", "-qf", "--", ...PICTURES]]) { try { git(undo, dir); } catch {} }
+    console.error("land: the roadmap was not redrawn; the land goes on without it");
+  }
+}
 const rebased = git(["rev-parse", branch], dir);
 const putBack = () => {
   try {
@@ -83,15 +104,24 @@ const putBack = () => {
 };
 if (existsSync(resolve(dir, "pnpm-lock.yaml"))) step("install what main now locks", "pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], dir, putBack);
 step("npm run check", "npm", ["run", "check"], dir, putBack);
-if (noAppEffect(changedSince("origin/main"))) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
-else step("prepush (queued)", "node", [`${main}/scripts/heavy.mjs`, "npm", "run", "prepush"], dir, putBack);
+const landing = changedSince(base);
+const suites = [
+  ["script tests", /^(scripts|\.github)\//, "npm", ["run", "test:scripts"]],
+  ["app tests", /^app\//, "pnpm", ["--filter", "@barkever/app", "test"]],
+  ["mac tests", /^mac\//, "pnpm", ["--filter", "@barkever/mac", "test"]],
+];
+const known = /^docs\/|^[A-Z]+\.md$|^(scripts|\.github|app|mac)\//;
+const everything = landing.some((f) => !known.test(f));
+if (noAppEffect(landing)) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
+else {
+  for (const [label, covers, cmd, args] of suites) if (everything || landing.some((f) => covers.test(f))) step(label, cmd, args, dir, putBack);
+  step("secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
+}
 const moved = () => { try { return git(["rev-parse", "--abbrev-ref", "HEAD"], dir) !== branch || git(["rev-parse", branch], dir) !== rebased || git(["status", "--porcelain", "--untracked-files=no"], dir) !== ""; } catch { return true; } };
 if (moved()) { console.error(`land: ${dir} moved during the land, so the checks did not cover what is there now; it stays as it is; nothing landed; main is untouched`); process.exit(1); }
-step("fast-forward main", "git", ["merge", "--ff-only", "-q", rebased], main, putBack);
-step("push main", "git", ["push", "-q", "origin", "main"], main, undefined, "local main is ahead of origin; origin is untouched");
-console.log(`landed ${branch} on main at ${git(["rev-parse", "--short", "main"], main)}`);
-const publishRoadmap = `${main}/scripts/roadmap.mjs`;
-if (existsSync(publishRoadmap)) {
-  try { execFileSync("node", [publishRoadmap, "--publish"], { cwd: main, stdio: "inherit", timeout: 600_000 }); }
-  catch { console.error("land: the land is done, but the roadmap did not refresh; run npm run roadmap:publish"); }
+step("push staging", "git", ["push", "-q", "origin", `${rebased}:refs/heads/staging`], dir, putBack, "origin is untouched");
+console.log(`landed ${branch} on staging at ${rebased.slice(0, 7)}; ci checks it, then the bot moves main`);
+if (hasRoadmap) {
+  try { execFileSync("node", ["scripts/roadmap.mjs", "--sync"], { cwd: dir, stdio: "inherit", timeout: 600_000 }); }
+  catch { console.error("land: the land is done, but GitHub's milestones did not refresh; run npm run roadmap:publish"); }
 }

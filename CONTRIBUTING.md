@@ -3,7 +3,7 @@
 ```
 bp task next ─► worktree ─► one journey per branch ─► npm run check ─► review by someone else
      ▲                                                                        │
-     └── close with evidence ◄── roadmap redraws ◄── land.mjs: prepush + ff ◄─┘
+     └── close with evidence ◄── bot moves main ◄── land.mjs: push staging ◄──┘
 ```
 
 The full rules are in [AGENTS.md](AGENTS.md).
@@ -15,7 +15,7 @@ npm run check     # repo guard: doc sizes, pictures, deps, secrets, Barkpark bou
 pnpm -r test      # unit tests, chaos bot included
 pnpm e2e          # production build in Chrome; needs BARKEVER_E2E_* (app/.env.example)
 pnpm e2e:mac      # the Mac app
-npm run prepush   # guard, tests, e2e + a secret scan of outgoing commits
+npm run prepush   # guard, tests, e2e + a secret scan; no longer part of a land
 ```
 
 ## Land it
