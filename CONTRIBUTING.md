@@ -25,6 +25,8 @@ node scripts/worktree.mjs <name>
 node scripts/land.mjs <name> --reviewed <sha>
 ```
 
+A land ends on `staging`. GitHub checks it there, and `main` follows once the checks are green.
+
 ## Issues and milestones
 
 Work is tracked in Barkpark, not here. GitHub's milestones and criterion issues are a one-way mirror, so a change made on them is overwritten. Stamp the criterion on the Barkpark task. The next land redraws, or the lead runs `npm run roadmap:publish`. See [decision 0037](docs/decisions/0037-github-milestones-mirror-barkpark.md).
