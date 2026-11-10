@@ -77,6 +77,11 @@ const abortRebase = () => {
 if (git(["rev-parse", branch], dir) !== head) { console.error(`land: ${branch} moved before the rebase; nothing landed; main is untouched`); process.exit(1); }
 stopIfUnfinished("branch", dir);
 step("rebase onto staging", "git", ["rebase", "-q", "--rebase-merges", base], dir, abortRebase);
+if (!isText(changedSince(base)) && !reviewPassed) {
+  git(["reset", "-q", "--keep", head], dir);
+  console.error(`land: ${branch} would send more than docs: it carries commits local main holds and origin does not. Pass --reviewed <the sha the reviewer passed>; ${branch} is back at ${head.slice(0, 10)}; nothing landed; main is untouched`);
+  process.exit(1);
+}
 const abortMerge = () => {
   try { git(["merge", "--abort"], dir); } catch {}
   try { git(["reset", "-q", "--keep", head], dir); return `; main and staging each hold a commit that clashes with the other, so no land can pass until the lead merges main into staging by hand; ${branch} is back at ${head.slice(0, 10)}`; }
@@ -114,7 +119,6 @@ const suites = [
 ];
 const known = /^docs\/|^[A-Z]+\.md$|^(scripts|\.github|app|mac)\//;
 const everything = landing.some((f) => !known.test(f));
-if (!isText(landing) && !reviewPassed) { console.error(`land: ${branch} would send more than docs: it carries commits local main holds and origin does not. Pass --reviewed <the sha the reviewer passed>${putBack()}; nothing landed; main is untouched`); process.exit(1); }
 if (noAppEffect(landing)) step("no app effect: secret scan", "node", ["scripts/scan-outgoing.mjs"], dir, putBack);
 else {
   for (const [label, covers, cmd, args] of suites) if (everything || landing.some((f) => covers.test(f))) step(label, cmd, args, dir, putBack);

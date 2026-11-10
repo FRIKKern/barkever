@@ -530,7 +530,7 @@ test("a docs branch cut from a local main that holds an unpushed app commit is r
   assert.equal(run.r.status, 1, run.r.stderr);
   assert.match(run.r.stderr, /would send more than docs.*nothing landed/);
   assert.equal(originLog(run.main, "staging"), "base");
-  assert.equal(git(run.branch, "log", "-1", "--format=%s"), "docs");
+  assert.equal(git(run.branch, "rev-parse", "HEAD"), run.reviewed);
 });
 
 for (const [folder, runs, skips] of [["app", "@barkever/app test", "@barkever/mac"], ["mac", "@barkever/mac test", "@barkever/app"]]) test(`a change under ${folder}/ runs that package's tests and no other suite`, () => {
@@ -584,7 +584,7 @@ test("a staging that only fell behind main is caught up by the land, with no mer
 });
 
 test("when main and staging each hold a commit the other lacks, the land merges main in so the bot can move main again", () => {
-  const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0" });
+  const run = repo((m) => { pending(m); addB(m); }, docsOnly, { check: "exit 0", prepush: "exit 0", reviewedAs: null });
   assert.equal(run.r.status, 0, run.r.stderr);
   const origin = join(run.main, "..", "origin.git");
   for (const subject of ["docs", "pending", "add b"]) assert.ok(originLog(run.main, "staging").split("\n").includes(subject), subject);
