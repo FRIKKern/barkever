@@ -9,8 +9,8 @@ import { cleanup } from "./test-cleanup.mjs";
 const root = new URL("..", import.meta.url).pathname;
 const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
 const baseEnv = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" };
-const tops = [];
-cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
+const temp = mkdtempSync(join(tmpdir(), "publish-"));
+cleanup([temp]);
 
 const FAKE_GH = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -77,8 +77,7 @@ const goodBoard = () => ({
 });
 
 function sandbox({ originName = "FRIKKern/barkever.git", board = goodBoard(), github } = {}) {
-  const top = realpathSync(mkdtempSync(join(tmpdir(), "publish-")));
-  tops.push(top);
+  const top = realpathSync(mkdtempSync(join(temp, "publish-")));
   const env = { ...baseEnv, HOME: top, PATH: `${join(top, "bin")}:${baseEnv.PATH}`, FAKE_GITHUB: join(top, "github.json"), FAKE_BOARD: join(top, "board.json") };
   const git = (cwd, ...args) => execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   mkdirSync(join(top, "bin"));

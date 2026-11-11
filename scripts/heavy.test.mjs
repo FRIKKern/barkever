@@ -31,7 +31,7 @@ const env = (dir, owner, path = bin) => ({ ...inherited, HEAVY_DIR: dir, HEAVY_O
 const groups = [];
 const EXITED_GROUP = ["ESRCH", "EPERM"];
 const stop = (p, signal = "SIGKILL") => { try { process.kill(-p.pid, signal); } catch (error) { if (!EXITED_GROUP.includes(error.code)) throw error; } };
-cleanup(() => { for (const p of groups) stop(p); rmSync(top, { recursive: true, force: true }); });
+cleanup([top], () => { for (const p of groups) stop(p); });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const slots = () => mkdtempSync(join(top, "slots-"));

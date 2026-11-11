@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanup } from "./test-cleanup.mjs";
@@ -14,12 +14,11 @@ const write = (cwd, text) => { writeFileSync(join(cwd, "a.txt"), text); git(cwd,
 const originHead = (main) => git(join(main, "..", "origin.git"), "log", "-1", "--format=%s", "staging");
 const originLog = (main, name) => git(join(main, "..", "origin.git"), "log", "--format=%s", name);
 const landedHead = ({ main, branch }) => assert.equal(git(join(main, "..", "origin.git"), "rev-parse", "staging"), git(branch, "rev-parse", "HEAD"));
-const tops = [];
-cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
+const temp = mkdtempSync(join(tmpdir(), "land-"));
+cleanup([temp]);
 
 function repo(onMain, onBranch = (b) => write(b, "branch\n"), { check = "exit 3", prepush, pnpmExit = 0, reviewedAs, onPull, pnpm, unpushed = () => {} } = {}) {
-  const top = mkdtempSync(join(tmpdir(), "land-"));
-  tops.push(top);
+  const top = mkdtempSync(join(temp, "land-"));
   const origin = join(top, "origin.git");
   const main = join(top, "barkever");
   const branch = join(top, "barkever-wt", "feature");

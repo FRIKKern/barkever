@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanup } from "./test-cleanup.mjs";
@@ -9,15 +9,14 @@ import { cleanup } from "./test-cleanup.mjs";
 const root = new URL("..", import.meta.url).pathname;
 const { GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...inherited } = process.env;
 const env = { ...inherited, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com" };
-const tops = [];
-cleanup(() => { for (const top of tops) rmSync(top, { recursive: true, force: true }); });
+const temp = mkdtempSync(join(tmpdir(), "scan-"));
+cleanup([temp]);
 const long = "A1b2C3d4".repeat(5);
 const known = "known-value-".concat(long);
 const knownMail = "owner-".concat(long, "@example.test");
 
 function outgoing(commit, envLocal = `export X_TOKEN=${known}\nBARKEVER_E2E_EMAIL=${knownMail}\n`, config) {
-  const top = mkdtempSync(join(tmpdir(), "scan-"));
-  tops.push(top);
+  const top = mkdtempSync(join(temp, "scan-"));
   const origin = join(top, "origin.git");
   const repo = join(top, "repo");
   const git = (...args) => execFileSync("git", args, { cwd: repo, env, encoding: "utf8" }).trim();

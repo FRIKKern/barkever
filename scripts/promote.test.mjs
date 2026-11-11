@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanup } from "./test-cleanup.mjs";
@@ -9,7 +9,7 @@ import { cleanup } from "./test-cleanup.mjs";
 const workflow = readFileSync(new URL("../.github/workflows/promote.yml", import.meta.url), "utf8");
 const step = workflow.split("        run: |\n")[1].split("\n").map((line) => line.slice(10)).join("\n");
 const top = mkdtempSync(join(tmpdir(), "promote-"));
-cleanup(() => rmSync(top, { recursive: true, force: true }));
+cleanup([top]);
 
 const fakeGh = `#!/usr/bin/env node
 import { execFileSync } from "node:child_process";
