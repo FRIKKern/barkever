@@ -36,6 +36,22 @@ test("a --test-timeout of 2147483647 ms, the most Node takes, passes", () => {
   assert.equal(r.status, 0, r.stderr);
 });
 
+test("a --deadline of 2147483647 ms, the most own-tmp takes, passes", () => {
+  const dir = copy();
+  deadline(" --deadline=2147483647")(dir);
+  const r = run(dir);
+  assert.equal(r.status, 0, r.stderr);
+});
+
+test("the guarded run the split plants start with passes by itself, and with a second guarded run after it", () => {
+  for (const rest of ["", ` && ${GUARDED_RUN}`]) {
+    const dir = copy();
+    afterGuardedRun(rest)(dir);
+    const r = run(dir);
+    assert.equal(r.status, 0, r.stderr);
+  }
+});
+
 test("a package.json with no scripts passes", () => {
   const dir = copy();
   mkdirSync(join(dir, "fixtures/planted"), { recursive: true });
@@ -44,29 +60,37 @@ test("a package.json with no scripts passes", () => {
   assert.equal(r.status, 0, r.stderr);
 });
 
-const testTimeout = (flag) => (d) => {
+const macTest = (change) => (d) => {
   const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8"));
-  p.scripts.test = p.scripts.test.replace(/ --test-timeout=\d+/, flag);
+  p.scripts.test = change(p.scripts.test);
   writeFileSync(join(d, "mac/package.json"), JSON.stringify(p));
 };
-const secondRunBare = (join_) => (d) => {
-  const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8"));
-  p.scripts.test = `node --test --test-timeout=300000 a ${join_} node --test b`;
-  writeFileSync(join(d, "mac/package.json"), JSON.stringify(p));
-};
+const testTimeout = (flag) => macTest((cmd) => cmd.replace(/ --test-timeout=\d+/, flag));
+const deadline = (flag) => macTest((cmd) => cmd.replace(/ --deadline=\d+/, flag));
+const GUARDED_RUN = "node ../scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 a";
+const afterGuardedRun = (rest) => macTest(() => GUARDED_RUN + rest);
+const NO_TIMEOUT = "check-repo: 1 problem(s)\n  ✗ mac/package.json: script \"test\" runs node --test without a --test-timeout=";
+const NO_DEADLINE = "check-repo: 1 problem(s)\n  ✗ mac/package.json: script \"test\" runs node --test outside own-tmp.mjs --deadline=";
 const plants = {
   "word cap": (d) => writeFileSync(join(d, "README.md"), readFileSync(join(d, "README.md"), "utf8") + " word".repeat(400)),
   "no picture in a top-level doc": (d) => writeFileSync(join(d, "docs/NOTES.md"), "# Notes\n\nJust words.\n"),
   "image outside reference/ or docs/img/": (d) => cpSync(join(d, "package.json"), join(d, "shot.webp")),
-  "node --test without --test-timeout": testTimeout(""),
-  "--test-timeout=0, which is none": testTimeout(" --test-timeout=0"),
-  "--test-timeout past 2^31 - 1 ms": testTimeout(" --test-timeout=2147483648"),
-  "--test-timeout with a space, not =": testTimeout(" --test-timeout 300000"),
-  "--test-timeout with no number": testTimeout(" --test-timeout="),
-  "a second node --test after && without --test-timeout": secondRunBare("&&"),
-  "a second node --test after || without --test-timeout": secondRunBare("||"),
-  "a second node --test after ; without --test-timeout": secondRunBare(";"),
-  "node --test with no whole-run deadline": (d) => { const p = JSON.parse(readFileSync(join(d, "mac/package.json"), "utf8")); p.scripts.test = p.scripts.test.replace(" --deadline=1200000", ""); writeFileSync(join(d, "mac/package.json"), JSON.stringify(p)); },
+  "node --test without --test-timeout": [testTimeout(""), NO_TIMEOUT],
+  "--test-timeout=0, which is none": [testTimeout(" --test-timeout=0"), NO_TIMEOUT],
+  "--test-timeout past 2^31 - 1 ms": [testTimeout(" --test-timeout=2147483648"), NO_TIMEOUT],
+  "--test-timeout with a space, not =": [testTimeout(" --test-timeout 300000"), NO_TIMEOUT],
+  "--test-timeout with no number": [testTimeout(" --test-timeout="), NO_TIMEOUT],
+  "--deadline=0, which is none": [deadline(" --deadline=0"), NO_DEADLINE],
+  "--deadline past 2^31 - 1 ms": [deadline(" --deadline=2147483648"), NO_DEADLINE],
+  "node --test with no whole-run deadline": [deadline(""), NO_DEADLINE],
+  "a second node --test after && without --test-timeout": [afterGuardedRun(" && node --test b"), NO_TIMEOUT],
+  "a second node --test after || without --test-timeout": [afterGuardedRun(" || node --test b"), NO_TIMEOUT],
+  "a second node --test after ; without --test-timeout": [afterGuardedRun(" ; node --test b"), NO_TIMEOUT],
+  "a second node --test after | without --test-timeout": [afterGuardedRun(" | node --test b"), NO_TIMEOUT],
+  "a second node --test after & without --test-timeout": [afterGuardedRun(" & node --test b"), NO_TIMEOUT],
+  "a second node --test on the next line without --test-timeout": [afterGuardedRun("\nnode --test b"), NO_TIMEOUT],
+  "a second node --test after && outside own-tmp.mjs": [afterGuardedRun(" && node --test --test-timeout=300000 b"), NO_DEADLINE],
+  "a second node --test after ; outside own-tmp.mjs": [afterGuardedRun(";node --test --test-timeout=300000 b"), NO_DEADLINE],
   "banned dependency": (d) => { const p = JSON.parse(readFileSync(join(d, "package.json"), "utf8")); p.dependencies = { next: "1" }; writeFileSync(join(d, "package.json"), JSON.stringify(p)); },
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
@@ -76,11 +100,13 @@ const plants = {
   "type error in mac/src": (d) => writeFileSync(join(d, "mac/src/planted.ts"), "export const n: number = 'not a number'\n"),
   "Barkpark URL outside app/src/server": (d) => { mkdirSync(join(d, "app/src/lib"), { recursive: true }); writeFileSync(join(d, "app/src/lib/planted.ts"), "const u = 'https://guerrilla.barkpark.cloud'\n"); },
 };
-for (const [name, plant] of Object.entries(plants)) {
+for (const [name, planted] of Object.entries(plants)) {
+  const [plant, says = "check-repo: "] = [planted].flat();
   test(`fails on: ${name}`, () => {
     const dir = copy();
     plant(dir);
     const r = run(dir);
     assert.equal(r.status, 1, `expected failure for ${name}; got: ${r.stdout}`);
+    assert.equal(r.stderr.slice(0, says.length), says);
   });
 }

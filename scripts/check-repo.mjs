@@ -41,15 +41,18 @@ if (imgTotal > 5 * 1024 * 1024) fail("images", `${Math.round(imgTotal / 1024)} K
 
 for (const f of files) if (statSync(f).size > 1024 * 1024) fail(f, "over 1 MB");
 
+const MOST_MS = 2147483647;
 const banned = [/^next$/, /^prisma$/, /^@prisma\//, /^pg$/, /^@clerk\//, /^@tiptap\//, /^lexical$/, /^firebase$/, /^mongoose$/, /^@supabase\//];
 for (const f of files.filter((f) => f.endsWith("package.json"))) {
   const pkg = JSON.parse(read(f));
   const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies });
   for (const d of deps) if (banned.some((re) => re.test(d))) fail(f, `banned dependency ${d} (see docs/decisions/0003, 0004)`);
   for (const [name, cmd] of Object.entries(pkg.scripts ?? {}))
-    for (const part of cmd.split(/&&|\|\||;/))
-      if (/(^|\s)--test(\s|$)/.test(part) && !(+part.match(/\s--test-timeout=([1-9]\d*)(\s|$)/)?.[1] <= 2147483647)) fail(f, `script "${name}" runs node --test without a --test-timeout=<1 to 2147483647 ms>, so one hung test hangs the gate`);
-      else if (/(^|\s)--test(\s|$)/.test(part) && !/own-tmp\.mjs --deadline=[1-9]\d* /.test(part)) fail(f, `script "${name}" runs node --test outside own-tmp.mjs --deadline=<ms>, so a child holding stdout hangs the gate`);
+    for (const part of cmd.split(/[;&|\n]+/)) {
+      if (!/(^|\s)--test(\s|$)/.test(part)) continue;
+      if (!(+part.match(/\s--test-timeout=([1-9]\d*)(\s|$)/)?.[1] <= MOST_MS)) fail(f, `script "${name}" runs node --test without a --test-timeout=<1 to ${MOST_MS} ms>, so one hung test hangs the gate`);
+      else if (!(+part.match(/own-tmp\.mjs --deadline=([1-9]\d*) /)?.[1] <= MOST_MS)) fail(f, `script "${name}" runs node --test outside own-tmp.mjs --deadline=<1 to ${MOST_MS} ms>, so a child holding stdout hangs the gate`);
+    }
 }
 
 const secret = [
