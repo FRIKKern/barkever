@@ -22,8 +22,8 @@ Barkpark PRs  ─► docs/barkpark-prs.md (hostile self-check first)
 2. Worktree for anything but `main`: `node scripts/worktree.mjs <name>` (installs, links the env). The main checkout never switches branches.
 3. One journey per branch. Name it in the commit: `J03: …`.
 4. `npm run check` before every commit.
-5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, touched tests, scan, push `staging`; a bot moves `main` when CI is green ([0042](docs/decisions/0042-staging-is-live.md)). No squash. Evidence on the task.
-6. Close with evidence: what ran, where to see it, screenshots for any UI change. The lead redraws after a stamp: `npm run roadmap:publish`.
+5. `node scripts/land.mjs <name> --reviewed <sha>`: only the reviewed head; rebase, check, touched tests, scan, push `staging`; a bot moves `main` when CI is green ([0042](docs/decisions/0042-staging-is-live.md)). No squash.
+6. Close with the commit link and the test that fails on the old code. Screenshot only for a UI change. Say what you did not run. The lead redraws after a stamp: `npm run roadmap:publish`.
 
 ## Long unattended runs
 
@@ -41,14 +41,14 @@ Owner-only choices get a provisional pick from an independent judge, flagged for
 - **Unrun means unrun.** Never report a check you didn't run.
 - **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming reviewer and sha.
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
-- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0042](docs/decisions/0042-staging-is-live.md), [0043](docs/decisions/0043-test-scripts-is-steady-and-red-issues-close.md). Be brave; other agents review after.
+- **Code:** no comments (names carry the meaning), YAGNI, no god files, no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0042](docs/decisions/0042-staging-is-live.md), [0043](docs/decisions/0043-test-scripts-is-steady-and-red-issues-close.md). Be brave; other agents review after.
 - **Unsure? Test, don't guess.** Rival spikes in `spikes/<name>/`, one agent per direction, same tests; the winner becomes a decision linking the loser's report.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
 - **guerrilla is shared** by every run and agent. A live probe is one timed call: no loops, no deletes or bulk writes without the lead.
 - **No secrets in prompts, files or output.** `land.mjs` and `npm run prepush` scan outgoing commits; a plain `git push` runs nothing, so land.
 - **Use `trash`, not `rm`.** Ask before pushing or anything destructive.
-- **Trial until 2026-11-09 overrides these rules:** [0038](docs/decisions/0038-review-trial.md).
+- **Review:** [0044](docs/decisions/0044-the-trial-stays-and-test-tools-are-risky.md).
 
 ## AI in the app
 
