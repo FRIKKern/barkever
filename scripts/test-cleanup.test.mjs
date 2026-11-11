@@ -47,10 +47,13 @@ const file = (name, body) => spawn(process.execPath, ["--input-type=module", "-e
 const groupKilledWith = (signal, name) => {
   const child = file(name, hangs);
   let out = "";
-  child.stdout.on("data", (d) => {
+  const untilReady = (d) => {
     out += d;
-    if (out.includes("ready")) process.kill(-child.pid, signal);
-  });
+    if (!out.includes("ready")) return;
+    child.stdout.off("data", untilReady);
+    process.kill(-child.pid, signal);
+  };
+  child.stdout.on("data", untilReady);
   return ended(child);
 };
 
