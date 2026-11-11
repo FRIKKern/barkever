@@ -41,7 +41,7 @@ Owner-only choices get a provisional pick from an independent judge, flagged for
 - **Unrun means unrun.** Never report a check you didn't run.
 - **Nobody signs off their own journey.** Stamp criteria only after a PASS, naming reviewer and sha.
 - **Predict, then run.** Unit tests and the real app are two oracles; both must pass.
-- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0042](docs/decisions/0042-staging-is-live.md). Be brave; other agents review after.
+- **Code:** no comments (names carry the meaning), YAGNI, no god files, no stupid patterns: no needless layers, boilerplate or ceremony. CI: [0040](docs/decisions/0040-github-checks-every-push.md), [0042](docs/decisions/0042-staging-is-live.md), [0043](docs/decisions/0043-test-scripts-is-steady-and-red-issues-close.md). Be brave; other agents review after.
 - **Unsure? Test, don't guess.** Rival spikes in `spikes/<name>/`, one agent per direction, same tests; the winner becomes a decision linking the loser's report.
 - **Barkpark is the only backend.** Only `src/server/**` talks to it. A missing Barkpark feature gets fixed in Barkpark (`../barkpark`), not worked around here.
 - **Fixtures are synthetic.** Real notes never enter tests or transcripts.
