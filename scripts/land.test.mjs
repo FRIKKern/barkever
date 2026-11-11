@@ -694,3 +694,56 @@ test("a mark left by a dead land doesn't stop the next one", () => {
   assert.equal(run.r.status, 0, run.r.stderr);
   assert.ok(!existsSync(join(run.main, ".git/land.pid")));
 });
+
+test("a commit marked Trial: unreviewed that touches a risky path is refused, and the land names the file", () => {
+  for (const file of ["scripts/check-repo.mjs", "scripts/test-cleanup.mjs", "scripts/own-tmp.test.mjs", "scripts/land.mjs", ".github/workflows/ci.yml", "app/src/replica/merge.ts"]) {
+    const run = repo(() => {}, (b) => {
+      mkdirSync(join(b, file, ".."), { recursive: true });
+      writeFileSync(join(b, file), "changed\n");
+      git(b, "add", file);
+      git(b, "commit", "-qm", "tool\n\nTrial: unreviewed");
+    }, { check: "exit 0", prepush: "exit 0" });
+    assertBack(run);
+    assert.ok(run.r.stderr.includes(`land: ${file} is on the risky list, and a commit marked Trial: unreviewed changes it`), run.r.stderr);
+    assert.equal(originHead(run.main), "base");
+  }
+});
+
+test("the same risky change lands once its commit no longer carries the mark, and an unreviewed commit off the list lands too", () => {
+  const change = (file, message) => (b) => {
+    mkdirSync(join(b, file, ".."), { recursive: true });
+    writeFileSync(join(b, file), "changed\n");
+    git(b, "add", file);
+    git(b, "commit", "-qm", message);
+  };
+  for (const onBranch of [change("scripts/check-repo.mjs", "tool"), change("scripts/arms.mjs", "arms\n\nTrial: unreviewed"), change("app/src/ui/a.ts", "ui\n\nTrial: unreviewed")]) {
+    const run = repo(() => {}, onBranch, { check: "exit 0", prepush: "exit 0" });
+    assert.equal(run.r.status, 0, run.r.stderr);
+    landedHead(run);
+  }
+});
+
+test("the mark is found however it is typed, and an odd file name on the risky list is still seen", () => {
+  for (const [file, mark] of [["scripts/heavy.mjs", "trial: Unreviewed"], ["scripts/heavy.mjs", "  Trial:  unreviewed"], ["app/src/server/æ.ts", "Trial: unreviewed"]]) {
+    const run = repo(() => {}, (b) => {
+      mkdirSync(join(b, file, ".."), { recursive: true });
+      writeFileSync(join(b, file), "changed\n");
+      git(b, "add", file);
+      git(b, "commit", "-qm", `tool\n\n${mark}`);
+    }, { check: "exit 0", prepush: "exit 0" });
+    assertBack(run);
+    assert.ok(run.r.stderr.includes(`land: ${file} is on the risky list`), run.r.stderr);
+    assert.equal(originHead(run.main), "base");
+  }
+});
+
+test("a marked risky commit that origin already holds does not stop a branch built on it, even when local main is behind", () => {
+  const run = repo(() => {}, (b) => {
+    writeFileSync(join(b, "scripts/heavy.mjs"), "landed\n");
+    git(b, "add", "scripts/heavy.mjs");
+    git(b, "commit", "-qm", "heavy\n\nTrial: unreviewed");
+    write(b, "branch\n");
+  }, { check: "exit 0", prepush: "exit 0", unpushed: (m) => git(m, "push", "-q", "origin", "feature~1:main", "feature~1:staging") });
+  assert.equal(run.r.status, 0, run.r.stderr);
+  landedHead(run);
+});
