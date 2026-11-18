@@ -101,6 +101,7 @@ export function mergeNote(base: NoteDoc, mine: NoteDoc, theirs: NoteDoc, at: str
   const body = mergeBlocks(base.body?.blocks ?? [], mine.body?.blocks ?? [], theirs.body?.blocks ?? [], picked)
   if (mine.body || theirs.body) out.body = {...mine.body, blocks: body.blocks}
   if (mine.links || theirs.links || out.body) out.links = linksFor(body.blocks, pick(base.links, mine.links, theirs.links, () => {}))
+  out.trashed = pick(base.trashed, mine.trashed, theirs.trashed, () => {})
   clash.push(...body.clash.map((id) => `body:${id}`))
   const conflicts = mergeConflicts(base.conflicts ?? [], mine.conflicts ?? [], theirs.conflicts ?? [])
   const copyKey = `${key}~${digest(canon([...clash].sort()))}`
@@ -124,7 +125,7 @@ export function mergeLocal(note: NoteDoc, shown: Partial<NoteDoc>, after: Partia
   return mergeNote(base, typed, note, at, me, key, other === me ? `${me}~tab` : other, picked)
 }
 
-const FIELDS = ['title', 'notebook', 'tags', 'links', 'conflicts'] as const
+const FIELDS = ['title', 'notebook', 'tags', 'links', 'conflicts', 'trashed'] as const
 const made = (n: NoteDoc) => new Set((n.conflicts ?? []).map((c) => c._key).filter((k) => k.startsWith('local-')))
 const landed = <T>(base: T, sent: T[], theirs: T) => (sent.some((x) => same(x, theirs)) ? theirs : base)
 

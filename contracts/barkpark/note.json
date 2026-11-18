@@ -12,6 +12,7 @@
     {"name": "tags", "title": "Tags", "type": "arrayOf", "ordered": true, "of": {"type": "string"}, "options": {"layout": "tags"}},
     {"name": "links", "title": "Linked notes", "type": "arrayOf", "ordered": true, "of": {"type": "reference", "refType": "note"}},
     {"name": "by", "title": "Written by (device and content sum)", "type": "string"},
+    {"name": "trashed", "title": "In Trash since", "type": "string"},
     {"name": "conflicts", "title": "Other versions", "type": "arrayOf", "ordered": true,
      "of": {"type": "composite", "fields": [
        {"name": "by", "title": "Whose version", "type": "string"},

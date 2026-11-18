@@ -3,10 +3,10 @@ import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {star} from '../lib/library'
 import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-pick'
-import type {Note} from '../lib/model'
+import {isBlank, type Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, recorded, useSaveStatus} from '../lib/saver'
-import {deleteNote, editTitle, owesTitle, savedTitle} from '../replica/local'
+import {deleteNote, editTitle, owesTitle, savedTitle, trashNote} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
@@ -24,9 +24,9 @@ import type {World} from './world'
 
 const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device', unsaved: 'Couldn’t save on this device'}
 
-type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void}
+type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void; onTrashed: (id: string) => void}
 
-export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: Props) {
+export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail, onTrashed}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
@@ -82,9 +82,11 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
   }
   const ins = w.links.backs(note.id).length
   const remove = () => {
-    if (ins && !confirm(`${ins} ${ins === 1 ? 'note links' : 'notes link'} here; their links will show as gone. Delete this note?`)) return
-    void recorded(note.id, deleteNote(note.id).then(() => true)).then((gone) => {
-      if (gone) void navigate({to: '/', search: {...s, n: undefined}})
+    const blank = isBlank(note)
+    void recorded(note.id, (blank ? deleteNote(note.id) : trashNote(note.id)).then(() => true)).then((gone) => {
+      if (!gone) return
+      if (!blank) onTrashed(note.id)
+      void navigate({to: '/', search: {...s, n: undefined}})
     })
   }
   const path = w.shelf.path(note.notebook)
@@ -119,7 +121,7 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           <button className="icon-btn" onClick={onRail} title="Connections" aria-label="Toggle connections">
             <Icon name="rail" />
           </button>
-          <button className="icon-btn" onClick={remove} title="Delete note" aria-label="Delete note" data-testid="delete-note">
+          <button className="icon-btn" onClick={remove} title="Move to Trash" aria-label="Move to Trash" data-testid="delete-note">
             <Icon name="trash" />
           </button>
         </div>

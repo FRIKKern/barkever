@@ -19,7 +19,9 @@ export function digest(s: string): string {
   return (h >>> 0).toString(36)
 }
 
-const sum = (n: NoteDoc) => digest(canon(NOTE_FIELDS.map((f) => n[f])))
+const signed = (n: NoteDoc) => (n.trashed ? NOTE_FIELDS : NOTE_FIELDS.filter((f) => f !== 'trashed'))
+
+const sum = (n: NoteDoc) => digest(canon(signed(n).map((f) => n[f])))
 
 export const sign = (n: NoteDoc, me: string): NoteDoc => ({...n, by: `${me}.${sum(n)}`})
 

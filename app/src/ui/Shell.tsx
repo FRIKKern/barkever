@@ -9,6 +9,7 @@ import {scopeName, visibleNotes, type Search} from '../lib/scope'
 import {prepare} from '../lib/search'
 import {useCapture} from './capture'
 import {dropBlankDrafts, dropIfBlank} from '../replica/drop'
+import {restoreNote} from '../replica/local'
 import {Board, type BoardHandle} from './Board'
 import {Editor} from './Editor'
 import {useBackStep, useLeave, useLeaveView} from './history'
@@ -17,6 +18,7 @@ import {NoteList, type ListHandle} from './NoteList'
 import {NotesMap} from './NotesMap'
 import {Rail} from './Rail'
 import {Sidebar} from './Sidebar'
+import {TrashedNote, TrashList, TrashNotice, type TrashHandle} from './Trash'
 import {useWorld} from './world'
 
 const RECENT_AFTER_MS = 800
@@ -40,6 +42,8 @@ export function Shell({s}: {s: Search}) {
   const [focusTitle, setFocusTitle] = useState<{id: string}>()
   const list = useRef<ListHandle>(null)
   const boardRef = useRef<BoardHandle>(null)
+  const trashRef = useRef<TrashHandle>(null)
+  const [moved, setMoved] = useState<string>()
   const capture = useCapture(w, s)
   const back = useBackStep(s)
   const navigate = useNavigate()
@@ -47,9 +51,12 @@ export function Shell({s}: {s: Search}) {
   const mapOn = s.view === 'map'
   const found = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s.q, s.nb, s.tag, w.shelf])
   const tasks = s.view === 'tasks'
+  const trashOn = s.view === 'trash'
   const note = s.n ? w.links.byId.get(s.n) : undefined
+  const trashed = s.n && !note ? w.trash.find((n) => n.id === s.n) : undefined
+  const open = note ?? trashed
   const newNote = capture && (() => (setDrawer(false), capture()))
-  const tab = `${note && !mapOn ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
+  const tab = `${open && !mapOn ? open.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
 
   useEffect(() => void (document.title = tab), [tab])
 
@@ -70,7 +77,7 @@ export function Shell({s}: {s: Search}) {
 
   const closeDrawer = () => {
     flushSync(() => setDrawer(false))
-    const pane = list.current ?? boardRef.current
+    const pane = list.current ?? boardRef.current ?? trashRef.current
     pane?.menu()
   }
   const pick = (id?: string) => {
@@ -93,7 +100,12 @@ export function Shell({s}: {s: Search}) {
 
   if (mapOn) return <NotesMap w={w} from={s.n} onLeave={leaveMap} />
 
-  const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
+  const undo = (id: string) => {
+    setMoved(undefined)
+    void restoreNote(id).then(() => navigate({to: '/', search: {...s, view: undefined, n: id}}))
+  }
+
+  const cls = ['app', open ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (
     <div className={cls}>
       <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />
@@ -109,7 +121,7 @@ export function Shell({s}: {s: Search}) {
           <Board ref={boardRef} w={w} onMenu={() => setDrawer(true)} />
         ) : (
           <>
-            <NoteList ref={list} w={w} s={s} found={found} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />
+            {trashOn ? <TrashList ref={trashRef} w={w} s={s} onMenu={() => setDrawer(true)} /> : <NoteList ref={list} w={w} s={s} found={found} onMenu={() => setDrawer(true)} onNew={newNote} onOpen={(id) => setFocusTitle({id})} />}
             {note ? (
               <>
                 <Editor
@@ -122,9 +134,12 @@ export function Shell({s}: {s: Search}) {
                   back={back}
                   onEscape={() => list.current?.row(note.id) || back.go()}
                   onRail={toggleRail}
+                  onTrashed={setMoved}
                 />
                 <Rail w={w} s={s} note={note} onRail={toggleRail} />
               </>
+            ) : trashed ? (
+              <TrashedNote w={w} s={s} note={trashed} back={back} />
             ) : (
               <main className="editor" aria-label="Note">
                 <div className="empty-ed">{s.n ? 'That note is gone.' : 'Pick a note, or press N for a new one.'}</div>
@@ -133,6 +148,7 @@ export function Shell({s}: {s: Search}) {
           </>
         )}
       </div>
+      {moved && <TrashNotice id={moved} onUndo={() => undo(moved)} onDone={() => setMoved(undefined)} />}
     </div>
   )
 }
