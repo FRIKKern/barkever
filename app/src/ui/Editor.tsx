@@ -19,6 +19,7 @@ import {BodyCanvas, type BodyHandle} from './BodyCanvas'
 import {ConflictView} from './ConflictView'
 import type {BackStep} from './history'
 import {Icon} from './icons'
+import {exportNote} from './markdown-files'
 import {NotebookPick, TagEdit} from './Organize'
 import type {World} from './world'
 
@@ -118,6 +119,9 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail}: 
           </button>
           <button className="icon-btn" onClick={onRail} title="Connections" aria-label="Toggle connections">
             <Icon name="rail" />
+          </button>
+          <button className="icon-btn" onClick={() => exportNote(note, w)} title="Export as Markdown" aria-label="Export as Markdown" data-testid="export-note">
+            <Icon name="download" />
           </button>
           <button className="icon-btn" onClick={remove} title="Delete note" aria-label="Delete note" data-testid="delete-note">
             <Icon name="trash" />
