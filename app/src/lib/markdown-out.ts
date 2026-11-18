@@ -77,7 +77,7 @@ const asLines = (s: string) => (s.trim() ? s.split('\n') : [])
 
 function lines(b: Block, title: Title): string[] {
   if (b.type === 'heading') {
-    const words = prose(contentOf(b), title).replace(/\\?\n/g, ' ')
+    const words = prose(contentOf(b), title).replace(/\\?\n/g, ' ').replace(/([^\\])#$/, '$1\\#')
     return words.trim() ? [`${'#'.repeat(Math.min(6, Math.max(1, Number(b.level) || 1)))} ${words}`] : []
   }
   if (b.type === 'list') return list(b, title)

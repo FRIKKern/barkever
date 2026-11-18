@@ -1,4 +1,4 @@
-import {useRef, useState, type DragEvent} from 'react'
+import {useEffect, useRef, useState, type DragEvent} from 'react'
 import {exportNotebook, type Import} from './markdown-files'
 import {Icon} from './icons'
 import type {World} from './world'
@@ -38,10 +38,21 @@ export const ImportLine = ({io}: {io: Import}) =>
     </div>
   )
 
-const carriesFiles = (e: DragEvent) => e.dataTransfer.types.includes('Files')
+const carriesFiles = (e: DragEvent | globalThis.DragEvent) => !!e.dataTransfer?.types.includes('Files')
+
+const stayHere = (e: globalThis.DragEvent) => {
+  if (!carriesFiles(e) || e.defaultPrevented) return
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'none'
+}
 
 export function useDropFiles(io: Import) {
   const [over, setOver] = useState(false)
+  useEffect(() => {
+    addEventListener('dragover', stayHere)
+    addEventListener('drop', stayHere)
+    return () => (removeEventListener('dragover', stayHere), removeEventListener('drop', stayHere))
+  }, [])
   return {
     over,
     on: {

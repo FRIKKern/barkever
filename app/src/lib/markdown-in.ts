@@ -1,5 +1,5 @@
-import type {Block, Item} from './model.ts'
-import {parseInline, type Resolve} from './markdown-inline.ts'
+import {childrenOf, type Block, type Inline, type Item} from './model.ts'
+import {parseInline, unsafeHref, type Resolve} from './markdown-inline.ts'
 
 export type Read = {fallback: string; id: () => string; resolve: Resolve}
 export type Parsed = {title: string; tags: string[]; blocks: Block[]}
@@ -19,13 +19,32 @@ export function sortFiles<F extends {name: string; size: number}>(files: F[]) {
 }
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})[ \t]*([^`\s]*)/
-const HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/
+const HEADING = /^ {0,3}(#{1,6})(?=[ \t]|$)/
 const RULE = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/
 const QUOTE = /^ {0,3}> ?/
-const IMAGE = /^ {0,3}!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)[ \t]*$/
+const IMAGE = /^ {0,3}!\[((?:\\.|[^\]\\])*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)[ \t]*$/
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/
 const ITEM = /^( *)([-*+]|\d{1,9}[.)])([ \t]+|$)(.*)$/
 const TASK = /^\[([ xX])\](?:[ \t]+|$)(.*)$/
+
+export function decodeText(bytes: Uint8Array): string | null {
+  try {
+    const t = new TextDecoder('utf-8', {fatal: true}).decode(bytes)
+    return t.includes('\u0000') ? null : t
+  } catch {
+    return null
+  }
+}
+
+function headingOf(line: string) {
+  const m = HEADING.exec(line)
+  if (!m) return null
+  const rest = line.slice(m[0].length).trim()
+  let end = rest.length
+  while (end > 0 && rest[end - 1] === '#') end--
+  const closed = end < rest.length && (end === 0 || rest[end - 1] === ' ' || rest[end - 1] === '\t')
+  return {level: m[1].length, words: closed ? rest.slice(0, end).trim() : rest}
+}
 
 const indentOf = (l: string) => l.length - l.trimStart().length
 const blank = (l: string) => !l.trim()
@@ -42,7 +61,7 @@ function itemOf(line: string): Mark | null {
   return {indent: lead.length, col, ordered, start: ordered ? parseInt(marker, 10) : 1, task: !!task, checked: !!task && task[1] !== ' ', rest: task ? task[2] : body}
 }
 
-const opensBlock = (l: string) => FENCE.test(l) || HEADING.test(l) || RULE.test(l) || QUOTE.test(l)
+const opensBlock = (l: string) => FENCE.test(l) || !!headingOf(l) || RULE.test(l) || QUOTE.test(l)
 
 function joinLines(lines: string[]) {
   return lines
@@ -153,16 +172,16 @@ function blocks(lines: string[], ctx: Ctx): Block[] {
       i++
       continue
     }
-    const heading = HEADING.exec(l)
+    const heading = headingOf(l)
     const image = IMAGE.exec(l)
     const m = itemOf(l)
     let step: {blocks: Block[]; next: number}
     if (FENCE.test(l)) step = one(fenced(lines, i, ctx))
-    else if (heading) step = {blocks: [prose('heading', [heading[2] ?? ''], ctx, {level: Math.min(3, heading[1].length)})], next: i + 1}
+    else if (heading) step = {blocks: [prose('heading', [heading.words], ctx, {level: Math.min(3, heading.level)})], next: i + 1}
     else if (RULE.test(l)) step = {blocks: [{id: ctx.id(), type: 'divider'}], next: i + 1}
     else if (QUOTE.test(l)) step = quoted(lines, i, ctx)
     else if (m) step = one(list(lines, i, m, ctx))
-    else if (image) step = {blocks: [{id: ctx.id(), type: 'image', src: image[2], ...(image[1] && {alt: image[1]})} as Block], next: i + 1}
+    else if (image && !unsafeHref(image[2])) step = {blocks: [{id: ctx.id(), type: 'image', src: image[2], ...(image[1] && {alt: image[1].replace(/\\([!-/:-@[-`{-~])/g, '$1')})} as Block], next: i + 1}
     else step = paragraph(lines, i, ctx)
     out.push(...step.blocks)
     i = step.next
@@ -184,10 +203,17 @@ const unquote = (v: string) => {
   return /^'.*'$/.test(t) ? t.slice(1, -1) : t
 }
 
+function jsonList(v: string): string[] | null {
+  try {
+    const list: unknown = JSON.parse(v)
+    return Array.isArray(list) ? list.map(String) : null
+  } catch {
+    return null
+  }
+}
+
 const tagWords = (v: string) =>
-  v
-    .replace(/^\[|\]$/g, '')
-    .split(',')
+  (jsonList(v) ?? v.replace(/^\[|\]$/g, '').split(','))
     .map((t) => unquote(t).replace(/^#/, ''))
     .filter(Boolean)
 
@@ -208,13 +234,29 @@ function frontTags(front: string): string[] {
 
 export function fromMarkdown(source: string, ctx: Read): Parsed {
   let text = source.replace(/^﻿/, '').replace(/\r\n?/g, '\n')
-  const front = /^---[ \t]*\n([\s\S]*?)\n(?:---|\.\.\.)[ \t]*(?:\n|$)/.exec(text)
-  const tags = front ? [...new Set(frontTags(front[1]))] : []
+  const front = /^---[ \t]*\n(?:([\s\S]*?)\n)?(?:---|\.\.\.)[ \t]*(?:\n|$)/.exec(text)
+  const tags = front ? [...new Set(frontTags(front[1] ?? ''))] : []
   if (front) text = text.slice(front[0].length)
   const lines = text.split('\n').map((l) => l.replace(/^[ \t]+/, (w) => w.replace(/\t/g, '    ')))
   let i = 0
   while (i < lines.length && blank(lines[i])) i++
   const titled = /^#(?:[ \t]+(.*))?$/.exec(lines[i] ?? '')
-  const title = titled ? (titled[1] ?? '').trim() : ctx.fallback
+  const title = titled?.[1]?.trim() || ctx.fallback
   return {title, tags, blocks: blocks(lines.slice(titled ? i + 1 : i), ctx)}
 }
+
+function linkInlines(c: Inline[], resolve: Resolve): Inline[] {
+  return c.map((x) => {
+    if (x.type === 'wikilink' && x.target && !x.docId) {
+      const docId = resolve(x.target)
+      return docId ? {...x, docId} : x
+    }
+    return Array.isArray(x.children) ? {...x, children: linkInlines(childrenOf(x), resolve)} : x
+  })
+}
+
+const linkItem = (it: Item, resolve: Resolve): Item =>
+  typeof it === 'object' && !Array.isArray(it) ? {...it, ...(it.content && {content: linkInlines(it.content, resolve)}), ...(it.children && {children: resolveLinks(it.children, resolve)})} : it
+
+export const resolveLinks = (blocks: Block[], resolve: Resolve): Block[] =>
+  blocks.map((b) => ({...b, ...(Array.isArray(b.content) && {content: linkInlines(b.content, resolve)}), ...(Array.isArray(b.items) && {items: b.items.map((it) => linkItem(it, resolve))})}))

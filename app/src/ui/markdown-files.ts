@@ -1,10 +1,9 @@
 import {useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
-import {validate} from 'portable-doc/packages/validate/index.js'
 import {refresh} from '../lib/library'
-import {fromMarkdown, sortFiles} from '../lib/markdown-in'
+import {readImport, type Picked} from '../lib/markdown-import'
 import {fileNames, toMarkdown} from '../lib/markdown-out'
-import {emptyParagraph, UNTITLED, type Note} from '../lib/model'
+import {emptyParagraph, type Note} from '../lib/model'
 import {landing, sameTag, type Search} from '../lib/scope'
 import {zip} from '../lib/zip'
 import {createNote, editBody, editTitle} from '../replica/local'
@@ -32,39 +31,26 @@ export function exportNotebook(nb: string, w: World) {
   download(fileNames([w.shelf.byId.get(nb)?.name ?? 'Notebook'])[0].replace(/\.md$/, '.zip'), data, 'application/zip')
 }
 
-const stem = (name: string) => {
-  const s = name.replace(/\.[^.]+$/, '').trim()
-  return s === UNTITLED ? '' : s
-}
-
 const plural = (k: number, word: string) => `${k} ${word}${k === 1 ? '' : 's'}`
+
+const picked = (f: File): Picked => ({name: f.name, size: f.size, bytes: async () => new Uint8Array(await f.arrayBuffer())})
 
 async function importFiles(files: File[], w: World, s: Search) {
   const spot = landing(s, w.shelf)
   if (!spot) return {made: [], line: 'Make a notebook first, then import.'}
-  const {take, skip} = sortFiles(files)
-  const texts = await Promise.all(take.map((f) => f.text()))
-  const ids = take.map(() => `note-${crypto.randomUUID()}`)
-  const nobody = {id: () => '', resolve: () => undefined}
-  const titles = take.map((f, i) => fromMarkdown(texts[i], {...nobody, fallback: stem(f.name)}).title)
-  const known = new Map(w.lib.notes.filter((n) => n.title.trim()).map((n) => [n.title.trim().toLowerCase(), n.id]))
-  titles.forEach((t, i) => t.trim() && known.set(t.trim().toLowerCase(), ids[i]))
-  const resolve = (t: string) => known.get(t.trim().toLowerCase())
+  const {ready, skip} = await readImport(files.map(picked), w.lib.notes, () => `note-${crypto.randomUUID()}`)
   const made: string[] = []
-  for (const [i, f] of take.entries()) {
-    const id = ids[i]
-    let n = 0
-    const parsed = fromMarkdown(texts[i], {fallback: stem(f.name), id: () => `${id}-m${++n}`, resolve})
-    if (!validate({blocks: parsed.blocks}).ok) {
-      skip.push({name: f.name, why: 'could not be read'})
-      continue
+  for (const r of ready) {
+    const tags = [...spot.tags, ...r.tags].filter((t, k, all) => all.findIndex((x) => sameTag(x, t)) === k)
+    const first = `${r.id}-p0`
+    try {
+      await createNote({id: r.id, notebook: spot.notebook, tags, blockId: first})
+      if (r.title) await editTitle(r.id, '', r.title)
+      if (r.blocks.length) await editBody(r.id, [emptyParagraph(first)], r.blocks)
+      made.push(r.id)
+    } catch (e) {
+      skip.push({name: r.name, why: e instanceof Error ? e.message : 'not saved'})
     }
-    const tags = [...spot.tags, ...parsed.tags].filter((t, k, all) => all.findIndex((x) => sameTag(x, t)) === k)
-    const first = `${id}-p0`
-    await createNote({id, notebook: spot.notebook, tags, blockId: first})
-    if (parsed.title) await editTitle(id, '', parsed.title)
-    if (parsed.blocks.length) await editBody(id, [emptyParagraph(first)], parsed.blocks)
-    made.push(id)
   }
   const skipped = skip.length ? ` · skipped ${skip.map((x) => `${x.name} (${x.why})`).join(', ')}` : ''
   return {made, line: `Imported ${plural(made.length, 'note')}${skipped}`}

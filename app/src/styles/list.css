@@ -8,7 +8,7 @@
 .list-files { display: flex; margin: calc(-1 * var(--sp-1)) 0; }
 .import-line { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-4); font-size: var(--fs-s); color: var(--c-muted); border-bottom: 1px solid var(--c-border-soft); }
 .import-line span { flex: 1; overflow-wrap: anywhere; }
-.rows.drop { box-shadow: inset 0 0 0 2px var(--c-accent); }
+.list.drop .rows { box-shadow: inset 0 0 0 2px var(--c-accent); }
 .rows { flex: 1; overflow: auto; }
 .row { display: block; height: var(--h-row); padding: var(--sp-2) var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
 .row:hover { background: var(--c-hover); }

@@ -82,7 +82,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
     navigate({to: '/', search: (prev: Search) => ({...prev, q: v || undefined}), replace: true})
   }
   return (
-    <section className="list" aria-label="Notes">
+    <section className={`list${drop.over ? ' drop' : ''}`} aria-label="Notes" {...drop.on}>
       <div className="mhead">
         <button ref={menuRef} className="icon-btn" onClick={onMenu} aria-label="Notebooks" aria-haspopup="dialog">
           <Icon name="menu" />
@@ -120,7 +120,7 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
         <ListFiles w={w} nb={scopeDot || undefined} io={io} />
       </div>
       <ImportLine io={io} />
-      <div className={`rows${drop.over ? ' drop' : ''}`} role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys} {...drop.on}>
+      <div className="rows" role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys}>
         {notes.length === 0 && <div className="empty">{searching ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
         {shown.map((n) => {
           const d = w.links.degree(n.id)
