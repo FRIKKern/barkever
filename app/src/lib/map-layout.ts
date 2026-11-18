@@ -36,7 +36,7 @@ function shelfPack(areas: Area[]): {W: number; H: number} {
   return {W, H: y + rowH}
 }
 
-function placeNotes(a: Area, cols: number, links: Links, title: (id: string) => string): MapNode[] {
+function placeNotes(a: Area, cols: number, degree: Map<string, number>, title: (id: string) => string): MapNode[] {
   const {dx, dy, padTop, r} = MAP
   const rows = Math.ceil(a.notes.length / cols)
   const last = a.notes.length - (rows - 1) * cols
@@ -49,14 +49,15 @@ function placeNotes(a: Area, cols: number, links: Links, title: (id: string) => 
   const cx = a.x + a.w / 2
   const cy = a.y + padTop + ((rows - 1) * dy) / 2
   slots.sort((p, q) => Math.hypot(p.x - cx, p.y - cy) - Math.hypot(q.x - cx, q.y - cy) || p.y - q.y || p.x - q.x)
-  return a.notes.map((id, i) => ({id, ...slots[i], r: r + Math.min(links.degree(id), 6) * 0.8, area: a.id, title: title(id)}))
+  return a.notes.map((id, i) => ({id, ...slots[i], r: r + Math.min(degree.get(id)!, 6) * 0.8, area: a.id, title: title(id)}))
 }
 
 export function layoutNotesMap({notes, notebooks}: Library, links: Links): NotesMap {
   const names = new Map(notebooks.map((nb) => [nb.id, nb]))
   const groups = new Map<string | null, string[]>()
   for (const n of [...notes].sort(byId)) groups.get(n.notebook)?.push(n.id) ?? groups.set(n.notebook, [n.id])
-  const rank = (p: string, q: string) => links.degree(q) - links.degree(p) || (p < q ? -1 : 1)
+  const degree = new Map(notes.map((n) => [n.id, links.degree(n.id)]))
+  const rank = (p: string, q: string) => degree.get(q)! - degree.get(p)! || (p < q ? -1 : 1)
   const shapes = [...groups].map(([notebook, ids]) => {
     const cols = Math.min(ids.length, Math.ceil(Math.sqrt((ids.length * MAP.dy * 2.5) / MAP.dx)))
     const title = `${areaName(notebook, names)} ${ids.length}`
@@ -67,7 +68,7 @@ export function layoutNotesMap({notes, notebooks}: Library, links: Links): Notes
   const areas = shapes.map((s) => s.area)
   const {W, H} = shelfPack(areas)
   const title = (id: string) => links.byId.get(id)?.title || UNTITLED
-  const nodes = shapes.flatMap(({area, cols}) => placeNotes(area, cols, links, title))
+  const nodes = shapes.flatMap(({area, cols}) => placeNotes(area, cols, degree, title))
   const at = new Map(nodes.map((n) => [n.id, n]))
   const edges = nodes.flatMap((n) => links.outs(n.id).filter((t) => at.has(t)).map((t): [string, string] => [n.id, t]))
   return {areas: areas.sort(byId), nodes: nodes.sort((p, q) => rank(p.id, q.id)), at, edges, W, H}

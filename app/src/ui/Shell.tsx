@@ -49,7 +49,7 @@ export function Shell({s}: {s: Search}) {
   const tasks = s.view === 'tasks'
   const note = s.n ? w.links.byId.get(s.n) : undefined
   const newNote = capture && (() => (setDrawer(false), capture()))
-  const tab = `${note ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
+  const tab = `${note && !mapOn ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
 
   useEffect(() => void (document.title = tab), [tab])
 
