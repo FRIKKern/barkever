@@ -15,6 +15,7 @@ export type NoteDoc = {
   links?: Ref[]
   conflicts?: Conflict[]
   by?: string
+  trashed?: string
   _typed?: string[]
 }
 export type NotebookDoc = {_id: string; _type: 'notebook'; _rev?: string; name?: string; parent?: Ref}
@@ -22,7 +23,7 @@ export type Doc = NoteDoc | NotebookDoc
 export type DocType = Doc['_type']
 export type Row = {id: string; rev?: string}
 
-export const NOTE_FIELDS = ['title', 'notebook', 'tags', 'body', 'links', 'conflicts'] as const
+export const NOTE_FIELDS = ['title', 'notebook', 'tags', 'body', 'links', 'conflicts', 'trashed'] as const
 const STORED = [...NOTE_FIELDS, 'by'] as const
 
 export const bare = (id: string) => id.replace(/^drafts\./, '')

@@ -144,6 +144,10 @@ export const retag = (id: string, shown: string[], tags: string[]) => edit(id, (
 
 export const tick = (id: string, box: string) => edit(id, (n) => tickAt(n, box))
 
+export const trashNote = (id: string) => edit(id, (n) => ({...n, trashed: now()}))
+
+export const restoreNote = (id: string) => edit(id, ({trashed: _, ...n}) => n)
+
 export const savedTitle = async (id: string) => (await (await db()).get('notes', id))?.title ?? ''
 
 export const keepVersion = (id: string, key: string, shown: Pick<NoteDoc, 'title' | 'body'>) => edit(id, (n, server) => keep(n, key, shown, now(), `local-${crypto.randomUUID()}`, deviceId(), server), true)
