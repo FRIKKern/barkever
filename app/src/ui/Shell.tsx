@@ -32,6 +32,8 @@ const typingIn = (t: EventTarget | null) => t instanceof HTMLElement && (t.isCon
 
 const plainKey = (e: KeyboardEvent, key: string) => e.key === key && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)
 
+const todayKey = (e: KeyboardEvent) => e.key.toLowerCase() === 't' && !e.shiftKey && !e.repeat && plainKey(e, e.key)
+
 function capturesKey(e: KeyboardEvent): boolean {
   if (e.key.toLowerCase() !== 'n' || e.altKey || e.repeat) return false
   return e.metaKey || e.ctrlKey ? !e.shiftKey : !typingIn(e.target)
@@ -109,7 +111,7 @@ export function Shell({s}: {s: Search}) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && drawer) closeDrawer()
       else if (capturesKey(e) && newNote) (e.preventDefault(), newNote())
-      else if (plainKey(e, 't') && !e.repeat && goToday) (e.preventDefault(), goToday())
+      else if (todayKey(e) && goToday) (e.preventDefault(), goToday())
       else if (plainKey(e, '/')) (e.preventDefault(), list.current?.search())
       else if (plainKey(e, 'm') && !e.repeat) (e.preventDefault(), mapOn ? leaveMap() : navigate({to: '/', search: {...s, view: 'map'}}))
     }

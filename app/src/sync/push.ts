@@ -16,7 +16,7 @@ type Planned = {e: Entry; m: object | null}
 export const remember = (sent: NoteDoc[], note: NoteDoc) => (sent.some((x) => sameContent(x, note)) ? sent : [...sent, note].slice(-SENT))
 
 export function mutationFor(e: Entry, note: NoteDoc | undefined): object | null {
-  if (e.delete) return e.base || e.sent?.length ? {delete: {id: e.id, type: 'note', force: true, ...(e.base && {ifRevisionID: e.base._rev})}} : null
+  if (e.delete) return e.base ? {delete: {id: e.id, type: 'note', force: true, ifRevisionID: e.base._rev}} : null
   if (!note) return null
   if (!e.base) return {create: {...content(note), _id: e.id, _type: 'note'}}
   const base = e.base
@@ -52,7 +52,9 @@ async function healed(sent: Entry[]): Promise<boolean> {
 
 async function send(ids: string[]): Promise<boolean> {
   const plan = await prepare(ids)
-  for (const {e} of plan.filter((p) => !p.m)) await ack(e, e.delete ? null : e.base)
+  const unsure = plan.filter(({e, m}) => !m && e.delete && e.sent?.length)
+  if (unsure.length) await refetch(new Map(unsure.map(({e}) => [e.id, 'note'])))
+  for (const {e} of plan.filter((p) => !p.m && !unsure.includes(p))) await ack(e, e.delete ? null : e.base)
   const out = plan.filter((p) => p.m)
   if (!out.length) return plan.length > 0
   const res = await pushMutations({data: {mutations: out.map((p) => p.m)}})

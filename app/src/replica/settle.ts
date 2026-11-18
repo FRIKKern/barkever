@@ -3,6 +3,7 @@ import {baseFor, reconcile, sameContent} from './merge'
 import {toRow, type Doc, type DocType, type NoteDoc, type NotebookDoc} from './note'
 import {notify} from './bus'
 import {madeKey, touchedByOthers} from './made'
+import {dayStart} from '../lib/today'
 
 type Verdict = 'apply' | 'skip' | 'suspect'
 export type Decide = (known: string | undefined) => Verdict
@@ -45,7 +46,7 @@ async function settleNote(id: string, theirs: NoteDoc | null, decide: Decide, an
     void rows.put(toRow(next))
   }
   const base = entry ? baseFor(entry.base, entry.sent ?? [], theirs) : null
-  const merged = entry ? reconcile(base ?? (entry.home ? {_id: entry.id, _type: 'note', notebook: entry.home} : null), note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
+  const merged = entry ? reconcile(base ?? dayStart(id) ?? (entry.home ? {_id: entry.id, _type: 'note', notebook: entry.home} : null), note ? stored(note) : null, theirs, new Date().toISOString(), deviceId()) : theirs
   const settled = !entry || (merged && theirs ? sameContent(merged, theirs) : merged === theirs)
   if (settled) {
     if (entry) void outbox.delete(id)

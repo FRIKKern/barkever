@@ -1,4 +1,5 @@
-import {holdsNothing, type Note} from './model.ts'
+import {emptyParagraph, holdsNothing, type Note} from './model.ts'
+import type {NoteDoc} from '../replica/note.ts'
 import type {Shelf} from './notebooks.ts'
 
 export type Day = {id: string; title: string; notebook: string; blockId: string}
@@ -30,4 +31,9 @@ export function today(at: Date, shelf: Shelf, {locale, timeZone}: Where = {}): D
 export function untouchedDay(n: Note, locale?: string): boolean {
   const key = DAY_ID.exec(n.id)?.[1]
   return !!key && n.title === dayTitle(key, locale) && n.blocks.every(holdsNothing)
+}
+
+export function dayStart(id: string): NoteDoc | null {
+  const key = DAY_ID.exec(id)?.[1]
+  return key ? {_id: id, _type: 'note', title: dayTitle(key), tags: [], links: [], body: {blocks: [emptyParagraph(`${id}-p0`)]}} : null
 }

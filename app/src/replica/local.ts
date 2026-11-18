@@ -195,7 +195,9 @@ export async function createNote(n: Fresh) {
 }
 
 export async function makeDay(day: Day) {
-  await write(day.id, (note, entry) => (note || entry ? null : {note: fresh(day), entry: null}))
+  let made = false
+  await write(day.id, (note, entry) => (note || entry ? null : ((made = true), {note: fresh(day), entry: null})))
+  if (made) await markMade(day.id)
   if ((await (await db()).get('notes', day.id))?.trashed) await restoreNote(day.id)
 }
 
