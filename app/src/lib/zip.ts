@@ -20,7 +20,7 @@ function dosTime(d: Date) {
 
 type Entry = {name: string; data: Uint8Array}
 
-export function zip(files: Entry[], at = new Date()): Uint8Array {
+export function zip(files: Entry[], at = new Date()): Uint8Array<ArrayBuffer> {
   const {time, date} = dosTime(at)
   const utf8 = new TextEncoder()
   const parts: Uint8Array[] = []

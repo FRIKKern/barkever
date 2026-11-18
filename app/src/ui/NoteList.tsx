@@ -8,6 +8,8 @@ import {groups} from '../lib/versions'
 import {when} from '../lib/when'
 import {useLeave} from './history'
 import {Icon} from './icons'
+import {ImportLine, ListFiles, useDropFiles} from './ListFiles'
+import {useImport} from './markdown-files'
 import type {World} from './world'
 
 const HUB = 3
@@ -73,6 +75,8 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
   const scopeDot = !searching && s.nb
   const {shown, more} = useShown(notes, s, rowsRef)
   const re = useMemo(() => marker(words), [words])
+  const io = useImport(w, s)
+  const drop = useDropFiles(io)
   const setQuery = (v: string) => {
     setQ(v)
     navigate({to: '/', search: (prev: Search) => ({...prev, q: v || undefined}), replace: true})
@@ -113,8 +117,10 @@ export const NoteList = forwardRef<ListHandle, Props>(function NoteList({w, s, f
           {notes.length} note{notes.length === 1 ? '' : 's'}
         </span>
         <span className="sort">{searching ? 'Best match' : 'Recent ↓'}</span>
+        <ListFiles w={w} nb={scopeDot || undefined} io={io} />
       </div>
-      <div className="rows" role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys}>
+      <ImportLine io={io} />
+      <div className={`rows${drop.over ? ' drop' : ''}`} role="listbox" aria-label="Notes" ref={rowsRef} onKeyDown={onKeys} {...drop.on}>
         {notes.length === 0 && <div className="empty">{searching ? `Nothing matches “${s.q}”.` : 'No notes here yet. Press N to write one.'}</div>}
         {shown.map((n) => {
           const d = w.links.degree(n.id)
