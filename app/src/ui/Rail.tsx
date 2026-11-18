@@ -3,6 +3,7 @@ import {Link} from '@tanstack/react-router'
 import {linkContext, UNTITLED, type Note} from '../lib/model'
 import type {Search} from '../lib/scope'
 import {AskPanel} from './Ask'
+import {Cluster} from './Cluster'
 import {Icon} from './icons'
 import {LinkGraph} from './LinkGraph'
 import type {World} from './world'
@@ -11,7 +12,7 @@ type Props = {w: World; s: Search; note: Note; onRail: () => void}
 
 export function Rail({w, s, note, onRail}: Props) {
   const [hover, setHover] = useState<string | null>(null)
-  const [tab, setTab] = useState<'links' | 'ask'>('links')
+  const [tab, setTab] = useState<'links' | 'cluster' | 'ask'>('links')
   const ins = w.links.backs(note.id)
   const outs = w.links.outs(note.id)
   const shared = w.links.sharesTag(note.id, 4)
@@ -44,6 +45,9 @@ export function Rail({w, s, note, onRail}: Props) {
           <button role="tab" aria-selected={tab === 'links'} onClick={() => setTab('links')}>
             Connections
           </button>
+          <button role="tab" aria-selected={tab === 'cluster'} onClick={() => setTab('cluster')} data-testid="cluster-tab">
+            Cluster
+          </button>
           <button role="tab" aria-selected={tab === 'ask'} onClick={() => setTab('ask')} data-testid="ask-tab">
             ✨ Ask
           </button>
@@ -69,6 +73,11 @@ export function Rail({w, s, note, onRail}: Props) {
           </section>
         )}
       </div>
+      {tab === 'cluster' && (
+        <div className="rail-body">
+          <Cluster w={w} note={note} />
+        </div>
+      )}
       <div className="rail-body" hidden={tab !== 'ask'}>
         <AskPanel w={w} s={s} />
       </div>

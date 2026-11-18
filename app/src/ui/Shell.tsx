@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {flushSync} from 'react-dom'
 import {useQueryClient} from '@tanstack/react-query'
+import {useNavigate} from '@tanstack/react-router'
 import {rememberRecent} from '../lib/library'
 import {UNTITLED} from '../lib/model'
 import {useReach} from '../lib/online'
@@ -10,9 +11,10 @@ import {useCapture} from './capture'
 import {dropBlankDrafts, dropIfBlank} from '../replica/drop'
 import {Board, type BoardHandle} from './Board'
 import {Editor} from './Editor'
-import {useBackStep, useLeave} from './history'
+import {useBackStep, useLeave, useLeaveView} from './history'
 import {useRail} from './local-prefs'
 import {NoteList, type ListHandle} from './NoteList'
+import {NotesMap} from './NotesMap'
 import {Rail} from './Rail'
 import {Sidebar} from './Sidebar'
 import {useWorld} from './world'
@@ -21,6 +23,8 @@ const RECENT_AFTER_MS = 800
 const AWAY = {offline: 'Offline. Changes made now won’t reach Barkpark until you reconnect.', unreachable: 'Can’t reach Barkpark. Changes stay on this device until it answers.'}
 
 const typingIn = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
+
+const plainKey = (e: KeyboardEvent, key: string) => e.key === key && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)
 
 function capturesKey(e: KeyboardEvent): boolean {
   if (e.key.toLowerCase() !== 'n' || e.altKey || e.repeat) return false
@@ -38,6 +42,9 @@ export function Shell({s}: {s: Search}) {
   const boardRef = useRef<BoardHandle>(null)
   const capture = useCapture(w, s)
   const back = useBackStep(s)
+  const navigate = useNavigate()
+  const leaveMap = useLeaveView(s)
+  const mapOn = s.view === 'map'
   const found = useMemo(() => visibleNotes(w.lib.notes, s, w.shelf), [w.lib.notes, s.q, s.nb, s.tag, w.shelf])
   const tasks = s.view === 'tasks'
   const note = s.n ? w.links.byId.get(s.n) : undefined
@@ -77,11 +84,14 @@ export function Shell({s}: {s: Search}) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && drawer) closeDrawer()
       else if (capturesKey(e) && newNote) (e.preventDefault(), newNote())
-      else if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)) (e.preventDefault(), list.current?.search())
+      else if (plainKey(e, '/')) (e.preventDefault(), list.current?.search())
+      else if (plainKey(e, 'm') && !e.repeat) (e.preventDefault(), mapOn ? leaveMap() : navigate({to: '/', search: {...s, view: 'map'}}))
     }
     addEventListener('keydown', onKey)
     return () => removeEventListener('keydown', onKey)
-  }, [newNote, drawer])
+  }, [newNote, drawer, mapOn, s])
+
+  if (mapOn) return <NotesMap w={w} from={s.n} onLeave={leaveMap} />
 
   const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (

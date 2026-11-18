@@ -25,3 +25,12 @@ export function useLeave(id: string | undefined, onLeave: (left: string) => void
     if (left && left !== id) onLeave(left)
   }, [id])
 }
+
+const sameSearch = (a: Search | undefined, b: Search) => !!a && (['nb', 'tag', 'q', 'n', 'view', 'line'] as const).every((k) => a[k] === b[k])
+
+export function useLeaveView(s: Search): () => void {
+  const router = useRouter()
+  const at = useLocation({select: (l) => l.state.__TSR_index})
+  const to: Search = {...s, view: undefined}
+  return () => (sameSearch(visited.get(at - 1), to) ? router.history.back() : void router.navigate({to: '/', search: to, replace: true}))
+}

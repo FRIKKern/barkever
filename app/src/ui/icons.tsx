@@ -9,6 +9,7 @@ const PATHS = {
   clock: <><circle cx="8" cy="8" r="5.5" /><path d="M8 5v3l2 1.5" /></>,
   theme: <><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor" /></>,
   rail: <><rect x="2.5" y="3" width="11" height="10" rx="1.5" /><path d="M10 3v10" /></>,
+  map: <path d="M2.5 4.5 6 3l4 1.5L13.5 3v8.5L10 13l-4-1.5L2.5 13zM6 3v8.5M10 4.5V13" />,
   back: <path d="M10 3 5 8l5 5" />,
   menu: <path d="M3 4.5h10M3 8h10M3 11.5h10" />,
   trash: <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5" />,

@@ -2,11 +2,11 @@ import type {Note} from './model.ts'
 import {find, newest, terms, type Found} from './search.ts'
 import type {Shelf} from './notebooks.ts'
 
-export type Search = {nb?: string; tag?: string; q?: string; n?: string; view?: 'tasks'; line?: string}
+export type Search = {nb?: string; tag?: string; q?: string; n?: string; view?: 'tasks' | 'map'; line?: string}
 
 const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
 
-export const parseSearch = (s: Record<string, unknown>): Search => ({nb: str(s.nb), tag: str(s.tag), q: str(s.q), n: str(s.n), view: s.view === 'tasks' ? 'tasks' : undefined, line: str(s.line)})
+export const parseSearch = (s: Record<string, unknown>): Search => ({nb: str(s.nb), tag: str(s.tag), q: str(s.q), n: str(s.n), view: s.view === 'tasks' || s.view === 'map' ? s.view : undefined, line: str(s.line)})
 
 export function leaveNote({search, next}: {search: Search; next: (s: Search) => Search}): Search {
   const to = next(search)
@@ -57,6 +57,7 @@ export function landing(s: Search, shelf: Shelf): Landing | null {
 
 export function scopeName(s: Search, shelf: Shelf): string {
   if (s.view === 'tasks') return 'Tasks'
+  if (s.view === 'map') return 'Map'
   if (terms(s.q).length) return 'Search'
   if (s.nb) return shelf.byId.get(s.nb)?.name ?? 'Notebook'
   if (s.tag) return `#${s.tag}`

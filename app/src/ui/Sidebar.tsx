@@ -83,6 +83,11 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
           Tasks
           <span className="n">{w.tasks.open}</span>
         </Link>
+        <Link to="/" search={{...s, view: 'map'}} onClick={() => onPick()} className="si" data-testid="side-map">
+          <Icon name="map" />
+          Map
+          <kbd className="n">M</kbd>
+        </Link>
         <div className="side-h">Notebooks</div>
         {shelf.roots.map((nb) => [nbItem(nb), ...shelf.children(nb.id).map((c) => nbItem(c, true))])}
         <div className="side-h">Shortcuts</div>
