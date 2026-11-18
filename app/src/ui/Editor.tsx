@@ -6,7 +6,7 @@ import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-p
 import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, recorded, useSaveStatus} from '../lib/saver'
-import {editTitle, moveToTrash, owesTitle, savedTitle} from '../replica/local'
+import {editTitle, owesTitle, savedTitle, trashNote} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
@@ -82,9 +82,9 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail, o
   }
   const ins = w.links.backs(note.id).length
   const remove = () =>
-    void recorded(note.id, moveToTrash(note.id, !ins)).then((out) => {
-      if (!out) return
-      if (out === 'trashed') onTrashed(note.id)
+    void recorded(note.id, trashNote(note.id).then(() => true)).then((done) => {
+      if (!done) return
+      onTrashed(note.id)
       void navigate({to: '/', search: {...s, n: undefined}})
     })
   const path = w.shelf.path(note.notebook)

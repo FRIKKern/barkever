@@ -14,6 +14,4 @@ export const touchedByOthers = (theirs: NoteDoc | null, me: string) => !!theirs 
 
 export const empty = (doc: NoteDoc) => !doc.conflicts?.length && isBlank(toNote(doc))
 
-export const markedMade = async (id: string) => (await (await db()).get('meta', madeKey(id))) === true
-
-export const droppable = async (doc: NoteDoc) => empty(doc) && (!doc._rev || (await markedMade(doc._id)))
+export const droppable = async (doc: NoteDoc) => empty(doc) && (!doc._rev || (await (await db()).get('meta', madeKey(doc._id))) === true)
