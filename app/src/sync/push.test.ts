@@ -60,15 +60,17 @@ test('a note Barkpark refuses as too large to index keeps its text and its outbo
   assert.deepEqual((d.stores.notes.get('n1') as NoteDoc).body?.blocks.map(blockText), ['every version kept'])
 })
 
-test('a note deleted after a create whose reply was lost is deleted on Barkpark too', async () => {
+test('a note deleted after a create whose reply was lost is deleted on Barkpark too, fenced on the rev it found there', async () => {
   const d = newDevice('dev-me')
   use(d)
   d.stores.notes.set('n1', {_id: 'n1', _type: 'note', title: 'Made offline', tags: [], links: [], body: {blocks: [p('a', 'secret plan')]}})
   d.stores.outbox.set('n1', {id: 'n1', base: null, v: 1, at: 0})
   const seen: unknown[] = []
-  const remote = (mutate: (ms: unknown[]) => Promise<{status: number; docs: null[]}>) => answer({mutate, docs: async () => [], manifest: async () => ({note: [], notebook: []})})
+  let stored: NoteDoc | undefined
+  const remote = (mutate: (ms: unknown[]) => Promise<{status: number; docs: null[]}>) => answer({mutate, docs: async () => (stored ? [stored as never] : []), manifest: async () => ({note: [], notebook: []})})
   remote(async (ms) => {
     seen.push(...ms)
+    stored = {...(ms[0] as {create: NoteDoc}).create, _rev: 'r1'}
     throw new Error('reply lost after Barkpark stored the create')
   })
   await assert.rejects(push())
@@ -80,7 +82,8 @@ test('a note deleted after a create whose reply was lost is deleted on Barkpark 
     return {status: 200, docs: ms.map(() => null)}
   })
   await push()
-  assert.ok(sent(seen).includes('"delete"'), `no delete reached Barkpark: ${sent(seen)}`)
+  assert.ok(sent(seen).includes('"delete"') && sent(seen).includes('"ifRevisionID":"r1"'), `no fenced delete reached Barkpark: ${sent(seen)}`)
+  assert.equal(d.stores.outbox.size, 0)
 })
 
 test('a field the note no longer has is unset at Barkpark, not left behind', () => {
