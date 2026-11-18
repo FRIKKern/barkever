@@ -1,8 +1,10 @@
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {flushSync} from 'react-dom'
 import {useQueryClient} from '@tanstack/react-query'
+import {useNavigate} from '@tanstack/react-router'
 import {rememberRecent} from '../lib/library'
 import {UNTITLED} from '../lib/model'
+import type {Pick} from '../lib/palette'
 import {useReach} from '../lib/online'
 import {scopeName, visibleNotes, type Search} from '../lib/scope'
 import {prepare} from '../lib/search'
@@ -13,6 +15,7 @@ import {Editor} from './Editor'
 import {useBackStep, useLeave} from './history'
 import {useRail} from './local-prefs'
 import {NoteList, type ListHandle} from './NoteList'
+import {Palette, usePalette} from './Palette'
 import {Rail} from './Rail'
 import {Sidebar} from './Sidebar'
 import {useWorld} from './world'
@@ -29,6 +32,8 @@ function capturesKey(e: KeyboardEvent): boolean {
 
 export function Shell({s}: {s: Search}) {
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const palette = usePalette()
   const w = useWorld()
   const reach = useReach()
   const [rail, toggleRail] = useRail()
@@ -73,6 +78,14 @@ export function Shell({s}: {s: Search}) {
     setFocusTitle({id})
   }
 
+  const choose = (p: Pick) => {
+    palette.close(p.act === 'rail')
+    setDrawer(false)
+    if (p.act === 'new') return newNote?.()
+    if (p.act === 'rail') return toggleRail()
+    void navigate({to: '/', search: p.to}).then(() => requestAnimationFrame(() => (p.note ? setFocusTitle({id: p.note.id}) : list.current?.row('') || palette.restore())))
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && drawer) closeDrawer()
@@ -88,6 +101,7 @@ export function Shell({s}: {s: Search}) {
     <div className={cls}>
       <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />
       {drawer && <div className="scrim" onClick={closeDrawer} />}
+      {palette.open && <Palette w={w} s={s} canNew={!!newNote} onPick={choose} onClose={() => palette.close(true)} />}
       <div className="behind" inert={drawer}>
         {reach !== 'online' && (
           <div className="offline" role="status" data-testid="offline">
