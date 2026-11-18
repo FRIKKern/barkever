@@ -25,9 +25,9 @@ import type {World} from './world'
 
 const LABEL = {saved: 'Saved', saving: 'Saving…', offline: 'Offline · saved on this device', unreachable: 'Saved on this device', unchecked: 'Can’t check saves on this device', unsaved: 'Couldn’t save on this device'}
 
-type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void; onTrashed: (id: string) => void}
+type Props = {w: World; s: Search; note: Note; reach: Reach; focusTitle?: {id: string}; focusBody?: {id: string}; back: BackStep; onEscape: () => void; onRail: () => void; onTrashed: (id: string) => void}
 
-export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail, onTrashed}: Props) {
+export function Editor({w, s, note, reach, focusTitle, focusBody, back, onEscape, onRail, onTrashed}: Props) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [title, setTitle] = useState(note.title)
@@ -63,6 +63,8 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail, o
   useEffect(() => {
     if (focusTitle || !note.title) titleRef.current?.focus()
   }, [focusTitle])
+
+  useEffect(() => void (focusBody && body.current?.focus()), [focusBody])
 
   const onTitle = (v: string) => {
     const value = v.replace(/\n/g, ' ')

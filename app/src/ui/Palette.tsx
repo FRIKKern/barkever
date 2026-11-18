@@ -49,7 +49,8 @@ export function usePalette() {
   return {open, close, restore}
 }
 
-const ICONS = {new: 'plus', tasks: 'tasks', map: 'map', all: 'notes', rail: 'rail', search: 'search'} as const
+const KEYS: Record<string, string> = {new: 'N', today: 'T'}
+const ICONS = {new: 'plus', today: 'day', tasks: 'tasks', map: 'map', all: 'notes', rail: 'rail', search: 'search'} as const
 const KIND = {command: 'Command', notebook: 'Notebook', tag: 'Tag', note: 'Note'}
 const STEP: Record<string, number> = {ArrowDown: 1, ArrowUp: -1}
 const CTRL_STEP: Record<string, number> = {n: 1, p: -1}
@@ -118,7 +119,7 @@ export function Palette({w, s, canNew, onPick, onClose}: Props) {
               data-key={p.key}
             >
               <Row p={p} w={w} re={re} marks={marks} />
-              <span className="pal-k">{p.key === 'new' ? <kbd>N</kbd> : recent && p.note ? 'Recent' : KIND[p.kind]}</span>
+              <span className="pal-k">{KEYS[p.key] ? <kbd>{KEYS[p.key]}</kbd> : recent && p.note ? 'Recent' : KIND[p.kind]}</span>
             </div>
           ))}
         </div>

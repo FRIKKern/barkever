@@ -32,6 +32,9 @@ test('one query ranks tags, notebooks and notes together: exact, then prefix, th
 test('commands match by their words, and only show when they can run', () => {
   assert.equal(keys(ask('new'))[0], 'new')
   assert.equal(keys(ask('new', {canNew: false}))[0], 'search')
+  assert.equal(keys(ask('today'))[0], 'today')
+  assert.equal(keys(ask('daily'))[0], 'today')
+  assert.equal(keys(ask('today', {canNew: false}))[0], 'search')
   assert.deepEqual(keys(ask('board')), ['note:board', 'tasks', 'search'])
   assert.equal(keys(ask('todo'))[0], 'tasks')
   assert.equal(keys(ask('all notes'))[0], 'all')
@@ -41,8 +44,8 @@ test('commands match by their words, and only show when they can run', () => {
 })
 
 test('an empty query shows recent notes first, then the commands', () => {
-  assert.deepEqual(keys(ask('', {recents: ['sync', 'gone', 'plan']})), ['note:sync', 'note:plan', 'new', 'tasks', 'map', 'all'])
-  assert.deepEqual(keys(ask('  ', {here: {n: 'plan'}})), ['new', 'tasks', 'map', 'all', 'rail'])
+  assert.deepEqual(keys(ask('', {recents: ['sync', 'gone', 'plan']})), ['note:sync', 'note:plan', 'new', 'today', 'tasks', 'map', 'all'])
+  assert.deepEqual(keys(ask('  ', {here: {n: 'plan'}})), ['new', 'today', 'tasks', 'map', 'all', 'rail'])
 })
 
 test('each pick names the search it opens: notes keep the scope, places replace it, actions have none', () => {
