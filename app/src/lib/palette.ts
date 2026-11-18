@@ -23,7 +23,7 @@ type Command = {key: string; label: string; words: string; to?: Search; act?: Ac
 const COMMANDS: Command[] = [
   {key: 'new', label: 'New note', words: 'create capture write', act: 'new'},
   {key: 'tasks', label: 'Tasks board', words: 'todo checklist plan', to: {view: 'tasks'}},
-  {key: 'map', label: 'Open the map', words: 'graph overview links visual', to: {view: 'map'}},
+  {key: 'map', label: 'Open the map', words: 'graph overview links visual'},
   {key: 'all', label: 'Go to all notes', words: 'home everything library', to: {}},
   {key: 'rail', label: 'Toggle rail', words: 'links backlinks graph side panel', act: 'rail'},
 ]
@@ -48,7 +48,7 @@ const noteTo = ({nb, tag}: Search, n: string): Search => ({...(nb ? {nb} : tag ?
 const notePick = (n: Note, here: Search, score: number): Pick => ({key: `note:${n.id}`, kind: 'note', label: n.title, score, to: noteTo(here, n.id), note: n})
 
 function commands(a: Ask): Command[] {
-  return COMMANDS.filter((c) => (c.key === 'new' ? a.canNew : c.key === 'rail' ? !!a.here.n : true))
+  return COMMANDS.filter((c) => (c.key === 'new' ? a.canNew : c.key === 'rail' ? !!a.here.n : true)).map((c) => (c.key === 'map' ? {...c, to: {...a.here, view: 'map'}} : c))
 }
 
 const commandPick = (c: Command, score: number): Pick => ({key: c.key, kind: 'command', label: c.label, score, ...(c.to ? {to: c.to} : {}), ...(c.act ? {act: c.act} : {})})

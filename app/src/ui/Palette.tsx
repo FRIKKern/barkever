@@ -49,7 +49,7 @@ export function usePalette() {
   return {open, close, restore}
 }
 
-const ICONS = {new: 'plus', tasks: 'tasks', all: 'notes', rail: 'rail', search: 'search'} as const
+const ICONS = {new: 'plus', tasks: 'tasks', map: 'map', all: 'notes', rail: 'rail', search: 'search'} as const
 const KIND = {command: 'Command', notebook: 'Notebook', tag: 'Tag', note: 'Note'}
 const STEP: Record<string, number> = {ArrowDown: 1, ArrowUp: -1}
 const CTRL_STEP: Record<string, number> = {n: 1, p: -1}

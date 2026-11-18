@@ -102,14 +102,22 @@ export function Shell({s}: {s: Search}) {
     return () => removeEventListener('keydown', onKey)
   }, [newNote, drawer, mapOn, s])
 
-  if (mapOn) return <NotesMap w={w} from={s.n} onLeave={leaveMap} />
+  const shown = palette.open && <Palette w={w} s={s} canNew={!!newNote} onPick={choose} onClose={() => palette.close(true)} />
+
+  if (mapOn)
+    return (
+      <>
+        <NotesMap w={w} from={s.n} onLeave={leaveMap} />
+        {shown}
+      </>
+    )
 
   const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (
     <div className={cls}>
       <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />
       {drawer && <div className="scrim" onClick={closeDrawer} />}
-      {palette.open && <Palette w={w} s={s} canNew={!!newNote} onPick={choose} onClose={() => palette.close(true)} />}
+      {shown}
       <div className="behind" inert={drawer}>
         {reach !== 'online' && (
           <div className="offline" role="status" data-testid="offline">
