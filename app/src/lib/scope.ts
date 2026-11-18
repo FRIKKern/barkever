@@ -17,6 +17,10 @@ export function leaveNote({search, next}: {search: Search; next: (s: Search) => 
   return {...to, line: to.line === search.line ? undefined : to.line, view: to.view === search.view && to.view !== 'trash' ? undefined : to.view}
 }
 
+export const listOf = ({nb, tag, q, view}: Search): Search => ({nb, tag, q, ...(view === 'trash' && {view})})
+
+export const sameList = (a: Search, b: Search) => !a.n && a.nb === b.nb && a.tag === b.tag && a.q === b.q && (a.view === 'trash') === (b.view === 'trash')
+
 export const sameTag = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 export function tagTally(notes: Note[]): [string, number][] {

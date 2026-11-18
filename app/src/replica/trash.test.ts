@@ -9,7 +9,8 @@ import {answer} from '../chaos/fake-remote.ts'
 import {canon, digest, sign, writerOf} from './sign.ts'
 
 const {forgetJournal} = await import('./journal.ts')
-const {editBody, restoreNote, trashNote} = await import('./local.ts')
+const {deleteForever, editBody, editTitle, moveToTrash, restoreNote, trashNote} = await import('./local.ts')
+const {ack} = await import('./settle.ts')
 const {settle} = await import('./settle.ts')
 const {mutationFor, push} = await import('../sync/push.ts')
 
@@ -138,4 +139,44 @@ test('a note that was never in trash keeps the signature it had before trash exi
   assert.notEqual(trashed.by, `dev-a.${old}`)
   assert.equal(writerOf(trashed), 'dev-a')
   assert.equal(writerOf({...trashed, trashed: undefined}), undefined)
+})
+
+test('delete forever leaves a note alone once it is out of trash, so a restore elsewhere is never erased', async () => {
+  const d = device()
+  await trashNote('n1')
+  await ack(entry(d)!, {...local(d), _rev: 'r2'})
+  await settle('note', 'n1', {...PLAN, _rev: 'r3', body: {blocks: [...PLAN.body!.blocks, p('c', 'restored and typed on')]}}, () => 'apply')
+  assert.equal(await deleteForever('n1'), false)
+  assert.deepEqual(texts(d), ['pump the bilge', 'see [[n2]]', 'restored and typed on'])
+  assert.equal(entry(d), undefined)
+  await trashNote('n1')
+  assert.equal(await deleteForever('n1'), true)
+  assert.equal(local(d), undefined)
+  assert.ok(entry(d)?.delete)
+})
+
+test('Move to Trash on a note whose main went blank but whose kept version holds their words trashes it, never erases it', async () => {
+  const d = device()
+  await editTitle('n1', 'Plan', '')
+  await editBody('n1', PLAN.body!.blocks, [{id: 'a', type: 'paragraph', content: []}])
+  await settle('note', 'n1', {...PLAN, _rev: 'r2', title: 'Plan v2 (their words)', by: 'dev-other.x'}, () => 'apply')
+  assert.equal(local(d).title, '')
+  assert.ok(local(d).conflicts?.some((c) => c.title === 'Plan v2 (their words)'))
+  assert.equal(await moveToTrash('n1', true), 'trashed')
+  assert.ok(local(d).trashed)
+  assert.ok(local(d).conflicts?.some((c) => c.title === 'Plan v2 (their words)'))
+  assert.ok(!entry(d)?.delete)
+})
+
+test('Move to Trash erases only a blank note made here with nothing owed; a blank synced one, or one others link to, goes to trash', async () => {
+  const d = device()
+  const blank: NoteDoc = {_id: 'n9', _type: 'note', title: '', tags: [], links: [], body: {blocks: [{id: 'z', type: 'paragraph', content: []}]}}
+  d.stores.notes.set('n9', blank)
+  assert.equal(await moveToTrash('n9', false), 'trashed')
+  await restoreNote('n9')
+  assert.equal(await moveToTrash('n9', true), 'dropped')
+  assert.equal(d.stores.notes.get('n9'), undefined)
+  d.stores.notes.set('n8', {...blank, _id: 'n8', _rev: 'r1'})
+  assert.equal(await moveToTrash('n8', true), 'trashed')
+  assert.equal(await moveToTrash('gone', true), null)
 })

@@ -5,7 +5,7 @@ import {recorded} from '../lib/saver'
 import {scopeName, type Search} from '../lib/scope'
 import {emptyAsk, foreverAsk, linkedFrom} from '../lib/trash'
 import {when} from '../lib/when'
-import {deleteNote, restoreNote} from '../replica/local'
+import {deleteForever, restoreNote} from '../replica/local'
 import {Blocks} from './Blocks'
 import type {BackStep} from './history'
 import {Icon} from './icons'
@@ -23,8 +23,8 @@ function useTrashActions(w: World, s: Search) {
       if (done && s.n === id) void navigate({to: '/', search: {n: id}})
     })
   const forever = (n: Note) => {
-    if (!confirm(foreverAsk(n, linkedFrom(w.lib.notes, n.id)))) return
-    void recorded(n.id, deleteNote(n.id).then(() => true)).then((done) => {
+    if (!confirm(foreverAsk(n, linkedFrom(w.lib.notes, [n.id])))) return
+    void recorded(n.id, deleteForever(n.id)).then((done) => {
       if (done && s.n === n.id) void navigate({to: '/', search: {...s, n: undefined}})
     })
   }
@@ -38,10 +38,11 @@ export const TrashList = forwardRef<TrashHandle, ListProps>(function TrashList({
   const {restore, forever} = useTrashActions(w, s)
   const trash = w.trash
   const empty = async () => {
-    const all = [...trash]
-    if (!all.length || !confirm(emptyAsk(all.length))) return
-    for (const n of all) await recorded(n.id, deleteNote(n.id))
-    if (s.n) void navigate({to: '/', search: {view: 'trash'}})
+    const ids = trash.map((n) => n.id)
+    if (!ids.length || !confirm(emptyAsk(ids.length, linkedFrom(w.lib.notes, ids)))) return
+    const gone: string[] = []
+    for (const id of ids) if (await recorded(id, deleteForever(id))) gone.push(id)
+    if (s.n && gone.includes(s.n)) void navigate({to: '/', search: {view: 'trash'}})
   }
   return (
     <section className="list" aria-label="Trash">

@@ -50,7 +50,7 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
     const nb = shelf.byId.get(id)
     if (!n && !nb) return null
     return (
-      <Link key={id} to="/" search={n ? {...s, q: undefined, n: id} : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
+      <Link key={id} to="/" search={n ? {...s, q: undefined, view: undefined, n: id} : {nb: id}} onClick={() => onPick(n && id)} className={`si${s.n === id ? ' on' : ''}`} data-testid={testid}>
         <Icon name={icon} />
         <span className="t">{n ? n.title || UNTITLED : nb!.name}</span>
       </Link>

@@ -1,10 +1,8 @@
 import {useEffect, useRef} from 'react'
 import {useLocation, useRouter} from '@tanstack/react-router'
-import type {Search} from '../lib/scope'
+import {listOf, sameList, type Search} from '../lib/scope'
 
 const visited = new Map<number, Search>()
-const listOf = ({nb, tag, q}: Search): Search => ({nb, tag, q})
-const sameList = (a: Search, b: Search) => !a.n && a.nb === b.nb && a.tag === b.tag && a.q === b.q
 
 export type BackStep = {to: Search; go: () => void}
 

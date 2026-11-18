@@ -18,13 +18,14 @@ export function withFresh(lib: Split, fresh: Note[], ids: string[]): Split {
 
 export const newestTrashed = (trash: Note[]) => [...trash].sort((a, b) => (b.trashed ?? '').localeCompare(a.trashed ?? '') || a.id.localeCompare(b.id))
 
-export const linkedFrom = (notes: Note[], id: string) => notes.filter((n) => n.id !== id && (n.links.includes(id) || wikilinks(n.blocks).includes(id))).length
+export const linkedFrom = (notes: Note[], ids: string[]) => notes.filter((n) => !ids.includes(n.id) && [...n.links, ...wikilinks(n.blocks)].some((to) => ids.includes(to))).length
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+const linkedLine = (linked: number, where: string) => (linked ? ` ${plural(linked, 'note links', 'notes link')} ${where}; their links will show as gone.` : '')
+
 export function foreverAsk(note: Note, linked: number): string {
-  const links = linked ? ` ${plural(linked, 'note links', 'notes link')} here; their links will show as gone.` : ''
-  return `Delete “${note.title || UNTITLED}” forever?${links} This can’t be undone.`
+  return `Delete “${note.title || UNTITLED}” forever?${linkedLine(linked, 'here')} This can’t be undone.`
 }
 
-export const emptyAsk = (count: number) => `Delete ${plural(count, 'note', 'notes')} in Trash forever? This can’t be undone.`
+export const emptyAsk = (count: number, linked: number) => `Delete ${plural(count, 'note', 'notes')} in Trash forever?${linkedLine(linked, 'into Trash')} This can’t be undone.`
