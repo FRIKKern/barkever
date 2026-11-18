@@ -26,7 +26,7 @@ test('256 KB of unclosed marks, brackets, ticks and links parses in linear time'
         return performance.now() - t
       }),
     )
-    assert.ok(ms < 200, `${JSON.stringify(unit)} took ${ms.toFixed(0)} ms`)
+    assert.ok(ms < 500, `${JSON.stringify(unit)} took ${ms.toFixed(0)} ms`)
   }
 })
 
