@@ -5,9 +5,10 @@ import {libraryQuery, prefsQuery} from '../lib/library'
 import {indexLinks, type Links} from '../lib/links'
 import {shelve, type Shelf} from '../lib/notebooks'
 import {tagTally} from '../lib/scope'
-import type {Library, Note, Prefs} from '../lib/model'
+import {newestTrashed, type Shelved} from '../lib/trash'
+import type {Note, Prefs} from '../lib/model'
 
-export type World = {lib: Library; prefs: Prefs; shelf: Shelf; links: Links; tasks: Board; perNotebook: Map<string, number>; tags: [string, number][]}
+export type World = {lib: Shelved; trash: Note[]; prefs: Prefs; shelf: Shelf; links: Links; tasks: Board; perNotebook: Map<string, number>; tags: [string, number][]}
 
 function tally(notes: Note[]) {
   const perNotebook = new Map<string, number>()
@@ -24,5 +25,6 @@ export function useWorld(): World {
   const links = useMemo(() => indexLinks(lib), [lib])
   const tasks = useMemo(() => board(lib.notes, shelf, links.title), [lib.notes, shelf, links])
   const counts = useMemo(() => tally(lib.notes), [lib.notes])
-  return {lib, prefs, shelf, links, tasks, ...counts}
+  const trash = useMemo(() => newestTrashed(lib.trash), [lib.trash])
+  return {lib, trash, prefs, shelf, links, tasks, ...counts}
 }

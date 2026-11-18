@@ -5,7 +5,8 @@ import {db, replicaKey, type LocalNote} from '../replica/db'
 import {onChange} from '../replica/bus'
 import {replayJournal} from '../replica/local'
 import {toNote, toNotebook} from './note-docs'
-import type {Library, Note, Prefs} from './model'
+import {split, withFresh, type Shelved} from './trash'
+import type {Note, Prefs} from './model'
 
 const fetchPrefs = createServerFn({method: 'GET'}).handler(() => readPrefs())
 
@@ -24,11 +25,11 @@ const keepLocal = () => undefined
 const otherTab = new Map<string, number>()
 const asNote = (d: LocalNote): Note => ({...toNote(d), gen: (d._gen ?? 0) + (otherTab.get(d._id) ?? 0)})
 
-async function readLibrary(): Promise<Library> {
+async function readLibrary(): Promise<Shelved> {
   await replayJournal()
   const d = await db()
   const [notes, notebooks] = await Promise.all([d.getAll('notes'), d.getAll('notebooks')])
-  return {notes: notes.map(asNote), notebooks: notebooks.map(toNotebook)}
+  return {...split(notes.map(asNote)), notebooks: notebooks.map(toNotebook)}
 }
 
 export const libraryQuery = queryOptions({...local, queryKey: ['library'], queryFn: readLibrary})
@@ -123,7 +124,7 @@ export async function refresh(qc: QueryClient, ids: string[]) {
   const d = await db()
   const [docs, notebooks] = await Promise.all([Promise.all(ids.map((id) => d.get('notes', id))), d.getAll('notebooks')])
   const fresh = docs.filter((x): x is LocalNote => !!x).map(asNote)
-  qc.setQueryData<Library>(libraryQuery.queryKey, (lib) => lib && {notes: [...fresh, ...lib.notes.filter((n) => !ids.includes(n.id))], notebooks: notebooks.map(toNotebook)})
+  qc.setQueryData<Shelved>(libraryQuery.queryKey, (lib) => lib && {...withFresh(lib, fresh, ids), notebooks: notebooks.map(toNotebook)})
   void qc.invalidateQueries({queryKey: stuckQuery.queryKey})
 }
 
