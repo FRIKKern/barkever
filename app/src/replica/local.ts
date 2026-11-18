@@ -7,6 +7,7 @@ import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
 import {markMade, unmark} from './made'
 import {emptyParagraph, holdsNothing, type Block} from '../lib/model'
+import type {Day} from '../lib/today'
 
 const now = () => new Date().toISOString()
 
@@ -178,13 +179,16 @@ export function replayJournal() {
   return replaying
 }
 
-export async function createNote({id, notebook, blockId, tags = []}: {id: string; notebook: string; blockId: string; tags?: string[]}) {
-  await markMade(id)
-  await write(id, () => ({
-    note: {_id: id, _type: 'note', title: '', notebook: {_type: 'reference', _ref: notebook}, tags, links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()},
-    entry: null,
-  }))
+type Fresh = {id: string; notebook: string; blockId: string; tags?: string[]; title?: string}
+
+const fresh = ({id, notebook, blockId, tags = [], title = ''}: Fresh): NoteDoc => ({_id: id, _type: 'note', title, notebook: {_type: 'reference', _ref: notebook}, tags, links: [], body: {blocks: [emptyParagraph(blockId)]}, _updatedAt: now()})
+
+export async function createNote(n: Fresh) {
+  await markMade(n.id)
+  await write(n.id, () => ({note: fresh(n), entry: null}))
 }
+
+export const makeDay = (day: Day) => write(day.id, (note, entry) => (note || entry ? null : {note: fresh(day), entry: null}))
 
 export async function deleteNote(id: string) {
   await write(id, (note, entry) => {

@@ -6,6 +6,7 @@ const PATHS = {
   search: <><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" /></>,
   link: <><circle cx="3.5" cy="8" r="2" /><circle cx="12.5" cy="3.8" r="1.8" /><circle cx="12.5" cy="12.2" r="1.8" /><path d="M5.3 7 10.8 4.6M5.3 9l5.5 2.4" /></>,
   star: <path d="m8 2.5 1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.2 4.6 13l.7-3.8-2.8-2.7 3.8-.5z" />,
+  day: <><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" /><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" /></>,
   clock: <><circle cx="8" cy="8" r="5.5" /><path d="M8 5v3l2 1.5" /></>,
   theme: <><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor" /></>,
   rail: <><rect x="2.5" y="3" width="11" height="10" rx="1.5" /><path d="M10 3v10" /></>,

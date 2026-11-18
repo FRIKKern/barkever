@@ -9,6 +9,7 @@ import {useReach} from '../lib/online'
 import {scopeName, visibleNotes, type Search} from '../lib/scope'
 import {prepare} from '../lib/search'
 import {useCapture} from './capture'
+import {useToday} from './today'
 import {dropBlankDrafts, dropIfBlank} from '../replica/drop'
 import {Board, type BoardHandle} from './Board'
 import {Editor} from './Editor'
@@ -41,9 +42,11 @@ export function Shell({s}: {s: Search}) {
   const [rail, toggleRail] = useRail()
   const [drawer, setDrawer] = useState(false)
   const [focusTitle, setFocusTitle] = useState<{id: string}>()
+  const [focusBody, setFocusBody] = useState<{id: string}>()
   const list = useRef<ListHandle>(null)
   const boardRef = useRef<BoardHandle>(null)
   const capture = useCapture(w, s)
+  const openToday = useToday(w, (id) => setFocusBody({id}))
   const back = useBackStep(s)
   const navigate = useNavigate()
   const leaveMap = useLeaveView(s)
@@ -52,6 +55,7 @@ export function Shell({s}: {s: Search}) {
   const tasks = s.view === 'tasks'
   const note = s.n ? w.links.byId.get(s.n) : undefined
   const newNote = capture && (() => (setDrawer(false), capture()))
+  const goToday = openToday && (() => (setDrawer(false), openToday()))
   const tab = `${note && !mapOn ? note.title || UNTITLED : scopeName(s, w.shelf)} · Barkever`
 
   useEffect(() => void (document.title = tab), [tab])
@@ -68,6 +72,7 @@ export function Shell({s}: {s: Search}) {
 
   useLeave(s.n, (left) => {
     setFocusTitle(undefined)
+    setFocusBody(undefined)
     void dropIfBlank(left)
   })
 
@@ -87,6 +92,7 @@ export function Shell({s}: {s: Search}) {
     palette.close(p.act === 'rail')
     setDrawer(false)
     if (p.act === 'new') return newNote?.()
+    if (p.act === 'today') return goToday?.()
     if (p.act === 'rail') return toggleRail()
     void navigate({to: '/', search: p.to}).then(() => requestAnimationFrame(() => (p.note ? setFocusTitle({id: p.note.id}) : list.current?.row('') || palette.restore())))
   }
@@ -95,12 +101,13 @@ export function Shell({s}: {s: Search}) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && drawer) closeDrawer()
       else if (capturesKey(e) && newNote) (e.preventDefault(), newNote())
+      else if (plainKey(e, 't') && !e.repeat && goToday) (e.preventDefault(), goToday())
       else if (plainKey(e, '/')) (e.preventDefault(), list.current?.search())
       else if (plainKey(e, 'm') && !e.repeat) (e.preventDefault(), mapOn ? leaveMap() : navigate({to: '/', search: {...s, view: 'map'}}))
     }
     addEventListener('keydown', onKey)
     return () => removeEventListener('keydown', onKey)
-  }, [newNote, drawer, mapOn, s])
+  }, [newNote, goToday, drawer, mapOn, s])
 
   const shown = palette.open && <Palette w={w} s={s} canNew={!!newNote} onPick={choose} onClose={() => palette.close(true)} />
 
@@ -115,7 +122,7 @@ export function Shell({s}: {s: Search}) {
   const cls = ['app', note ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')
   return (
     <div className={cls}>
-      <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onPick={pick} />
+      <Sidebar w={w} s={s} reach={reach} modal={drawer} onNew={newNote} onToday={goToday} onPick={pick} />
       {drawer && <div className="scrim" onClick={closeDrawer} />}
       {shown}
       <div className="behind" inert={drawer}>
@@ -139,6 +146,7 @@ export function Shell({s}: {s: Search}) {
                   note={note}
                   reach={reach}
                   focusTitle={focusTitle?.id === note.id ? focusTitle : undefined}
+                  focusBody={focusBody?.id === note.id ? focusBody : undefined}
                   back={back}
                   onEscape={() => list.current?.row(note.id) || back.go()}
                   onRail={toggleRail}

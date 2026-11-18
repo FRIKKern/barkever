@@ -6,6 +6,7 @@ import {Link} from '@tanstack/react-router'
 import {UNTITLED, type Notebook} from '../lib/model'
 import type {Reach} from '../lib/online'
 import type {Search} from '../lib/scope'
+import {dayId, dayKey} from '../lib/today'
 import {Icon} from './icons'
 import {MiniMap} from './MiniMap'
 import {SideTags} from './SideTags'
@@ -22,9 +23,9 @@ const footLine = (reach: Reach, pending: number | null) => {
   return pending === null ? 'Syncing' : pending ? `Syncing ${pending}` : 'Synced'
 }
 
-type Props = {w: World; s: Search; reach: Reach; modal: boolean; onNew: (() => void) | null; onPick: (note?: string) => void}
+type Props = {w: World; s: Search; reach: Reach; modal: boolean; onNew: (() => void) | null; onToday: (() => void) | null; onPick: (note?: string) => void}
 
-export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
+export function Sidebar({w, s, reach, modal, onNew, onToday, onPick}: Props) {
   const self = useRef<HTMLElement>(null)
   useEffect(() => {
     if (modal) self.current?.querySelector<HTMLElement>('a[href], button:not(:disabled)')?.focus()
@@ -78,6 +79,11 @@ export function Sidebar({w, s, reach, modal, onNew, onPick}: Props) {
           All notes
           <span className="n">{lib.notes.length}</span>
         </Link>
+        <button className={`si${s.n === dayId(dayKey(new Date())) ? ' on' : ''}`} onClick={onToday ?? undefined} disabled={!onToday} data-testid="side-today">
+          <Icon name="day" />
+          Today
+          <kbd className="n">T</kbd>
+        </button>
         <Link to="/" search={{view: 'tasks'}} onClick={() => onPick()} className={`si${s.view === 'tasks' ? ' on' : ''}`} data-testid="side-tasks">
           <Icon name="tasks" />
           Tasks

@@ -4,7 +4,7 @@ import type {Search} from './scope.ts'
 import {find, terms} from './search.ts'
 
 export type Kind = 'command' | 'notebook' | 'tag' | 'note'
-export type Act = 'new' | 'rail'
+export type Act = 'new' | 'today' | 'rail'
 export type Pick = {key: string; kind: Kind; label: string; score: number; to?: Search; act?: Act; detail?: string; note?: Note}
 export type Ask = {q: string; here: Search; notes: Note[]; shelf: Shelf; tags: [string, number][]; recents: string[]; canNew: boolean}
 
@@ -22,6 +22,7 @@ const WORD = /[\p{L}\p{N}]+/gu
 type Command = {key: string; label: string; words: string; to?: Search; act?: Act}
 const COMMANDS: Command[] = [
   {key: 'new', label: 'New note', words: 'create capture write', act: 'new'},
+  {key: 'today', label: 'Today’s note', words: 'daily journal date day', act: 'today'},
   {key: 'tasks', label: 'Tasks board', words: 'todo checklist plan', to: {view: 'tasks'}},
   {key: 'map', label: 'Open the map', words: 'graph overview links visual'},
   {key: 'all', label: 'Go to all notes', words: 'home everything library', to: {}},
@@ -48,7 +49,7 @@ const noteTo = ({nb, tag}: Search, n: string): Search => ({...(nb ? {nb} : tag ?
 const notePick = (n: Note, here: Search, score: number): Pick => ({key: `note:${n.id}`, kind: 'note', label: n.title, score, to: noteTo(here, n.id), note: n})
 
 function commands(a: Ask): Command[] {
-  return COMMANDS.filter((c) => (c.key === 'new' ? a.canNew : c.key === 'rail' ? !!a.here.n : true)).map((c) => (c.key === 'map' ? {...c, to: {...a.here, view: 'map'}} : c))
+  return COMMANDS.filter((c) => (c.act === 'new' || c.act === 'today' ? a.canNew : c.key === 'rail' ? !!a.here.n : true)).map((c) => (c.key === 'map' ? {...c, to: {...a.here, view: 'map'}} : c))
 }
 
 const commandPick = (c: Command, score: number): Pick => ({key: c.key, kind: 'command', label: c.label, score, ...(c.to ? {to: c.to} : {}), ...(c.act ? {act: c.act} : {})})
