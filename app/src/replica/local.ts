@@ -5,7 +5,7 @@ import {notify} from './bus'
 import {failed, forgetJot, forgetJournal, forgetOldMarks, jotJoined, jotted, replayedHere, unjot, unjotReplayed, type Jot, type Jotted, type Step} from './journal'
 import {mergeLocal} from './merge'
 import {dismiss, keep} from './resolve'
-import {empty, markedMade, markMade, unmark} from './made'
+import {markMade, unmark} from './made'
 import {emptyParagraph, holdsNothing, type Block} from '../lib/model'
 
 const now = () => new Date().toISOString()
@@ -218,20 +218,6 @@ export async function deleteForever(id: string): Promise<boolean> {
   await write(id, (note, entry, notebooks) => ((gone = !!note?.trashed) ? erased(id)(note, entry, notebooks) : null))
   if (gone) await forget(id)
   return gone
-}
-
-const holdsNothingHere = (note: NoteDoc, made: boolean) => empty(note) && (!note._rev || made) && !owesWords(note._id) && !journalHoldsWords(note._id)
-
-export async function moveToTrash(id: string, mayDrop: boolean): Promise<'trashed' | 'dropped' | null> {
-  const made = mayDrop && (await markedMade(id))
-  let out = null as 'trashed' | 'dropped' | null
-  await write(id, (note, entry, notebooks) => {
-    if (!note) return null
-    out = mayDrop && holdsNothingHere(note, made) ? 'dropped' : 'trashed'
-    return out === 'dropped' ? erased(id)(note, entry, notebooks) : edited(id, toTrash)(note, entry, notebooks)
-  })
-  if (out === 'dropped') await forget(id)
-  return out
 }
 
 export async function forgetDevice() {

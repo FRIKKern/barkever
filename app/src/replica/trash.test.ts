@@ -9,7 +9,8 @@ import {answer} from '../chaos/fake-remote.ts'
 import {canon, digest, sign, writerOf} from './sign.ts'
 
 const {forgetJournal} = await import('./journal.ts')
-const {deleteForever, editBody, editTitle, moveToTrash, restoreNote, trashNote} = await import('./local.ts')
+const {createNote, deleteForever, editBody, editTitle, restoreNote, trashNote} = await import('./local.ts')
+const {dropIfBlank, dropBlankDrafts} = await import('./drop.ts')
 const {ack} = await import('./settle.ts')
 const {settle} = await import('./settle.ts')
 const {mutationFor, push} = await import('../sync/push.ts')
@@ -162,21 +163,32 @@ test('Move to Trash on a note whose main went blank but whose kept version holds
   await settle('note', 'n1', {...PLAN, _rev: 'r2', title: 'Plan v2 (their words)', by: 'dev-other.x'}, () => 'apply')
   assert.equal(local(d).title, '')
   assert.ok(local(d).conflicts?.some((c) => c.title === 'Plan v2 (their words)'))
-  assert.equal(await moveToTrash('n1', true), 'trashed')
+  await trashNote('n1')
   assert.ok(local(d).trashed)
   assert.ok(local(d).conflicts?.some((c) => c.title === 'Plan v2 (their words)'))
   assert.ok(!entry(d)?.delete)
 })
 
-test('Move to Trash erases only a blank note made here with nothing owed; a blank synced one, or one others link to, goes to trash', async () => {
+test('a blank new note moved to Trash while the editor still holds unsaved words keeps them: leaving it sweeps nothing, and the words land in Trash', async () => {
   const d = device()
-  const blank: NoteDoc = {_id: 'n9', _type: 'note', title: '', tags: [], links: [], body: {blocks: [{id: 'z', type: 'paragraph', content: []}]}}
-  d.stores.notes.set('n9', blank)
-  assert.equal(await moveToTrash('n9', false), 'trashed')
-  await restoreNote('n9')
-  assert.equal(await moveToTrash('n9', true), 'dropped')
-  assert.equal(d.stores.notes.get('n9'), undefined)
-  d.stores.notes.set('n8', {...blank, _id: 'n8', _rev: 'r1'})
-  assert.equal(await moveToTrash('n8', true), 'trashed')
-  assert.equal(await moveToTrash('gone', true), null)
+  await createNote({id: 'm1', notebook: 'nb-work', blockId: 'm1-p0'})
+  const blank = (d.stores.notes.get('m1') as NoteDoc).body!.blocks
+  await trashNote('m1')
+  await dropIfBlank('m1')
+  await editBody('m1', blank, [p('m1-p0', 'words typed while the editor loaded')])
+  const m1 = d.stores.notes.get('m1') as NoteDoc | undefined
+  assert.ok(m1?.trashed, 'still in Trash')
+  assert.deepEqual(m1.body?.blocks.map(blockText), ['words typed while the editor loaded'])
+})
+
+test('the blank-note sweeps never take a note from Trash, so Undo always finds it', async () => {
+  const d = device()
+  await createNote({id: 'm3', notebook: 'nb-work', blockId: 'm3-p0'})
+  await trashNote('m3')
+  await dropIfBlank('m3')
+  await dropBlankDrafts()
+  assert.ok((d.stores.notes.get('m3') as NoteDoc | undefined)?.trashed)
+  await restoreNote('m3')
+  await dropIfBlank('m3')
+  assert.equal(d.stores.notes.get('m3'), undefined, 'a restored blank note made here is swept as before')
 })
