@@ -12,6 +12,8 @@ const PATHS = {
   map: <path d="M2.5 4.5 6 3l4 1.5L13.5 3v8.5L10 13l-4-1.5L2.5 13zM6 3v8.5M10 4.5V13" />,
   back: <path d="M10 3 5 8l5 5" />,
   menu: <path d="M3 4.5h10M3 8h10M3 11.5h10" />,
+  download: <path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" />,
+  upload: <path d="M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10" />,
   trash: <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5" />,
   out: <path d="M6.5 3H4a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 4 13h2.5M10 5l3 3-3 3M13 8H6.5" />,
 }

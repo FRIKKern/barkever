@@ -49,7 +49,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
     ))
     return b.ordered ? <ol start={listStart(b)}>{items}</ol> : <ul>{items}</ul>
   }
-  if (b.type === 'paragraph' || b.type === 'blockquote')
+  if (b.type === 'paragraph' || b.type === 'blockquote' || b.type === 'pullquote')
     return (
       <p>
         <Inlines c={contentOf(b)} at={at} />
