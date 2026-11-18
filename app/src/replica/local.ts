@@ -194,7 +194,10 @@ export async function createNote(n: Fresh) {
   await write(n.id, () => ({note: fresh(n), entry: null}))
 }
 
-export const makeDay = (day: Day) => write(day.id, (note, entry) => (note || entry ? null : {note: fresh(day), entry: null}))
+export async function makeDay(day: Day) {
+  await write(day.id, (note, entry) => (note || entry ? null : {note: fresh(day), entry: null}))
+  if ((await (await db()).get('notes', day.id))?.trashed) await restoreNote(day.id)
+}
 
 const erased =
   (id: string): Change =>

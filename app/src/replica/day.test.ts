@@ -8,7 +8,7 @@ import {dayTitle} from '../lib/today.ts'
 import type {NoteDoc} from './note.ts'
 import type {ServerDoc} from '../server/sync.ts'
 
-const {editBody, makeDay} = await import('./local.ts')
+const {editBody, makeDay, trashNote} = await import('./local.ts')
 const {dropBlankDrafts, dropIfBlank} = await import('./drop.ts')
 const {push} = await import('../sync/push.ts')
 const {check} = await import('../sync/check.ts')
@@ -51,6 +51,28 @@ test('a today note left untouched goes with the blank sweep and comes back on th
   await editBody(ID, blank, said('kept'))
   await dropIfBlank(ID)
   assert.deepEqual(doc(d)?.body?.blocks.map(blockText), ['kept'])
+})
+
+test('T on a today note in Trash restores it and opens it, words and all, with no second note', async () => {
+  const d = on(newDevice('dev-a'))
+  await makeDay(DAY)
+  await editBody(ID, blank, said('before the bin'))
+  await trashNote(ID)
+  assert.ok(doc(d)?.trashed)
+  await makeDay(DAY)
+  assert.deepEqual([d.stores.notes.size, doc(d)?.trashed, doc(d)?.body?.blocks.map(blockText)], [1, undefined, ['before the bin']])
+  assert.equal((d.stores.outbox.get(ID) as {delete?: true} | undefined)?.delete, undefined)
+})
+
+test('an untouched today note moved to Trash stays there through the sweep, and T brings it back', async () => {
+  const d = on(newDevice('dev-a'))
+  await makeDay(DAY)
+  await trashNote(ID)
+  await dropBlankDrafts('other')
+  await dropIfBlank(ID)
+  assert.ok(doc(d)?.trashed)
+  await makeDay(DAY)
+  assert.deepEqual([d.stores.notes.size, doc(d)?.trashed, doc(d)?.title], [1, undefined, DAY.title])
 })
 
 function server() {
