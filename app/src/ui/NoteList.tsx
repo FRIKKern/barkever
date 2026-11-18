@@ -13,9 +13,9 @@ import type {World} from './world'
 const HUB = 3
 const PAGE = 100
 
-const marker = (words: string[]) => (words.length ? new RegExp(`(${[...words].sort((a, b) => b.length - a.length).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi') : null)
+export const marker = (words: string[]) => (words.length ? new RegExp(`(${[...words].sort((a, b) => b.length - a.length).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi') : null)
 
-const highlight = (text: string, re: RegExp | null): ReactNode => (re ? text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part)) : text)
+export const highlight = (text: string, re: RegExp | null): ReactNode => (re ? text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part)) : text)
 
 
 const STEP: Record<string, 'nextElementSibling' | 'previousElementSibling'> = {ArrowDown: 'nextElementSibling', ArrowUp: 'previousElementSibling'}
