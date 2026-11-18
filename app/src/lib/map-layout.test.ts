@@ -57,6 +57,7 @@ test('no two shown labels overlap at any zoom step, and at 1x every note shows i
   for (const k of ZOOMS) {
     const shown = mapLabels(map, k)
     assert.deepEqual(clash(shown), [], `at ${k}`)
+    assert.deepEqual(clash(mapLabels(map, k, [map.nodes[150].id])), [], `at ${k}, one note lit`)
     if (k >= 1) assert.equal(shown.filter((b) => !b.area).length, map.nodes.length, `at ${k}`)
   }
   assert.ok(mapLabels(map, ZOOMS[0]).length < mapLabels(map, 1).length)

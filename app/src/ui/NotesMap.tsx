@@ -55,7 +55,7 @@ export function NotesMap({w, onLeave, from}: Props) {
   const [size, setSize] = useState<Size | null>(null)
   const [view, setView] = useState<View | null>(null)
   const [hover, setHover] = useState<string | null>(null)
-  const [focus, setFocus] = useState<string | null>(from && map.at.has(from) ? from : null)
+  const [focus, setFocus] = useState<string | null>(from ?? null)
   const {onPointerDown, dragged} = useGestures(svg, view, setView)
   const lit = hover ?? focus
   const k = ZOOMS[view?.step ?? ONE]
@@ -69,13 +69,16 @@ export function NotesMap({w, onLeave, from}: Props) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+  const empty = !map.nodes.length
+  const placedEmpty = useRef(true)
   useLayoutEffect(() => {
-    if (size && !view) setView(kept.get(at) ?? centreOn(map, size, from, ONE) ?? fit(map, size))
-  }, [size])
-  useEffect(() => void (view && kept.set(at, view)), [view, at])
+    if (size && (!view || placedEmpty.current)) setView(kept.get(at) ?? centreOn(map, size, from, ONE) ?? fit(map, size))
+    if (size) placedEmpty.current = empty
+  }, [size, empty])
+  useEffect(() => void (view && !empty && kept.set(at, view)), [view, at])
   useEffect(() => {
     if (view && focus) svg.current?.querySelector<SVGGElement>(`[data-id="${CSS.escape(focus)}"]`)?.focus({preventScroll: true})
-  }, [!view])
+  }, [!view, empty])
 
   const zoomBy = (d: number) => size && setView((v) => v && zoomAt(v, v.step + d, {x: size.w / 2, y: size.h / 2}))
   const fitAll = () => size && setView(fit(map, size))
@@ -224,7 +227,7 @@ export function NotesMap({w, onLeave, from}: Props) {
           </>
         )}
       </svg>
-      {!map.nodes.length && <div className="map-empty">No notes yet. Press N for a new one.</div>}
+      {empty && <div className="map-empty">No notes yet. Press N for a new one.</div>}
       {litNote && <MapCard w={w} note={litNote} />}
       <div className="map-hint">Scroll or pinch to zoom · drag to pan · arrows move · Enter opens</div>
     </section>

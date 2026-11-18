@@ -91,7 +91,7 @@ export function mapLabels(map: NotesMap, k: number, first: string[] = []): Label
   const fits = Math.min(LABEL.chars, Math.floor((MAP.dx * k - 2 * MAP.r) / (LABEL.px * 0.56)))
   const chars = fits >= THIN_BELOW ? fits : THIN_CHARS
   const nodeBox = (n: MapNode, i: number): LabelBox => {
-    const text = clip(n.title, i < lead.length ? LABEL.chars : chars)
+    const text = clip(n.title, i < lead.length ? 2 * LABEL.chars : chars)
     const w = textWidth(text)
     return {id: n.id, text, x: n.x * k - w / 2, y: (n.y + n.r) * k + LABEL.gap, w, h: LABEL.h}
   }
