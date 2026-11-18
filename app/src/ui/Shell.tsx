@@ -11,6 +11,7 @@ import {prepare} from '../lib/search'
 import {useCapture} from './capture'
 import {dropBlankDrafts, dropIfBlank} from '../replica/drop'
 import {restoreNote} from '../replica/local'
+import {recorded} from '../lib/saver'
 import {Board, type BoardHandle} from './Board'
 import {Editor} from './Editor'
 import {useBackStep, useLeave, useLeaveView} from './history'
@@ -121,7 +122,9 @@ export function Shell({s}: {s: Search}) {
 
   const undo = (id: string) => {
     setMoved(undefined)
-    void restoreNote(id).then(() => navigate({to: '/', search: {...s, view: undefined, n: id}}))
+    void recorded(id, restoreNote(id).then(() => true)).then((done) => {
+      if (done) void navigate({to: '/', search: {...s, view: undefined, n: id}})
+    })
   }
 
   const cls = ['app', open ? 'has-note' : 'no-note', (!note || rail === false) && 'no-rail', note && rail === true && 'rail-forced', drawer && 'drawer'].filter(Boolean).join(' ')

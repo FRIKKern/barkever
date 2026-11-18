@@ -3,10 +3,10 @@ import {useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from '@tanstack/react-router'
 import {star} from '../lib/library'
 import {linkCandidates, linkPreview, linkTitle, type Linker} from '../lib/link-pick'
-import {isBlank, type Note} from '../lib/model'
+import type {Note} from '../lib/model'
 import type {Reach} from '../lib/online'
 import {markDirty, markSaved, savePoint, recorded, useSaveStatus} from '../lib/saver'
-import {deleteNote, editTitle, owesTitle, savedTitle, trashNote} from '../replica/local'
+import {editTitle, moveToTrash, owesTitle, savedTitle} from '../replica/local'
 import {scopeName, type Search} from '../lib/scope'
 import {when} from '../lib/when'
 import {afterTyping} from '../lib/typing'
@@ -81,14 +81,12 @@ export function Editor({w, s, note, reach, focusTitle, back, onEscape, onRail, o
     void edit.start(instruction, picked)
   }
   const ins = w.links.backs(note.id).length
-  const remove = () => {
-    const blank = isBlank(note)
-    void recorded(note.id, (blank ? deleteNote(note.id) : trashNote(note.id)).then(() => true)).then((gone) => {
-      if (!gone) return
-      if (!blank) onTrashed(note.id)
+  const remove = () =>
+    void recorded(note.id, moveToTrash(note.id, !ins)).then((out) => {
+      if (!out) return
+      if (out === 'trashed') onTrashed(note.id)
       void navigate({to: '/', search: {...s, n: undefined}})
     })
-  }
   const path = w.shelf.path(note.notebook)
   const starred = w.prefs.shortcuts.includes(note.id)
   const outs = w.links.outs(note.id).length

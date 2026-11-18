@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {leaveNote, parseSearch, scopeName} from './scope.ts'
+import {leaveNote, listOf, parseSearch, sameList, scopeName} from './scope.ts'
 import {emptyAsk, foreverAsk, linkedFrom, newestTrashed, split, withFresh} from './trash.ts'
 import {toNote} from './note-docs.ts'
 import type {Note} from './model.ts'
@@ -47,9 +47,18 @@ test('trash lists the latest trashed first', () => {
 test('delete forever names the note and warns about notes that still link to it', () => {
   const target = note('t', {title: 'Harbor'})
   const live = [note('a', {links: ['t']}), note('b', {blocks: [{id: 'p', type: 'paragraph', content: [{type: 'wikilink', docId: 't'}]}]}), note('c'), note('t', {links: ['t']})]
-  assert.equal(linkedFrom(live, 't'), 2)
+  assert.equal(linkedFrom(live, ['t']), 2)
+  assert.equal(linkedFrom(live, ['t', 'a']), 1)
   assert.equal(foreverAsk(target, 2), 'Delete “Harbor” forever? 2 notes link here; their links will show as gone. This can’t be undone.')
   assert.equal(foreverAsk(note('u', {title: ''}), 0), 'Delete “Untitled” forever? This can’t be undone.')
-  assert.equal(emptyAsk(1), 'Delete 1 note in Trash forever? This can’t be undone.')
-  assert.equal(emptyAsk(3), 'Delete 3 notes in Trash forever? This can’t be undone.')
+  assert.equal(emptyAsk(1, 0), 'Delete 1 note in Trash forever? This can’t be undone.')
+  assert.equal(emptyAsk(3, 1), 'Delete 3 notes in Trash forever? 1 note links into Trash; their links will show as gone. This can’t be undone.')
+})
+
+test('Back from a trashed note opened by a link returns to Trash; Back from a note opened on the board still returns to the board', () => {
+  assert.deepEqual(listOf({view: 'trash', n: 'a'}), {nb: undefined, tag: undefined, q: undefined, view: 'trash'})
+  assert.deepEqual(listOf({view: 'tasks', n: 'a', nb: 'w'}), {nb: 'w', tag: undefined, q: undefined})
+  assert.equal(sameList({view: 'trash'}, {view: 'trash', n: 'a'}), true)
+  assert.equal(sameList({}, {view: 'trash', n: 'a'}), false)
+  assert.equal(sameList({view: 'tasks'}, {n: 'a'}), true)
 })
