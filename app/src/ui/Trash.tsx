@@ -132,7 +132,7 @@ export function TrashedNote({w, s, note, back}: {w: World; s: Search; note: Note
             <span>Edited {when(note.updatedAt)}</span>
           </div>
           <div className="doc-body">
-            <Blocks blocks={note.blocks} s={s} title={w.links.title} />
+            <Blocks blocks={note.blocks} s={{...s, view: undefined}} title={w.links.title} />
           </div>
         </article>
       </div>
