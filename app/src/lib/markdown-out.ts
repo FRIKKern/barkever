@@ -111,9 +111,8 @@ export function toMarkdown(n: Note, {title, notebook}: {title: Title; notebook?:
 
 const safe = (t: string) =>
   t
-    .replace(/[/\\:*?"<>|\x00-\x1f]/g, '-')
-    .trim()
-    .replace(/^\.+/, '')
+    .replace(/\s*[/\\:*?"<>|\x00-\x1f]+\s*/g, ' - ')
+    .replace(/^[\s.-]+|[\s-]+$/g, '')
     .slice(0, 100)
     .trim() || 'Untitled'
 

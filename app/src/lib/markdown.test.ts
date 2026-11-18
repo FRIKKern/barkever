@@ -237,5 +237,5 @@ test('files: Markdown and text are taken, big or other files are skipped with th
 })
 
 test('notebook files get safe, unique names, unicode kept', () => {
-  assert.deepEqual(fileNames(['Plan', 'plan', 'a/b: c?', '', '  ', 'Øl på brygga', '.hidden']), ['Plan.md', 'plan 2.md', 'a-b- c-.md', 'Untitled.md', 'Untitled 2.md', 'Øl på brygga.md', 'hidden.md'])
+  assert.deepEqual(fileNames(['Plan', 'plan', 'a/b: c?', '', '  ', 'Øl på brygga', '.hidden']), ['Plan.md', 'plan 2.md', 'a - b - c.md', 'Untitled.md', 'Untitled 2.md', 'Øl på brygga.md', 'hidden.md'])
 })
