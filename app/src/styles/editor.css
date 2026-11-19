@@ -9,7 +9,7 @@
 .doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-half) var(--sp-3); font-size: var(--fs-s); color: var(--c-muted); padding-bottom: var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--c-border-soft); }
 .nbchip { display: inline-flex; align-items: center; gap: var(--sp-half); color: var(--c-text-2); }
 .held { display: block; width: 100%; padding: 0; border: 0; outline: none; resize: none; background: none; color: inherit; font: inherit; field-sizing: content; }
-.doc-body { font-size: var(--fs-body); line-height: var(--lh-body); min-height: var(--sp-7); }
+.doc-body { font-size: var(--fs-body); line-height: var(--lh-body); min-height: var(--sp-7); --bp-codeblock-radius: var(--r-m); --bp-codeblock-pad: var(--sp-3) var(--sp-4); --bp-codeblock-margin: var(--sp-3) 0; --bp-codeblock-size: var(--fs-s); --bp-codeblock-lh: var(--lh-body); }
 .blocks p, .blocks h2, .blocks h3, .blocks ul, .blocks ol { margin: 0 0 var(--sp-3); }
 .blocks h2, .blocks h3 { font-size: var(--fs-l); line-height: var(--lh-tight); font-weight: var(--fw-bold); margin-top: var(--sp-2); }
 .blocks ul, .blocks ol { padding-left: calc(var(--sp-5) - var(--sp-hair)); }
@@ -20,7 +20,7 @@
 .blocks .cb { flex: none; width: var(--sp-4); height: var(--sp-4); margin-top: var(--sp-1); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
 .blocks li.done > .cb { background: var(--c-accent); border-color: var(--c-accent); }
 .blocks li.done > .li-t { color: var(--c-muted); text-decoration: line-through; }
-.blocks { --bp-codeblock-radius: var(--r-m); --bp-codeblock-pad: var(--sp-3) var(--sp-4); --bp-codeblock-margin: 0 0 var(--sp-3); --bp-codeblock-size: var(--fs-s); --bp-codeblock-lh: var(--lh-body); --paper-font-mono: var(--font-mono); }
+.blocks { --paper-font-mono: var(--font-mono); }
 .blocks .bp-codeblock { color: var(--c-text); background: var(--c-rail); }
 .blocks .bp-codeblock[data-lang]::before { content: attr(data-lang); display: block; position: sticky; left: 0; margin-bottom: var(--sp-1); font: var(--fs-2xs)/var(--lh-ui) var(--font-sans); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--c-muted); }
 .blocks .bp-section-divider { color: var(--c-border-soft); }
