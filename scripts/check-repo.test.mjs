@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
+import { PACK_DIR } from "./pack-door.mjs";
 import { cleanup } from "./test-cleanup.mjs";
 
 const temp = mkdtempSync(join(tmpdir(), "check-repo-"));
@@ -93,6 +94,8 @@ const plants = {
   "a second node --test after ; outside own-tmp.mjs": [afterGuardedRun(";node --test --test-timeout=300000 b"), NO_DEADLINE],
   "banned dependency": (d) => { const p = JSON.parse(readFileSync(join(d, "package.json"), "utf8")); p.dependencies = { next: "1" }; writeFileSync(join(d, "package.json"), JSON.stringify(p)); },
   "secret": (d) => writeFileSync(join(d, "leak.txt"), ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
+  "a session token in a pack golden": [(d) => { const g = join(d, PACK_DIR, "goldens/blocks/paragraph.golden.json"); writeFileSync(g, readFileSync(g, "utf8").replace("{", `{"note": "${["bp", "sess_"].join("")}${"a".repeat(20)}",`)); }, `check-repo: 1 problem(s)\n  ✗ ${PACK_DIR}/goldens/blocks/paragraph.golden.json: looks like a secret`],
+  "a test that joins the pack folder's parts": [(d) => writeFileSync(join(d, "app/scripts/planted.test.ts"), `const at = ['${PACK_DIR.split("/").join("', '")}', 'goldens']\n`), "check-repo: 1 problem(s)\n  ✗ app/scripts/planted.test.ts:1: names the pack folder"],
   "duplicate journey": (d) => writeFileSync(join(d, "JOURNEYS.md"), readFileSync(join(d, "JOURNEYS.md"), "utf8") + "| J01 | dup | x |\n"),
   "Barkpark path outside app/src/server": (d) => { mkdirSync(join(d, "app/src/routes"), { recursive: true }); writeFileSync(join(d, "app/src/routes/planted.ts"), "fetch('/v1/data/query')\n"); },
   "type error in app/e2e": (d) => writeFileSync(join(d, "app/e2e/planted.ts"), "export const n: number = 'not a number'\n"),

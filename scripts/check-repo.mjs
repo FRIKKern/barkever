@@ -2,6 +2,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { extname } from "node:path";
+import { packNameProblems } from "./pack.mjs";
+import { secretPatterns } from "./secrets.mjs";
 
 const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
   .split("\n")
@@ -55,14 +57,11 @@ for (const f of files.filter((f) => f.endsWith("package.json"))) {
     }
 }
 
-const secret = [
-  /sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bsk-[A-Za-z0-9]{32,}\b/, /\bghp_[A-Za-z0-9]{30,}/,
-  /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /(ANTHROPIC|OPENAI|CODEX)_API_KEY\s*=\s*\S+/,
-];
 for (const f of files) {
-  if (f === "scripts/check-repo.mjs" || IMG.has(extname(f).toLowerCase())) continue;
+  if (IMG.has(extname(f).toLowerCase())) continue;
   const text = read(f);
-  if (secret.some((re) => re.test(text))) fail(f, "looks like a secret");
+  if (secretPatterns.some((re) => re.test(text))) fail(f, "looks like a secret");
+  for (const problem of packNameProblems(f, text)) errors.push(problem);
 }
 
 if (files.includes("JOURNEYS.md")) {
