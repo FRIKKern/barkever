@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { SHA, bot, promote, red } from "./promote-world.mjs";
+import { SHA, bot, ciRun, promote, readsCi, red } from "./promote-world.mjs";
 import { load } from "./workflow-keys.mjs";
 
 const issues = [red(1, "bbbbbbbbbb"), red(2, "aaaaaaaaaa"), red(3, "cccccccccc"), red(4, "dddddddddd"), red(5, "aaaaaaaaaa", { is_bot: false, login: "someone" }), { ...red(6, "aaaaaaaaaa"), title: "staging is red at aaaaaaaaaa; echo x" }];
@@ -95,4 +95,10 @@ test("ci runs the same jobs for a dispatch as for a push: no inputs, and no cond
   const conditions = Object.entries(ci.jobs).flatMap(([name, job]) => [["job", name, job.if], ...(job.steps ?? []).map((step, i) => ["step", `${name}[${i}]`, step.if])]).filter(([, , cond]) => cond !== undefined);
   assert.deepEqual(conditions, [["job", "e2e", "needs.e2e-gate.outputs.run == 'true'"]]);
   assert.deepEqual(Object.keys(ci.jobs), ["scan", "check", "build", "test-scripts", "test-app", "test-mac", "e2e-gate", "e2e"]);
+});
+
+test("the stand-ins hold what the real run showed: a ci run the job token started fires no workflow_run, so a dispatched promote reads staging's green run and moves main", () => {
+  const [H, M] = ["c".repeat(40), "d".repeat(40)];
+  const r = readsCi({ staging: H, main: M, compare: { [`main...${H}`]: "ahead" }, ciRuns: [ciRun(H, "success")] });
+  assert.deepEqual([r.status, r.calls], [0, [`move sha=${H}`]], r.out);
 });
