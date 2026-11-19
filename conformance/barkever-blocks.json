@@ -1,8 +1,8 @@
 {
   "renderer": "barkever-blocks",
   "compare": "dom",
-  "pack_stamp": "1ca9ca01d368484f4e7aa39003f9fb065595d29745f785d823154762b362be0b",
-  "ran_at_sha": "a65c1e62beea76080aee8effc6412f24b09fbb1e",
+  "pack_stamp": "9843db5662d693c66bd24b46db8c13fdcba3c6479378460a1fc0cb4f8f1ab64f",
+  "ran_at_sha": "440a1c629bdf928c857f2f17ace9de3da45275a4",
   "rows": [
     {
       "type": "action",
