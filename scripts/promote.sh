@@ -18,7 +18,7 @@ case ${TRIGGER:-workflow_run} in
     [[ $head =~ ^[0-9a-f]{40}$ ]] || red "promote could not read staging's head, so main did not move."
     [ "$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)" != "$head" ] || skip "main already holds staging's head $head"
     run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=staging&head_sha=$head&status=completed&per_page=20" \
-      -q '[.workflow_runs[] | select(.status == "completed" and .path == ".github/workflows/ci.yml" and .name == "ci" and (.event == "push" or .event == "workflow_dispatch"))] | sort_by(.created_at) | last // empty | [.id, .conclusion, .html_url, .event, .path, .name, .head_repository.full_name, .head_branch, .head_sha] | map(tostring) | join("|")')
+      -q '[.workflow_runs[] | select(.status == "completed" and .path == ".github/workflows/ci.yml" and .name == "ci" and (.event == "push" or .event == "workflow_dispatch"))] | sort_by(.updated_at, .id) | last // empty | [.id, .conclusion, .html_url, .event, .path, .name, .head_repository.full_name, .head_branch, .head_sha] | map(tostring) | join("|")')
     [ -n "$run" ] || skip "no finished ci run on staging's head $head yet"
     IFS='|' read -r RUN_ID RESULT RUN_URL EVENT WORKFLOW_PATH WORKFLOW_NAME HEAD_REPO HEAD_BRANCH SHA <<<"$run"
     ;;
@@ -44,7 +44,7 @@ report() {
 }
 red_issues() {
   gh issue list -R "$REPO" --state open --limit 100 --search '"staging is red" in:title' --json number,title,author,body \
-    -q '[.[] | select(.author.is_bot and .author.login == "app/github-actions" and .title == "staging is red")] | sort_by(.number) | .[] | "\(.number) \([.body | capture("on `(?<sha>[0-9a-f]{40})`")][0].sha // "-") \([.body | capture("Run: (?<url>\\S+)")][0].url // "-")"' < /dev/null
+    -q '[.[] | select(.author.is_bot and .author.login == "app/github-actions" and .title == "staging is red")] | sort_by(.number) | .[] | "\(.number) \([.body | capture("on `(?<sha>[0-9a-f]{40})`")][0].sha // "-")"' < /dev/null
 }
 job_words() {
   case $1 in
@@ -66,14 +66,13 @@ failed_jobs() {
   while IFS= read -r name; do echo "- $(job_words "$name")"; done <<<"$names"
 }
 report_red() {
-  local body found number at url
-  found=$(red_issues | head -n 1)
-  read -r number at url <<<"$found" || true
-  if [ -n "$number" ] && [ "$at" = "$SHA" ] && [ "$url" = "$RUN_URL" ]; then
-    echo "issue $number already names this red run on $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+  local body number
+  body=$(printf '%s\n' "ci ended as $RESULT on \`$SHA\`, so main stays where it is." '' 'Checks that failed:' "$(failed_jobs)" '' 'Main moves again once ci is green on a later staging head; this issue then closes.' "Run: $RUN_URL")
+  number=$(red_issues | head -n 1 | cut -d ' ' -f 1)
+  if [ -n "$number" ] && [ "$(gh issue view "$number" -R "$REPO" --json body -q .body < /dev/null | tr -d '\r')" = "$body" ]; then
+    echo "issue $number already says this about $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
     return
   fi
-  body=$(printf '%s\n' "ci ended as $RESULT on \`$SHA\`, so main stays where it is." '' 'Checks that failed:' "$(failed_jobs)" '' 'Main moves again once ci is green on a later staging head; this issue then closes.' "Run: $RUN_URL")
   if [ -n "$number" ]; then
     gh issue edit "$number" -R "$REPO" --body "$body"
   else

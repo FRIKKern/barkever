@@ -4,7 +4,7 @@
       "job": "promote.yml promote",
       "sha256": "ef147ef5668b13285dd5d8a06e7d9cdd8ab2dc3e76c24e32f789c63e3f4afe59",
       "runs": {
-        "scripts/promote.sh": "270b63f24ee5eed1de3de2819e10f4442d7b2b14c20594cda23991053afc2f0f"
+        "scripts/promote.sh": "f5efb385b8ffad406bb8e9e72ad2deb58366bff6ee2dbc2cda7dcf6ca362dadc"
       }
     },
     {
