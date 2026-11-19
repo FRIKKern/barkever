@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { RISKY } from "./risky.mjs";
 
 const [branch, ...rest] = process.argv.slice(2);
 const flag = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
@@ -21,7 +22,11 @@ const main = git(["worktree", "list", "--porcelain"]).match(/^worktree (.+)$/m)[
 for (const name of [branch, "main"]) {
   if (git(["tag", "--list", name], main)) { console.error(`land: a tag named ${name} would stand in for the branch, and the land could push the wrong commit; rename the tag; nothing changed`); process.exit(1); }
 }
-const unfinished = (cwd) => ["rebase-merge", "rebase-apply", "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "BISECT_LOG", "sequencer"].find((f) => existsSync(resolve(cwd, git(["rev-parse", "--git-path", f], cwd))));
+const UNFINISHED = ["rebase-merge", "rebase-apply", "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "BISECT_LOG", "sequencer"];
+const unfinished = (cwd) => {
+  const paths = git(["rev-parse", ...UNFINISHED.flatMap((f) => ["--git-path", f])], cwd).split("\n");
+  return UNFINISHED.find((f, i) => existsSync(resolve(cwd, paths[i])));
+};
 const stopIfUnfinished = (where, cwd) => {
   const state = unfinished(cwd);
   if (state) { console.error(`land: the ${where} (${cwd}) has an unfinished ${state}; finish or abort it; nothing landed`); process.exit(1); }
@@ -68,7 +73,6 @@ step("fetch staging", "git", ["fetch", "-q", "origin", "staging"], main);
 const within = (a, b) => { try { git(["merge-base", "--is-ancestor", a, b], main); return true; } catch { return false; } };
 const split = !within("origin/staging", "origin/main") && !within("origin/main", "origin/staging");
 const base = split || within("origin/staging", "origin/main") ? "origin/main" : "origin/staging";
-const RISKY = /^app\/src\/(replica|server)\/|^\.github\/workflows\/|^scripts\/(((land|scan-outgoing|secrets|check-repo|heavy|own-tmp|test-cleanup|sync-act|workflow-keys|pack|pack-compare|pack-plan|pack-sync|sync-act-refusals)(\.test)?|promote\.test|promote-world|promote-reads-ci\.test|staging-holds\.test|ci-runs-every-test\.test|key-shims|pack-door|sync-act-world)\.mjs|pack-door\.d\.mts|sync-act\.sh|act-token\.sh|promote\.sh|keyed-jobs\.json|promote-ci-runs\.json)$|^(package\.json|pnpm-lock\.yaml|app\/scripts\/conformance\.tsx|conformance\/conformance\.test\.mjs)$/;
 const unreviewedRisky = git(["log", "-z", "--no-merges", "-i", "--basic-regexp", "--grep=^ *Trial: *unreviewed", "--format=", "--name-only", "--no-renames", `${base}..${branch}`], dir).split(/[\0\n]/).find((f) => RISKY.test(f));
 if (unreviewedRisky) {
   console.error(`land: ${unreviewedRisky} is on the risky list, and a commit marked Trial: unreviewed changes it. Get one fresh review, take the mark off the commit, and land with --reviewed <the sha the reviewer passed> (docs/decisions/0044); nothing landed; main is untouched`);
