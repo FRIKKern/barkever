@@ -24,7 +24,7 @@ test("a red run keeps ONE issue naming the failed ci jobs in product words: a la
   const jobs = [{ name: "check", conclusion: "success" }, { name: "test-scripts", conclusion: "failure" }, { name: "odd job; rm -rf /", conclusion: "timed_out" }, { name: "build", conclusion: "skipped" }];
   const lacks = promote("failure", { issues: [], jobs, compare: { [`main...${SHA}`]: "ahead" } });
   assert.deepEqual([lacks.status, lacks.calls], [0, ["create staging is red"]], lacks.out);
-  assert.equal(lacks.bodies[0], `ci ended as failure on \`${SHA}\`, so main stays where it is.\n\nChecks that failed:\n- the script tests (\`test-scripts\`)\n- \`odd job rm -rf /\`\n\nMain moves again once ci is green on a later staging head; this issue then closes.\nRun: https://example.com/run`);
+  assert.equal(lacks.bodies[0], `This text is rewritten by the workflow; write in a comment.\n\nci ended as failure on \`${SHA}\`, so main stays where it is.\n\nChecks that failed:\n- the script tests (\`test-scripts\`)\n- \`odd job rm -rf /\`\n\nMain moves again once ci is green on a later staging head; this issue then closes.\nRun: https://example.com/run`);
   const mine = { number: 7, title: "staging is red", author: bot, body: `ci ended as failure on \`${"a".repeat(40)}\`` };
   const later = promote("failure", { issues: [mine, { ...mine, number: 9 }, { ...mine, number: 3, author: { is_bot: false, login: "someone" } }], jobs, compare: { [`main...${SHA}`]: "ahead" } });
   assert.deepEqual([later.status, later.calls], [0, ["edit 7"]], later.out);

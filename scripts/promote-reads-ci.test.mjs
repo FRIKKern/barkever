@@ -38,6 +38,15 @@ test("promote's rules hold on the read path: only a completed green run for stag
   assert.deepEqual([unknown.status, unknown.calls], [1, []], unknown.out);
 });
 
+test("the run that finished last decides, so a re-run of an older run counts as newest; equal finish times go to the higher id", () => {
+  const rerun = ciRun(H, "success", { id: 1, created_at: "2026-11-19T12:00:00Z", updated_at: "2026-11-19T13:00:00Z", run_attempt: 2 });
+  const later = ciRun(H, "failure", { id: 2, created_at: "2026-11-19T12:30:00Z", updated_at: "2026-11-19T12:40:00Z" });
+  const r = readsCi(behind({ ciRuns: [later, rerun], jobs }));
+  assert.deepEqual([r.status, r.calls], [0, [`move sha=${H}`]], r.out);
+  const tie = readsCi(behind({ ciRuns: [{ ...rerun, id: 3, conclusion: "failure" }, { ...later, id: 2, conclusion: "success", updated_at: rerun.updated_at }], jobs }));
+  assert.deepEqual([tie.status, tie.calls], [0, ["create staging is red"]], tie.out);
+});
+
 test("nothing to do is quiet: staging at main's head exits 0 with one line and touches no issue", () => {
   const issues = [{ number: 7, title: "staging is red", author: { is_bot: true, login: "app/github-actions" }, body: `ci ended as failure on \`${OLD}\`` }];
   const r = readsCi({ staging: H, main: H, issues, ciRuns: [ciRun(H, "failure")], jobs, compare: { [`main...${H}`]: "identical" } }, "schedule");
@@ -59,8 +68,15 @@ test("two promotes cannot cross: one queue, and staging and main are read again 
 test("fifteen scheduled runs on one red head keep one issue, and a green newer head closes it", async () => {
   const first = readsCi(behind({ ciRuns: [ciRun(H, "failure")], jobs }), "schedule");
   assert.deepEqual(first.calls, ["create staging is red"], first.out);
+  assert.equal(first.bodies[0].split("\n")[0], "This text is rewritten by the workflow; write in a comment.");
+  const attempt2 = JSON.parse(readFileSync(first.world, "utf8"));
+  Object.assign(attempt2, { jobs: [{ name: "test-app", conclusion: "failure" }], ciRuns: [{ ...attempt2.ciRuns[0], run_attempt: 2, updated_at: "2026-11-19T14:00:00Z" }] });
+  writeFileSync(first.world, JSON.stringify(attempt2));
+  const rerun = readsCi(first.world, "schedule");
+  assert.deepEqual(rerun.calls, ["edit 100"], "a re-run on the same run page that fails another check updates the job list once");
+  assert.match(rerun.bodies[0], /^- the app tests \(`test-app`\)$/m);
   const repeats = await Promise.all(Array.from({ length: 14 }, () => readsCiLater(first.world, "schedule")));
-  assert.deepEqual(repeats.map((r) => r.calls), Array(14).fill([]), "fourteen more runs on the same red head open and edit nothing");
+  assert.deepEqual(repeats.map((r) => r.calls), Array(14).fill([]), "fourteen more runs that would write the same body open and edit nothing");
   assert.equal(JSON.parse(readFileSync(first.world, "utf8")).issues.length, 1);
   const world = JSON.parse(readFileSync(first.world, "utf8"));
   world.issues.push({ number: 101, title: "staging is red", author: world.issues[0].author, body: "Run: https://example.com/run/x" });

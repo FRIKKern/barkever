@@ -28,6 +28,8 @@ const [group, verb] = args;
 if (group === "issue" && verb === "list") {
   const phrase = after("--search").match(/"(.+)"/)[1];
   jq(world.issues.filter((issue) => issue.title.includes(phrase)));
+} else if (group === "issue" && verb === "view") {
+  jq(world.issues.find((issue) => issue.number === Number(args[2])));
 } else if (group === "issue") {
   appendFileSync(process.env.GH_CALLS, verb + " " + (verb === "create" ? after("--title") : args[2]) + "\\n");
   if (verb !== "close") appendFileSync(process.env.GH_CALLS + ".bodies", after("--body") + "\\n---\\n");
