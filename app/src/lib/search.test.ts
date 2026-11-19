@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 import {bulkNotes} from '../../e2e/bulk.ts'
 import {toNote, type BpNote} from './note-docs.ts'
 import {find, terms, within} from './search.ts'
-import type {Note} from './model.ts'
+import type {Block, Note} from './model.ts'
 
 const fixtures = readFileSync(new URL('../../../fixtures/notes.ndjson', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((d) => d._type === 'note').map((d) => toNote(d as BpNote))
 const ids = (notes: Note[]) => notes.map((n) => n.id)
@@ -47,6 +47,13 @@ test('exact title, exact body, typo in title, typo in body, then newest first', 
   assert.deepEqual(ids(find(notes, 'quarry').notes), ['title-new', 'title-old', 'body-new', 'typo'])
   assert.deepEqual(ids(find(notes, 'quarr').notes), ['title-new', 'title-old', 'body-new', 'typo'])
   assert.deepEqual(ids(find(notes, 'qurry').notes), ['typo', 'title-new', 'title-old', 'body-new'])
+})
+
+test('a word only inside a code block or a quote finds the note', () => {
+  const code = {...fixtures[0], id: 'code', title: 'Deploy', blocks: [{id: 'c', type: 'code', lang: 'sh', value: 'cd app\nnpx wrangler publish'} as Block], tags: []}
+  const quote = {...fixtures[0], id: 'quote', title: 'Sayings', blocks: [{id: 'q', type: 'pullquote', content: [{type: 'text', value: 'Measure twice'}]}], tags: []}
+  assert.deepEqual(ids(find([code, quote, ...fixtures], 'wrangler').notes), ['code'])
+  assert.deepEqual(ids(find([code, quote, ...fixtures], 'measure twice').notes), ['quote'])
 })
 
 test('the words a typo matched are marked, so the list can highlight them', () => {

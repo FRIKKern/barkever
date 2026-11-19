@@ -1,6 +1,6 @@
 export type Inline = {type: string; value?: string; text?: string; docId?: string; target?: string; alias?: string; children?: Inline[]}
 export type Item = Inline[] | string | {content?: Inline[]; text?: string; checked?: boolean; children?: Block[]}
-export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; start?: number; caption?: string}
+export type Block = {id: string; type: string; level?: number; text?: string; content?: Inline[]; items?: Item[]; task?: boolean; ordered?: boolean; start?: number; caption?: string; value?: unknown; code?: unknown; lang?: string; src?: string; alt?: string; width?: number | string; height?: number | string}
 
 export type Conflict = {_key: string; by?: string; at: string; title?: string; body?: {blocks: Block[]}; tags?: string[]; notebook?: {_ref: string; _type?: string} | null; clash: string[]}
 export type Note = {id: string; title: string; notebook: string | null; tags: string[]; blocks: Block[]; links: string[]; updatedAt: string; rev: string; conflicts: Conflict[]; gen: number; trashed?: string}
@@ -67,7 +67,13 @@ export const inlineText = (c: Inline[] = []): string => inline(inlinesIn(c), sto
 
 export const itemText = (it: Item, title: Title): string => inline(itemContent(it), title)
 
+export function codeOf(b: Block): string {
+  const v = b.value ?? b.code ?? b.text ?? b.content
+  return typeof v === 'string' ? v : Array.isArray(v) ? inlineText(v as Inline[]) : ''
+}
+
 function shownText(b: Block, title: Title): string {
+  if (b.type === 'code') return codeOf(b)
   if (b.type === 'list') return itemsOf(b).flatMap((it) => [inline(itemContent(it), title), ...nestedOf(it).map((c) => shownText(c, title))]).filter(Boolean).join(' · ')
   return inline(contentOf(b), title)
 }
@@ -94,7 +100,9 @@ export function snippet(n: Note, title: Title): string {
 }
 
 export function hitLine(n: Note, words: string[], title: Title): string | undefined {
-  const b = n.blocks.find((b) => words.some((w) => blockText(b).toLowerCase().includes(w)))
+  const has = (t: string) => words.some((w) => t.toLowerCase().includes(w))
+  const b = n.blocks.find((b) => has(blockText(b)))
+  if (b?.type === 'code') return codeOf(b).split('\n').find(has)?.trim()
   return b && shownText(b, title)
 }
 

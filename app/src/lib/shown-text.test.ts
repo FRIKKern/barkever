@@ -33,6 +33,12 @@ test('a hit line is found by the stored words, and shows the current title', () 
   assert.equal(hitLine(source, [], title), undefined)
 })
 
+test('a hit in a code block shows the line it sits on', () => {
+  const code = note('c', 'Deploy', [{id: 'c', type: 'code', value: 'cd app\n  npx wrangler publish\nexit'} as Block])
+  assert.equal(hitLine(code, ['wrangler'], title), 'npx wrangler publish')
+  assert.equal(blockText(code.blocks[0]), 'cd app\n  npx wrangler publish\nexit')
+})
+
 test('own words, a deleted target and a link without an id keep their stored words; a blank title reads Untitled', () => {
   assert.equal(linkContext(source.blocks, 'x', title), 'Own words: the gauge, gone: Old buoy, no id: Plain')
   assert.equal(linkContext([list], 'b', title), 'Ask Untitled · two')

@@ -1,4 +1,4 @@
-import {blockText, childrenOf, contentOf, inlineText, itemContent, itemsOf, leafText, linkWords, nestedOf, type Block, type Inline, type Item, type Note, type Title} from './model.ts'
+import {blockText, childrenOf, codeOf, contentOf, inlineText, itemContent, itemsOf, leafText, linkWords, nestedOf, type Block, type Inline, type Item, type Note, type Title} from './model.ts'
 
 const MARKS: Record<string, [string, string]> = {strong: ['**', '**'], em: ['*', '*'], strikethrough: ['~~', '~~'], underline: ['<u>', '</u>']}
 
@@ -48,16 +48,10 @@ const inlines = (c: Inline[], title: Title) => c.map((x) => one(x, title)).join(
 
 const prose = (c: Inline[], title: Title) => guardStart(inlines(c, title))
 
-const codeOf = (b: Block) => {
-  const v = (b as {value?: unknown; code?: unknown}).value ?? (b as {code?: unknown}).code ?? b.text ?? b.content
-  return typeof v === 'string' ? v : Array.isArray(v) ? inlineText(v as Inline[]) : ''
-}
-
 function fence(b: Block) {
   const body = codeOf(b)
   const ticks = '`'.repeat(Math.max(3, ...(body.match(/`{3,}/g) ?? []).map((r) => r.length + 1)))
-  const lang = (b as {lang?: unknown}).lang
-  return [`${ticks}${typeof lang === 'string' ? lang : ''}`, ...body.split('\n'), ticks]
+  return [`${ticks}${typeof b.lang === 'string' ? b.lang : ''}`, ...body.split('\n'), ticks]
 }
 
 const checked = (it: Item) => typeof it === 'object' && !Array.isArray(it) && it.checked === true

@@ -2,7 +2,7 @@
   "renderer": "barkever-blocks",
   "compare": "dom",
   "pack_stamp": "1ca9ca01d368484f4e7aa39003f9fb065595d29745f785d823154762b362be0b",
-  "ran_at_sha": "7b0419b226db5857385073f7dfab929ebe165128",
+  "ran_at_sha": "a65c1e62beea76080aee8effc6412f24b09fbb1e",
   "rows": [
     {
       "type": "action",
@@ -81,7 +81,7 @@
     },
     {
       "type": "code",
-      "status": "missing"
+      "status": "pass"
     },
     {
       "type": "codelist",
@@ -109,7 +109,7 @@
     },
     {
       "type": "divider",
-      "status": "missing"
+      "status": "pass"
     },
     {
       "type": "duel",
@@ -201,7 +201,10 @@
     },
     {
       "type": "image",
-      "status": "missing"
+      "status": "fail",
+      "diff": [
+        "root > img[0]: attr loading=\"lazy\" extra"
+      ]
     },
     {
       "type": "ingress",
@@ -253,7 +256,7 @@
     },
     {
       "type": "pullquote",
-      "status": "missing"
+      "status": "pass"
     },
     {
       "type": "questionnaire",

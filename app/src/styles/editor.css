@@ -20,6 +20,13 @@
 .blocks .cb { flex: none; width: var(--sp-4); height: var(--sp-4); margin-top: var(--sp-1); border: 1.5px solid var(--c-faint); border-radius: var(--r-s); background: var(--c-surface); }
 .blocks li.done > .cb { background: var(--c-accent); border-color: var(--c-accent); }
 .blocks li.done > .li-t { color: var(--c-muted); text-decoration: line-through; }
+.blocks { --bp-codeblock-radius: var(--r-m); --bp-codeblock-pad: var(--sp-3) var(--sp-4); --bp-codeblock-margin: 0 0 var(--sp-3); --bp-codeblock-size: var(--fs-s); --bp-codeblock-lh: var(--lh-body); --paper-font-mono: var(--font-mono); }
+.blocks .bp-codeblock { color: var(--c-text); background: var(--c-rail); }
+.blocks .bp-codeblock[data-lang]::before { content: attr(data-lang); display: block; position: sticky; left: 0; margin-bottom: var(--sp-1); font: var(--fs-2xs)/var(--lh-ui) var(--font-sans); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--c-muted); }
+.blocks .bp-section-divider { color: var(--c-border-soft); }
+.blocks .bp-section-divider__mark { background: var(--c-surface); color: var(--c-text-2); }
+.blocks img { display: block; margin: 0 0 var(--sp-3); border: 1px solid var(--c-border-soft); border-radius: var(--r-m); background: var(--c-rail); color: var(--c-muted); }
+.blocks .bp-role-pullquote { padding-left: var(--sp-4); border-left: 3px solid var(--c-border-soft); color: var(--c-text-2); }
 .wl { color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-s); padding: 0 var(--sp-1); white-space: nowrap; }
 .wl::before { content: "↗ "; font-size: .8em; opacity: .7; }
 .wl:hover { background: var(--c-accent); color: var(--c-on-accent); }

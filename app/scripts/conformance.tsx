@@ -6,7 +6,7 @@ import {MISSING, conform, counts, diffShapes, modeFromEnv, settle, shapeOf} from
 
 const PACK = new URL('../../conformance/pack/goldens', import.meta.url).pathname
 const REPORT = new URL('../../conformance/barkever-blocks.json', import.meta.url).pathname
-const KNOWN = new Set(['blockquote', 'heading', 'list', 'paragraph'])
+const KNOWN = new Set(['blockquote', 'code', 'divider', 'heading', 'image', 'list', 'paragraph', 'pullquote'])
 const search = {n: undefined, q: undefined, b: undefined, t: undefined, conflict: undefined}
 
 function nodesOf(html: string): NodeList {
