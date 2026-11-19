@@ -62,7 +62,7 @@ for (const f of files) {
   const text = read(f);
   if (secretPatterns.some((re) => re.test(text))) fail(f, "looks like a secret");
 }
-errors.push(...packNameCheck(files.filter((f) => !IMG.has(extname(f).toLowerCase())), read));
+errors.push(...packNameCheck(files.filter((f) => extname(f).toLowerCase() === ".svg" || !IMG.has(extname(f).toLowerCase())), read));
 
 if (files.includes("JOURNEYS.md")) {
   const ids = [...read("JOURNEYS.md").matchAll(/^\| (J\d\d) \|/gm)].map((m) => m[1]);
