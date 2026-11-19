@@ -2,9 +2,9 @@
   "jobs": [
     {
       "job": "promote.yml promote",
-      "sha256": "92241ff61555395a755ebdeb2664846a024650fe8783ef2ea34417e54ea9c525",
+      "sha256": "c8cf9a0953ececc5c1037333dbee993a3555dbd59ba0ae9f50097ff0c21b121d",
       "runs": {
-        "scripts/promote.sh": "62808b55d20fafc9ea9a76d82b8d9afe0f4937305a88f8024ad4f537f2aac95d"
+        "scripts/promote.sh": "20f10287f47236a0976346bc8e4962a1d9f922904936274f945a8ad093f9cac2"
       }
     },
     {
