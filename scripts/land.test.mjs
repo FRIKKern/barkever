@@ -695,7 +695,7 @@ test("a mark left by a dead land doesn't stop the next one", () => {
 });
 
 test("a commit marked Trial: unreviewed that touches a risky path is refused, and the land names the file", () => {
-  for (const file of ["scripts/check-repo.mjs", "scripts/test-cleanup.mjs", "scripts/own-tmp.test.mjs", "scripts/land.mjs", ".github/workflows/ci.yml", "app/src/replica/merge.ts"]) {
+  for (const file of ["scripts/check-repo.mjs", "scripts/test-cleanup.mjs", "scripts/own-tmp.test.mjs", "scripts/land.mjs", ".github/workflows/ci.yml", "app/src/replica/merge.ts", "scripts/sync-act.sh", "scripts/push-token.sh", "scripts/keyed-jobs.json", "scripts/workflow-keys.mjs", "scripts/sync-act.test.mjs", "scripts/key-shims.mjs"]) {
     const run = repo(() => {}, (b) => {
       mkdirSync(join(b, file, ".."), { recursive: true });
       writeFileSync(join(b, file), "changed\n");

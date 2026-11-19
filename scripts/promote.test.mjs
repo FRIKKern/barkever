@@ -71,3 +71,12 @@ test("a red run opens one issue while main lacks the sha, and none once main hol
   const holds = promote("failure", { issues: [], compare: { [`main...${SHA}`]: "behind" } });
   assert.deepEqual([holds.status, holds.calls], [0, []]);
 });
+
+test("promote takes a ci run on staging in this repo, pushed or dispatched by the pack sync, and nothing else", async () => {
+  const { load } = await import("./workflow-keys.mjs");
+  const promoteYml = load(workflow);
+  const ci = load(readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"));
+  assert.deepEqual(promoteYml.on, { workflow_run: { workflows: ["ci"], types: ["completed"], branches: ["staging"] } });
+  assert.equal(promoteYml.jobs.promote.if, "(github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') && github.event.workflow_run.head_branch == 'staging' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.conclusion != 'cancelled'");
+  assert.ok("workflow_dispatch" in ci.on, "the pack sync's push starts no workflow, so it dispatches ci");
+});
