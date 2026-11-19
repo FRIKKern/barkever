@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { COPIED, compare, decide, packNameCheck, packNameProblems, packReaders, readSourceNote, rowsMoved, selfCheck, sha256, sourceNote } from "./pack.mjs";
+import { COPIED, compare, decide, PACK_NAME_ALLOWED, PACK_NAME_KINDS, packNameCheck, packNameProblems, packReaders, readSourceNote, rowsMoved, selfCheck, sha256, sourceNote } from "./pack.mjs";
 import { PACK_DIR } from "./pack-door.mjs";
 import { cleanup } from "./test-cleanup.mjs";
 
@@ -129,17 +129,40 @@ test("only the door names the pack folder: a join of its parts, a path, a URL or
     "scripts/prose.mjs": `const title = "PortableDoc ${parent} ${name}";`,
     "README.md": `the ${parent} ${name} is synced`,
     "docs/prose.md": `the ${parent} (${name}) and ${PACK_DIR}/SOURCE.md`,
-    "docs/notes.txt": `see ${PACK_DIR}/goldens`,
     [`${PACK_DIR}/conformance.mjs`]: `const at = "${PACK_DIR}";`,
     "scripts/other.mjs": `const at = "${parent}/${name}s";`,
   };
   for (const [f, t] of Object.entries(allowed)) assert.deepEqual(packNameProblems(f, t), [], f);
 });
 
-test("shell scripts, workflows and package scripts may not name the pack folder either, and an allowed file that stops naming it is stale", () => {
+test("the allow-list is pinned: only markdown and .gitleaks.toml may name the pack folder, each with a reason", () => {
+  assert.deepEqual(Object.keys(PACK_NAME_KINDS), [".md"]);
+  assert.deepEqual(Object.keys(PACK_NAME_ALLOWED), [".gitleaks.toml"]);
+  for (const reason of [...Object.values(PACK_NAME_KINDS), ...Object.values(PACK_NAME_ALLOWED)]) assert.match(reason, /\w{3,} \w{3,}/);
+});
+
+test("every tracked text file is checked unless its kind is on the allow-list, and an allowed file that stops naming the pack folder is stale", () => {
   assert.equal(packNameProblems("scripts/planted.sh", `pack=${PACK_DIR}\n`).length, 1);
   assert.equal(packNameProblems(".github/workflows/planted.yml", `run: ls ${PACK_DIR}/goldens\n`).length, 1);
   assert.equal(packNameProblems("app/package.json", `"x": "cat ${PACK_DIR}/SOURCE.md"\n`).length, 1);
+  const scripts = {
+    "mac/test/fake/claude": `#!/usr/bin/env node\nreadFileSync("${PACK_DIR}/SOURCE.md")\n`,
+    "scripts/planted.bash": `ls ${PACK_DIR}/goldens\n`,
+    "scripts/planted.zsh": `ls ${PACK_DIR}/goldens\n`,
+    "scripts/planted.py": `open("${PACK_DIR}/SOURCE.md")\n`,
+  };
+  const other = {
+    "scripts/planted.PY": `open("${PACK_DIR}/SOURCE.md")\n`,
+    "scripts/planted.pyw": `open("${PACK_DIR}/SOURCE.md")\n`,
+    "scripts/bom": `\uFEFF#!/bin/sh\nls ${PACK_DIR}\n`,
+    "scripts/blank": `\n#!/bin/sh\nls ${PACK_DIR}\n`,
+    "scripts/planted.xyz": `${PACK_DIR}/goldens\n`,
+    "scripts/planted": `see ${PACK_DIR}/SOURCE.md\n`,
+    "docs/notes.txt": `see ${PACK_DIR}/goldens\n`,
+    "docs/planted.MD": `see ${PACK_DIR}/SOURCE.md\n`,
+  };
+  for (const [f, t] of Object.entries({ ...scripts, ...other })) assert.equal(packNameProblems(f, t).length, 1, `${f} names the pack folder and its kind is not on the allow-list`);
+  assert.deepEqual(packNameProblems("docs/planted.md", `see ${PACK_DIR}/SOURCE.md\n`), [], "markdown is on the allow-list");
   const texts = { ".gitleaks.toml": `paths = ['${PACK_DIR}/goldens/stamp.json']\n`, "docs/decisions/0045-the-pack-syncs-itself.md": `see ${PACK_DIR}/SOURCE.md\n`, "scripts/planted.sh": "echo ok\n" };
   assert.deepEqual(packNameCheck(Object.keys(texts), (f) => texts[f]), []);
   texts[".gitleaks.toml"] = "paths = []\n";
