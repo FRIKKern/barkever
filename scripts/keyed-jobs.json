@@ -1,0 +1,19 @@
+{
+  "jobs": [
+    {
+      "job": "promote.yml promote",
+      "sha256": "9e02c03c7fcca82a1903c3b56449e55d40fa1f7551c65cd0346d3c3d797e5823",
+      "runs": {
+        "scripts/promote.sh": "8885ecf181dcdc7c80a4fdb7370b93c39d43fefa7a552bc166a0afb5a6907c53"
+      }
+    },
+    {
+      "job": "sync-pack.yml act",
+      "sha256": "3a35fca2b33b50bf69e2edd9bbcbf5f4d6fe41b751a30db0ad9ad3961bc8ae61",
+      "runs": {
+        "scripts/sync-act.sh": "cf05e7a347087517a28a10a35f820bd8a0a24b3a031f6ce8a8cadae872ce9258",
+        "scripts/act-token.sh": "3478225c5027a90c2deba30b24ddc43b33a09d2c30132d10414a5a0f17af55bd"
+      }
+    }
+  ]
+}
