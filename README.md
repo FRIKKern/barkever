@@ -55,12 +55,14 @@ mac/         the Electron shell
 design/      tokens the app and these pictures share
 contracts/   Barkpark schemas
 fixtures/    synthetic notes
-conformance/ PortableDoc goldens
+conformance/ PortableDoc goldens, synced from Barkpark (0045)
 scripts/     guard, queue, land, roadmap
 host-profile/ editor host profile
 reference/   prototypes and references
 spikes/      rival tests
 ```
+
+Pack name check: misses split consts, folder walks, runtime paths; every test ci runs on staging catches them.
 
 ## Run it
 

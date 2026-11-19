@@ -695,7 +695,7 @@ test("a mark left by a dead land doesn't stop the next one", () => {
 });
 
 test("a commit marked Trial: unreviewed that touches a risky path is refused, and the land names the file", () => {
-  for (const file of ["scripts/check-repo.mjs", "scripts/test-cleanup.mjs", "scripts/own-tmp.test.mjs", "scripts/land.mjs", ".github/workflows/ci.yml", "app/src/replica/merge.ts"]) {
+  for (const file of ["scripts/check-repo.mjs", "scripts/test-cleanup.mjs", "scripts/own-tmp.test.mjs", "scripts/land.mjs", ".github/workflows/ci.yml", "app/src/replica/merge.ts", "scripts/sync-act.sh", "scripts/act-token.sh", "scripts/promote.sh", "scripts/pack.mjs", "scripts/pack-compare.mjs", "scripts/pack-plan.mjs", "scripts/pack-plan.test.mjs", "scripts/pack-sync.mjs", "package.json", "pnpm-lock.yaml", "app/scripts/conformance.tsx", "conformance/conformance.test.mjs", "scripts/pack-door.mjs", "scripts/pack-door.d.mts", "scripts/sync-act-world.mjs", "scripts/sync-act-refusals.test.mjs", "scripts/keyed-jobs.json", "scripts/workflow-keys.mjs", "scripts/sync-act.test.mjs", "scripts/key-shims.mjs", "scripts/promote-world.mjs", "scripts/staging-holds.test.mjs", "scripts/ci-runs-every-test.test.mjs"]) {
     const run = repo(() => {}, (b) => {
       mkdirSync(join(b, file, ".."), { recursive: true });
       writeFileSync(join(b, file), "changed\n");
