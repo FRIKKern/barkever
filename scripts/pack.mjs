@@ -156,14 +156,16 @@ const DOOR_FILES = new Set([DOOR, "scripts/pack-door.d.mts"]);
 export const PACK_NAME_ALLOWED = {
   ".gitleaks.toml": "gitleaks matches the stamp's hashes by path and cannot import the door",
 };
-const RUNS = /\.(m?[jt]sx?|c[jt]s|sh|ya?ml|json|toml)$/;
+export const PACK_NAME_KINDS = {
+  ".md": "prose: docs and decisions name the folder they describe, and no tool reads markdown as a path",
+};
 const [PACK_PARENT, PACK_NAME] = PACK_DIR.split("/");
 const GLUE = String.raw`(?:[\s'"\x60,+/\\$\{\}()]|\bpath\.sep\b|\bsep\b)`;
 const PACK_TOKENS = new RegExp(String.raw`\b${PACK_PARENT}\b(${GLUE}{1,80}?)\b${PACK_NAME}\b`, "g");
 const RELATIVE = /^\.{1,2}\/[\w./@-]*$/;
 
 export function packNameProblems(file, text) {
-  if (DOOR_FILES.has(file) || file.startsWith(`${PACK_DIR}/`) || !RUNS.test(file)) return [];
+  if (DOOR_FILES.has(file) || file.startsWith(`${PACK_DIR}/`) || PACK_NAME_KINDS[posix.extname(file)]) return [];
   const reachesPack = (literal) => {
     if (!RELATIVE.test(literal)) return false;
     const to = posix.normalize(posix.join(posix.dirname(file), literal));
