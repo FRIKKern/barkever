@@ -9,12 +9,27 @@ red() {
   echo "::error::$1" | tee -a "$GITHUB_STEP_SUMMARY"
   exit 1
 }
+staging_head() { gh api "repos/$REPO/git/ref/heads/staging" -q .object.sha < /dev/null; }
+case ${TRIGGER:-workflow_run} in
+  workflow_run) ;;
+  workflow_dispatch | schedule)
+    [ "${REF:-}" = refs/heads/main ] || skip "promote runs from main only, not ${REF:-an unknown ref}"
+    head=$(staging_head)
+    [[ $head =~ ^[0-9a-f]{40}$ ]] || red "promote could not read staging's head, so main did not move."
+    [ "$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)" != "$head" ] || skip "main already holds staging's head $head"
+    run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=staging&head_sha=$head&status=completed&per_page=20" \
+      -q '[.workflow_runs[] | select(.status == "completed" and .path == ".github/workflows/ci.yml" and .name == "ci" and (.event == "push" or .event == "workflow_dispatch"))] | sort_by(.created_at) | last // empty | [.id, .conclusion, .html_url, .event, .path, .name, .head_repository.full_name, .head_branch, .head_sha] | map(tostring) | join("|")')
+    [ -n "$run" ] || skip "no finished ci run on staging's head $head yet"
+    IFS='|' read -r RUN_ID RESULT RUN_URL EVENT WORKFLOW_PATH WORKFLOW_NAME HEAD_REPO HEAD_BRANCH SHA <<<"$run"
+    ;;
+  *) red "promote ran for a ${TRIGGER} event and knows only workflow_run, workflow_dispatch and schedule, so main did not move." ;;
+esac
 case $EVENT in pull_request | pull_request_target) skip "ci ran for a $EVENT event" ;; esac
 [ "$HEAD_REPO" = "$REPO" ] || skip "the run is from $HEAD_REPO"
 [ "$HEAD_BRANCH" = staging ] || skip "the run is on $HEAD_BRANCH, not staging"
 [ "$RESULT" != cancelled ] || skip "the run was cancelled"
 [[ $SHA =~ ^[0-9a-f]{40}$ ]] || skip "the run names no commit"
-head=$(gh api "repos/$REPO/git/ref/heads/staging" -q .object.sha)
+head=$(staging_head)
 [ "$head" = "$SHA" ] || skip "ci ran on $SHA, but staging is at $head now; only staging's head is promoted"
 [ "$WORKFLOW_PATH" = .github/workflows/ci.yml ] && [ "$WORKFLOW_NAME" = ci ] ||
   red "A run named $WORKFLOW_NAME from $WORKFLOW_PATH finished on staging's head, and promote knows only ci from .github/workflows/ci.yml, so main did not move."
@@ -29,7 +44,7 @@ report() {
 }
 red_issues() {
   gh issue list -R "$REPO" --state open --limit 100 --search '"staging is red" in:title' --json number,title,author,body \
-    -q '[.[] | select(.author.is_bot and .author.login == "app/github-actions" and .title == "staging is red")] | sort_by(.number) | .[] | "\(.number) \([.body | capture("on `(?<sha>[0-9a-f]{40})`")][0].sha // "")"' < /dev/null
+    -q '[.[] | select(.author.is_bot and .author.login == "app/github-actions" and .title == "staging is red")] | sort_by(.number) | .[] | "\(.number) \([.body | capture("on `(?<sha>[0-9a-f]{40})`")][0].sha // "-") \([.body | capture("Run: (?<url>\\S+)")][0].url // "-")"' < /dev/null
 }
 job_words() {
   case $1 in
@@ -51,10 +66,14 @@ failed_jobs() {
   while IFS= read -r name; do echo "- $(job_words "$name")"; done <<<"$names"
 }
 report_red() {
-  local body found number
-  body=$(printf '%s\n' "ci ended as $RESULT on \`$SHA\`, so main stays where it is." '' 'Checks that failed:' "$(failed_jobs)" '' 'Main moves again once ci is green on a later staging head; this issue then closes.' "Run: $RUN_URL")
+  local body found number at url
   found=$(red_issues | head -n 1)
-  number=${found%% *}
+  read -r number at url <<<"$found" || true
+  if [ -n "$number" ] && [ "$at" = "$SHA" ] && [ "$url" = "$RUN_URL" ]; then
+    echo "issue $number already names this red run on $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+    return
+  fi
+  body=$(printf '%s\n' "ci ended as $RESULT on \`$SHA\`, so main stays where it is." '' 'Checks that failed:' "$(failed_jobs)" '' 'Main moves again once ci is green on a later staging head; this issue then closes.' "Run: $RUN_URL")
   if [ -n "$number" ]; then
     gh issue edit "$number" -R "$REPO" --body "$body"
   else
@@ -63,7 +82,8 @@ report_red() {
 }
 settle() {
   local number red
-  while read -r number red; do
+  while read -r number red _; do
+    [ "$red" != - ] || red=
     case "$([ -z "$red" ] && echo ahead || gh api "repos/$REPO/compare/$red...$SHA" -q .status < /dev/null || true)" in
       ahead|identical)
         gh issue close "$number" -R "$REPO" --comment "main now holds $SHA, which includes ${red:-the red head}. Run: $RUN_URL" < /dev/null || echo "::warning::issue $number is still open"
@@ -84,6 +104,8 @@ fi
 state="$(gh api "repos/$REPO/compare/main...$SHA" -q .status)"
 case "$state" in
   ahead)
+    [ "$(staging_head)" = "$SHA" ] || skip "staging moved off $SHA while promote ran"
+    [ "$(gh api "repos/$REPO/compare/main...$SHA" -q .status)" = ahead ] || skip "main moved while promote ran"
     if ! gh api -X PATCH "repos/$REPO/git/refs/heads/main" -f sha="$SHA" -F force=false -q .object.sha; then
       report "main could not move to ${SHA:0:10}" "ci is green on $SHA but main did not move; the promote run log says why. Someone with push rights can run git push origin $SHA:main. Run: $RUN_URL"
       exit 1
