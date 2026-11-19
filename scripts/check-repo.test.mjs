@@ -137,6 +137,17 @@ for (const [name, planted] of Object.entries(plants)) {
   });
 }
 
+test("the pack name finding gives advice the file can follow: an svg is told to take the name out or allow its kind, never to import", () => {
+  const [found] = checked((d) => d.write("docs/img/advice.svg", `<svg xmlns="http://www.w3.org/2000/svg">\n<text>${PACK_DIR}</text>\n</svg>\n`));
+  assert.equal(found, `docs/img/advice.svg:2: names the pack folder; only scripts/pack-door.mjs may, and this kind of file cannot import it, so take the name out, or add ".svg" to PACK_NAME_KINDS in scripts/pack.mjs with a reason`);
+  assert.doesNotMatch(found, /import PACK_DIR/);
+});
+
+test("the pack name finding tells a script that can import to take the folder from the door", () => {
+  const [found] = checked((d) => d.write("scripts/advice.mjs", `const at = "${PACK_DIR}/goldens";\n`));
+  assert.equal(found, "scripts/advice.mjs:1: names the pack folder; only scripts/pack-door.mjs may, so import PACK_DIR, PACK_PATH or the helper from it");
+});
+
 test("clean copy passes", async () => {
   const r = await clean;
   assert.equal(r.status, 0, r.stderr);

@@ -159,6 +159,12 @@ export const PACK_NAME_ALLOWED = {
 export const PACK_NAME_KINDS = {
   ".md": "prose: docs and decisions name the folder they describe, and no tool reads markdown as a path",
 };
+const CAN_IMPORT = new Set([".mjs", ".js", ".ts", ".tsx", ".mts", ".cjs"]);
+function packNameAdvice(file, text) {
+  if (CAN_IMPORT.has(posix.extname(file)) || text.startsWith("#!")) return "so import PACK_DIR, PACK_PATH or the helper from it";
+  const kind = posix.extname(file);
+  return kind ? `and this kind of file cannot import it, so take the name out, or add "${kind}" to PACK_NAME_KINDS in scripts/pack.mjs with a reason` : "and this file cannot import it, so take the name out";
+}
 const [PACK_PARENT, PACK_NAME] = PACK_DIR.split("/");
 const GLUE = String.raw`(?:[\s'"\x60,+/\\$\{\}()]|\bpath\.sep\b|\bsep\b)`;
 const PACK_TOKENS = new RegExp(String.raw`\b${PACK_PARENT}\b(${GLUE}{1,80}?)\b${PACK_NAME}\b`, "g");
@@ -176,7 +182,8 @@ export function packNameProblems(file, text) {
   text.split("\n").forEach((line, i) => {
     if ([...line.matchAll(/["'`]([^"'`]*)["'`]/g)].some(([, literal]) => reachesPack(literal))) lines.add(i + 1);
   });
-  return [...lines].sort((a, b) => a - b).map((n) => `${file}:${n}: names the pack folder; only ${DOOR} may, so import PACK_DIR, PACK_PATH or the helper from it`);
+  const advice = packNameAdvice(file, text);
+  return [...lines].sort((a, b) => a - b).map((n) => `${file}:${n}: names the pack folder; only ${DOOR} may, ${advice}`);
 }
 
 export function packNameCheck(files, read) {
