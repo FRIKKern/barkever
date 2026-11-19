@@ -208,3 +208,24 @@ test("act's report opens one issue in its own words, updates the bot's open one,
     assert.doesNotMatch(r.gh, /^issue (create|edit)/m);
   }
 });
+
+test("token_push hands GitHub the token as the push's credential, and only when asked", async () => {
+  const { createServer } = await import("node:http");
+  const { spawn } = await import("node:child_process");
+  const seen = [];
+  const server = createServer((req, res) => {
+    seen.push(req.headers.authorization ?? "none");
+    if (!req.headers.authorization) res.writeHead(401, { "WWW-Authenticate": 'Basic realm="r"' });
+    else res.writeHead(403);
+    res.end();
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const repo = tmp("helper");
+  git(repo, "init", "-q");
+  git(repo, "commit", "-q", "--allow-empty", "-m", "x");
+  const run = spawn(BASH, ["-c", `RUNNER_TEMP=${repo} . "${HELPER}"; token_push HEAD:refs/heads/staging`], { cwd: repo, env: { ...env, PUSH_TOKEN: TOKEN, PUSH_URL: `http://127.0.0.1:${server.address().port}/o/r.git` } });
+  const status = await new Promise((done) => run.on("close", done));
+  server.close();
+  assert.notEqual(status, 0);
+  assert.deepEqual(seen, ["none", `Basic ${Buffer.from(`x-access-token:${TOKEN}`).toString("base64")}`]);
+});

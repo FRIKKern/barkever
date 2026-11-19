@@ -1,0 +1,30 @@
+{
+  "jobs": [
+    {
+      "job": "promote.yml promote",
+      "sha256": "1bc1a44f6e442ed0b5e358d5d29efa7fb5a9126ba4d93bf10789f40aebb2df39",
+      "runs": {}
+    },
+    {
+      "job": "sync-pack.yml push",
+      "sha256": "28ce307b3f84d7e33df9d8b4b0e175e30e41a13e401649a0eb96dc4ef928927a",
+      "runs": {
+        "scripts/sync-act.sh": "4ff9b8cebc76ad27e51563bceaf51e70347117b970884d090c694701f4b6d26a",
+        "scripts/push-token.sh": "0896755723573d371a03d4b59bdd51908a7cdc31993b23265b560732cac62726"
+      }
+    },
+    {
+      "job": "sync-pack.yml report",
+      "sha256": "64f058aa33da77d44ec9a4fee51fbfde3b5bb972d221cab3268d9b7101922d1f",
+      "runs": {
+        "scripts/sync-act.sh": "4ff9b8cebc76ad27e51563bceaf51e70347117b970884d090c694701f4b6d26a",
+        "scripts/push-token.sh": "0896755723573d371a03d4b59bdd51908a7cdc31993b23265b560732cac62726"
+      }
+    },
+    {
+      "job": "sync-pack.yml ci",
+      "sha256": "17e038c12f97144bae8eadd80a7490f7dca5b7a3d2bc9d912e1f5b7145776309",
+      "runs": {}
+    }
+  ]
+}
