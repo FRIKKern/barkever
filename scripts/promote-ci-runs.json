@@ -15,7 +15,8 @@
       "name": "ci",
       "path": ".github/workflows/ci.yml",
       "run_attempt": 1,
-      "status": "completed"
+      "status": "completed",
+      "updated_at": "2026-11-19T12:21:12Z"
     }
   ]
 }

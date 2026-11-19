@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
 import { cpSync, mkdtempSync, writeFileSync, readFileSync, mkdirSync, statSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, extname } from "node:path";
 import { PACK_DIR } from "./pack-door.mjs";
-import { problems } from "./check-repo.mjs";
+import { IMG, problems } from "./check-repo.mjs";
 import { cleanup } from "./test-cleanup.mjs";
 
 const temp = mkdtempSync(join(tmpdir(), "check-repo-"));
@@ -71,7 +71,7 @@ test("a package.json with no scripts passes", () => {
 
 const IMAGES_CAP = 5 * 1024 * 1024;
 const fillImages = (over) => (d) => {
-  const held = tracked.filter((f) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f)).reduce((n, f) => n + d.size(f), 0);
+  const held = tracked.filter((f) => IMG.has(extname(f).toLowerCase())).reduce((n, f) => n + d.size(f), 0);
   for (let i = 0, left = IMAGES_CAP - held + over; left > 0; i++, left -= 300 * 1024) d.write(`docs/img/planted-${i}.png`, "", Math.min(300 * 1024, left));
 };
 
@@ -116,6 +116,7 @@ const plants = {
   "banned dependency": (d) => { const p = JSON.parse(d.read("package.json")); p.dependencies = { next: "1" }; d.write("package.json", JSON.stringify(p)); },
   "secret": (d) => d.write("leak.txt", ["OPENAI", "API", "KEY"].join("_") + "=abc123\n"),
   "a session token in a pack golden": [(d) => { const g = `${PACK_DIR}/goldens/blocks/paragraph.golden.json`; d.write(g, d.read(g).replace("{", `{"note": "${["bp", "sess_"].join("")}${"a".repeat(20)}",`)); }, `${PACK_DIR}/goldens/blocks/paragraph.golden.json: looks like a secret`],
+  "an svg that names the pack folder": [(d) => d.write("docs/img/planted.svg", `<svg xmlns="http://www.w3.org/2000/svg">\n<text>${PACK_DIR}/goldens</text>\n</svg>\n`), "docs/img/planted.svg:2: names the pack folder"],
   "a shell script that names the pack folder": [(d) => d.write("scripts/planted.sh", `ls ${PACK_DIR}\n`), "scripts/planted.sh:1: names the pack folder"],
   "a join wrapped one argument per line": [(d) => d.write("scripts/wrapped.test.mjs", `const at = join(\n  root,\n  '${PACK_DIR.split("/")[0]}',\n  '${PACK_DIR.split("/")[1]}',\n  'goldens',\n)\n`), "scripts/wrapped.test.mjs:3: names the pack folder"],
   "the pack folder's parts glued with sep": [(d) => d.write("scripts/sep.test.mjs", `const at = '${PACK_DIR.split("/")[0]}' + sep + '${PACK_DIR.split("/")[1]}'\n`), "scripts/sep.test.mjs:1: names the pack folder"],

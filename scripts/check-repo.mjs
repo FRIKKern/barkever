@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { packNameCheck } from "./pack.mjs";
 import { secretPatterns } from "./secrets.mjs";
 
+export const IMG = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"]);
 const words = (s) => s.replace(/```[\s\S]*?```/g, "").split(/\s+/).filter(Boolean).length;
 
 export function problems(files, read, size) {
@@ -27,7 +28,6 @@ export function problems(files, read, size) {
     if (!/```|!\[|<img|<svg/.test(head)) fail(f, "no diagram or image in the first 25 lines");
   }
 
-  const IMG = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"]);
   let imgTotal = 0;
   for (const f of files.filter((f) => IMG.has(extname(f).toLowerCase()))) {
     const bytes = size(f);
@@ -58,7 +58,7 @@ export function problems(files, read, size) {
     const text = read(f);
     if (secretPatterns.some((re) => re.test(text))) fail(f, "looks like a secret");
   }
-  errors.push(...packNameCheck(files.filter((f) => !IMG.has(extname(f).toLowerCase())), read));
+  errors.push(...packNameCheck(files.filter((f) => extname(f).toLowerCase() === ".svg" || !IMG.has(extname(f).toLowerCase())), read));
 
   if (files.includes("JOURNEYS.md")) {
     const ids = [...read("JOURNEYS.md").matchAll(/^\| (J\d\d) \|/gm)].map((m) => m[1]);
