@@ -2,9 +2,10 @@ import {createElement} from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {Window} from 'happy-dom'
 import {Blocks} from '../src/ui/Blocks'
-import {MISSING, conform, counts, diffShapes, modeFromEnv, settle, shapeOf} from '../../conformance/pack/conformance.mjs'
+import {join} from 'node:path'
+import {MISSING, PACK_PATH, conform, counts, diffShapes, modeFromEnv, settle, shapeOf} from '../../scripts/pack-door.mjs'
 
-const PACK = new URL('../../conformance/pack/goldens', import.meta.url).pathname
+const PACK = join(PACK_PATH, 'goldens')
 const REPORT = new URL('../../conformance/barkever-blocks.json', import.meta.url).pathname
 const KNOWN = new Set(['blockquote', 'code', 'divider', 'heading', 'image', 'list', 'paragraph', 'pullquote'])
 const search = {n: undefined, q: undefined, b: undefined, t: undefined, conflict: undefined}
