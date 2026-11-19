@@ -148,6 +148,22 @@ test("the pack name finding tells a script that can import to take the folder fr
   assert.equal(found, "scripts/advice.mjs:1: names the pack folder; only scripts/pack-door.mjs may, so import PACK_DIR, PACK_PATH or the helper from it");
 });
 
+test("each kind of file that runs is told the route it can really take, and none is told to allow its kind", () => {
+  const advice = {
+    "scripts/advice.sh": ["#!/usr/bin/env bash\nls ${PACK}\n", "so take the path from the PACK_DIR environment variable and have the caller read it from scripts/pack-door.mjs, as sync-act.sh does"],
+    "scripts/advice-tool": ["#!/usr/bin/env python3\nopen('${PACK}/SOURCE.md')\n", "and this file cannot import it, so take the name out"],
+    "app/src/ui/Advice.jsx": ["export const at = '${PACK}'\n", "so import PACK_DIR, PACK_PATH or the helper from it"],
+    "app/advice.json": ['{"at": "${PACK}"}\n', "and this kind of file cannot import it, so take the name out"],
+    ".github/workflows/advice.yml": ["on: push\njobs: {a: {runs-on: x, steps: [{run: ls ${PACK}}]}}\n", "so read PACK_DIR from scripts/pack-door.mjs as the door step in sync-pack.yml does"],
+  };
+  for (const [file, [text, says]] of Object.entries(advice)) {
+    const found = checked((d) => d.write(file, text.replaceAll("${PACK}", PACK_DIR)));
+    assert.equal(found.length, 1, found.join("\n"));
+    assert.equal(found[0].replace(/^[^:]+:\d+: /, ""), `names the pack folder; only scripts/pack-door.mjs may, ${says}`, file);
+    assert.doesNotMatch(found[0], /PACK_NAME_KINDS/, file);
+  }
+});
+
 test("clean copy passes", async () => {
   const r = await clean;
   assert.equal(r.status, 0, r.stderr);
