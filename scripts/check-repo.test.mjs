@@ -152,6 +152,7 @@ test("each kind of file that runs is told the route it can really take, and none
   const advice = {
     "scripts/advice.sh": ["#!/usr/bin/env bash\nls ${PACK}\n", "so take the path from the PACK_DIR environment variable and have the caller read it from scripts/pack-door.mjs, as sync-act.sh does"],
     "scripts/advice-tool": ["#!/usr/bin/env python3\nopen('${PACK}/SOURCE.md')\n", "and this file cannot import it, so take the name out"],
+    "scripts/ADVICE.SH": ["ls ${PACK}\n", "so take the path from the PACK_DIR environment variable and have the caller read it from scripts/pack-door.mjs, as sync-act.sh does"],
     "app/src/ui/Advice.jsx": ["export const at = '${PACK}'\n", "so import PACK_DIR, PACK_PATH or the helper from it"],
     "app/advice.json": ['{"at": "${PACK}"}\n', "and this kind of file cannot import it, so take the name out"],
     ".github/workflows/advice.yml": ["on: push\njobs: {a: {runs-on: x, steps: [{run: ls ${PACK}}]}}\n", "so read PACK_DIR from scripts/pack-door.mjs as the door step in sync-pack.yml does"],

@@ -171,13 +171,13 @@ const runner = (text) => {
   return (words[0] === "env" ? words[1] : words[0]) ?? "";
 };
 function packNameAdvice(file, text) {
-  const kind = posix.extname(file);
+  const kind = posix.extname(file).toLowerCase();
   const by = runner(text);
   if (IMPORT_KINDS.includes(kind) || IMPORT_RUNNERS.includes(by)) return "so import PACK_DIR, PACK_PATH or the helper from it";
   if (SHELL_KINDS.includes(kind) || SHELL_RUNNERS.includes(by)) return "so take the path from the PACK_DIR environment variable and have the caller read it from scripts/pack-door.mjs, as sync-act.sh does";
   if (WORKFLOW.test(file)) return "so read PACK_DIR from scripts/pack-door.mjs as the door step in sync-pack.yml does";
   if (!kind) return "and this file cannot import it, so take the name out";
-  const allow = by === null && !RUNNING_KINDS.includes(kind) ? `, or add "${kind}" to PACK_NAME_KINDS in scripts/pack.mjs with a reason` : "";
+  const allow = by === null && !RUNNING_KINDS.includes(kind) ? `, or add "${posix.extname(file)}" to PACK_NAME_KINDS in scripts/pack.mjs with a reason` : "";
   return `and this kind of file cannot import it, so take the name out${allow}`;
 }
 const [PACK_PARENT, PACK_NAME] = PACK_DIR.split("/");
