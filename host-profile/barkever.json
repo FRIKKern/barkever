@@ -128,5 +128,17 @@
       ],
       "why": "Barkever's editor stylesheet and line marker intentionally bind to the canvas DOM until equivalent public styling and line-location seams exist."
     }
+  ],
+  "notEditor": [
+    {
+      "names": [
+        "--bp-codeblock-lh",
+        "--bp-codeblock-margin",
+        "--bp-codeblock-pad",
+        "--bp-codeblock-radius",
+        "--bp-codeblock-size"
+      ],
+      "why": "Barkever's read-only view (.blocks) draws code blocks with the emitter's own inline styles, which read these tokens; Barkever sets them on .blocks for that view, never on the editor."
+    }
   ]
 }
