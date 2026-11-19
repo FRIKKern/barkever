@@ -51,7 +51,8 @@ report_issue() {
   source=$(jq -r .source "$plan/plan.json")
   [[ $source =~ $re_sha ]] || fail "source $source"
   on_barkpark "$source"
-  list=$(jq -r '.moved | if type == "array" and length > 0 and length <= 200 then .[] | tostring else error("moved is not a list of 1 to 200 types") end' "$plan/plan.json")
+  list=$(jq -r '.moved | if type == "array" and length > 0 and length <= 200 then .[] | tostring else error("") end' "$plan/plan.json" 2>/dev/null) ||
+    fail 'moved is not a list of 1 to 200 types'
   moved=()
   while IFS= read -r t; do moved+=("$t"); done <<<"$list"
   for t in "${moved[@]}"; do
@@ -140,7 +141,8 @@ push_sync() {
   fi
 
   message="PortableDoc pack: sync from Barkpark ${at:0:12}"$'\n\n'"Written by scripts/pack-sync.mjs and checked by scripts/sync-act.sh: every pack file but SOURCE.md is Barkpark's own at $at, and no conformance row moved."
-  sync=$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$new^{tree}" -p "$staging" -m "$message")
+  sync=$(GIT_AUTHOR_NAME='github-actions[bot]' GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+    GIT_COMMITTER_NAME='github-actions[bot]' GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' git commit-tree "$new^{tree}" -p "$staging" -m "$message")
   token_push "$sync:refs/heads/staging"
   echo 'pushed=true' >>"$GITHUB_OUTPUT"
   echo "staging moved to $sync: PortableDoc pack from Barkpark ${at:0:12}"
