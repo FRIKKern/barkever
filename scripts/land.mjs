@@ -68,7 +68,7 @@ step("fetch staging", "git", ["fetch", "-q", "origin", "staging"], main);
 const within = (a, b) => { try { git(["merge-base", "--is-ancestor", a, b], main); return true; } catch { return false; } };
 const split = !within("origin/staging", "origin/main") && !within("origin/main", "origin/staging");
 const base = split || within("origin/staging", "origin/main") ? "origin/main" : "origin/staging";
-const RISKY = /^app\/src\/(replica|server)\/|^\.github\/workflows\/|^scripts\/((land|scan-outgoing|secrets|check-repo|heavy|own-tmp|test-cleanup)(\.test)?|promote\.test)\.mjs$/;
+const RISKY = /^app\/src\/(replica|server)\/|^\.github\/workflows\/|^scripts\/(((land|scan-outgoing|secrets|check-repo|heavy|own-tmp|test-cleanup|sync-act|workflow-keys|pack|pack-compare|pack-plan|pack-sync)(\.test)?|promote\.test|key-shims)\.mjs|sync-act\.sh|act-token\.sh|promote\.sh|keyed-jobs\.json)$|^package\.json$/;
 const unreviewedRisky = git(["log", "-z", "--no-merges", "-i", "--basic-regexp", "--grep=^ *Trial: *unreviewed", "--format=", "--name-only", "--no-renames", `${base}..${branch}`], dir).split(/[\0\n]/).find((f) => RISKY.test(f));
 if (unreviewedRisky) {
   console.error(`land: ${unreviewedRisky} is on the risky list, and a commit marked Trial: unreviewed changes it. Get one fresh review, take the mark off the commit, and land with --reviewed <the sha the reviewer passed> (docs/decisions/0044); nothing landed; main is untouched`);
