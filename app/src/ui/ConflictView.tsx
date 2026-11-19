@@ -21,7 +21,7 @@ function Column({v, testId, name, children}: {v: Version; testId: string; name: 
       {v.clash.has('notebook') && <div className="kb-part clash" data-testid="kb-notebook">{name(v.notebook)}</div>}
       {v.clash.has('tags') && <div className="kb-part clash" data-testid="kb-tags">{v.tags?.length ? v.tags.map((t) => `#${t}`).join(' ') : 'No tags'}</div>}
       {v.blocks.map((b) => (
-        <p key={b.id} className={`kb-block${mark(`body:${b.id}`)}`} data-block-id={b.id}>
+        <p key={b.id} className={`kb-block${b.type === 'code' ? ' code' : ''}${mark(`body:${b.id}`)}`} data-block-id={b.id}>
           {blockText(b)}
         </p>
       ))}

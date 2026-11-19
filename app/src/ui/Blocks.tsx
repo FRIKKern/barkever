@@ -22,7 +22,7 @@ function Inlines({c, at}: {c: Inline[]; at: At}) {
   )
 }
 
-const FETCHABLE = /^(https?:\/\/|\/(?!\/))/i
+const FETCHABLE = /^https?:\/\//i
 const CODE = {
   border: 0,
   borderRadius: 'var(--bp-codeblock-radius, 0)',
@@ -68,7 +68,7 @@ function BlockView({b, at}: {b: Block; at: At}) {
   }
   if (b.type === 'code')
     return (
-      <pre className="bp-codeblock" data-lang={b.lang || undefined} style={CODE}>
+      <pre className="bp-codeblock" data-lang={typeof b.lang === 'string' && b.lang ? b.lang : undefined} style={CODE}>
         {codeOf(b)}
       </pre>
     )

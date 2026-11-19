@@ -11,6 +11,7 @@
 .kb-title { font-weight: var(--fw-bold); color: var(--c-text); margin-bottom: var(--sp-2); overflow-wrap: anywhere; }
 .kb-part { width: fit-content; max-width: 100%; margin-bottom: var(--sp-1); padding: 0 var(--sp-1); color: var(--c-text-2); overflow-wrap: anywhere; }
 .kb-block { margin: 0 0 var(--sp-1); color: var(--c-text-2); overflow-wrap: anywhere; }
+.kb-block.code { white-space: pre-wrap; font: var(--fs-s)/var(--lh-body) var(--font-mono); }
 .keep-both .clash { background: var(--c-mark); border-radius: var(--r-s); color: var(--c-text); }
 .kb-acts { display: flex; gap: var(--sp-1); margin-top: var(--sp-2); }
 .kb-act { font-size: var(--fs-xs); color: var(--c-text-2); padding: var(--sp-hair) var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--c-border-soft); }

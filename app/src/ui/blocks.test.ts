@@ -15,6 +15,10 @@ const blocks = [
   {id: 'i', type: 'image', src: 'https://example.com/cat.png', alt: 'A cat'},
   {id: 'j', type: 'image', src: ' javascript:alert(1)', alt: 'Bad'},
   {id: 'x', type: 'image', src: 'data:image/png;base64,AAAA', alt: 'Inline'},
+  {id: 'b', type: 'image', src: '/\\\\evil.com/x.png', alt: 'Backslash'},
+  {id: 't', type: 'image', src: '/\\t/evil.com/x.png', alt: 'Tab'},
+  {id: 'a', type: 'image', src: '/assets/x.png', alt: 'Same site'},
+  {id: 'n', type: 'code', lang: 7, value: 'odd'},
   {id: 'q', type: 'pullquote', content: [{type: 'text', value: 'Said once'}]},
 ]
 process.stdout.write(renderToStaticMarkup(createElement(Blocks, {blocks, s: {}, title: () => undefined})))
@@ -28,6 +32,8 @@ test('code, dividers, images and quotes show in the read-only view; images never
   assert.match(html, /<img src="https:\/\/example.com\/cat.png" alt="A cat" loading="lazy"/)
   assert.match(html, /<img alt="Bad" loading="lazy"/)
   assert.match(html, /<img alt="Inline" loading="lazy"/)
-  assert.doesNotMatch(html, /javascript:|data:image/)
+  for (const alt of ['Backslash', 'Tab', 'Same site']) assert.match(html, new RegExp(`<img alt="${alt}" loading="lazy"`))
+  assert.doesNotMatch(html, /javascript:|data:image|evil\.com|assets\/x/)
+  assert.match(html, /<pre class="bp-codeblock" style="[^"]*">odd<\/pre>/)
   assert.match(html, /<p class="bp-role-pullquote" style="font-style:italic">Said once<\/p>/)
 })
