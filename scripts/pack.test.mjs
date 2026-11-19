@@ -136,10 +136,19 @@ test("only the door names the pack folder: a join of its parts, a path, a URL or
   for (const [f, t] of Object.entries(allowed)) assert.deepEqual(packNameProblems(f, t), [], f);
 });
 
-test("shell scripts, workflows and package scripts may not name the pack folder either, and an allowed file that stops naming it is stale", () => {
+test("shell scripts, #! files, python, workflows and package scripts may not name the pack folder either, and an allowed file that stops naming it is stale", () => {
   assert.equal(packNameProblems("scripts/planted.sh", `pack=${PACK_DIR}\n`).length, 1);
   assert.equal(packNameProblems(".github/workflows/planted.yml", `run: ls ${PACK_DIR}/goldens\n`).length, 1);
   assert.equal(packNameProblems("app/package.json", `"x": "cat ${PACK_DIR}/SOURCE.md"\n`).length, 1);
+  const scripts = {
+    "mac/test/fake/claude": `#!/usr/bin/env node\nreadFileSync("${PACK_DIR}/SOURCE.md")\n`,
+    "scripts/planted.bash": `ls ${PACK_DIR}/goldens\n`,
+    "scripts/planted.zsh": `ls ${PACK_DIR}/goldens\n`,
+    "scripts/planted.py": `open("${PACK_DIR}/SOURCE.md")\n`,
+  };
+  for (const [f, t] of Object.entries(scripts)) assert.equal(packNameProblems(f, t).length, 1, `${f} names the pack folder and runs`);
+  assert.deepEqual(packNameProblems("docs/planted.md", `see ${PACK_DIR}/SOURCE.md\n`), [], "a markdown file is prose, not a script");
+  assert.deepEqual(packNameProblems("docs/planted", `see ${PACK_DIR}/SOURCE.md\n`), [], "a file with no extension and no #! line is not a script");
   const texts = { ".gitleaks.toml": `paths = ['${PACK_DIR}/goldens/stamp.json']\n`, "docs/decisions/0045-the-pack-syncs-itself.md": `see ${PACK_DIR}/SOURCE.md\n`, "scripts/planted.sh": "echo ok\n" };
   assert.deepEqual(packNameCheck(Object.keys(texts), (f) => texts[f]), []);
   texts[".gitleaks.toml"] = "paths = []\n";
