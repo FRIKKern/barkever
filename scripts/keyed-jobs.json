@@ -9,7 +9,7 @@
       "job": "sync-pack.yml push",
       "sha256": "28ce307b3f84d7e33df9d8b4b0e175e30e41a13e401649a0eb96dc4ef928927a",
       "runs": {
-        "scripts/sync-act.sh": "4ff9b8cebc76ad27e51563bceaf51e70347117b970884d090c694701f4b6d26a",
+        "scripts/sync-act.sh": "2a7ec121163581df3039848f2f040f3ce667732b6cb29ff000b865ed0eef3e5d",
         "scripts/push-token.sh": "0896755723573d371a03d4b59bdd51908a7cdc31993b23265b560732cac62726"
       }
     },
@@ -17,7 +17,7 @@
       "job": "sync-pack.yml report",
       "sha256": "64f058aa33da77d44ec9a4fee51fbfde3b5bb972d221cab3268d9b7101922d1f",
       "runs": {
-        "scripts/sync-act.sh": "4ff9b8cebc76ad27e51563bceaf51e70347117b970884d090c694701f4b6d26a",
+        "scripts/sync-act.sh": "2a7ec121163581df3039848f2f040f3ce667732b6cb29ff000b865ed0eef3e5d",
         "scripts/push-token.sh": "0896755723573d371a03d4b59bdd51908a7cdc31993b23265b560732cac62726"
       }
     },

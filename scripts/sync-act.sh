@@ -29,6 +29,7 @@ git -C "$bp" config remote.origin.promisor true
 git -C "$bp" config remote.origin.partialclonefilter blob:none
 git -C "$bp" fetch -q --filter=blob:none origin main
 bpmain=$(git -C "$bp" rev-parse FETCH_HEAD)
+git -C "$bp" config remote.origin.promisor false
 
 on_barkpark() {
   git -C "$bp" merge-base --is-ancestor "$was" "$bpmain" 2>/dev/null ||
