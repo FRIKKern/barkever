@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
-export const secretPatterns = [/sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bgh[opsur]_[A-Za-z0-9]{30,}/, /\bgithub_pat_[A-Za-z0-9_]{20,}/, /\bbpsess_[A-Za-z0-9_-]{16,}/, /\bxox[abeprs]-[A-Za-z0-9-]{10,}/, /\bnpm_[A-Za-z0-9]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/];
+export const secretPatterns = [/sk-ant-[A-Za-z0-9_-]{20,}/, /sk-proj-[A-Za-z0-9_-]{20,}/, /\bgh[opsur]_[A-Za-z0-9]{30,}/, /\bgithub_pat_[A-Za-z0-9_]{20,}/, /\bbpsess_[A-Za-z0-9_-]{16,}/, /\bxox[abeprs]-[A-Za-z0-9-]{10,}/, /\bnpm_[A-Za-z0-9]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\bsk-[A-Za-z0-9]{32,}\b/, /(ANTHROPIC|OPENAI|CODEX)_API_KEY\s*=\s*\S+/];
 
 const PUBLIC_DEFAULTS = new Set(["barkpark-dev-token"]);
 
