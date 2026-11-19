@@ -45,9 +45,11 @@ const sizes = new Map();
 const cached = (map, f, load) => (map.has(f) ? map.get(f) : map.set(f, load(join(root, f))).get(f));
 function repo() {
   const planted = new Map();
+  const reported = new Map();
   const read = (f) => (planted.has(f) ? planted.get(f) : cached(texts, f, (p) => readFileSync(p, "utf8")));
-  const size = (f) => (planted.has(f) ? Buffer.byteLength(planted.get(f)) : cached(sizes, f, (p) => statSync(p).size));
-  return { read, write: (f, text) => planted.set(f, text), problems: () => problems([...new Set([...tracked, ...planted.keys()])], read, size) };
+  const size = (f) => reported.get(f) ?? (planted.has(f) ? Buffer.byteLength(planted.get(f)) : cached(sizes, f, (p) => statSync(p).size));
+  const write = (f, text, bytes) => { planted.set(f, text); if (bytes !== undefined) reported.set(f, bytes); };
+  return { read, size, write, problems: () => problems([...new Set([...tracked, ...planted.keys()])], read, size) };
 }
 const checked = (plant) => { const d = repo(); plant(d); return d.problems(); };
 
@@ -65,6 +67,19 @@ test("the guarded run the split plants start with passes by itself, and with a s
 
 test("a package.json with no scripts passes", () => {
   assert.deepEqual(checked((d) => d.write("fixtures/planted/package.json", "{}")), []);
+});
+
+const IMAGES_CAP = 5 * 1024 * 1024;
+const fillImages = (over) => (d) => {
+  const held = tracked.filter((f) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f)).reduce((n, f) => n + d.size(f), 0);
+  for (let i = 0, left = IMAGES_CAP - held + over; left > 0; i++, left -= 300 * 1024) d.write(`docs/img/planted-${i}.png`, "", Math.min(300 * 1024, left));
+};
+
+test("images that add up to the 5 MB cap pass, and one byte more fails on the total", () => {
+  assert.deepEqual(checked(fillImages(0)), []);
+  const found = checked(fillImages(1));
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /^images: \d+ KB total, cap 5 MB$/);
 });
 
 const macTest = (change) => (d) => {
