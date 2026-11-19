@@ -5,6 +5,7 @@ on:
     workflows: [ci]
     types: [completed]
     branches: [staging]
+  workflow_dispatch:
 
 permissions: {}
 
@@ -14,6 +15,7 @@ concurrency:
 
 jobs:
   promote:
+    if: github.event_name == 'workflow_run' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -23,6 +25,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
+      TRIGGER: ${{ github.event_name }}
+      REF: ${{ github.ref }}
       SHA: ${{ github.event.workflow_run.head_sha }}
       RESULT: ${{ github.event.workflow_run.conclusion }}
       RUN_URL: ${{ github.event.workflow_run.html_url }}

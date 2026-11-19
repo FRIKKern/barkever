@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { packNameProblems } from "./pack.mjs";
 import { PACK_DIR } from "./pack-door.mjs";
 import { defaultChecks } from "./pack-plan.mjs";
-import { promote } from "./promote-world.mjs";
+import { ciRun, readsCi } from "./promote-world.mjs";
 import { act, bark, commit, git, plan, stagingAt, tmp, world, write } from "./sync-act-world.mjs";
 
 const READER = "scripts/golden-reader.test.mjs";
@@ -51,9 +51,10 @@ test("a broken pack that slips past the plan's checks turns staging red, main st
   assert.match(run.stdout, /not ok 1 - the paragraph golden is version 1/);
   const jobs = [{ name: "check", conclusion: "success" }, { name: "test-scripts", conclusion: "failure" }];
 
-  const promoted = promote("failure", { staging: head, issues: [], jobs, compare: { [`main...${head}`]: "ahead" } }, { SHA: head });
+  const ciRuns = [ciRun(head, "failure", { event: "workflow_dispatch" })];
+  const promoted = readsCi({ staging: head, main, issues: [], jobs, ciRuns, compare: { [`main...${head}`]: "ahead" } }, "workflow_dispatch");
   assert.equal(promoted.status, 0, promoted.out);
-  assert.deepEqual(promoted.calls, ["create staging is red"], "promote does not move main; it opens one issue");
+  assert.deepEqual(promoted.calls, ["create staging is red"], "the job token's ci run starts no promote, so the next promote reads that red run, keeps main still and opens one issue");
   assert.equal(git(w.origin, "rev-parse", "main"), main, "main did not move");
   const [body] = promoted.bodies;
   assert.match(body, new RegExp(`^ci ended as failure on \`${head}\`, so main stays where it is\\.$`, "m"));
