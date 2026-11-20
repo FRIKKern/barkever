@@ -38,7 +38,9 @@ if (group === "issue" && verb === "list") {
   if (verb === "close") world.issues = world.issues.filter((issue) => issue.number !== Number(args[2]));
   save();
 } else if (args[1].endsWith("/git/ref/heads/staging")) {
-  console.log(nth("staging", world.staging));
+  const staging = nth("staging", world.staging);
+  if (staging === null) process.exit(1);
+  console.log(staging);
 } else if (args[1].endsWith("/git/ref/heads/main")) {
   console.log(world.main);
 } else if (args[1].includes("/actions/workflows/ci.yml/runs?")) {

@@ -10,27 +10,40 @@ red() {
   exit 1
 }
 staging_head() { gh api "repos/$REPO/git/ref/heads/staging" -q .object.sha < /dev/null; }
+read_head() {
+  head=$(staging_head) || red "promote could not read staging's head, so main did not move."
+  [[ $head =~ ^[0-9a-f]{40}$ ]] || red "promote could not read staging's head, so main did not move."
+  [ "$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)" != "$head" ] || skip "main already holds staging's head $head"
+  run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=staging&head_sha=$head&status=completed&per_page=20" \
+    -q '[.workflow_runs[] | select(.status == "completed" and .path == ".github/workflows/ci.yml" and .name == "ci" and (.event == "push" or .event == "workflow_dispatch"))] | sort_by(.updated_at, .id) | last // empty | [.id, .conclusion, .html_url, .event, .path, .name, .head_repository.full_name, .head_branch, .head_sha] | map(tostring) | join("|")')
+  [ -n "$run" ] || skip "no finished ci run on staging's head $head yet"
+  IFS='|' read -r RUN_ID RESULT RUN_URL EVENT WORKFLOW_PATH WORKFLOW_NAME HEAD_REPO HEAD_BRANCH SHA <<<"$run"
+}
+not_head() {
+  case $EVENT in pull_request | pull_request_target) echo "ci ran for a $EVENT event"; return ;; esac
+  [ "$HEAD_REPO" = "$REPO" ] || { echo "the run is from $HEAD_REPO"; return; }
+  [ "$HEAD_BRANCH" = staging ] || { echo "the run is on $HEAD_BRANCH, not staging"; return; }
+  [ "$RESULT" != cancelled ] || { echo "the run was cancelled"; return; }
+  [[ $SHA =~ ^[0-9a-f]{40}$ ]] || { echo "the run names no commit"; return; }
+  local head
+  head=$(staging_head) || return 3
+  [ "$head" = "$SHA" ] || echo "ci ran on $SHA, but staging is at $head now; only staging's head is promoted"
+}
 case ${TRIGGER:-workflow_run} in
   workflow_run) ;;
   workflow_dispatch | schedule)
     [ "${REF:-}" = refs/heads/main ] || skip "promote runs from main only, not ${REF:-an unknown ref}"
-    head=$(staging_head)
-    [[ $head =~ ^[0-9a-f]{40}$ ]] || red "promote could not read staging's head, so main did not move."
-    [ "$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)" != "$head" ] || skip "main already holds staging's head $head"
-    run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=staging&head_sha=$head&status=completed&per_page=20" \
-      -q '[.workflow_runs[] | select(.status == "completed" and .path == ".github/workflows/ci.yml" and .name == "ci" and (.event == "push" or .event == "workflow_dispatch"))] | sort_by(.updated_at, .id) | last // empty | [.id, .conclusion, .html_url, .event, .path, .name, .head_repository.full_name, .head_branch, .head_sha] | map(tostring) | join("|")')
-    [ -n "$run" ] || skip "no finished ci run on staging's head $head yet"
-    IFS='|' read -r RUN_ID RESULT RUN_URL EVENT WORKFLOW_PATH WORKFLOW_NAME HEAD_REPO HEAD_BRANCH SHA <<<"$run"
+    read_head
     ;;
   *) red "promote ran for a ${TRIGGER} event and knows only workflow_run, workflow_dispatch and schedule, so main did not move." ;;
 esac
-case $EVENT in pull_request | pull_request_target) skip "ci ran for a $EVENT event" ;; esac
-[ "$HEAD_REPO" = "$REPO" ] || skip "the run is from $HEAD_REPO"
-[ "$HEAD_BRANCH" = staging ] || skip "the run is on $HEAD_BRANCH, not staging"
-[ "$RESULT" != cancelled ] || skip "the run was cancelled"
-[[ $SHA =~ ^[0-9a-f]{40}$ ]] || skip "the run names no commit"
-head=$(staging_head)
-[ "$head" = "$SHA" ] || skip "ci ran on $SHA, but staging is at $head now; only staging's head is promoted"
+why=$(not_head) || red "promote could not read staging's head, so main did not move."
+if [ -n "$why" ] && [ "${TRIGGER:-workflow_run}" = workflow_run ]; then
+  echo "promote woke for a run it does not act on ($why), so it reads staging's head" | tee -a "$GITHUB_STEP_SUMMARY"
+  read_head
+  why=$(not_head) || red "promote could not read staging's head, so main did not move."
+fi
+[ -z "$why" ] || skip "$why"
 [ "$WORKFLOW_PATH" = .github/workflows/ci.yml ] && [ "$WORKFLOW_NAME" = ci ] ||
   red "A run named $WORKFLOW_NAME from $WORKFLOW_PATH finished on staging's head, and promote knows only ci from .github/workflows/ci.yml, so main did not move."
 [[ $EVENT == push || $EVENT == workflow_dispatch ]] ||
@@ -100,11 +113,13 @@ if [[ "$RESULT" != success ]]; then
   report_red
   exit 0
 fi
-state="$(gh api "repos/$REPO/compare/main...$SHA" -q .status)"
+state=$(gh api "repos/$REPO/compare/main...$SHA" -q .status) || red "promote could not compare main with $SHA, so main did not move."
 case "$state" in
   ahead)
-    [ "$(staging_head)" = "$SHA" ] || skip "staging moved off $SHA while promote ran"
-    [ "$(gh api "repos/$REPO/compare/main...$SHA" -q .status)" = ahead ] || skip "main moved while promote ran"
+    now=$(staging_head) || red "promote could not read staging's head, so main did not move."
+    [ "$now" = "$SHA" ] || skip "staging moved off $SHA while promote ran"
+    now=$(gh api "repos/$REPO/compare/main...$SHA" -q .status) || red "promote could not compare main with $SHA, so main did not move."
+    [ "$now" = ahead ] || skip "main moved while promote ran"
     if ! gh api -X PATCH "repos/$REPO/git/refs/heads/main" -f sha="$SHA" -F force=false -q .object.sha; then
       report "main could not move to ${SHA:0:10}" "ci is green on $SHA but main did not move; the promote run log says why. Someone with push rights can run git push origin $SHA:main. Run: $RUN_URL"
       exit 1

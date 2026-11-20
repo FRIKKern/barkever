@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
-import { ciRun, readsCi, readsCiLater } from "./promote-world.mjs";
+import { ciRun, promote, readsCi, readsCiLater } from "./promote-world.mjs";
 import { load } from "./workflow-keys.mjs";
 
 const H = "c".repeat(40);
@@ -36,6 +36,64 @@ test("promote's rules hold on the read path: only a completed green run for stag
   assert.deepEqual([elsewhere.status, elsewhere.calls, elsewhere.out.trim()], [0, [], "nothing promoted: promote runs from main only, not refs/heads/feature"], "a dispatch from another branch does nothing");
   const unknown = readsCi(behind({ ciRuns: [ciRun(H, "success")] }), "repository_dispatch");
   assert.deepEqual([unknown.status, unknown.calls], [1, []], unknown.out);
+});
+
+test("a red head whose own promote run was replaced in the queue still gets its one issue from the promote run that replaced it, and main stays", () => {
+  const world = behind({ ciRuns: [ciRun(H, "failure")], jobs });
+  for (const [name, run] of Object.entries({ "a stale run": { SHA: OLD }, "a pull request run": { EVENT: "pull_request" }, "a run from a fork": { HEAD_REPO: "fork/r" }, "a run on another branch": { HEAD_BRANCH: "feature" } })) {
+    const r = promote("success", world, { SHA: H, ...run });
+    assert.deepEqual([r.status, r.calls], [0, ["create staging is red"]], `${name}: ${r.out}`);
+    assert.match(r.bodies[0], new RegExp(`ci ended as failure on \`${H}\``), name);
+  }
+});
+
+test("a stale run that wakes promote while the head's own run is still going does nothing; the head's run wakes it later", () => {
+  const r = promote("failure", behind({ ciRuns: [ciRun(H, null, { status: "in_progress" }), ciRun(OLD, "failure")], jobs }), { SHA: OLD });
+  assert.deepEqual([r.status, r.calls], [0, []], r.out);
+  assert.match(r.out, new RegExp(`^nothing promoted: no finished ci run on staging's head ${H} yet$`, "m"));
+});
+
+test("a stale run that wakes promote when the head's newest finished run is green moves main once, as a dispatch would", () => {
+  const r = promote("failure", behind({ ciRuns: [ciRun(H, "success")], jobs }), { SHA: OLD });
+  assert.deepEqual([r.status, r.calls], [0, [`move sha=${H}`]], r.out);
+});
+
+const unread = (r, error = /^::error::promote could not read staging's head, so main did not move\.$/m) => {
+  assert.deepEqual([r.status, r.calls], [1, []], r.out);
+  assert.match(r.out, error);
+  assert.doesNotMatch(r.out, /nothing promoted/);
+};
+
+test("a staging read that fails in the woken run's own check turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ staging: [null, H], ciRuns: [ciRun(H, "success")] }), { SHA: H }));
+});
+
+test("a staging read that fails in the check after the head is read for a stale run turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ staging: [H, H, null], ciRuns: [ciRun(H, "success")] }), { SHA: OLD }));
+});
+
+test("a staging read that fails in the check after a dispatch reads the head turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(readsCi(behind({ staging: [H, null], ciRuns: [ciRun(H, "success")] })));
+});
+
+test("a staging read that fails when a dispatch reads the head turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(readsCi(behind({ staging: [null], ciRuns: [ciRun(H, "success")] })));
+});
+
+test("a staging read that fails when a stale run makes promote read the head turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ staging: [H, null], ciRuns: [ciRun(H, "success")] }), { SHA: OLD }));
+});
+
+test("a compare read that fails when a green run asks how main stands turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ compare: { [`main...${H}`]: [null] } }), { SHA: H }), new RegExp(`^::error::promote could not compare main with ${H}, so main did not move\\.$`, "m"));
+});
+
+test("a staging read that fails in the check right before main moves turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ staging: [H, null], ciRuns: [ciRun(H, "success")] }), { SHA: H }));
+});
+
+test("a compare read that fails in the check right before main moves turns the job red: no quiet skip, no move, and main stays", () => {
+  unread(promote("success", behind({ compare: { [`main...${H}`]: ["ahead", null] } }), { SHA: H }), new RegExp(`^::error::promote could not compare main with ${H}, so main did not move\\.$`, "m"));
 });
 
 test("the run that finished last decides, so a re-run of an older run counts as newest; equal finish times go to the higher id", () => {
