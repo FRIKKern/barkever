@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ARGUMENTS, prove, reporterArgs } from "./test-proof.mjs";
-import { REPORTER } from "./test-report.mjs";
+import { REPORTER, reportDir } from "./test-report.mjs";
 
 const OWN = fileURLToPath(new URL("own-tmp.mjs", import.meta.url));
 const DIR = "/runner/barkever-test-reports";
@@ -91,4 +91,9 @@ test("own-tmp records a node --test run and its report, and node 22 leaves filte
   assert.deepEqual(record.argv, ["node", ...reporterArgs(REPORTER, dir, Number(/(\d+)\.jsonl$/.exec(record.argv[4])[1])), "--test", "--test-name-pattern=kept|later", "a.test.mjs", "b.test.mjs"]);
   const results = lines.filter((line) => line.kind !== "run").map(({ kind, file, name, result }) => [kind, file.split("/").pop(), name, result]);
   assert.deepEqual(results.sort(), [["file", "b.test.mjs", "b.test.mjs", "pass"], ["test", "a.test.mjs", "kept", "pass"], ["test", "a.test.mjs", "later", "skip"]]);
+  const local = mkdtempSync(join(temp, "local-"));
+  const { RUNNER_TEMP, ...outside } = env;
+  assert.equal(spawnSync("node", [OWN, "node", "--test", "a.test.mjs"], { cwd: temp, env: { ...outside, TMPDIR: `${local}/` }, encoding: "utf8", timeout: 30_000 }).status, 0);
+  assert.equal(reportDir(outside), null);
+  assert.deepEqual(readdirSync(local), []);
 });

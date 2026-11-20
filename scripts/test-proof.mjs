@@ -69,7 +69,7 @@ const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8"
 export const scopeFiles = (globs) => (globs.length ? git("ls-files", "-z", "--", ...globs.map((glob) => `:(glob)${glob}`)).split("\0").filter(Boolean) : []);
 
 function readLines(dir) {
-  if (!existsSync(dir)) return [];
+  if (!dir || !existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((name) => name.endsWith(".jsonl"))
     .flatMap((name) => readFileSync(join(dir, name), "utf8").split("\n").filter(Boolean).map((line) => {

@@ -28,8 +28,8 @@ if (!cmd || (asked && !(deadline <= 2147483647))) {
   console.error('usage: node scripts/own-tmp.mjs [--deadline=<1 to 2147483647 ms>] <command> [args...]')
   process.exit(2)
 }
-const reports = cmd === 'node' && args.includes('--test') && !process.env.BARKEVER_TEST_REPORTING
 const dir = reportDir()
+const reports = Boolean(dir) && cmd === 'node' && args.includes('--test') && !process.env.BARKEVER_TEST_REPORTING
 const run = reports
   ? ['--test-reporter=spec', '--test-reporter-destination=stdout', `--test-reporter=${REPORTER}`, `--test-reporter-destination=${join(dir, `${process.pid}.jsonl`)}`, ...args]
   : args
