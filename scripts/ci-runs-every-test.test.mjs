@@ -14,6 +14,15 @@ export const NOT_IN_CI = {
   "app/e2e/j10/j10.test.ts": "J10 signs in to the live server, and ci holds no session",
 };
 
+export const SCOPE = "a development check; text cannot prove a test ran";
+
+export const LIMITS = {
+  "a pnpm built-in shadowing a script name": "pnpm doctor or pnpm bin runs pnpm's own command and exits 0, so the script of that name never runs",
+  "pre, post and install hooks": "pretest, precheck, postinstall and prepare run around the scripts the check reads, and the check does not read them",
+  "a tracked file run by node, tsx or --require": "the check reads the command, not the file, so a tracked file can stop or empty the tests",
+  ".pnpmfile.cjs and the package.json pnpm field": "both change what pnpm installs and runs, and the check reads neither",
+};
+
 const TEST_FILE = /\.test\.[a-z]+$/;
 const NAMES_TESTS = /--test|\.test\./;
 const SCRIPT = /^[\w:-]+$/;
@@ -246,5 +255,42 @@ for (const [name, from, to, problem, readFile] of PLANTS) {
     assert.ok(ci.includes(from), from);
     const problems = notRun(files, ci.replace(from, () => to), readFile);
     assert.ok(problems.includes(problem), JSON.stringify(problems));
+  });
+}
+
+const rootPackage = JSON.parse(read("package.json"));
+const rootWith = (fields) => withFile("package.json", JSON.stringify({ ...rootPackage, ...fields, scripts: { ...rootPackage.scripts, ...fields.scripts } }));
+
+const LIMIT_ROWS = {
+  "a pnpm built-in shadowing a script name": [
+    ["pnpm doctor with a root doctor script that runs the tests", SCRIPTS, "      - run: pnpm doctor", [], rootWith({ scripts: { doctor: SCRIPTS_RUN } })],
+    ["pnpm bin with a root bin script that runs the tests", SCRIPTS, "      - run: pnpm bin", [], rootWith({ scripts: { bin: SCRIPTS_RUN } })],
+  ],
+  "pre, post and install hooks": [
+    ["an app pretest that empties a test file", APP, APP, [], withFile("app/package.json", JSON.stringify({ ...appPackage, scripts: { ...appPackage.scripts, pretest: "echo > src/lib/x.test.ts" } }))],
+    ["a root precheck that empties the conformance test", APP, APP, [], rootWith({ scripts: { precheck: "echo > conformance/conformance.test.mjs" } })],
+    ["a root postinstall that empties every test file", APP, APP, [], rootWith({ scripts: { postinstall: "find . -name '*.test.*' -exec truncate -s0 {} +" } })],
+  ],
+  "a tracked file run by node, tsx or --require": [
+    ["node on a new tracked file before the test", SCRIPTS, `      - run: node scripts/quiet.mjs && ${SCRIPTS_RUN}`, ["scripts/quiet.mjs"], undefined],
+    ["node on an existing file before the test", SCRIPTS, `      - run: node scripts/roadmap.mjs && ${SCRIPTS_RUN}`, [], undefined],
+    ["--require of a new tracked file in the app test script", APP, APP, ["app/test/quiet.cjs"], appTest(appPackage.scripts.test.replace("node --test", "node --require ./test/quiet.cjs --test"))],
+  ],
+  ".pnpmfile.cjs and the package.json pnpm field": [
+    ["a tracked .pnpmfile.cjs", APP, APP, [".pnpmfile.cjs"], withFile(".pnpmfile.cjs", "module.exports = { hooks: {} };\n")],
+    ["a pnpm field with overrides", APP, APP, [], rootWith({ pnpm: { overrides: { "js-yaml": "4.1.0" } } })],
+  ],
+};
+
+test("each named limit has its plant", () => {
+  assert.deepEqual(Object.keys(LIMIT_ROWS), Object.keys(LIMITS));
+});
+
+for (const [limit, rows] of Object.entries(LIMIT_ROWS)) {
+  test(`LIMIT: ${limit}`, () => {
+    for (const [row, from, to, extra, readFile] of rows) {
+      assert.ok(ci.includes(from), from);
+      assert.deepEqual(notRun([...files, ...extra], ci.replace(from, () => to), readFile), [], `${row}: the check gives [] today; this is a named limit, not a pass. ${LIMITS[limit]}`);
+    }
   });
 }
