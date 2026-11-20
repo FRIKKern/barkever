@@ -10,17 +10,33 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const TEST_FILE = /\.test\.[a-z]+$/;
 
+export const WORKFLOW_KEYS = ["name", "on", "permissions", "concurrency", "defaults", "env", "jobs"];
+export const DEFAULTS = { run: { shell: "bash" } };
+export const ENV_KEYS = ["ELECTRON_SKIP_BINARY_DOWNLOAD"];
+export const JOB_KEYS = ["runs-on", "timeout-minutes", "env", "steps"];
+export const STEP_KEYS = ["name", "uses", "with", "run", "shell"];
+
+const off = (object, list) => Object.keys(object ?? {}).filter((key) => !list.includes(key));
+
 export function proofProblems(workflow, scope) {
-  return Object.keys(scope.jobs).flatMap((name) => {
+  const top = [
+    ...off(workflow, WORKFLOW_KEYS).map((key) => `workflow key ${key} is not on the list`),
+    ...("defaults" in workflow && JSON.stringify(workflow.defaults) !== JSON.stringify(DEFAULTS) ? [`workflow defaults are not exactly ${JSON.stringify(DEFAULTS)}`] : []),
+    ...off(workflow.env, ENV_KEYS).map((key) => `workflow env ${key} is not on the list`),
+  ];
+  return [...top, ...Object.keys(scope.jobs).flatMap((name) => {
     const job = workflow.jobs?.[name];
     if (!job) return [`${name}: in test-scope.json but not a ci job`];
     const steps = job.steps ?? [];
     return [
-      ...["if", "continue-on-error"].filter((key) => key in job).map((key) => `${name}: the job has ${key}, so its proof can be skipped`),
+      ...off(job, JOB_KEYS).map((key) => `${name}: job key ${key} is not on the list`),
+      ...off(job.env, ENV_KEYS).map((key) => `${name}: env ${key} is not on the list`),
+      ...[...new Set(steps.flatMap((step) => off(step, STEP_KEYS)))].map((key) => `${name}: step key ${key} is not on the list`),
+      ...steps.filter((step) => "shell" in step && step.shell !== "bash").map((step) => `${name}: step shell ${step.shell} is not bash`),
       ...(JSON.stringify(steps.at(-1)) === JSON.stringify(PROOF) ? [] : [`${name}: the last step is not exactly ${JSON.stringify(PROOF)}`]),
       ...steps.slice(0, -1).filter((step) => step.run === PROOF.run).map(() => `${name}: the proof runs before the last step`),
     ];
-  });
+  })];
 }
 
 export function scopeProblems(tracked, scope, filesOf) {
@@ -40,14 +56,36 @@ const tracked = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" 
 
 test("every job in test-scope.json ends with the test proof, and nothing can skip it", () => {
   assert.deepEqual(proofProblems(workflow, scope), []);
-  const job = (patch) => ({ jobs: { ...workflow.jobs, "test-app": { ...workflow.jobs["test-app"], ...patch } } });
+  const job = (patch) => ({ ...workflow, jobs: { ...workflow.jobs, "test-app": { ...workflow.jobs["test-app"], ...patch } } });
   const steps = workflow.jobs["test-app"].steps;
-  assert.deepEqual(proofProblems(job({ if: "false" }), scope), ["test-app: the job has if, so its proof can be skipped"]);
-  assert.deepEqual(proofProblems(job({ "continue-on-error": true }), scope), ["test-app: the job has continue-on-error, so its proof can be skipped"]);
-  assert.deepEqual(proofProblems(job({ steps: [...steps.slice(0, -1), { ...PROOF, if: "always()" }] }), scope), [`test-app: the last step is not exactly ${JSON.stringify(PROOF)}`]);
+  assert.deepEqual(proofProblems(job({ if: "false" }), scope), ["test-app: job key if is not on the list"]);
+  assert.deepEqual(proofProblems(job({ "continue-on-error": true }), scope), ["test-app: job key continue-on-error is not on the list"]);
+  assert.deepEqual(proofProblems(job({ steps: [...steps.slice(0, -1), { ...PROOF, if: "always()" }] }), scope), ["test-app: step key if is not on the list", `test-app: the last step is not exactly ${JSON.stringify(PROOF)}`]);
   assert.deepEqual(proofProblems(job({ steps: [...steps.slice(0, -1), { ...PROOF, run: `${PROOF.run} || true` }] }), scope), [`test-app: the last step is not exactly ${JSON.stringify(PROOF)}`]);
   assert.deepEqual(proofProblems(job({ steps: [...steps, { run: "echo later" }] }), scope), [`test-app: the last step is not exactly ${JSON.stringify(PROOF)}`, "test-app: the proof runs before the last step"]);
-  assert.deepEqual(proofProblems({ jobs: { ...workflow.jobs, "test-mac": undefined } }, scope), ["test-mac: in test-scope.json but not a ci job"]);
+  assert.deepEqual(proofProblems({ ...workflow, jobs: { ...workflow.jobs, "test-mac": undefined } }, scope), ["test-mac: in test-scope.json but not a ci job"]);
+});
+
+test("no workflow or job key can turn the proof into a no-op", () => {
+  const job = (patch) => ({ ...workflow, jobs: { ...workflow.jobs, gate: { "runs-on": "ubuntu-latest", if: "false", steps: [{ run: "true" }] }, "test-app": { ...workflow.jobs["test-app"], ...patch } } });
+  assert.deepEqual(proofProblems({ ...workflow, defaults: { run: { shell: "true {0}" } } }, scope), [`workflow defaults are not exactly ${JSON.stringify(DEFAULTS)}`]);
+  assert.deepEqual(proofProblems(job({ defaults: { run: { shell: "true {0}" } } }), scope), ["test-app: job key defaults is not on the list"]);
+  assert.deepEqual(proofProblems(job({ defaults: { run: { "working-directory": "app" } } }), scope), ["test-app: job key defaults is not on the list"]);
+  assert.deepEqual(proofProblems(job({ needs: "gate" }), scope), ["test-app: job key needs is not on the list"]);
+  assert.deepEqual(proofProblems(job({ env: { NODE_OPTIONS: "--import ./forge.mjs" } }), scope), ["test-app: env NODE_OPTIONS is not on the list"]);
+  assert.deepEqual(proofProblems({ ...workflow, env: { ...workflow.env, NODE_OPTIONS: "--import ./forge.mjs" } }, scope), ["workflow env NODE_OPTIONS is not on the list"]);
+  assert.deepEqual(proofProblems(job({ steps: [{ run: "pnpm test", shell: "true {0}" }, ...workflow.jobs["test-app"].steps] }), scope), ["test-app: step shell true {0} is not bash"]);
+  assert.deepEqual(proofProblems(job({ steps: [{ run: "pnpm test", "working-directory": "app" }, ...workflow.jobs["test-app"].steps] }), scope), ["test-app: step key working-directory is not on the list"]);
+  assert.deepEqual(proofProblems({ ...workflow, "run-name": "x" }, scope), ["workflow key run-name is not on the list"]);
+});
+
+test("the key lists are written out, counted, and may only shrink", () => {
+  assert.deepEqual([WORKFLOW_KEYS.length, ENV_KEYS.length, JOB_KEYS.length, STEP_KEYS.length], [7, 1, 4, 5]);
+  assert.deepEqual(WORKFLOW_KEYS, ["name", "on", "permissions", "concurrency", "defaults", "env", "jobs"]);
+  assert.deepEqual(DEFAULTS, { run: { shell: "bash" } });
+  assert.deepEqual(ENV_KEYS, ["ELECTRON_SKIP_BINARY_DOWNLOAD"]);
+  assert.deepEqual(JOB_KEYS, ["runs-on", "timeout-minutes", "env", "steps"]);
+  assert.deepEqual(STEP_KEYS, ["name", "uses", "with", "run", "shell"]);
 });
 
 test("the scopes hold every tracked test file once, but those listed as not in ci", () => {
@@ -62,5 +100,5 @@ test("the skip list is pinned by count and may only shrink", () => {
 });
 
 test("the check states what it cannot catch", () => {
-  assert.equal(LIMIT, "tracked code can forge the report");
+  assert.equal(LIMIT, "tracked code can forge the report; a test file that ends its own process early with exit 0 belongs to this limit");
 });
