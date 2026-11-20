@@ -122,6 +122,7 @@ function bare() {
 function folder(t, tree) {
   const temp = realpathSync(mkdtempSync(join(tmpdir(), "limit-")));
   t.after(() => rmSync(temp, { recursive: true, force: true }));
+  mkdirSync(join(temp, "tmp"));
   for (const [path, text] of Object.entries(tree)) {
     mkdirSync(dirname(join(temp, path)), { recursive: true });
     writeFileSync(join(temp, path), text);
@@ -129,7 +130,7 @@ function folder(t, tree) {
   const dir = reportDir({ RUNNER_TEMP: join(temp, "runner") });
   const at = (path) => relative(realpathSync(root), join(temp, path));
   const proof = (files) => prove({ job: "t", scope: { jobs: { t: ["x"] }, skips: [] }, inScope: files.map(at), reports: readReports(dir), dirty: "", flags: "", reporter: REPORTER, dir, root: temp });
-  const own = (...args) => spawnSync("node", [fileURLToPath(new URL("own-tmp.mjs", import.meta.url)), "node", "--test", ...args], { cwd: temp, env: { ...bare(), RUNNER_TEMP: join(temp, "runner") }, encoding: "utf8", timeout: 30_000 });
+  const own = (...args) => spawnSync("node", [fileURLToPath(new URL("own-tmp.mjs", import.meta.url)), "node", "--test", ...args], { cwd: temp, env: { ...bare(), RUNNER_TEMP: join(temp, "runner"), TMPDIR: `${join(temp, "tmp")}/` }, encoding: "utf8", timeout: 30_000 });
   return { temp, dir, at, proof, own };
 }
 
@@ -165,6 +166,12 @@ export const PLANTS = {
     assert.deepEqual(proof(["zz/first.test.mjs"]), [`${at("zz/first.test.mjs")}: no test passed`]);
   },
 };
+
+test("the plants' own-tmp keeps its run dir inside the plant's own folder", (t) => {
+  const { temp, own } = folder(t, { "zz/where.test.mjs": 'import { test } from "node:test";\nimport { writeFileSync } from "node:fs";\ntest("where", () => writeFileSync("where.txt", process.env.TMPDIR ?? ""));\n' });
+  assert.equal(own("zz/where.test.mjs").status, 0);
+  assert.ok(readFileSync(join(temp, "where.txt"), "utf8").startsWith(join(temp, "tmp", "barkever-run-")));
+});
 
 test("every known limit has a plant that runs, and every plant a limit", () => {
   assert.deepEqual(Object.keys(KNOWN_LIMITS), ["L1", "L2", "L3", "L4", "L5"]);

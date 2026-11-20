@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,6 +29,7 @@ function realRun(t, tree, runs) {
   const base = realpathSync(mkdtempSync(join(tmpdir(), "proof-")));
   t.after(() => rmSync(base, { recursive: true, force: true }));
   mkdirSync(join(base, "real"));
+  mkdirSync(join(base, "tmp"));
   symlinkSync(join(base, "real"), join(base, "link"));
   const temp = join(base, "link");
   for (const [path, text] of Object.entries(tree)) {
@@ -37,7 +38,7 @@ function realRun(t, tree, runs) {
   }
   const env = bare();
   const runner = join(temp, "runner");
-  for (const { cwd = "", args } of runs) spawnSync("node", args, { cwd: join(temp, cwd), env: { ...env, RUNNER_TEMP: runner }, encoding: "utf8", timeout: 30_000 });
+  for (const { cwd = "", args } of runs) spawnSync("node", args, { cwd: join(temp, cwd), env: { ...env, RUNNER_TEMP: runner, TMPDIR: `${join(base, "tmp")}/` }, encoding: "utf8", timeout: 30_000 });
   const dir = reportDir({ RUNNER_TEMP: runner });
   const inScope = Object.keys(tree).filter((path) => path.includes(".test.")).map((path) => relative(REPO, join(base, "real", path)));
   const at = (path) => relative(REPO, join(base, "real", path));
@@ -46,6 +47,11 @@ function realRun(t, tree, runs) {
 
 const own = (...args) => [OWN, "node", "--test", ...args];
 const SUITES = 'import { describe, test } from "node:test";\ntest("works", () => {});\ndescribe("hidden group", { skip: true }, () => {\n  test("breaks", () => {\n    throw new Error("x");\n  });\n});\ndescribe.skip("skip group", () => {\n  test("inside", () => {});\n});\ndescribe.todo("todo group", () => {\n  test("later", () => {});\n});\n';
+
+test("the real runs' own-tmp keeps its run dir inside the test's own folder", (t) => {
+  const { temp } = realRun(t, { "zz/where.test.mjs": 'import { test } from "node:test";\nimport { writeFileSync } from "node:fs";\ntest("where", () => writeFileSync("where.txt", process.env.TMPDIR ?? ""));\n' }, [{ args: own("zz/where.test.mjs") }]);
+  assert.ok(readFileSync(join(temp, "where.txt"), "utf8").startsWith(join(dirname(temp), "tmp", "barkever-run-")));
+});
 
 test("a full set of passing files is green", () => {
   assert.deepEqual(proof(green()), []);
