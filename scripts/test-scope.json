@@ -1,0 +1,12 @@
+{
+  "jobs": {
+    "check": ["conformance/*.test.mjs"],
+    "test-scripts": ["scripts/*.test.mjs"],
+    "test-app": ["app/src/*/*.test.ts", "app/scripts/*.test.ts", "app/e2e/*.test.ts"],
+    "test-mac": ["mac/src/*.test.ts", "mac/scripts/*.test.mjs", "mac/e2e/*.test.ts"]
+  },
+  "notInCi": {
+    "app/e2e/j10/j10.test.ts": "J10 signs in to the live server, and ci holds no session"
+  },
+  "skips": []
+}

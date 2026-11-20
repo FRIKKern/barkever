@@ -56,6 +56,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npm run check
+      - name: test proof
+        run: node scripts/test-proof.mjs
 
   build:
     runs-on: ubuntu-latest
@@ -86,6 +88,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node scripts/own-tmp.mjs --deadline=1200000 node --test --test-timeout=300000 scripts/*.test.mjs
+      - name: test proof
+        run: node scripts/test-proof.mjs
 
   test-app:
     runs-on: ubuntu-latest
@@ -101,6 +105,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @barkever/app test
+      - name: test proof
+        run: node scripts/test-proof.mjs
 
   test-mac:
     runs-on: macos-latest
@@ -118,6 +124,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @barkever/mac test
+      - name: test proof
+        run: node scripts/test-proof.mjs
 
   e2e-gate:
     runs-on: ubuntu-latest
