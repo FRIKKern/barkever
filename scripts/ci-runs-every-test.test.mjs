@@ -17,7 +17,7 @@ export const NOT_IN_CI = {
 export const SCOPE = "a development check; text cannot prove a test ran";
 
 export const LIMITS = {
-  "a pnpm built-in shadowing a script name": "pnpm doctor or pnpm bin runs pnpm's own command and exits 0, so the script of that name never runs",
+  "a pnpm built-in command that shares a name with a script": "pnpm doctor or pnpm bin runs pnpm's own command and exits 0, so the script of that name never runs",
   "pre, post and install hooks": "pretest, precheck, postinstall and prepare run around the scripts the check reads, and the check does not read them",
   "a tracked file run by node, tsx or --require": "the check reads the command, not the file, so a tracked file can stop or empty the tests",
   ".pnpmfile.cjs and the package.json pnpm field": "both change what pnpm installs and runs, and the check reads neither",
@@ -162,6 +162,7 @@ export function notRun(files, ciText, readFile = readOrNull) {
   const run = shared.length ? [] : checked.filter((job) => !job.flaws.length).flatMap((job) => job.tests).map(matcher);
   const missed = files.filter((file) => TEST_FILE.test(file) && !run.some((glob) => glob.test(file)));
   return [
+    ...files.filter((file) => TEST_FILE.test(file) && posix.basename(file).startsWith(".")).map((file) => `${file}: a test file named with a leading dot, which the shell glob never runs`),
     ...shared,
     ...checked.flatMap((job) => job.flaws),
     ...missed.filter((file) => !NOT_IN_CI[file]).map((file) => `${file}: no ci job runs it`),
@@ -248,12 +249,13 @@ const PLANTS = [
   ["cd away in a package script", APP, APP, `test-app step 5: app/package.json test: ${noShape("cd /tmp")}`, appTest(`cd /tmp && ${appPackage.scripts.test}`)],
   ["roadmap.mjs as the runner in a package script", APP, APP, `test-app step 5: app/package.json test: ${noShape(appPackage.scripts.test.replace("own-tmp", "roadmap"))}`, appTest(appPackage.scripts.test.replace("own-tmp", "roadmap"))],
   ["script-shell in .npmrc", APP, APP, ".npmrc: npmrc key script-shell is not one the check reads", withFile(".npmrc", `${read(".npmrc").trimEnd()}\nscript-shell=/usr/bin/true\n`)],
+  ["a test file named with a leading dot", APP, APP, "scripts/.x.test.mjs: a test file named with a leading dot, which the shell glob never runs", undefined, ["scripts/.x.test.mjs"]],
 ];
 
-for (const [name, from, to, problem, readFile] of PLANTS) {
+for (const [name, from, to, problem, readFile, extra = []] of PLANTS) {
   test(`plant: ${name}`, () => {
     assert.ok(ci.includes(from), from);
-    const problems = notRun(files, ci.replace(from, () => to), readFile);
+    const problems = notRun([...files, ...extra], ci.replace(from, () => to), readFile);
     assert.ok(problems.includes(problem), JSON.stringify(problems));
   });
 }
@@ -262,7 +264,7 @@ const rootPackage = JSON.parse(read("package.json"));
 const rootWith = (fields) => withFile("package.json", JSON.stringify({ ...rootPackage, ...fields, scripts: { ...rootPackage.scripts, ...fields.scripts } }));
 
 const LIMIT_ROWS = {
-  "a pnpm built-in shadowing a script name": [
+  "a pnpm built-in command that shares a name with a script": [
     ["pnpm doctor with a root doctor script that runs the tests", SCRIPTS, "      - run: pnpm doctor", [], rootWith({ scripts: { doctor: SCRIPTS_RUN } })],
     ["pnpm bin with a root bin script that runs the tests", SCRIPTS, "      - run: pnpm bin", [], rootWith({ scripts: { bin: SCRIPTS_RUN } })],
   ],
