@@ -1,10 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { load } from "js-yaml";
-import { LIMIT, PROOF, scopeFiles } from "./test-proof.mjs";
+import { LIMIT, PROOF, prove, readReports, scopeFiles } from "./test-proof.mjs";
+import { REPORTER, reportDir } from "./test-report.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -102,3 +105,70 @@ test("the skip list is pinned by count and may only shrink", () => {
 test("the check states what it cannot catch", () => {
   assert.equal(LIMIT, "tracked code can forge the report; a test file that ends its own process early with exit 0 belongs to this limit");
 });
+
+export const KNOWN_LIMITS = {
+  L1: "a later direct run of the reporter that rewrites a report own-tmp made",
+  L2: "run text that writes GITHUB_ENV, GITHUB_PATH or BASH_ENV, or a node earlier on PATH",
+  L3: "any uses: step or with: value",
+  L4: "an on: cut to workflow_dispatch only, which shows as missing checks rather than a pass",
+  L5: "a real test call at line 1, column 1 is read as the file row, a known false red",
+};
+
+function bare() {
+  const { BARKEVER_TEST_REPORTING, NODE_TEST_CONTEXT, NODE_OPTIONS, RUNNER_TEMP, GITHUB_JOB, BASH_ENV, ...env } = process.env;
+  return env;
+}
+
+function folder(t, tree) {
+  const temp = realpathSync(mkdtempSync(join(tmpdir(), "limit-")));
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  for (const [path, text] of Object.entries(tree)) {
+    mkdirSync(dirname(join(temp, path)), { recursive: true });
+    writeFileSync(join(temp, path), text);
+  }
+  const dir = reportDir({ RUNNER_TEMP: join(temp, "runner") });
+  const at = (path) => relative(realpathSync(root), join(temp, path));
+  const proof = (files) => prove({ job: "t", scope: { jobs: { t: ["x"] }, skips: [] }, inScope: files.map(at), reports: readReports(dir), dirty: "", flags: "", reporter: REPORTER, dir, root: temp });
+  const own = (...args) => spawnSync("node", [fileURLToPath(new URL("own-tmp.mjs", import.meta.url)), "node", "--test", ...args], { cwd: temp, env: { ...bare(), RUNNER_TEMP: join(temp, "runner") }, encoding: "utf8", timeout: 30_000 });
+  return { temp, dir, at, proof, own };
+}
+
+const proofExit = (env, shell = "node scripts/test-proof.mjs") => spawnSync("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", shell], { cwd: root, env: { ...bare(), ...env }, encoding: "utf8", timeout: 30_000 }).status;
+
+export const PLANTS = {
+  L1: (t) => {
+    const { temp, dir, proof, own } = folder(t, { "zz/b.test.mjs": 'import { test } from "node:test";\ntest("kept", () => {});\ntest("dropped and broken", () => {\n  throw new Error("x");\n});\n' });
+    own("zz/b.test.mjs");
+    assert.notDeepEqual(proof(["zz/b.test.mjs"]), []);
+    const [report] = Object.keys(readReports(dir)).filter((name) => /^\d+\.jsonl$/.test(name));
+    spawnSync("node", ["--test", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${join(dir, report)}`, "--test-name-pattern=kept", "zz/b.test.mjs"], { cwd: temp, env: bare(), encoding: "utf8", timeout: 30_000 });
+    assert.deepEqual(proof(["zz/b.test.mjs"]), []);
+  },
+  L2: (t) => {
+    const { temp } = folder(t, { "bash-env": "exit 0\n", "bin/node": "#!/bin/sh\nexit 0\n" });
+    chmodSync(join(temp, "bin/node"), 0o755);
+    assert.equal(proofExit({}), 1);
+    assert.equal(proofExit({ NODE_OPTIONS: "--import=data:text/javascript,process.exit(0)" }), 0);
+    assert.equal(proofExit({ BASH_ENV: join(temp, "bash-env") }), 0);
+    assert.equal(proofExit({ PATH: `${join(temp, "bin")}:${process.env.PATH}` }), 0);
+  },
+  L3: () => {
+    const steps = workflow.jobs["test-app"].steps.map((step) => (step.uses?.startsWith("actions/setup-node@") ? { ...step, with: { ...step.with, "node-version": 18 } } : step.uses?.startsWith("actions/checkout@") ? { uses: "someone/else@v1" } : step));
+    assert.deepEqual(proofProblems({ ...workflow, jobs: { ...workflow.jobs, "test-app": { ...workflow.jobs["test-app"], steps } } }, scope), []);
+  },
+  L4: () => {
+    assert.deepEqual(proofProblems({ ...workflow, on: { workflow_dispatch: {} } }, scope), []);
+  },
+  L5: (t) => {
+    const { at, proof, own } = folder(t, { "zz/first.test.mjs": 'test("on the first line", () => {});\nimport { test } from "node:test";\n' });
+    assert.equal(own("zz/first.test.mjs").status, 0);
+    assert.deepEqual(proof(["zz/first.test.mjs"]), [`${at("zz/first.test.mjs")}: no test passed`]);
+  },
+};
+
+test("every known limit has a plant that runs, and every plant a limit", () => {
+  assert.deepEqual(Object.keys(KNOWN_LIMITS), ["L1", "L2", "L3", "L4", "L5"]);
+  assert.deepEqual(Object.keys(PLANTS), Object.keys(KNOWN_LIMITS));
+});
+
+for (const [id, plant] of Object.entries(PLANTS)) test(`known limit ${id}: ${KNOWN_LIMITS[id]}`, plant);
