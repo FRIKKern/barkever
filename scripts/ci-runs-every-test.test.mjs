@@ -17,7 +17,7 @@ export const NOT_IN_CI = {
 export const SCOPE = "a development check; text cannot prove a test ran";
 
 export const LIMITS = {
-  "a pnpm built-in command that shares a name with a script": "pnpm doctor or pnpm bin runs pnpm's own command and exits 0, so the script of that name never runs",
+  "a pnpm built-in command that shares a name with a script": "pnpm runs its own command of that name instead of the script, and when that command exits 0 the script never runs",
   "pre, post and install hooks": "pretest, precheck, postinstall and prepare run around the scripts the check reads, and the check does not read them",
   "a tracked file run by node, tsx or --require": "the check reads the command, not the file, so a tracked file can stop or empty the tests",
   ".pnpmfile.cjs and the package.json pnpm field": "both change what pnpm installs and runs, and the check reads neither",
@@ -162,7 +162,7 @@ export function notRun(files, ciText, readFile = readOrNull) {
   const run = shared.length ? [] : checked.filter((job) => !job.flaws.length).flatMap((job) => job.tests).map(matcher);
   const missed = files.filter((file) => TEST_FILE.test(file) && !run.some((glob) => glob.test(file)));
   return [
-    ...files.filter((file) => TEST_FILE.test(file) && posix.basename(file).startsWith(".")).map((file) => `${file}: a test file named with a leading dot, which the shell glob never runs`),
+    ...files.filter((file) => TEST_FILE.test(file) && file.split("/").some((segment) => segment.startsWith("."))).map((file) => `${file}: a test file under a dot-named path, which the shell glob never runs`),
     ...shared,
     ...checked.flatMap((job) => job.flaws),
     ...missed.filter((file) => !NOT_IN_CI[file]).map((file) => `${file}: no ci job runs it`),
@@ -249,7 +249,8 @@ const PLANTS = [
   ["cd away in a package script", APP, APP, `test-app step 5: app/package.json test: ${noShape("cd /tmp")}`, appTest(`cd /tmp && ${appPackage.scripts.test}`)],
   ["roadmap.mjs as the runner in a package script", APP, APP, `test-app step 5: app/package.json test: ${noShape(appPackage.scripts.test.replace("own-tmp", "roadmap"))}`, appTest(appPackage.scripts.test.replace("own-tmp", "roadmap"))],
   ["script-shell in .npmrc", APP, APP, ".npmrc: npmrc key script-shell is not one the check reads", withFile(".npmrc", `${read(".npmrc").trimEnd()}\nscript-shell=/usr/bin/true\n`)],
-  ["a test file named with a leading dot", APP, APP, "scripts/.x.test.mjs: a test file named with a leading dot, which the shell glob never runs", undefined, ["scripts/.x.test.mjs"]],
+  ["a test file named with a leading dot", APP, APP, "scripts/.x.test.mjs: a test file under a dot-named path, which the shell glob never runs", undefined, ["scripts/.x.test.mjs"]],
+  ["a test file in a dot-named folder", APP, APP, "app/src/.hid/y.test.ts: a test file under a dot-named path, which the shell glob never runs", undefined, ["app/src/.hid/y.test.ts"]],
 ];
 
 for (const [name, from, to, problem, readFile, extra = []] of PLANTS) {
