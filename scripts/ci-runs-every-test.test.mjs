@@ -108,7 +108,7 @@ test("the check states what it cannot catch", () => {
 
 export const KNOWN_LIMITS = {
   L1: "a later direct run of the reporter that rewrites a report own-tmp made",
-  L2: "run text that writes GITHUB_ENV, GITHUB_PATH or BASH_ENV, or a node earlier on PATH",
+  L2: "workflow run text is tracked code, so a step that writes GITHUB_ENV, GITHUB_PATH or BASH_ENV, rewrites the proof file or node, or reaches the runner's files by any route is inside the stated limit; no fix is pending",
   L3: "any uses: step or with: value",
   L4: "an on: cut to workflow_dispatch only, which shows as missing checks rather than a pass",
   L5: "a real test call at line 1, column 1 is read as the file row, a known false red",
