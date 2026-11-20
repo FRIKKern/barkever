@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,8 +26,11 @@ function bare() {
 }
 
 function realRun(t, tree, runs) {
-  const temp = mkdtempSync(join(tmpdir(), "proof-"));
-  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  const base = realpathSync(mkdtempSync(join(tmpdir(), "proof-")));
+  t.after(() => rmSync(base, { recursive: true, force: true }));
+  mkdirSync(join(base, "real"));
+  symlinkSync(join(base, "real"), join(base, "link"));
+  const temp = join(base, "link");
   for (const [path, text] of Object.entries(tree)) {
     mkdirSync(dirname(join(temp, path)), { recursive: true });
     writeFileSync(join(temp, path), text);
@@ -36,8 +39,8 @@ function realRun(t, tree, runs) {
   const runner = join(temp, "runner");
   for (const { cwd = "", args } of runs) spawnSync("node", args, { cwd: join(temp, cwd), env: { ...env, RUNNER_TEMP: runner }, encoding: "utf8", timeout: 30_000 });
   const dir = reportDir({ RUNNER_TEMP: runner });
-  const inScope = Object.keys(tree).filter((path) => path.includes(".test.")).map((path) => relative(REPO, join(temp, path)));
-  const at = (path) => relative(REPO, join(temp, path));
+  const inScope = Object.keys(tree).filter((path) => path.includes(".test.")).map((path) => relative(REPO, join(base, "real", path)));
+  const at = (path) => relative(REPO, join(base, "real", path));
   return { temp, dir, at, problems: prove({ job: "t", scope, inScope, reports: readReports(dir), dirty: "", flags: "", reporter: REPORTER, dir, root: temp }) };
 }
 
@@ -72,7 +75,7 @@ test("the reporter knows the whole-file row by its shape, whatever node names it
   assert.deepEqual(rows.map(({ kind, name, result }) => [kind, name, result]), [["file", "x.test.mjs", "pass"], ["file", "zz/x.test.mjs", "pass"], ["file", "src/lib/x.test.ts", "pass"], ["file", "/abs/x.test.mjs", "pass"], ["test", "real", "pass"], ["test", "group", "skip"]]);
 });
 
-test("an empty or comment-only file is red by name, from the root and from app", (t) => {
+test("an empty or comment-only file is red by name, from the root and from app, through a symlinked folder", (t) => {
   const { problems, at } = realRun(t, { "zz/empty.test.mjs": "", "zz/comment.test.mjs": "// nothing here\n", "app/src/zz/empty.test.ts": "" }, [
     { args: own("zz/empty.test.mjs", "zz/comment.test.mjs") },
     { cwd: "app", args: own("--experimental-strip-types", "src/zz/empty.test.ts") },
@@ -113,6 +116,18 @@ test("the run's folder is the repo, app or mac, and --require is allowed in mac 
   assert.deepEqual(proof(green(undefined, record(args))), ["41.run.jsonl: node argument --require is not on the list", "41.run.jsonl: node argument ./test/fake/parent-watch.cjs is not on the list"]);
   assert.deepEqual(proof(green(undefined, record(undefined, { cwd: "/elsewhere" }))), ["41.run.jsonl: working folder /elsewhere is not the repo, app or mac"]);
   assert.deepEqual(proof(green(undefined, record(undefined, { cwd: "mac" }))), ["41.run.jsonl: working folder mac is not the repo, app or mac"]);
+});
+
+test("paths are compared as real paths, so a symlinked repo, folder or reporter is the same one", (t) => {
+  const base = mkdtempSync(join(tmpdir(), "proof-"));
+  t.after(() => rmSync(base, { recursive: true, force: true }));
+  symlinkSync(REPO, join(base, "repo"));
+  const link = join(base, "repo");
+  const run = { kind: "run", argv: ["node", ...reporterArgs(join(link, "scripts/test-report.mjs"), DIR, 41), "--test", "a/*.test.mjs"], nodeOptions: "", cwd: join(link, "app") };
+  assert.deepEqual(proof(green(undefined, run), { root: REPO }), []);
+  assert.deepEqual(proof(green(undefined, { ...run, cwd: join(link, "scripts") }), { root: REPO }), [`41.run.jsonl: working folder ${join(link, "scripts")} is not the repo, app or mac`]);
+  const other = { ...run, argv: ["node", ...reporterArgs(join(link, "scripts/test-proof.mjs"), DIR, 41), "--test", "a/*.test.mjs"] };
+  assert.equal(proof(green(undefined, other), { root: REPO })[0], "41.run.jsonl: node reporter arguments are not the ones own-tmp adds for 41.jsonl");
 });
 
 test("a name or skip pattern on a test process is red by the argument list", () => {
@@ -163,7 +178,7 @@ test("own-tmp records a node --test run and its report, and node 22 leaves filte
   const [runName] = Object.keys(reports).filter((name) => name.endsWith(".run.jsonl"));
   const pid = Number(runName.split(".")[0]);
   assert.deepEqual(Object.keys(reports).sort(), [`${pid}.jsonl`, runName]);
-  assert.deepEqual(reports[runName].map(({ argv, cwd }) => [argv, cwd]), [[["node", ...reporterArgs(REPORTER, dir, pid), "--test", "--test-name-pattern=kept|later", "a.test.mjs", "b.test.mjs"], temp]]);
+  assert.deepEqual(reports[runName].map(({ argv, cwd }) => [argv, cwd]), [[["node", ...reporterArgs(REPORTER, dir, pid), "--test", "--test-name-pattern=kept|later", "a.test.mjs", "b.test.mjs"], realpathSync(temp)]]);
   assert.deepEqual(reports[`${pid}.jsonl`].map(({ kind, file, name, result }) => [kind, file.split("/").pop(), name, result]).sort(), [["file", "b.test.mjs", "b.test.mjs", "pass"], ["test", "a.test.mjs", "kept", "pass"], ["test", "a.test.mjs", "later", "skip"]]);
   const local = mkdtempSync(join(temp, "local-"));
   const outside = bare();

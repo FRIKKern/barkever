@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { REPORTER, reportDir } from "./test-report.mjs";
 
@@ -22,6 +22,15 @@ const RUN = /^(\d+)\.run\.jsonl$/;
 const word = (part) => new RegExp(`^${part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace("<ms>", "\\d+")}$`);
 const MATCHERS = ARGUMENTS.map((entry) => (entry.arg === "<test path>" ? { ...entry, path: true, words: [TEST_PATH] } : { ...entry, path: false, words: entry.arg.split(" ").map(word) }));
 
+const real = (path) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return dirname(path) === path ? path : join(real(dirname(path)), basename(path));
+  }
+};
+const same = (path, expected) => isAbsolute(path) && real(path) === real(expected);
+
 export const reporterArgs = (reporter, dir, pid) => ["--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${reporter}`, `--test-reporter-destination=${join(dir, `${pid}.jsonl`)}`];
 
 function offList(args, paths, folder) {
@@ -35,8 +44,10 @@ function offList(args, paths, folder) {
 }
 
 function runProblems(name, pid, { argv = [], nodeOptions = "", cwd = "" }, { reporter, dir, root }) {
-  const folder = isAbsolute(cwd) ? relative(root, cwd) : null;
-  const ours = JSON.stringify(argv.slice(1, 5)) === JSON.stringify(reporterArgs(reporter, dir, pid));
+  const folder = isAbsolute(cwd) ? relative(real(root), real(cwd)) : null;
+  const [spec, stdout, use, into] = argv.slice(1, 5).map(String);
+  const [specWanted, stdoutWanted] = reporterArgs(reporter, dir, pid);
+  const ours = spec === specWanted && stdout === stdoutWanted && use?.startsWith("--test-reporter=") && same(use.slice("--test-reporter=".length), reporter) && into?.startsWith("--test-reporter-destination=") && same(into.slice("--test-reporter-destination=".length), join(dir, `${pid}.jsonl`));
   return [
     ...(argv[0] === "node" ? [] : [`${name}: test process ${argv[0]} is not node`]),
     ...(ours ? [] : [`${name}: node reporter arguments are not the ones own-tmp adds for ${pid}.jsonl`]),
